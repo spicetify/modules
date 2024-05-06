@@ -1,0 +1,6 @@
+{
+  "dependencies": {},
+  "devDependencies": { "@tanstack/react-query": "^5.27.5", "@types/classnames": "^2.3.1", "@types/lodash": "^4.17.0", "@types/mousetrap": "^1.6.15", "@types/react": "^18.2.65", "@types/react-dom": "^18.2.21", "@types/redux": "^3.6.0", "notistack": "^3.0.1", "react-flip-toolkit": "^7.1.0" },
+  "peerDependencies": {},
+  "private": true
+}
