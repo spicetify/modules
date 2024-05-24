@@ -1,14 +1,23 @@
 {
 	"name": "palette-manager",
-	"tags": ["extension", "theming", "scheming"],
+	"tags": [
+		"extension",
+		"theming",
+		"scheming"
+	],
 	"preview": "./assets/PREVIEW.png",
-	"version": "beta",
-	"authors": ["official", "harbassan"],
+	"version": "0.1.0-beta",
+	"authors": [
+		"official",
+		"harbassan"
+	],
 	"description": "Manager for theme color schemes",
 	"readme": "./assets/README.md",
 	"entries": {
 		"js": "index.js",
 		"css": "index.css"
 	},
-	"dependencies": ["official/stdlib"]
+	"dependencies": [
+		"official/stdlib"
+	]
 }
