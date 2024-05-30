@@ -1,5 +1,5 @@
 ```pwsh
-git clone --recurse-submodules github.com/spicetify/modules $env.LOCALAPPDATA/bespoke/modules/official/
+git clone --recurse-submodules github.com/spicetify/modules $env.LOCALAPPDATA/spicetify/modules/official/
 ```
 
 ## License
