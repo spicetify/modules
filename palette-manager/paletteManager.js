@@ -1,144 +1,17 @@
-/* Copyright © 2024
- *      harbassan <harbassan@hotmail.com>
- *
- * This file is part of bespoke/modules/palette-manager.
- *
- * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
- */
-
-// TODO: edit these keys
-const def_fields = {
-    text: "#ffffff",
-    subtext: "#a7a7a7",
-    base: "#000000",
-    main: "#121212",
-    main_elevated: "#242424",
-    highlight: "#1a1a1a",
-    highlight_elevated: "#2a2a2a",
-    card: "#292929",
-    button: "#1ed760",
-    button_active: "#1ed760",
-    notification: "#3d91f4",
-    tab: "#b3b3b3",
-    tab_active: "#ffffff",
-    playbar: "#ffffff",
-    playbar_active: "#1ed760"
+import { TopbarLeftButton } from "/modules/official/stdlib/src/registers/topbarLeftButton.js";
+import Modal from "/modules/official/palette-manager/modal.js";
+import { React } from "/modules/official/stdlib/src/expose/React.js";
+import { display } from "/modules/official/stdlib/lib/modal.js";
+export const EditButton = ()=>{
+    return /*#__PURE__*/ React.createElement(TopbarLeftButton, {
+        label: "Palette Manager",
+        icon: '<path d="M11.472.279L2.583 10.686l-.887 4.786 4.588-1.625L15.173 3.44 11.472.279zM5.698 12.995l-2.703.957.523-2.819v-.001l2.18 1.863zm-1.53-2.623l7.416-8.683 2.18 1.862-7.415 8.683-2.181-1.862z"/>',
+        onClick: ()=>{
+            display({
+                title: "Palette Manager",
+                content: /*#__PURE__*/ React.createElement(Modal, null),
+                isLarge: true
+            });
+        }
+    });
 };
-// store
-class PaletteManager {
-    static instance;
-    local_palettes;
-    static_palettes;
-    curr_palette;
-    stylesheet;
-    constructor(){
-        this.local_palettes = JSON.parse(localStorage.getItem("palettes") || "[]");
-        this.static_palettes = [
-            {
-                name: "Spotify • default",
-                local: false,
-                fields: def_fields
-            }
-        ];
-        this.curr_palette = JSON.parse(localStorage.getItem("curr_palette") || "null") || this.static_palettes[0];
-        this.stylesheet = document.createElement("style");
-        document.head.appendChild(this.stylesheet);
-        this.writePalette(this.curr_palette);
-    }
-    static getInstance() {
-        if (!PaletteManager.instance) {
-            PaletteManager.instance = new PaletteManager();
-        }
-        return PaletteManager.instance;
-    }
-    getPalettes() {
-        return [
-            ...this.local_palettes,
-            ...this.static_palettes
-        ];
-    }
-    getPalette(name) {
-        if (name === "def") return this.static_palettes[0];
-        return this.getPalettes().find((palette)=>palette.name === name);
-    }
-    fromPartial(partial_palette, local = true) {
-        return {
-            name: partial_palette.name,
-            local: local,
-            fields: {
-                ...def_fields,
-                ...partial_palette.fields
-            }
-        };
-    }
-    hexToRgb(hex) {
-        const r = Number.parseInt(hex.slice(1, 3), 16);
-        const g = Number.parseInt(hex.slice(3, 5), 16);
-        const b = Number.parseInt(hex.slice(5, 7), 16);
-        return `${r}, ${g}, ${b}`;
-    }
-    stringifyPalette(palette) {
-        return Object.entries(palette.fields).flatMap(([name, value])=>[
-                `--spice-${name}: ${value};`,
-                `--spice-rgb-${name}: ${this.hexToRgb(value)};`
-            ]).join(" ");
-    }
-    writePalette(palette) {
-        this.stylesheet.innerHTML = `.encore-dark-theme { ${this.stringifyPalette(palette)} }`;
-    }
-    togglePalette(name) {
-        const palette = this.getPalette(name);
-        this.curr_palette = palette;
-        this.writePalette(palette);
-        localStorage.setItem("curr_palette", JSON.stringify(palette));
-    }
-    // local palettes
-    createLocal(partial_palette) {
-        const palette = this.fromPartial(partial_palette);
-        this.local_palettes.push(palette);
-        localStorage.setItem("palettes", JSON.stringify(this.local_palettes));
-        return palette;
-    }
-    updateLocal(name, new_fields) {
-        const palette = this.getPalette(name);
-        palette.fields = new_fields;
-        localStorage.setItem("palettes", JSON.stringify(this.local_palettes));
-        if (this.curr_palette.name === name) {
-            this.writePalette(palette);
-        }
-    }
-    deleteLocal(name) {
-        this.local_palettes = this.local_palettes.filter((palette)=>palette.name !== name);
-        localStorage.setItem("palettes", JSON.stringify(this.local_palettes));
-    }
-    renameLocal(name, new_name) {
-        const palette = this.getPalette(name);
-        palette.name = new_name;
-        localStorage.setItem("palettes", JSON.stringify(this.local_palettes));
-        this.togglePalette(new_name);
-    }
-    // static palettes
-    createStatics(partial_palettes, provider) {
-        const palettes = partial_palettes.map((palette)=>{
-            palette.name = `${palette.name} • ${provider}`;
-            return this.fromPartial(palette, false);
-        });
-        this.static_palettes.push(...palettes);
-    }
-    getCurrPalette() {
-        return this.curr_palette;
-    }
-}
-const paletteManager = PaletteManager.getInstance();
-export default paletteManager;

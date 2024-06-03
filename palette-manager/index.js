@@ -15,76 +15,48 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
- */
-
-import { S } from "/modules/official/stdlib/index.js";
-import { SVGIcons, createRegistrar } from "/modules/official/stdlib/index.js";
-import { display } from "/modules/official/stdlib/lib/modal.js";
-import { Button } from "/modules/official/stdlib/src/registers/topbarLeftButton.js";
-import Modal from "./modal.js";
-import paletteManager from "./paletteManager.js";
-const EditButton = () => {
-	return /*#__PURE__*/ S.React.createElement(Button, {
-		label: "Palette Manager",
-		icon: SVGIcons.edit,
-		onClick: () => {
-			display({
-				title: "Palette Manager",
-				content: /*#__PURE__*/ S.React.createElement(Modal, null),
-				isLarge: true,
-			});
-		},
-	});
-};
-export default function (mod) {
-	const registrar = createRegistrar(mod);
-	registrar.register("topbarLeftButton", EditButton);
-	createSchemes();
-}
-function createSchemes() {
-	paletteManager.createStatics(
-		[
-			{
-				name: "Spicetify",
-				fields: {
-					text: "#ffffff",
-					subtext: "#c0b4b4",
-					base: "#0a0a0f",
-					main: "#0F111A",
-					main_elevated: "#1b1e2c",
-					highlight: "#1b1e2c",
-					highlight_elevated: "#1b1e2c",
-					card: "#0a0a0f",
-					button: "#FF4151",
-					button_active: "#ff5c69",
-					notification: "#33bacc",
-					tab: "#c0b4b4",
-					tab_active: "#FF4151",
-					playbar: "#c0b4b4",
-					playbar_active: "#FF4151",
-				},
-			},
-			{
-				name: "Nord",
-				fields: {
-					text: "#eceff4",
-					subtext: "#d8dee9",
-					base: "#23272f",
-					main: "#2e3440",
-					main_elevated: "#3b4252",
-					highlight: "#3b4252",
-					highlight_elevated: "#434c5e",
-					card: "#2e3440",
-					button: "#8fbcbb",
-					button_active: "#9fcbca",
-					notification: "#88c0d0",
-					tab: "#d8dee9",
-					tab_active: "#81a1c1",
-					playbar: "#81a1c1",
-					playbar_active: "#8fbcbb",
-				},
-			},
-		],
-		"inbuilt",
-	);
+ */ import { createRegistrar, createStorage } from "/modules/official/stdlib/index.js";
+import { React } from "/modules/official/stdlib/src/expose/React.js";
+import { Color } from "/modules/official/stdlib/src/webpack/misc.js";
+export let storage;
+export default async function(mod) {
+    const registrar = createRegistrar(mod);
+    storage = createStorage(mod);
+    const schemer = (await import("./schemer.js")).createSchemer(mod);
+    const { EditButton } = await import("./paletteManager.js");
+    registrar.register("topbarLeftButton", /*#__PURE__*/ React.createElement(EditButton, null));
+    schemer.register("Spicetify", {
+        text: Color.fromHex("#ffffff"),
+        subtext: Color.fromHex("#c0b4b4"),
+        base: Color.fromHex("#0a0a0f"),
+        main: Color.fromHex("#0F111A"),
+        main_elevated: Color.fromHex("#1b1e2c"),
+        highlight: Color.fromHex("#1b1e2c"),
+        highlight_elevated: Color.fromHex("#1b1e2c"),
+        card: Color.fromHex("#0a0a0f"),
+        button: Color.fromHex("#FF4151"),
+        button_active: Color.fromHex("#ff5c69"),
+        notification: Color.fromHex("#33bacc"),
+        tab: Color.fromHex("#c0b4b4"),
+        tab_active: Color.fromHex("#FF4151"),
+        playbar: Color.fromHex("#c0b4b4"),
+        playbar_active: Color.fromHex("#FF4151")
+    });
+    schemer.register("Nord", {
+        text: Color.fromHex("#eceff4"),
+        subtext: Color.fromHex("#d8dee9"),
+        base: Color.fromHex("#23272f"),
+        main: Color.fromHex("#2e3440"),
+        main_elevated: Color.fromHex("#3b4252"),
+        highlight: Color.fromHex("#3b4252"),
+        highlight_elevated: Color.fromHex("#434c5e"),
+        card: Color.fromHex("#2e3440"),
+        button: Color.fromHex("#8fbcbb"),
+        button_active: Color.fromHex("#9fcbca"),
+        notification: Color.fromHex("#88c0d0"),
+        tab: Color.fromHex("#d8dee9"),
+        tab_active: Color.fromHex("#81a1c1"),
+        playbar: Color.fromHex("#81a1c1"),
+        playbar_active: Color.fromHex("#8fbcbb")
+    });
 }

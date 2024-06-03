@@ -9,7 +9,8 @@
 	"version": "0.1.0-beta",
 	"authors": [
 		"official",
-		"harbassan"
+		"harbassan",
+		"Delusoire"
 	],
 	"description": "Manager for theme color schemes",
 	"readme": "./assets/README.md",
@@ -17,7 +18,7 @@
 		"js": "index.js",
 		"css": "index.css"
 	},
-	"dependencies": [
-		"official/stdlib"
-	]
+	"dependencies": {
+		"official/stdlib": "0.1.0-beta"
+	}
 }

@@ -17,6 +17,25 @@
  * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
  */
 
+/* Copyright © 2024
+ *      harbassan <harbassan@hotmail.com>
+ *
+ * This file is part of bespoke/modules/palette-manager.
+ *
+ * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 /* Basic styles to map the colors to different UI elements */
 
 /* main background */
@@ -56,21 +75,27 @@ a {
     background-color: var(--spice-playbar);
 }
 
-.DFtdzavKSbEhwKYkPTa6 .DuvrswZugGajIFNXObAr .epWhU7hHGktzlO_dop6z, .DFtdzavKSbEhwKYkPTa6 .TywOcKZEqNynWecCiATc:focus .epWhU7hHGktzlO_dop6z, .DFtdzavKSbEhwKYkPTa6 .TywOcKZEqNynWecCiATc:hover .epWhU7hHGktzlO_dop6z, .DFtdzavKSbEhwKYkPTa6:focus-within .epWhU7hHGktzlO_dop6z {
+.DFtdzavKSbEhwKYkPTa6 .DuvrswZugGajIFNXObAr .epWhU7hHGktzlO_dop6z,
+.DFtdzavKSbEhwKYkPTa6 .TywOcKZEqNynWecCiATc:focus .epWhU7hHGktzlO_dop6z,
+.DFtdzavKSbEhwKYkPTa6 .TywOcKZEqNynWecCiATc:hover .epWhU7hHGktzlO_dop6z,
+.DFtdzavKSbEhwKYkPTa6:focus-within .epWhU7hHGktzlO_dop6z {
     background-color: var(--spice-playbar_active);
 }
 
 /* buttons */
 
 .Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1,
-.Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1:not([disabled]):focus, .Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1:not([disabled]):hover,
-.Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1:not([disabled]):focus:not(:focus-visible,:hover) {
+.Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1:not([disabled]):focus,
+.Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1:not([disabled]):hover,
+.Vz6yjzttS0YlLcwrkoUR.tP0mccyU1WAa7I9PevC1:not([disabled]):focus:not(:focus-visible, :hover) {
     color: var(--spice-button);
 }
 
 .KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq,
-.KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:focus, .KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:hover,
-.KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:active:focus, .KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:active:hover {
+.KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:focus,
+.KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:hover,
+.KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:active:focus,
+.KAZD28usA1vPz5GVpm63.RK45o6dbvO1mb0wQtSwq:active:hover {
     color: var(--spice-button);
 }
 
