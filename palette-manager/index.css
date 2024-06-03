@@ -1,39 +1,9 @@
-/* Copyright © 2024
- *      harbassan <harbassan@hotmail.com>
- *
- * This file is part of bespoke/modules/palette-manager.
- *
- * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
+/* Copyright (C) 2024 harbassan
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-/* Copyright © 2024
- *      harbassan <harbassan@hotmail.com>
- *
- * This file is part of bespoke/modules/palette-manager.
- *
- * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
+/* Copyright (C) 2024 harbassan
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 /* Basic styles to map the colors to different UI elements */
@@ -65,7 +35,7 @@ a {
 
 .link-subtle:hover,
     .link-subtle:active,
-    .link-subtle:active > svg {
+    .link-subtle:active>svg {
         color: var(--spice-tab_active);
     }
 
@@ -176,12 +146,12 @@ a {
     border-radius: var(--border-radius);
 }
 
-.palette-list-container > ul {
+.palette-list-container >ul {
         display: flex;
         flex-direction: column;
     }
 
-.palette-list-container > ul > li {
+.palette-list-container >ul >li {
             margin-top: 4px;
         }
 
@@ -258,7 +228,7 @@ a {
         align-items: center;
     }
 
-.palette-fields-container .palette-info > button {
+.palette-fields-container .palette-info >button {
             background-color: white;
             border: none;
             height: 32px;

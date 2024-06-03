@@ -1,4 +1,6 @@
-import { TopbarLeftButton } from "/modules/official/stdlib/src/registers/topbarLeftButton.js";
+/* Copyright (C) 2024 harbassan, and Delusoire
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */ import { TopbarLeftButton } from "/modules/official/stdlib/src/registers/topbarLeftButton.js";
 import Modal from "/modules/official/palette-manager/modal.js";
 import { React } from "/modules/official/stdlib/src/expose/React.js";
 import { display } from "/modules/official/stdlib/lib/modal.js";

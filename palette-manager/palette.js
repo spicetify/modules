@@ -1,20 +1,5 @@
-/* Copyright © 2024
- *      harbassan <harbassan@hotmail.com>
- *
- * This file is part of bespoke/modules/palette-manager.
- *
- * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
+/* Copyright (C) 2024 harbassan, and Delusoire
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */ import { storage } from "./index.js";
 import { Color } from "/modules/official/stdlib/src/webpack/misc.js";
 // TODO: edit these keys
@@ -46,9 +31,6 @@ export class Palette {
         this.colors = colors;
         this.isStatic = isStatic;
     }
-    isCurrent() {
-        return PaletteManager.INSTANCE.getCurrent().id === this.id;
-    }
     overwrite(map) {
         if (this.isStatic) {
             return false;
@@ -60,7 +42,10 @@ export class Palette {
         function formatKey(key) {
             return `--spice-${key.replaceAll("_", "-")}`;
         }
-        return Object.entries(this.colors).map(([k, v])=>`${formatKey(k)}: ${v}`).join(" ");
+        function formatValue(value) {
+            return value.toCSS(Color.Format.HEX);
+        }
+        return Object.entries(this.colors).map(([k, v])=>`${formatKey(k)}: ${formatValue(v)};`).join(" ");
     }
     toJSON() {
         const colors = {};
@@ -102,7 +87,7 @@ export class PaletteManager {
         const userPalettes = userPalettesJSON.map((json)=>Palette.fromJSON(json));
         for (const palette of userPalettes){
             this.userPalettes.add(palette);
-            if (palette.isCurrent()) {
+            if (this.isCurrent(palette)) {
                 this.setCurrent(palette);
             }
         }
@@ -117,7 +102,7 @@ export class PaletteManager {
         ];
     }
     save() {
-        storage.setItem("user_palettes", JSON.stringify(this.userPalettes));
+        storage.setItem("user_palettes", JSON.stringify(Array.from(this.userPalettes)));
     }
     getCurrent() {
         return this.palette;
@@ -140,16 +125,19 @@ export class PaletteManager {
     }
     deleteUserPalette(palette) {
         this.userPalettes.delete(palette);
-        if (palette.isCurrent()) {
+        if (this.isCurrent(palette)) {
             this.setCurrent(this.getDefault());
         }
         this.save();
     }
     renameUserPalette(palette, name) {
         palette.name = name;
-        if (palette.isCurrent()) {
+        if (this.isCurrent(palette)) {
             this.saveCurrent();
         }
         this.save();
+    }
+    isCurrent(palette) {
+        return palette.id === this.getCurrent().id;
     }
 }

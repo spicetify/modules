@@ -1,3 +1,7 @@
+/* Copyright (C) 2024 harbassan, and Delusoire
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { TopbarLeftButton } from "/modules/official/stdlib/src/registers/topbarLeftButton.tsx";
 import Modal from "/modules/official/palette-manager/modal.tsx";
 import { React } from "/modules/official/stdlib/src/expose/React.ts";

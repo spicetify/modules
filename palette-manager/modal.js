@@ -1,20 +1,5 @@
-/* Copyright © 2024
- *      harbassan <harbassan@hotmail.com>
- *
- * This file is part of bespoke/modules/palette-manager.
- *
- * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
+/* Copyright (C) 2024 harbassan, and Delusoire
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */ import { useSearchBar } from "/modules/official/stdlib/lib/components/index.js";
 import { Palette, PaletteManager } from "./palette.js";
 import { createIconComponent } from "/modules/official/stdlib/lib/createIconComponent.js";
@@ -34,7 +19,7 @@ export default function() {
         expanded: true
     });
     function createPalette() {
-        PaletteManager.INSTANCE.addUserPalette(new Palette(crypto.randomUUID(), "User Palette", selectedPalette.colors));
+        PaletteManager.INSTANCE.addUserPalette(new Palette(crypto.randomUUID(), "New Palette", selectedPalette.colors, false));
         updatePalettes();
     }
     const filteredPalettes = palettes.filter((palette)=>palette.name.toLowerCase().includes(search.toLowerCase()));
@@ -85,16 +70,19 @@ const PaletteField = (props)=>{
         setValue(value);
         let color;
         try {
-            color = Color.parse(value);
+            color = Color.fromHex(value);
         } catch (_) {}
         if (!color) {
             return;
         }
-        props.palette.overwrite({
+        const colors = {
             ...props.palette.colors,
             [props.name]: color
-        });
-        if (props.palette.isCurrent()) {
+        };
+        if (props.palette.overwrite(colors)) {
+            PaletteManager.INSTANCE.save();
+        }
+        if (PaletteManager.INSTANCE.isCurrent(props.palette)) {
             PaletteManager.INSTANCE.writeCurrent();
         }
     }, [

@@ -1,20 +1,5 @@
-/* Copyright © 2024
- *      harbassan <harbassan@hotmail.com>
- *
- * This file is part of bespoke/modules/palette-manager.
- *
- * bespoke/modules/palette-manager is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * bespoke/modules/palette-manager is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with bespoke/modules/palette-manager. If not, see <https://www.gnu.org/licenses/>.
+/* Copyright (C) 2024 harbassan, and Delusoire
+ * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
 import { storage } from "./index.tsx";
@@ -43,10 +28,6 @@ type PaletteData = { id: string, name: string, colors: Record<string, string>; }
 export class Palette {
 	constructor(public id: string, public name: string, public colors: Record<string, Color>, public isStatic = true) { }
 
-	isCurrent() {
-		return PaletteManager.INSTANCE.getCurrent().id === this.id;
-	}
-
 	overwrite(map: Record<string, Color>) {
 		if (this.isStatic) {
 			return false;
@@ -60,7 +41,11 @@ export class Palette {
 			return `--spice-${key.replaceAll("_", "-")}`;
 		}
 
-		return Object.entries(this.colors).map(([k, v]) => `${formatKey(k)}: ${v}`).join(" ");
+		function formatValue(value: Color) {
+			return value.toCSS(Color.Format.HEX);
+		}
+
+		return Object.entries(this.colors).map(([k, v]) => `${formatKey(k)}: ${formatValue(v)};`).join(" ");
 	}
 
 	toJSON(): PaletteData {
@@ -105,7 +90,7 @@ export class PaletteManager {
 		const userPalettes = userPalettesJSON.map(json => Palette.fromJSON(json));
 		for (const palette of userPalettes) {
 			this.userPalettes.add(palette);
-			if (palette.isCurrent()) {
+			if (this.isCurrent(palette)) {
 				this.setCurrent(palette);
 			}
 		}
@@ -120,7 +105,7 @@ export class PaletteManager {
 	}
 
 	public save(): void {
-		storage.setItem("user_palettes", JSON.stringify(this.userPalettes));
+		storage.setItem("user_palettes", JSON.stringify(Array.from(this.userPalettes)));
 	}
 
 	public getCurrent(): Palette {
@@ -149,7 +134,7 @@ export class PaletteManager {
 
 	public deleteUserPalette(palette: Palette) {
 		this.userPalettes.delete(palette);
-		if (palette.isCurrent()) {
+		if (this.isCurrent(palette)) {
 			this.setCurrent(this.getDefault());
 		}
 		this.save();
@@ -157,9 +142,13 @@ export class PaletteManager {
 
 	public renameUserPalette(palette: Palette, name: string) {
 		palette.name = name;
-		if (palette.isCurrent()) {
+		if (this.isCurrent(palette)) {
 			this.saveCurrent();
 		}
 		this.save();
+	}
+
+	public isCurrent(palette: Palette) {
+		return palette.id === this.getCurrent().id;
 	}
 }
