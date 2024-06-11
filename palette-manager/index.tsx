@@ -6,13 +6,12 @@ import { createRegistrar, createStorage } from "/modules/official/stdlib/index.t
 
 import { React } from "/modules/official/stdlib/src/expose/React.ts";
 
-import { ModuleInstance } from "/hooks/module.ts";
+import { Module } from "/hooks/index.ts";
 import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
-
 
 export let storage: Storage;
 
-export default async function (mod: ModuleInstance) {
+export default async function (mod: Module) {
 	const registrar = createRegistrar(mod);
 	storage = createStorage(mod);
 	const schemer = (await import("./schemer.ts")).createSchemer(mod);
