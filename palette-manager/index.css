@@ -36,7 +36,7 @@ a {
 .link-subtle:hover,
     .link-subtle:active,
     .link-subtle:active>svg {
-        color: var(--spice-tab_active);
+        color: var(--spice-tab-active);
     }
 
 /* playbar */
@@ -49,7 +49,7 @@ a {
 .DFtdzavKSbEhwKYkPTa6 .TywOcKZEqNynWecCiATc:focus .epWhU7hHGktzlO_dop6z,
 .DFtdzavKSbEhwKYkPTa6 .TywOcKZEqNynWecCiATc:hover .epWhU7hHGktzlO_dop6z,
 .DFtdzavKSbEhwKYkPTa6:focus-within .epWhU7hHGktzlO_dop6z {
-    background-color: var(--spice-playbar_active);
+    background-color: var(--spice-playbar-active);
 }
 
 /* buttons */
@@ -91,28 +91,28 @@ a {
     --background-base: var(--spice-main);
     --background-highlight: var(--spice-highlight);
     --background-press: var(--spice-highlight);
-    --background-elevated-base: var(--spice-main_elevated);
-    --background-elevated-highlight: var(--spice-highlight_elevated);
-    --background-elevated-press: var(--spice-highlight_elevated);
+    --background-elevated-base: var(--spice-main-elevated);
+    --background-elevated-highlight: var(--spice-highlight-elevated);
+    --background-elevated-press: var(--spice-highlight-elevated);
     --background-tinted-base: rgba(255, 255, 255, 0.07);
     --background-tinted-highlight: rgba(255, 255, 255, 0.1);
     --background-tinted-press: rgba(255, 255, 255, 0.04);
     --text-base: var(--spice-text);
     --text-subdued: var(--spice-subtext);
     --text-bright-accent: var(--spice-button);
-    --text-positive: var(--spice-button_active);
+    --text-positive: var(--spice-button-active);
     --text-announcement: var(--spice-notification);
     --essential-base: var(--spice-button);
-    --essential-bright-accent: var(--spice-button_active);
-    --essential-positive: var(--spice-button_active);
+    --essential-bright-accent: var(--spice-button-active);
+    --essential-positive: var(--spice-button-active);
     --essential-announcement: var(--spice-notification);
     --decorative-subdued: var(--spice-card);
 }
 
 .encore-dark-theme .encore-bright-accent-set {
     --background-base: var(--spice-button);
-    --background-highlight: var(--spice-button_active);
-    --background-press: var(--spice-button_active);
+    --background-highlight: var(--spice-button-active);
+    --background-press: var(--spice-button-active);
     --text-base: var(--spice-main);
 }
 
