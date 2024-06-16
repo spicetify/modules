@@ -1,0 +1,76 @@
+name: Publish
+
+on:
+   push:
+      tags:
+       - "v*.*.*"
+
+jobs:
+   publish:
+      name: Publish
+      runs-on: ubuntu-latest
+
+      permissions:
+         contents: write
+
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v4
+
+         -  name: Install Deno
+            uses: denoland/setup-deno@v1
+            with:
+               deno-version: v1.x
+
+         -  name: Build
+            run: |
+               set -e
+               deno task build:local:all
+               pushd dist
+               for DIR in *; do
+                  pushd "${DIR}"
+                  cp metadata.json "../${DIR}.metadata.json"
+                  7z a -bb0 "../${DIR}.zip" *
+                  popd
+                  rm -rf "${DIR}"
+               done
+               popd
+
+         -  name: Release
+            uses: softprops/action-gh-release@v2
+            with:
+               files: dist/*
+
+         -  name: Update vault.json
+            run: |
+               set -e
+               pushd dist
+               for ARCHIVE in *.zip; do
+                  IFS="@" read -r ID VERSION <<< "$ARCHIVE"
+                  ID="$(tr . / <<< "${ID}")"
+                  VERSION="${VERSION%.zip}"
+                  VERSION="${VERSION/?}"
+                  URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE}"
+                  S='.modules["'"${ID}"'"].v["'"${VERSION}"'"]'
+                  yq -i '
+                     '"${S}"'.artifacts = ["'"${URL}"'"] |
+                     '"${S}"'.providers = []
+                  ' ../vault.json
+               done
+               popd
+               rm -rf dist
+
+         -  name: Git commit, rebase onto master
+            env:
+               PUSH_BRANCH: main
+               TMP_BRANCH: ${{ github.repository }}${{ github.run_id}}
+            run: |
+               git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
+               git config --local user.name "$GITHUB_ACTOR"
+               git checkout -b $TMP_BRANCH
+               git add vault.json
+               git commit -m 'Updated vault.json'
+               git fetch
+               git checkout -b $PUSH_BRANCH --track origin/${PUSH_BRANCH}
+               git rebase $TMP_BRANCH $PUSH_BRANCH
+               git push

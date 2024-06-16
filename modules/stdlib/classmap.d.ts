@@ -1,0 +1,3 @@
+/* Bespoke Tailored Classmap (BTC) */
+
+declare const MAP: {readonly "main":{readonly "topbar":{readonly "left":{readonly "button":{readonly "wrapper":"ql0zZd7giPXSnPg75NR0",readonly "icon":{readonly "wrapper":"IYDlXmBmmUKHveMzIPCF",},},readonly "button_t":{readonly "wrapper":"rBX1EWVZ2EaPwP4y1Gkd",},},readonly "right":{readonly "button":{readonly "wrapper":"WtC1lGbmQRplD6JBhNFU",},readonly "button_t":{readonly "wrapper":"OomFKn3bsxs5JfNUoWhz",},},},readonly "playbar":{readonly "widget":{},readonly "controls":{},readonly "buttons":{readonly "button":{readonly "wrapper":"KAZD28usA1vPz5GVpm63",readonly "wrapper__active":"RK45o6dbvO1mb0wQtSwq",readonly "wrapper__indicator":"EHxL6K_6WWDlTCZP6x5w",},},},},};

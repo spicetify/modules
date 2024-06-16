@@ -1,0 +1,6 @@
+.swc/
+/deno.lock
+
+/dist/
+/modules/*/**/*.js
+/modules/*/**/*.css

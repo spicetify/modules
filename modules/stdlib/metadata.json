@@ -1,0 +1,20 @@
+{
+	"name": "stdlib",
+	"tags": [
+		"lib"
+	],
+	"preview": "./assets/PREVIEW.png",
+	"version": "0.1.1",
+	"authors": [
+		"official",
+		"Delusoire"
+	],
+	"description": "The standard library",
+	"readme": "./assets/README.md",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css",
+		"mixin": "mixin.js"
+	},
+	"dependencies": []
+}

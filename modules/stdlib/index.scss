@@ -1,0 +1,24 @@
+:root {
+	--max-custom-navlink-count: 4;
+}
+
+.custom-navlinks-scrollable_container {
+	max-width: calc(
+		48px * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1)
+	);
+	-webkit-app-region: no-drag;
+
+	div[role="presentation"] {
+		& > * {
+			z-index: 1;
+
+			&:not(:last-child) {
+				margin-inline-end: 8px;
+			}
+		}
+	}
+}
+
+.custom-navlink {
+	-webkit-app-region: unset;
+}
