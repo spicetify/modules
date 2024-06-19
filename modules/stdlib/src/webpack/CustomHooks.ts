@@ -32,6 +32,8 @@ export let useLocation: Function;
 
 export let useTrackListColumns: Function;
 
+export let usePanelStateMachine: () => [state: any, actor: any, machine: any];
+
 CHUNKS.xpui.promise.then(() => {
 	DragHandler = findBy("dataTransfer", "data-dragging")(exportedFunctions);
 	useExtractedColor = exportedFunctions.find(
@@ -51,4 +53,6 @@ CHUNKS.xpui.promise.then(() => {
 	useLocation = findBy("location", "useContext")(exportedFunctions);
 
 	useTrackListColumns = findBy("useTrackListColumns")(exportedFunctions);
+
+	usePanelStateMachine = findBy("usePanelStateMachine")(exportedFunctions);
 });

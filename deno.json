@@ -1,0 +1,12 @@
+{
+   "tasks": {
+      "win:build": "./scripts/build-dev.ps1",
+      "win:watch": "./scripts/watch-dev.ps1",
+      "win:enable": "./scripts/enable-dev.ps1",
+      "unix:build": "./scripts/build-dev.sh",
+      "unix:watch": "./scripts/watch-dev.sh",
+      "unix:enable": "./scripts/enable-dev.sh",
+      "build:local": "deno run -A scripts/build-local.ts",
+      "build:local:all": "deno task build:local modules/*"
+   }
+}

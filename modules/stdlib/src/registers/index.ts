@@ -4,28 +4,30 @@
  */
 
 import menu from "./menu.ts";
-import navlink from "./navlink.ts";
+import navlink from "./navlink.tsx";
 import panel from "./panel.ts";
-import playbarButton from "./playbarButton.ts";
-import playbarWidget from "./playbarWidget.ts";
+import playbarButton from "./playbarButton.tsx";
+import playbarWidget from "./playbarWidget.tsx";
+import { Registry } from "./registry.ts";
 import root from "./root.ts";
 import route from "./route.ts";
 import settingsSection from "./settingsSection.ts";
-import topbarLeftButton from "./topbarLeftButton.ts";
-import topbarRightButton from "./topbarRightButton.ts";
-
+import topbarLeftButton from "./topbarLeftButton.tsx";
+import topbarRightButton from "./topbarRightButton.tsx";
+const [rootChild, rootProvider] = root;
 const registers = {
 	menu,
 	navlink,
 	panel,
 	playbarButton,
 	playbarWidget,
-	root,
+	rootChild,
+	rootProvider,
 	route,
 	settingsSection,
 	topbarLeftButton,
 	topbarRightButton,
-};
+} satisfies Record<string, Registry<any>>;
 type Registers = typeof registers;
 
 export class Registrar {

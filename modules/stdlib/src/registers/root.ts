@@ -3,50 +3,76 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { matchLast } from "/hooks/util.ts";
 import { transformer } from "../../mixin.ts";
 import { Registry } from "./registry.ts";
 import { React } from "../expose/React.ts";
 
-const registry = new (class extends Registry<React.ReactNode> {
+type Refresh = PromiseWithResolvers<() => void> & {
+	value: (() => void) | undefined;
+};
+
+class RootRegistry extends Registry<React.ReactNode> {
+	refresh = Object.assign(Promise.withResolvers<() => void>(), {
+		value: undefined as (() => void) | undefined,
+	});
+
+	static queueRefresh(refresh: Refresh) {
+		if (refresh.value) {
+			refresh.value();
+		} else {
+			refresh.promise.then((value) => value());
+		}
+	}
+
 	override add(value: React.ReactNode): this {
 		const ret = super.add(value);
-		queueRefresh();
+		RootRegistry.queueRefresh(this.refresh);
 		return ret;
 	}
 
 	override delete(value: React.ReactNode): boolean {
 		const ret = super.delete(value);
-		queueRefresh();
+		RootRegistry.queueRefresh(this.refresh);
 		return ret;
 	}
-})();
-export default registry;
-
-function queueRefresh() {
-	if (refreshRoot.value) {
-		refreshRoot.value();
-	} else {
-		refreshRoot.promise.then(value => value());
-	}
 }
 
-const refreshRoot = Object.assign(Promise.withResolvers<() => void>(), { value: undefined as (() => void) | undefined });
+const childrenRegistry = new RootRegistry();
+const providersRegistry = new RootRegistry();
+export default [childrenRegistry, providersRegistry];
 
 declare global {
-	var __renderRootChildren: any;
+	var __renderRootChildren: () => React.ReactNode;
+	var __renderRootProviders: (providers: React.ReactElement[]) => React.ReactNode;
 }
-globalThis.__renderRootChildren = () => React.createElement(() => {
-	const [, refresh] = React.useReducer(n => n + 1, 0);
-	if (!refreshRoot.value) {
-		refreshRoot.resolve(refresh);
-	}
-	refreshRoot.value = refresh;
-	return registry.all();
-});
+globalThis.__renderRootChildren = () =>
+	React.createElement(() => {
+		const [, refresh] = React.useReducer((n) => n + 1, 0);
+		if (!childrenRegistry.refresh.value) {
+			childrenRegistry.refresh.resolve(refresh);
+		}
+		childrenRegistry.refresh.value = refresh;
+		return childrenRegistry.all();
+	});
+globalThis.__renderRootProviders = (providers: React.ReactElement[]) => {
+	const MultiProvider = ({ children }) => {
+		const [, refresh] = React.useReducer((n) => n + 1, 0);
+		if (!providersRegistry.refresh.value) {
+			providersRegistry.refresh.resolve(refresh);
+		}
+		providersRegistry.refresh.value = refresh;
+		const providers = providersRegistry.all() as React.ReactElement[];
+		return providers.reduceRight((acc: React.ReactElement, e: React.ReactElement) => React.cloneElement(e, undefined, acc), React.createElement(React.Fragment, undefined, children));
+	};
+
+	return React.useMemo(() => [providers, React.createElement(MultiProvider)].flat(), [providers]);
+};
 transformer(
-	emit => str => {
-		str = str.replace(/children:\[([^\]]+"data-testid.:.root")/, "children:[__renderRootChildren(),$1");
+	(emit) => (str) => {
+		str = str.replace(
+			/\bproviders:([a-zA-Z_\$][\w\$]*),children:\[([^\]]+"data-testid.:.root")/,
+			"providers:__renderRootProviders($1),children:[__renderRootChildren(),$2",
+		);
 		emit();
 		return str;
 	},
