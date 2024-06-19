@@ -47,7 +47,7 @@ jobs:
                pushd dist
                for ARCHIVE in *.zip; do
                   IFS="@" read -r ID VERSION <<< "$ARCHIVE"
-                  ID="$(tr . / <<< "${ID}")"
+                  ID="/$(tr . / <<< "${ID}")"
                   VERSION="${VERSION%.zip}"
                   VERSION="${VERSION/?}"
                   URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE}"
