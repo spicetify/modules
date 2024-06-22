@@ -5,8 +5,11 @@
 
 import { React } from "../src/expose/React.ts";
 import { future, SettingsSection, SettingsSectionTitle } from "../src/expose/SettingsSection.ts";
+import SettingsSectionRegistry from "../src/registers/settingsSection.ts";
 import { UI } from "../src/webpack/ComponentLibrary.ts";
-import { SettingColumn, SettingText, SettingToggle } from "../src/webpack/ReactComponents.ts";
+import { Settings as S, SettingsToggle } from "../src/webpack/ReactComponents.ts";
+import SettingsButton from "./components/SettingsButton.tsx";
+import type { Module } from "/hooks/index.ts";
 
 type Task<A> = (() => Awaited<A>) | (() => Promise<Awaited<A>>);
 
@@ -50,10 +53,6 @@ export interface InputField<I extends string = any> extends BaseField<I> {
 export interface HiddenField<I extends string = any> extends BaseField<I> {
 	type: FieldType.HIDDEN;
 }
-
-import SettingsSectionRegistry from "../src/registers/settingsSection.ts";
-import SettingsButton from "./components/SettingsButton.tsx";
-import type { Module } from "/hooks/index.ts";
 
 export class Settings<A = Record<string, never>> {
 	public sectionFields: { [key: string]: JSX.Element } = {};
@@ -182,12 +181,12 @@ export class Settings<A = Record<string, never>> {
 	SettingField = (
 		{ field, children }: { field: SettingsField; children?: any },
 	) => (
-		<SettingColumn filterMatchQuery={field.id}>
-			<div className="g2SG95QPZfbn5RINccth">
-				<SettingText htmlFor={field.id}>{field.desc}</SettingText>
-			</div>
-			<div className="rtzkwMH3kqwgnS_BxP_t">{children}</div>
-		</SettingColumn>
+		<S.SettingsRow filterMatchQuery={field.id}>
+			<S.SettingsRowStart>
+				<SettingsLabel htmlFor={field.id}>{field.desc}</SettingsLabel>
+			</S.SettingsRowStart>
+			<S.SettingsRowEnd>{children}</S.SettingsRowEnd>
+		</S.SettingsRow>
 	);
 
 	ButtonField = (field: ButtonField) => (
@@ -196,7 +195,7 @@ export class Settings<A = Record<string, never>> {
 				id={field.id}
 				buttonSize="sm"
 				onClick={field.onClick}
-				className="rFFJg1UIumqUUFDgo6n7"
+				className={MAP.settings.button.wrapper}
 			>
 				{field.text}
 			</UI.ButtonSecondary>
@@ -208,7 +207,7 @@ export class Settings<A = Record<string, never>> {
 		const [value, setValue] = this.useStateFor<boolean>(id);
 		return (
 			<this.SettingField field={field}>
-				<SettingToggle
+				<SettingsToggle
 					id={field.id}
 					value={Settings.getFieldValue(id)}
 					onSelected={(checked: boolean) => {
@@ -226,7 +225,7 @@ export class Settings<A = Record<string, never>> {
 		return (
 			<this.SettingField field={field}>
 				<input
-					className="SkbGMKYv49KtJNB5XxdX"
+					className={MAP.settings.text_input}
 					id={field.id}
 					dir="ltr"
 					value={Settings.getFieldValue(id)}

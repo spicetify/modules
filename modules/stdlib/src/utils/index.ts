@@ -5,7 +5,7 @@
 
 import { Platform } from "../expose/Platform.ts";
 
-export const isTouchscreenUi = () => {
+export const isGlobalNavBarEnabled = () => {
 	if (!Platform) {
 		return undefined;
 	}

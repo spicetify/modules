@@ -47,7 +47,7 @@ export default function ({ section }: SettingsButtonProps): React.ReactElement<H
 				buttonSize="sm"
 				onClick={async () => {
 					History.push("/preferences");
-					const searchButton = await waitForElement(".O2vRz41OsAH0O7xVA4La .wCl7pMTEE68v1xuZeZiB");
+					const searchButton = await waitForElement(`.${MAP.settings.header.container} .${MAP.search_box.expand_button}`);
 					const recUp = (fiber: any): any => {
 						const { type } = fiber;
 						if (type.$$typeof === Symbol.for("react.provider") && type._context._currentValue.setFilter)

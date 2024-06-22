@@ -35,7 +35,7 @@ declare global {
 let navLinkFactoryCtx: React.Context<React.FC<NavLinkFactoryProps>>;
 globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 	React.createElement(() => {
-		[, refresh] = React.useReducer(n => n + 1, 0);
+		[, refresh] = React.useReducer((n) => n + 1, 0);
 
 		if (!ScrollableContainer) {
 			return;
@@ -43,8 +43,9 @@ globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 
 		const navLinkFactory = isTouchscreenUi ? _NavLinkGlobal : _NavLinkSidebar;
 
-		if (!navLinkFactoryCtx)
+		if (!navLinkFactoryCtx) {
 			navLinkFactoryCtx = React.createContext<React.FC<NavLinkFactoryProps>>(null!);
+		}
 
 		const children = (
 			<navLinkFactoryCtx.Provider value={navLinkFactory}>
@@ -52,16 +53,16 @@ globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 			</navLinkFactoryCtx.Provider>
 		);
 
-		return isTouchscreenUi ? (
-			<ScrollableContainer className="custom-navlinks-scrollable_container">
-				{children}
-			</ScrollableContainer>
-		) : (
-			children
-		);
+		return isTouchscreenUi
+			? (
+				<ScrollableContainer className="custom-navlinks-scrollable_container">
+					{children}
+				</ScrollableContainer>
+			)
+			: children;
 	});
 transformer(
-	emit => str => {
+	(emit) => (str) => {
 		const j = str.search(/\("li",\{[^\{]*\{[^\{]*\{to:"\/search/);
 		const i = findMatchingPos(str, j, 1, ["(", ")"], 1);
 
@@ -88,7 +89,7 @@ export type NavLinkProps = {
 	icon: string;
 	activeIcon: string;
 };
-export const NavLink: React.FC<NavLinkProps> = props => {
+export const NavLink: React.FC<NavLinkProps> = (props) => {
 	const isActive = Platform.getHistory().location.pathname?.startsWith(props.appRoutePath);
 	const createIcon = () =>
 		createIconComponent({ icon: isActive ? props.activeIcon : props.icon, iconSize: 24 });
@@ -114,11 +115,11 @@ interface NavLinkFactoryProps {
 	isActive: boolean;
 }
 
-const _NavLinkSidebar: React.FC<NavLinkFactoryProps> = props => {
+const _NavLinkSidebar: React.FC<NavLinkFactoryProps> = (props) => {
 	const isSidebarCollapsed = Platform.getLocalStorageAPI().getItem("ylx-sidebar-state") === 1;
 
 	return (
-		<li className="KAcp7QFuEYSouAsuC5i_ InvalidDropTarget">
+		<li className={`${MAP.main.navbar.link.wrapper} InvalidDropTarge`}>
 			<Tooltip
 				label={isSidebarCollapsed ? props.localizedApp : null}
 				disabled={!isSidebarCollapsed}
@@ -127,8 +128,8 @@ const _NavLinkSidebar: React.FC<NavLinkFactoryProps> = props => {
 				<Nav
 					to={props.appRoutePath}
 					referrer="other"
-					className={classnames("link-subtle", "hNvCMxbfz7HwgzLjt3IZ", {
-						"Bh3b80dIrbc0keQ9kdso ": props.isActive,
+					className={classnames("link-subtle", MAP.main.navbar.link.container, {
+						[MAP.main.navbar.link.container__active]: props.isActive,
 					})}
 					onClick={() => undefined}
 					aria-label={props.localizedApp}
@@ -141,19 +142,17 @@ const _NavLinkSidebar: React.FC<NavLinkFactoryProps> = props => {
 	);
 };
 
-const _NavLinkGlobal: React.FC<NavLinkFactoryProps> = props => {
+const _NavLinkGlobal: React.FC<NavLinkFactoryProps> = (props) => {
 	return (
 		<div className="inline-flex">
 			<Tooltip label={props.localizedApp}>
 				<UI.ButtonTertiary
 					iconOnly={props.createIcon}
 					className={classnames(
-						"bWBqSiXEceAj1SnzqusU",
-						"jdlOKroADlFeZZQeTdp8",
-						"cUwQnQoE3OqXqSYLT0hv",
-						"custom-navlink",
+						"M4MOhDLjSPUuMog9WxIM", // next to navigation
+						"dIfr5oVr5kotAi0HsIsW VUXMMFKWudUWE1kIXZoS",
 						{
-							voA9ZoTTlPFyLpckNw3S: props.isActive,
+							ETjtwGvAB4lRVqSzm8nA: props.isActive,
 						},
 					)}
 					aria-label={props.localizedApp}

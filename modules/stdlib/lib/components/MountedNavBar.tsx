@@ -21,7 +21,7 @@ import { React } from "../../src/expose/React.ts";
 import { UI } from "../../src/webpack/ComponentLibrary.ts";
 import { ReactDOM } from "../../src/webpack/React.ts";
 import { NavTo, ScrollableContainer } from "../../src/webpack/ReactComponents.ts";
-import { isTouchscreenUi } from "../../src/utils/index.ts";
+import { isGlobalNavBarEnabled } from "../../src/utils/index.ts";
 
 interface NavToChipProps {
 	to: string;
@@ -35,7 +35,7 @@ const NavToChip: React.FC<NavToChipProps> = props => (
 		to={props.to}
 		tabIndex={-1}
 		onClick={props.onClick}
-		className="ZWI7JsjzJaR_G8Hy4W6J"
+		className={MAP.search_chips.chip}
 	>
 		<UI.Chip
 			selected={props.selected}
@@ -53,9 +53,9 @@ export interface NavBarProps {
 	selectedCategory: string;
 }
 const NavBar = ({ namespace, categories, selectedCategory }: NavBarProps) => (
-	<div className="fVB_YDdnaDlztX7CcWTA">
-		<div className="e179_Eg8r7Ub6yjjxctr contentSpacing">
-			<div className="VIeVCUUETJyYPCDpsBif">
+	<div className={MAP.search_chips.wrapper_wrapper}>
+		<div className={`${MAP.search_chips.wrapper} contentSpacing`}>
+			<div className={MAP.search_chips.container}>
 				<ScrollableContainer>
 					{categories.map(category => (
 						<NavToChip
@@ -76,9 +76,7 @@ interface TopBarMountedProps {
 	children?: React.ReactNode;
 }
 const TopBarMounted: React.FC<TopBarMountedProps> = props => {
-	const touchscreenUi = isTouchscreenUi();
-
-	const component = (
+	const children = (
 		<div
 			className="qHWqOt_TYlFxiF0Dm2fD"
 			style={{ pointerEvents: "all" }}
@@ -87,9 +85,9 @@ const TopBarMounted: React.FC<TopBarMountedProps> = props => {
 		</div>
 	);
 
-	return touchscreenUi
-		? component
-		: ReactDOM.createPortal(component, document.querySelector(".rovbQsmAS_mwvpKHaVhQ")!);
+	return isGlobalNavBarEnabled()
+		? children
+		: ReactDOM.createPortal(children, document.querySelector(".rovbQsmAS_mwvpKHaVhQ")!);
 };
 
 export const TopNavBar = (props: NavBarProps) => (

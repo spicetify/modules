@@ -6,7 +6,7 @@
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../../lib/createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
-import { isTouchscreenUi } from "../utils/index.ts";
+import { isGlobalNavBarEnabled } from "../utils/index.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { classnames } from "../webpack/ClassNames.ts";
@@ -36,7 +36,7 @@ globalThis.__renderTopbarRightButtons = () =>
 	React.createElement(() => {
 		[, refresh] = React.useReducer(n => n + 1, 0);
 
-		const topbarRightButtonFactory = isTouchscreenUi() ? _TopbarRightButtonT : _TopbarRightButton;
+		const topbarRightButtonFactory = isGlobalNavBarEnabled() ? _TopbarRightButtonT : _TopbarRightButton;
 
 		if (!topbarRightButtonFactoryCtx)
 			topbarRightButtonFactoryCtx = React.createContext<TopbarRightButtonFactory>(null!);

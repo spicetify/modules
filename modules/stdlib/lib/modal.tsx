@@ -50,12 +50,12 @@ const PopupModal = (props: PopupModalProps) => {
 	if (props.isEmbedWidgetGeneratorOrTrackCreditsModal) {
 		return (
 			<GenericModal isOpen={isOpen} contentLabel={props.contentLabel}>
-				<div className="uUYNnjSt8m3EqVjsnHgh" style={{ overflow: "scroll", width: "60vw" }}>
-					<div className="bOIRpQiHUAEfp8ntStTo">
+				<div className={MAP.modal.widget_generator.container} style={{ overflow: "scroll", width: "60vw" }}>
+					<div className={MAP.modal.widget_generator.header.container}>
 						<UI.Text as="h1" variant="titleSmall">
 							{props.contentLabel}
 						</UI.Text>
-						<button className="oBoIIlKrwQjxXpvOiOa0" onClick={hide}>
+						<button className={MAP.modal.widget_generator.header.close} onClick={hide}>
 							{createIconComponent({
 								icon:
 									"<path d='M2.47 2.47a.75.75 0 0 1 1.06 0L8 6.94l4.47-4.47a.75.75 0 1 1 1.06 1.06L9.06 8l4.47 4.47a.75.75 0 1 1-1.06 1.06L8 9.06l-4.47 4.47a.75.75 0 0 1-1.06-1.06L6.94 8 2.47 3.53a.75.75 0 0 1 0-1.06Z'/>",
@@ -63,7 +63,7 @@ const PopupModal = (props: PopupModalProps) => {
 							})}
 						</button>
 					</div>
-					<div className="IJHNf0vxPSbPE1egoG4N">{props.children}</div>
+					<div className={MAP.modal.widget_generator.content.container}>{props.children}</div>
 				</div>
 			</GenericModal>
 		);
@@ -71,13 +71,13 @@ const PopupModal = (props: PopupModalProps) => {
 
 	return (
 		<GenericModal isOpen={isOpen} contentLabel={props.contentLabel}>
-			<div className="uV8q95GGAb2VDtL3gpYa">
-				<div className="pGU_qEtNT1qWKjrRbvan">
+			<div className={MAP.modal.track_credits.container}>
+				<div className={MAP.modal.track_credits.header.container}>
 					<UI.Text as="h1" variant="titleMedium">
 						{props.contentLabel}
 					</UI.Text>
 					<button
-						className="VKCcyYujazVPj6VkksPM"
+						className={MAP.modal.track_credits.header.close}
 						aria-label={Locale.get("close")}
 						onClick={hide}
 					>
@@ -89,7 +89,7 @@ const PopupModal = (props: PopupModalProps) => {
 						})}
 					</button>
 				</div>
-				<div className="Nw1INlIyra3LT1JjvoqH">{props.children}</div>
+				<div className={MAP.modal.track_credits.content.container}>{props.children}</div>
 			</div>
 		</GenericModal>
 	);

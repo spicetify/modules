@@ -25,7 +25,7 @@ import { UI } from "../../src/webpack/ComponentLibrary.ts";
 const CheckIcon = () =>
 	createIconComponent({
 		// TODO
-		icon: "" /*  SVGIcons.check */,
+		icon: "", /*  SVGIcons.check */
 	});
 
 interface MenuItemProps<O extends string> {
@@ -34,7 +34,7 @@ interface MenuItemProps<O extends string> {
 	onSwitch: (option: O) => void;
 	children: React.ReactNode;
 }
-const DropdownMenuItem = <O extends string,>({ option, isActive, onSwitch, children }: MenuItemProps<O>) => {
+const DropdownMenuItem = <O extends string>({ option, isActive, onSwitch, children }: MenuItemProps<O>) => {
 	const activeStyle = {
 		backgroundColor: "rgba(var(--spice-rgb-selected-row),.1)",
 	};
@@ -68,7 +68,7 @@ export default function <O extends DropdownOptions>({ options, activeOption, onS
 	if (Object.keys(options).length === 1) {
 		return (
 			<button
-				className="w6j_vX6SF5IxSXrrkYw5"
+				className={MAP.sort_box.list.button}
 				type="button"
 				role="combobox"
 				aria-expanded="false"
@@ -105,7 +105,7 @@ export default function <O extends DropdownOptions>({ options, activeOption, onS
 			trigger="click"
 		>
 			<button
-				className="w6j_vX6SF5IxSXrrkYw5"
+				className={MAP.sort_box.list.button}
 				type="button"
 				role="combobox"
 				aria-expanded="false"

@@ -28,9 +28,13 @@ export let Nav: React.NamedExoticComponent;
 export let NavTo: React.NamedExoticComponent;
 export let InstrumentedRedirect: any;
 export let SnackbarProvider: SnackbarProvider;
-export let SettingColumn: Function;
-export let SettingText: Function;
-export let SettingToggle: Function;
+export let Settings: {
+	SettingsLabel: React.FC<{}>;
+	SettingsRow: React.FC<{}>;
+	SettingsRowEnd: React.FC<{}>;
+	SettingsRowStart: React.FC<{}>;
+};
+export let SettingsToggle: Function;
 
 export let ContextMenu: any;
 export let RightClickMenu: Function;
@@ -213,11 +217,11 @@ CHUNKS.xpui.promise.then(() => {
 	Tracklist = exportedMemos.find((f) => (f as any).type.toString().includes("nrValidItems"))!;
 	TracklistRow = exportedMemos.find((f) => (f as any).type.toString().includes("track-icon"))!;
 	TracklistColumnsContextProvider = findBy("columnType")(exportedFunctions);
+
+	SettingsToggle = findBy("condensed", "onSelected")(exportedFunctions);
 });
 
 (CHUNKS["/xpui-desktop-routes-settings.js"] ??= Promise.withResolvers()).promise.then(() => {
-	const { exportedFunctions } = analyzeWebpackRequire(require);
-	SettingColumn = findBy("setSectionFilterMatchQueryValue", "filterMatchQuery")(exportedFunctions);
-	SettingText = findBy("textSubdued", "dangerouslySetInnerHTML")(exportedFunctions);
-	SettingToggle = findBy("condensed", "onSelected")(exportedFunctions);
+	const { modules } = analyzeWebpackRequire(require);
+	Settings = modules.find((m) => m.SettingsRow);
 });
