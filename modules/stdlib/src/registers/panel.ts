@@ -150,7 +150,7 @@ transformer(
 
 		str = str.replace(
 			/(\(([a-zA-Z_\$][\w\$]*),"PanelSection".+?children:\[?)/,
-			"$1__renderPanel($2)??",
+			"$1__renderPanel($2),",
 		);
 
 		emit();

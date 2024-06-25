@@ -6,7 +6,7 @@ fi
 
 for DIR; do
    echo "Installing ${DIR}"
-   ID="/official/$(basename "$1")@0.0.0-dev"
+   ID="/official/$(basename "$1")@0.2.0"
    spicetify pkg delete "${ID}"
    spicetify pkg install "${ID}" "${DIR}"
    spicetify pkg enable "${ID}"
