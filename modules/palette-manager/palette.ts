@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { storage } from "./index.tsx";
+import { storage } from "./mod.tsx";
 import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
 
 // TODO: edit these keys
