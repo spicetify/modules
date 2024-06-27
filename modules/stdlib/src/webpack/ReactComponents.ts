@@ -164,7 +164,7 @@ CHUNKS.xpui.promise.then(() => {
 	Nav = exportedMemoFRefs.find((m) => (m as any).type.render.toString().includes("navigationalRoot"))!;
 	NavTo = exportedMemoFRefs.find((m) => (m as any).type.render.toString().includes("pageId"))!;
 
-	InstrumentedRedirect = modules.find((e) => e.InstrumentedRedirect).InstrumentedRedirect;
+	InstrumentedRedirect = findBy("getInteractionId")(exportedFunctions);
 
 	SnackbarProvider = findBy("enqueueSnackbar called with invalid argument")(
 		exportedFunctions,
@@ -216,7 +216,7 @@ CHUNKS.xpui.promise.then(() => {
 
 	Tracklist = exportedMemos.find((f) => (f as any).type.toString().includes("nrValidItems"))!;
 	TracklistRow = exportedMemos.find((f) => (f as any).type.toString().includes("track-icon"))!;
-	TracklistColumnsContextProvider = findBy("columnType")(exportedFunctions);
+	TracklistColumnsContextProvider = findBy("columns", "visibleColumns", "toggleVisible")(exportedFunctions);
 
 	SettingsToggle = findBy("condensed", "onSelected")(exportedFunctions);
 });

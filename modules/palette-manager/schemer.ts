@@ -4,7 +4,7 @@
 
 import { Palette, PaletteManager } from "./palette.ts";
 import { Module } from "/hooks/index.ts";
-import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
+import type { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
 
 class Schemer {
 	constructor(private mod: Module) {}

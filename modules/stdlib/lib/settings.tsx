@@ -55,7 +55,7 @@ export interface HiddenField<I extends string = any> extends BaseField<I> {
 }
 
 export class Settings<A = Record<string, never>> {
-	public sectionFields: { [key: string]: JSX.Element } = {};
+	public sectionFields: { [key: string]: JSX.Element; } = {};
 	private proxy;
 
 	getName() {
@@ -179,11 +179,11 @@ export class Settings<A = Record<string, never>> {
 	};
 
 	SettingField = (
-		{ field, children }: { field: SettingsField; children?: any },
+		{ field, children }: { field: SettingsField; children?: any; },
 	) => (
 		<S.SettingsRow filterMatchQuery={field.id}>
 			<S.SettingsRowStart>
-				<SettingsLabel htmlFor={field.id}>{field.desc}</SettingsLabel>
+				<S.SettingsLabel htmlFor={field.id}>{field.desc}</S.SettingsLabel>
 			</S.SettingsRowStart>
 			<S.SettingsRowEnd>{children}</S.SettingsRowEnd>
 		</S.SettingsRow>
@@ -242,7 +242,7 @@ export class Settings<A = Record<string, never>> {
 }
 
 export const createSettings = (
-	mod: Module & { settings?: Settings },
+	mod: Module & { settings?: Settings; },
 ) => {
 	if (!mod.settings) {
 		mod.settings = Settings.fromModule(mod);
