@@ -2,11 +2,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createRegistrar, createStorage } from "/modules/official/stdlib/index.ts";
+import { createRegistrar, createStorage } from "/modules/official/stdlib/mod.ts";
 
 import { React } from "/modules/official/stdlib/src/expose/React.ts";
 
-import { Module } from "/hooks/index.ts";
+import type { Module } from "/hooks/index.ts";
 import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
 
 export let storage: Storage;

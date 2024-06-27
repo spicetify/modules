@@ -6,7 +6,7 @@ fi
 
 for DIR; do
    echo "Building ${DIR}"
-   deno run -A jsr:@delu/tailor/cli -i "${DIR}" -o "${DIR}" -c classmap.json -b &
+   deno run -A jsr:@delu/tailor/cli -m "/official/${DIR#*/}" -i "${DIR}" -o "${DIR}" -c classmap.json -b &
 done
 
 wait

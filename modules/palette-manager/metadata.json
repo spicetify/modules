@@ -16,7 +16,8 @@
 	"readme": "./assets/README.md",
 	"entries": {
 		"js": "index.js",
-		"css": "index.css"
+		"css": "index.css",
+		"importMap": "import_map.json"
 	},
 	"dependencies": {
 		"/official/stdlib": "0.2.0"

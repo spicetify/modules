@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mixin.ts";
+import { transformer } from "../../mix.ts";
 
 import type { PlatformAutoGen } from "/hooks/PlatformAutoGen.d.ts";
 

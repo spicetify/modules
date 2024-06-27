@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import {} from "../../mixin.ts";
+import { } from "../../mix.ts";
 import { exportedFunctions } from "./index.ts";
 import { findBy } from "/hooks/util.ts";
 
@@ -20,8 +20,8 @@ export type EnqueueSnackbar = EnqueueSnackbarT;
 export let useSnackbar: useSnackbar;
 
 type FN_enqueueCustomSnackbar_OPTS =
-	| (Omit<OptionsObject, "key"> & { keyPrefix: string })
-	| (OptionsObject & { identifier: string });
+	| (Omit<OptionsObject, "key"> & { keyPrefix: string; })
+	| (OptionsObject & { identifier: string; });
 export let enqueueCustomSnackbar: (
 	element: React.ReactElement,
 	opts: FN_enqueueCustomSnackbar_OPTS,

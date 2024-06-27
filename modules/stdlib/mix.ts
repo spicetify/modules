@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Transformer } from "/hooks/transform.ts";
+import type { Transformer } from "/hooks/index.ts";
 
 export let transformer: Transformer;
 export default async function (t: Transformer) {

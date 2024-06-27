@@ -5,7 +5,7 @@
 
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../../lib/createIconComponent.tsx";
-import { transformer } from "../../mixin.ts";
+import { transformer } from "../../mix.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { Registry } from "./registry.ts";
