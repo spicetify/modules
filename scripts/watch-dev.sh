@@ -6,7 +6,7 @@ fi
 
 for DIR; do
    echo "Watching ${DIR}"
-   deno run -A jsr:@delu/tailor/cli -i "${DIR}" -o "${DIR}" -c classmap.json -w &
+   deno run -A jsr:@delu/tailor/cli --module "/official/${DIR#*/}" -i "${DIR}" -o "${DIR}" -c classmap.json -b -w --debounce 1000 --dev &
 done
 
 wait
