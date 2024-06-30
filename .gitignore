@@ -2,5 +2,6 @@
 /deno.lock
 
 /dist/
+/modules/*/timestamp
 /modules/*/**/*.js
 /modules/*/**/*.css
