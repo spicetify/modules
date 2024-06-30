@@ -13,10 +13,8 @@ import { ChangeEvent } from "npm:@types/react";
 import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
 
 export default function () {
-	const setCurrentPalette = (_: Palette, palette: Palette) =>
-		PaletteManager.INSTANCE.setCurrent(palette);
-	const getCurrentPalette = (_: undefined) =>
-		PaletteManager.INSTANCE.getCurrent();
+	const setCurrentPalette = (_: Palette, palette: Palette) => PaletteManager.INSTANCE.setCurrent(palette);
+	const getCurrentPalette = (_: undefined) => PaletteManager.INSTANCE.getCurrent();
 
 	const [selectedPalette, selectPalette] = React.useReducer(
 		setCurrentPalette,
@@ -68,7 +66,8 @@ export default function () {
 								key={palette.id}
 								trailingIcon={palette === selectedPalette &&
 									createIconComponent({
-										icon: '<path d="M15.53 2.47a.75.75 0 0 1 0 1.06L4.907 14.153.47 9.716a.75.75 0 0 1 1.06-1.06l3.377 3.376L14.47 2.47a.75.75 0 0 1 1.06 0z"/>',
+										icon:
+											'<path d="M15.53 2.47a.75.75 0 0 1 0 1.06L4.907 14.153.47 9.716a.75.75 0 0 1 1.06-1.06l3.377 3.376L14.47 2.47a.75.75 0 0 1 1.06 0z"/>',
 									})}
 								onClick={() => selectPalette(palette)}
 							>
@@ -221,9 +220,8 @@ const LocalInfo = (props: LocalInfoProps) => {
 };
 
 export const useUpdater =
-	<S,>(dispatch: React.Dispatch<React.SetStateAction<S>>) =>
-		(updater: React.SetStateAction<S>) => {
-			const updateState = React.useCallback(() => dispatch(updater), [updater]);
-			React.useEffect(updateState, [updateState]);
-			return updateState;
-		};
+	<S,>(dispatch: React.Dispatch<React.SetStateAction<S>>) => (updater: React.SetStateAction<S>) => {
+		const updateState = React.useCallback(() => dispatch(updater), [updater]);
+		React.useEffect(updateState, [updateState]);
+		return updateState;
+	};

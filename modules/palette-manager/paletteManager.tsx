@@ -3,7 +3,7 @@
  */
 
 import { TopbarLeftButton } from "/modules/official/stdlib/src/registers/topbarLeftButton.tsx";
-import Modal from "/modules/official/palette-manager/modal.tsx";
+import Modal from "./modal.tsx";
 import { React } from "/modules/official/stdlib/src/expose/React.ts";
 import { display } from "/modules/official/stdlib/lib/modal.tsx";
 

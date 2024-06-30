@@ -13,8 +13,7 @@
 	"readme": "./assets/README.md",
 	"entries": {
 		"js": "index.js",
-		"css": "index.css",
-		"importMap": "import_map.json"
+		"css": "index.css"
 	},
 	"hasMixins": true,
 	"dependencies": []

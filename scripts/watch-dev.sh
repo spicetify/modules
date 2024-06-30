@@ -6,7 +6,8 @@ fi
 
 for DIR; do
    echo "Watching ${DIR}"
-   deno run -A jsr:@delu/tailor/cli --module "/official/${DIR#*/}" -i "${DIR}" -o "${DIR}" -c classmap.json -b -w --debounce 1000 --dev &
+	ID="/official/$(basename "$1")"
+   SPICETIFY_CONFIG_DIR="$XDG_CONFIG_HOME/spicetify/" deno run -A jsr:@delu/tailor/cli --module "${ID}" -i "${DIR}" -o "${DIR}" -c classmap.json -b -w --debounce 1000 --dev &
 done
 
 wait

@@ -2,6 +2,7 @@
 
 [CmdletBinding()]
 param (
+	[Parameter(ValueFromRemainingArguments = $true)]
 	[string[]]$Dirs
 )
 
