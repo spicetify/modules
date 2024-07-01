@@ -12,10 +12,10 @@ import { BehaviorSubject, Subscription } from "https://esm.sh/rxjs";
 
 export const createRegistrar = (mod: Module) => {
 	const registrar = new Registrar(mod.getModuleIdentifier());
-	const unloadJS = mod._unloadJS!;
-	mod._unloadJS = () => {
+	const unloadJs = mod._unloadJs!;
+	mod._unloadJs = () => {
 		registrar!.dispose();
-		return unloadJS();
+		return unloadJs();
 	};
 	return registrar;
 };
@@ -78,10 +78,10 @@ export const createEventBus = (mod: Module) => {
 	s.add(EventBus.Player.state_updated.subscribe(eventBus.Player.state_updated));
 	s.add(EventBus.Player.status_changed.subscribe(eventBus.Player.status_changed));
 	s.add(EventBus.History.updated.subscribe(eventBus.History.updated));
-	const unloadJS = mod._unloadJS!;
-	mod._unloadJS = () => {
+	const unloadJs = mod._unloadJs!;
+	mod._unloadJs = () => {
 		s.unsubscribe();
-		return unloadJS();
+		return unloadJs();
 	};
 
 	return eventBus;

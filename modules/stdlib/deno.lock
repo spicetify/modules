@@ -1,0 +1,91 @@
+{
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "jsr:@std/fs": "jsr:@std/fs@0.229.3",
+      "jsr:@std/path@1.0.0-rc.1": "jsr:@std/path@1.0.0-rc.1",
+      "npm:@swc/core": "npm:@swc/core@1.6.6"
+    },
+    "jsr": {
+      "@std/fs@0.229.3": {
+        "integrity": "783bca21f24da92e04c3893c9e79653227ab016c48e96b3078377ebd5222e6eb",
+        "dependencies": [
+          "jsr:@std/path@1.0.0-rc.1"
+        ]
+      },
+      "@std/path@1.0.0-rc.1": {
+        "integrity": "b8c00ae2f19106a6bb7cbf1ab9be52aa70de1605daeb2dbdc4f87a7cbaf10ff6"
+      }
+    },
+    "npm": {
+      "@swc/core-darwin-arm64@1.6.6": {
+        "integrity": "sha512-5DA8NUGECcbcK1YLKJwNDKqdtTYDVnkfDU1WvQSXq/rU+bjYCLtn5gCe8/yzL7ISXA6rwqPU1RDejhbNt4ARLQ==",
+        "dependencies": {}
+      },
+      "@swc/core-darwin-x64@1.6.6": {
+        "integrity": "sha512-2nbh/RHpweNRsJiYDFk1KcX7UtaKgzzTNUjwtvK5cp0wWrpbXmPvdlWOx3yzwoiSASDFx78242JHHXCIOlEdsw==",
+        "dependencies": {}
+      },
+      "@swc/core-linux-arm-gnueabihf@1.6.6": {
+        "integrity": "sha512-YgytuyUfR7b0z0SRHKV+ylr83HmgnROgeT7xryEkth6JGpAEHooCspQ4RrWTU8+WKJ7aXiZlGXPgybQ4TiS+TA==",
+        "dependencies": {}
+      },
+      "@swc/core-linux-arm64-gnu@1.6.6": {
+        "integrity": "sha512-yGwx9fddzEE0iURqRVwKBQ4IwRHE6hNhl15WliHpi/PcYhzmYkUIpcbRXjr0dssubXAVPVnx6+jZVDSbutvnfg==",
+        "dependencies": {}
+      },
+      "@swc/core-linux-arm64-musl@1.6.6": {
+        "integrity": "sha512-a6fMbqzSAsS5KCxFJyg1mD5kwN3ZFO8qQLyJ75R/htZP/eCt05jrhmOI7h2n+1HjiG332jLnZ9S8lkVE5O8Nqw==",
+        "dependencies": {}
+      },
+      "@swc/core-linux-x64-gnu@1.6.6": {
+        "integrity": "sha512-hRGsUKNzzZle28YF0dYIpN0bt9PceR9LaVBq7x8+l9TAaDLFbgksSxcnU/ubTtsy+WsYSYGn+A83w3xWC0O8CQ==",
+        "dependencies": {}
+      },
+      "@swc/core-linux-x64-musl@1.6.6": {
+        "integrity": "sha512-NokIUtFxJDVv3LzGeEtYMTV3j2dnGKLac59luTeq36DQLZdJQawQIdTbzzWl2jE7lxxTZme+dhsVOH9LxE3ceg==",
+        "dependencies": {}
+      },
+      "@swc/core-win32-arm64-msvc@1.6.6": {
+        "integrity": "sha512-lzYdI4qb4k1dFG26yv+9Jaq/bUMAhgs/2JsrLncGjLof86+uj74wKYCQnbzKAsq2hDtS5DqnHnl+//J+miZfGA==",
+        "dependencies": {}
+      },
+      "@swc/core-win32-ia32-msvc@1.6.6": {
+        "integrity": "sha512-bvl7FMaXIJQ76WZU0ER4+RyfKIMGb6S2MgRkBhJOOp0i7VFx4WLOnrmMzaeoPJaJSkityVKAftfNh7NBzTIydQ==",
+        "dependencies": {}
+      },
+      "@swc/core-win32-x64-msvc@1.6.6": {
+        "integrity": "sha512-WAP0JoCTfgeYKgOeYJoJV4ZS0sQUmU3OwvXa2dYYtMLF7zsNqOiW4niU7QlThBHgUv/qNZm2p6ITEgh3w1cltw==",
+        "dependencies": {}
+      },
+      "@swc/core@1.6.6": {
+        "integrity": "sha512-sHfmIUPUXNrQTwFMVCY5V5Ena2GTOeaWjS2GFUpjLhAgVfP90OP67DWow7+cYrfFtqBdILHuWnjkTcd0+uPKlg==",
+        "dependencies": {
+          "@swc/core-darwin-arm64": "@swc/core-darwin-arm64@1.6.6",
+          "@swc/core-darwin-x64": "@swc/core-darwin-x64@1.6.6",
+          "@swc/core-linux-arm-gnueabihf": "@swc/core-linux-arm-gnueabihf@1.6.6",
+          "@swc/core-linux-arm64-gnu": "@swc/core-linux-arm64-gnu@1.6.6",
+          "@swc/core-linux-arm64-musl": "@swc/core-linux-arm64-musl@1.6.6",
+          "@swc/core-linux-x64-gnu": "@swc/core-linux-x64-gnu@1.6.6",
+          "@swc/core-linux-x64-musl": "@swc/core-linux-x64-musl@1.6.6",
+          "@swc/core-win32-arm64-msvc": "@swc/core-win32-arm64-msvc@1.6.6",
+          "@swc/core-win32-ia32-msvc": "@swc/core-win32-ia32-msvc@1.6.6",
+          "@swc/core-win32-x64-msvc": "@swc/core-win32-x64-msvc@1.6.6",
+          "@swc/counter": "@swc/counter@0.1.3",
+          "@swc/types": "@swc/types@0.1.9"
+        }
+      },
+      "@swc/counter@0.1.3": {
+        "integrity": "sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==",
+        "dependencies": {}
+      },
+      "@swc/types@0.1.9": {
+        "integrity": "sha512-qKnCno++jzcJ4lM4NTfYifm1EFSCeIfKiAHAfkENZAV5Kl9PjJIyd2yeeVv6c/2CckuLyv2NmRC5pv6pm2WQBg==",
+        "dependencies": {
+          "@swc/counter": "@swc/counter@0.1.3"
+        }
+      }
+    }
+  },
+  "remote": {}
+}

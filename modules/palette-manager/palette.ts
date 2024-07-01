@@ -65,12 +65,12 @@ export class Palette {
 	}
 }
 
-const defaultPalette = new Palette("official/palette-manager/default", "Spotify • default", def_fields);
+const defaultPalette = new Palette("/official/palette-manager/default", "Spotify • default", def_fields);
 
 export class PaletteManager {
 	public static INSTANCE = new PaletteManager();
-	staticPalettes = new Set<Palette>([defaultPalette]);
-	userPalettes = new Set<Palette>;
+	staticPalettes = new Map<string, Palette>([[defaultPalette.id, defaultPalette]]);
+	userPalettes = new Set<Palette>();
 	private palette!: Palette;
 	private stylesheet = document.createElement("style");
 
@@ -87,7 +87,7 @@ export class PaletteManager {
 
 	private initUserPalettes() {
 		const userPalettesJSON: PaletteData[] = JSON.parse(storage.getItem("user_palettes") || "[]");
-		const userPalettes = userPalettesJSON.map(json => Palette.fromJSON(json));
+		const userPalettes = userPalettesJSON.map((json) => Palette.fromJSON(json));
 		for (const palette of userPalettes) {
 			this.userPalettes.add(palette);
 			if (this.isCurrent(palette)) {
@@ -97,11 +97,11 @@ export class PaletteManager {
 	}
 
 	public getDefault(): Palette {
-		return this.staticPalettes.keys().next().value;
+		return this.staticPalettes.values().next().value;
 	}
 
 	public getPalettes(): Palette[] {
-		return [...this.userPalettes, ...this.staticPalettes];
+		return [...this.userPalettes, ...this.staticPalettes.values()];
 	}
 
 	public save(): void {
