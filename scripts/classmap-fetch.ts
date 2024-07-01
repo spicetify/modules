@@ -17,7 +17,7 @@ for await (const module of Deno.readDir("modules")) {
 		continue;
 	}
 
-	const classmapDts = genClassMapDts(classmap);
+	const classmapDts = genClassMapDts(JSON.parse(classmap));
 	const classmapDtsPath = path.join("modules", module.name, "classmap.d.ts");
 
 	await Deno.writeTextFile(classmapDtsPath, classmapDts);
