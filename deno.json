@@ -1,6 +1,6 @@
 {
 	"tasks": {
-		"cm:fetch": "deno run -A scripts/cm-fetch.ts",
+		"cm:fetch": "deno run -A scripts/classmap-fetch.ts",
 		"pw:build": "./scripts/build.ps1",
 		"pw:watch": "./scripts/watch.ps1",
 		"pw:enable": "./scripts/enable.ps1",
