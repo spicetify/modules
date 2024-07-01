@@ -25,7 +25,7 @@ jobs:
          -  name: Build
             run: |
                set -e
-               deno task build:local:all
+               deno task ci:build:local
                pushd dist
                for DIR in *; do
                   pushd "${DIR}"

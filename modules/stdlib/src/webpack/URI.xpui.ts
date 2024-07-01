@@ -29,6 +29,7 @@ type Is = {
 	Station: IsThisURIType<any>;
 	Track: IsThisURIType<any>;
 };
+
 type Create = {
 	Album: any;
 	Application: any;

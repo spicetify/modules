@@ -10,10 +10,12 @@ if ($Dirs.Count -eq 0) {
 	$Dirs = Get-ChildItem -Directory modules
 }
 
+. .\scripts\VARS.ps1
+
 foreach ($Dir in $Dirs) {
-	$Id = "/official/$(Split-Path -Leaf $Dir)@0.2.0"
-	Write-Host "Enabling $Id"
-	spicetify pkg delete $Id
-	spicetify pkg install $Id $Dir
-	spicetify pkg enable $Id
+	$Id = Get-Id (Split-Path -Leaf $Dir)
+	$Fid = Get-FullId (Split-Path -Leaf $Dir)
+	Write-Host "Disabling $Fid"
+	spicetify pkg enable "$Id@"
+	spicetify pkg delete $Fid
 }
