@@ -1,5 +1,6 @@
 {
 	"tasks": {
+		"cm:fetch": "deno run -A scripts/cm-fetch.ts",
 		"pw:build": "./scripts/build.ps1",
 		"pw:watch": "./scripts/watch.ps1",
 		"pw:enable": "./scripts/enable.ps1",
@@ -8,7 +9,7 @@
 		"sh:watch": "./scripts/watch.sh",
 		"sh:enable": "./scripts/enable.sh",
 		"sh:disable": "./scripts/disable.sh",
-		"build:local": "deno run -A scripts/build-local.ts",
-		"ci:build:local": "deno task build:local modules/*"
+		"build:release": "deno run -A scripts/build-release.ts",
+		"ci:build:release": "deno task build:local modules/*"
 	}
 }

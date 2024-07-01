@@ -1,5 +1,0 @@
-{
-	"tasks": {
-		"tailor": "deno run -A jsr:@delu/tailor/cli"
-	}
-}

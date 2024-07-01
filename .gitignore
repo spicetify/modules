@@ -2,6 +2,9 @@
 /deno.lock
 
 /dist/
-/modules/*/timestamp
+/classmap.json
+
 /modules/*/**/*.js
 /modules/*/**/*.css
+/modules/*/timestamp
+/modules/*/classmap.d.ts

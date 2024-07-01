@@ -1,4 +1,4 @@
-import build from "./build-shared.ts";
+export const GH_RAW_CLASSMAP_URL = "https://raw.githubusercontent.com/spicetify/classmaps/main/1020040/classmap-1906ea8d2e9.json";
 
 async function parseGhRawUrl(rawUrl: string) {
 	const urlMatch = rawUrl.match(/^https:\/\/raw\.githubusercontent\.com\/(?<owner>[^\/]+)\/(?<repo>[^\/]+)\/(?<branch>[^\/]+)\/(?<path>.+)$/);
@@ -23,8 +23,4 @@ async function parseGhRawUrl(rawUrl: string) {
 	};
 }
 
-const GH_RAW_CLASSMAP_URL = "https://raw.githubusercontent.com/spicetify/classmaps/main/1020040/classmap-1906ea8d2e9.json";
-
-const classmapInfos = [await parseGhRawUrl(GH_RAW_CLASSMAP_URL)];
-
-await build(classmapInfos, Deno.args);
+export const classmapInfos = [await parseGhRawUrl(GH_RAW_CLASSMAP_URL)];

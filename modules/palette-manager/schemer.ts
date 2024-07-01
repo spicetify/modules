@@ -25,7 +25,6 @@ class Schemer {
 		return PaletteManager.INSTANCE.staticPalettes.get(this.getPaletteId(name));
 	}
 
-	// TODO: unregister when module unloads
 	register(name: string, colors: Record<string, Color>) {
 		const palette = new Palette(this.getPaletteId(name), name, colors);
 		this.palettes.add(palette);
