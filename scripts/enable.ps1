@@ -13,7 +13,8 @@ if ($Dirs.Count -eq 0) {
 . .\scripts\VARS.ps1
 
 foreach ($Dir in $Dirs) {
-	$Fid = Get-FullId (Split-Path -Leaf $Dir)
+	$Module = Split-Path -Leaf $Dir
+	$Fid = Get-FullId $Module
 	Write-Host "Enabling $Fid"
 	spicetify pkg install $Fid $Dir
 	spicetify pkg enable $Fid

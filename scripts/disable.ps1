@@ -13,8 +13,9 @@ if ($Dirs.Count -eq 0) {
 . .\scripts\VARS.ps1
 
 foreach ($Dir in $Dirs) {
-	$Id = Get-Id (Split-Path -Leaf $Dir)
-	$Fid = Get-FullId (Split-Path -Leaf $Dir)
+	$Module = Split-Path -Leaf $Dir
+	$Id = Get-Id $Module
+	$Fid = Get-FullId $Module
 	Write-Host "Disabling $Fid"
 	spicetify pkg enable "$Id@"
 	spicetify pkg delete $Fid

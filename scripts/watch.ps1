@@ -17,7 +17,8 @@ $env:SPICETIFY_CONFIG_DIR = "$env:LOCALAPPDATA\spicetify\"
 . .\scripts\VARS.ps1
 
 foreach ($Dir in $Dirs) {
-	$Id = Get-Id (Split-Path -Leaf $Dir)
+	$Module = Split-Path -Leaf $Dir
+	$Id = Get-Id $Module
 	Write-Host "Watching $Id"
 	$jobs += Start-Process -FilePath "deno" -ArgumentList "run -A jsr:@delu/tailor/cli --module $Id -i $Dir -o $Dir -c classmap.json -b -w --debounce 1000 --dev" -NoNewWindow -PassThru
 }
