@@ -2,7 +2,7 @@ import path from "node:path";
 
 import { ensureDir } from "jsr:@std/fs/ensure-dir";
 
-import { Builder, readJSON, Transpiler } from "jsr:@delu/tailor@0.9.5";
+import { Builder, readJSON, Transpiler } from "jsr:@delu/tailor";
 
 export type ClassmapInfo = {
 	classmap: any;
@@ -21,14 +21,13 @@ export default async function (classmapInfos: ClassmapInfo[], inputDirs: string[
 			const identifier = `/${m.authors[0]}/${m.name}`;
 			const fingerprint = `${m.authors[0]}.${m.name}@v${m.version}`;
 			const outputDir = path.join("dist", fingerprint);
-			const copyUnknown = true;
 			await ensureDir(outputDir);
 
 			const transpiler = new Transpiler(classmap, false);
-			const builder = new Builder(transpiler, { metadata, identifier, inputDir, outputDir, copyUnknown });
+			const builder = new Builder(transpiler, { metadata, identifier, inputDir, outputDir });
 
 			try {
-				await builder.build();
+				await builder.build({ js: true, css: true, unknown: true });
 				await Deno.writeTextFile(path.join(outputDir, "metadata.json"), JSON.stringify(m));
 			} catch (err) {
 				await Deno.remove(outputDir, { recursive: true });
