@@ -12,8 +12,10 @@ async function parseGhRawUrl(rawUrl: string) {
 		throw new Error(`Invalid path: ${path}`);
 	}
 	const { version, timestamp } = pathMatch.groups!;
-
-	const versionSemver = `${version[0]}.${version.slice(1, 3)}.${version.slice(3, 7)}`;
+	const M = Number(version[0]);
+	const m = Number(version.slice(1, 3));
+	const p = Number(version.slice(3, 7));
+	const versionSemver = `${M}.${m}.${p}`;
 	const timestampDecimal = Number.parseInt(timestamp, 16);
 
 	return {
