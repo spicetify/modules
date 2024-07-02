@@ -10,6 +10,6 @@
 		"sh:enable": "./scripts/enable.sh",
 		"sh:disable": "./scripts/disable.sh",
 		"build:release": "deno run -A scripts/build-release.ts",
-		"ci:build:release": "deno task build:local modules/*"
+		"ci:build:release": "deno task build:release modules/*"
 	}
 }
