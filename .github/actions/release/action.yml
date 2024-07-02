@@ -3,6 +3,7 @@ runs:
    using: 'composite'
    steps:
       -  name: Build
+         shell: bash
          run: |
             set -e
             pushd dist
@@ -21,6 +22,7 @@ runs:
             files: dist/*
 
       -  name: Update vault.json
+         shell: bash
          run: |
             set -e
             pushd dist
@@ -40,6 +42,7 @@ runs:
             rm -rf dist
 
       -  name: Git commit, rebase onto master
+         shell: bash
          env:
             PUSH_BRANCH: main
             TMP_BRANCH: ${{ github.repository }}${{ github.run_id}}
