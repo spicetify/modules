@@ -2,6 +2,7 @@
 ## Dev
 
 For a list of all available tasks, refer to the [deno config file](deno.json)
+
 `"pw:*"` tasks are for windows and `"sh:*"` for linux and macOS
 
 ```shell
