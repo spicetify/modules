@@ -9,22 +9,31 @@ import type { Store } from "npm:@types/redux";
 
 export type ReduxStore = Store;
 export let ReduxStore: ReduxStore;
+export let Platform: any;
 
-transformer<ReduxStore>(
-	emit => str => {
+transformer(
+	(emit) => (str) => {
 		str = str.replace(
-			/(,[a-zA-Z_\$][\w\$]*=)(([$\w,.:=;(){}]+\(\{session:[a-zA-Z_\$][\w\$]*,features:[a-zA-Z_\$][\w\$]*,seoExperiment:[a-zA-Z_\$][\w\$]*\}))/,
-			"$1__ReduxStore=$2",
+			/\.jsx\)\(([a-zA-Z_\$][\w\$]*),\{store:([a-zA-Z_\$][\w\$]*),platform:([a-zA-Z_\$][\w\$]*)\}\)/,
+			".jsx)($1,{store:__ReduxStore=$2,platform:__Platform=$3})",
 		);
 		Object.defineProperty(globalThis, "__ReduxStore", {
-			set: emit,
+			set: (value) => {
+				emit();
+				ReduxStore = value;
+			},
+			get: () => ReduxStore,
 		});
+		// Object.defineProperty(globalThis, "__Platform", {
+		// 	set: (value) => {
+		// 		emit();
+		// 		Platform = value;
+		// 	},
+		// 	get: () => Platform,
+		// });
 		return str;
 	},
 	{
-		then: ($: ReduxStore) => {
-			ReduxStore = $;
-		},
 		glob: /^\/xpui\.js/,
 	},
 );
