@@ -17,6 +17,6 @@ foreach ($Dir in $Dirs) {
 	$Id = Get-Id $Module
 	$Fid = Get-FullId $Module
 	Write-Host "Disabling $Fid"
-	spicetify pkg enable "$Id@"
+	spicetify pkg enable $Id@
 	spicetify pkg delete $Fid
 }

@@ -20,7 +20,7 @@ foreach ($Dir in $Dirs) {
 	$Module = Split-Path -Leaf $Dir
 	$Id = Get-Id $Module
 	Write-Host "Watching $Id"
-	$jobs += Start-Process -FilePath "deno" -ArgumentList "run -A jsr:@delu/tailor/cli --module $Id -i $Dir -o $Dir -c classmap.json -b -w --debounce 1000 --dev" -NoNewWindow -PassThru
+	$jobs += Start-Process -FilePath "deno" -ArgumentList "run -A jsr:@delu/tailor/cli --module `"$Id`" -i `"$Dir`" -o `"$Dir`" -c classmap.json -b -w --debounce 1000 --dev" -NoNewWindow -PassThru
 }
 
 $jobs | Wait-Process

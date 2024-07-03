@@ -25,7 +25,7 @@ transformer<Platform>(
 	{
 		then: ($: Platform) => {
 			Platform = $;
-			Cosmos = $.getRegistry().resolve(Symbol.for("Cosmos"));
+			Cosmos = $.getRegistry()._map.get(Symbol.for("Cosmos"));
 		},
 		glob: /^\/xpui\.js/,
 	},
