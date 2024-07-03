@@ -1,9 +1,9 @@
 
 ## Dev
 
-For a list of all available tasks, refer to the [deno config file](deno.json)
+For a list of all available tasks, refer to the [deno config file](deno.json).
 
-`"pw:*"` tasks are for windows and `"sh:*"` for linux and macOS
+Some tasks have `pw:*` (for Windows) and `sh:*` (for Linux and MacOS) variants, make sure to run the ones corresponding to your Platform.
 
 ```shell
 deno task cm:fetch
