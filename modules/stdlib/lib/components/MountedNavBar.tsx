@@ -19,7 +19,7 @@
 
 import { React } from "../../src/expose/React.ts";
 import { UI } from "../../src/webpack/ComponentLibrary.ts";
-import { ReactDOM } from "../../src/webpack/React.ts";
+import { ReactDOM } from "../../src/webpack/React.xpui.ts";
 import { NavTo, ScrollableContainer } from "../../src/webpack/ReactComponents.ts";
 import { isGlobalNavBarEnabled } from "../../src/utils/index.ts";
 
