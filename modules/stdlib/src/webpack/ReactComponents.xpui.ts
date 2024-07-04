@@ -152,7 +152,7 @@ export const Route: React.FC<any> = findBy(
 )(exportedFunctions);
 export const StoreProvider: React.FC<any> = findBy("notifyNestedSubs", "serverState")(exportedFunctions);
 
-export const GenericModal: React.FC<any> = findBy("GenericModal")(exportedFunctions);
+export const GenericModal: React.FC<any> = findBy("isOpen", "contentLabel")(exportedFunctions);
 
 export const Tracklist: React.FC<any> = exportedMemos.find((f) =>
 	(f as any).type.toString().includes("nrValidItems")

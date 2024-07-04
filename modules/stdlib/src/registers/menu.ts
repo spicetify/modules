@@ -33,7 +33,7 @@ declare global {
 
 globalThis.__renderMenuItems = () => items.all();
 transformer(
-	emit => str => {
+	(emit) => (str) => {
 		str = str.replace(
 			/("Menu".+?children:)([a-zA-Z_\$][\w\$]*)/,
 			"$1[__renderMenuItems(),$2].flat()",
@@ -41,16 +41,14 @@ transformer(
 
 		const croppedInput = str.match(/.*value:"contextmenu"/)![0];
 		const react = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)\.useRef/g)[1];
-		// const menu = matchLast( croppedInput, /menu:([a-zA-Z_\$][\w\$]*)/g )[ 1 ];
-		// const trigger = matchLast( croppedInput, /trigger:([a-zA-Z_\$][\w\$]*)/g )[ 1 ];
-		// const target = matchLast( croppedInput, /triggerRef:([a-zA-Z_\$][\w\$]*)/g )[ 1 ];
-		const menu = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)=e.menu,/g)[1];
-		const trigger = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)=e.trigger,/g)[1];
-		const target = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)=e.triggerRef,/g)[1];
+
+		const menu = matchLast(croppedInput, /menu:([a-zA-Z_\$][\w\$]*)/g)?.[1];
+		const trigger = matchLast(croppedInput, /trigger:([a-zA-Z_\$][\w\$]*)/g)?.[1];
+		const target = matchLast(croppedInput, /triggerRef:([a-zA-Z_\$][\w\$]*)/g)?.[1];
 
 		str = str.replace(
-			/(\(0,([a-zA-Z_\$][\w\$]*)\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{value:"contextmenu"[^\}]*\}\)\}\))/,
-			`($2.jsx)((globalThis.__MenuContext||(globalThis.__MenuContext=${react}.createContext(null))).Provider,{value:{props:${menu}?.props,trigger:${trigger},target:${target}},children:$1})`,
+			/render:(.{0,100}?\(0,([a-zA-Z_\$][\w\$]*)\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{value:"contextmenu",[^\}]+\}[^,]+),/,
+			`render:(props)=>{let value;if(e.menu)value={props:e.menu?.props,trigger:e.trigger,target:e.triggerRef};else value={props:${menu}?.props,trigger:${trigger},target:${target}};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:$2.jsx($1,props)});},`,
 		);
 
 		emit();
@@ -61,7 +59,5 @@ transformer(
 	},
 );
 
-export const createProfileMenuShouldAdd =
-	() =>
-		({ trigger, target }: MenuContext) =>
-			trigger === "click" && target.getAttribute("data-testid") === "user-widget-link";
+export const createProfileMenuShouldAdd = () => ({ trigger, target }: MenuContext) =>
+	trigger === "click" && target.getAttribute("data-testid") === "user-widget-link";
