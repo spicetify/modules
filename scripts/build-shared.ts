@@ -18,7 +18,7 @@ export default async function (classmapInfos: ClassmapInfo[], inputDirs: string[
 			const m = Object.assign({}, metadata);
 			m.version += `+sp-${spVersion}-cm-${timestamp.toString(16)}`;
 
-			const identifier = `/${m.authors[0]}/${m.name}`;
+			const identifier = `${m.authors[0]}.${m.name}`;
 			const fingerprint = `${m.authors[0]}.${m.name}@v${m.version}`;
 			const outputDir = path.join("dist", fingerprint);
 			await ensureDir(outputDir);

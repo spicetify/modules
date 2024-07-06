@@ -48,7 +48,7 @@ transformer(
 
 		str = str.replace(
 			/render:(.{0,100}?\(0,([a-zA-Z_\$][\w\$]*)\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{value:"contextmenu",[^\}]+\}[^,]+),/,
-			`render:(props)=>{let value;if(e.menu)value={props:e.menu?.props,trigger:e.trigger,target:e.triggerRef};else value={props:${menu}?.props,trigger:${trigger},target:${target}};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:$2.jsx($1,props)});},`,
+			`render:(props)=>{let value;if(e?.menu)value={props:e.menu?.props,trigger:e.trigger,target:e.triggerRef};else value={props:${menu}?.props,trigger:${trigger},target:${target}};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:$2.jsx($1,props)});},`,
 		);
 
 		emit();
