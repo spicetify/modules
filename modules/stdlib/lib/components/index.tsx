@@ -18,7 +18,7 @@
  */
 
 import { React } from "../../src/expose/React.ts";
-import { _ } from "/modules/official/stdlib/deps.ts";
+import { _ } from "../../deps.ts";
 import Dropdown, { type DropdownOptions } from "./Dropdown.tsx";
 import { ChipFilter } from "./ChipFilter.tsx";
 import { FilterContext } from "../../src/webpack/FilterContext.ts";

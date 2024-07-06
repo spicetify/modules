@@ -17,7 +17,6 @@
  * along with bespoke/modules/stdlib. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { _ } from "/modules/official/stdlib/deps.ts";
 import { React } from "../../src/expose/React.ts";
 import { UI } from "../../src/webpack/ComponentLibrary.ts";
 import { ScrollableContainer } from "../../src/webpack/ReactComponents.ts";
