@@ -65,7 +65,7 @@ export class Palette {
 	}
 }
 
-const defaultPalette = new Palette("/official/palette-manager/default", "Spotify • default", def_fields);
+const defaultPalette = new Palette("palette-manager/default", "Spotify • default", def_fields);
 
 export class PaletteManager {
 	public static INSTANCE = new PaletteManager();
