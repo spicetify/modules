@@ -3,7 +3,7 @@
  */
 
 import { storage } from "./mod.tsx";
-import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
+import { Color } from "/modules/stdlib/src/webpack/misc.ts";
 
 // TODO: edit these keys
 const def_fields = {

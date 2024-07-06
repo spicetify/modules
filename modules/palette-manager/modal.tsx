@@ -2,15 +2,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { useSearchBar } from "/modules/official/stdlib/lib/components/index.tsx";
+import { useSearchBar } from "/modules/stdlib/lib/components/index.tsx";
 import { Palette, PaletteManager } from "./palette.ts";
-import { createIconComponent } from "/modules/official/stdlib/lib/createIconComponent.tsx";
-import { startCase } from "/modules/official/stdlib/deps.ts";
-import { React } from "/modules/official/stdlib/src/expose/React.ts";
-import { MenuItem } from "/modules/official/stdlib/src/webpack/ReactComponents.ts";
-import { Platform } from "/modules/official/stdlib/src/expose/Platform.ts";
+import { createIconComponent } from "/modules/stdlib/lib/createIconComponent.tsx";
+import { startCase } from "/modules/stdlib/deps.ts";
+import { React } from "/modules/stdlib/src/expose/React.ts";
+import { MenuItem } from "/modules/stdlib/src/webpack/ReactComponents.ts";
+import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
 import { ChangeEvent } from "npm:@types/react";
-import { Color } from "/modules/official/stdlib/src/webpack/misc.ts";
+import { Color } from "/modules/stdlib/src/webpack/misc.ts";
 
 export default function () {
 	const setCurrentPalette = (_: Palette, palette: Palette) => PaletteManager.INSTANCE.setCurrent(palette);
