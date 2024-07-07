@@ -48,7 +48,7 @@ transformer(
 
 		let value: string;
 		if (menu && trigger && target) {
-			value = `{props:${menu}.props,trigger:${trigger},target:${target}}`;
+			value = `{props:${menu}?.props,trigger:${trigger},target:${target}}`;
 		} else {
 			value = `{props:e.menu?.props,trigger:e.trigger,target:e.triggerRef}`;
 		}
