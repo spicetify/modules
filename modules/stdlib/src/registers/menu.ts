@@ -42,9 +42,7 @@ transformer(
 		const croppedInput = str.match(/.*value:"contextmenu"/)![0];
 		const react = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)\.useRef/g)[1];
 
-		const menu = matchLast(croppedInput, /menu:([a-zA-Z_\$][\w\$]*)/g)?.[1];
-		const trigger = matchLast(croppedInput, /trigger:([a-zA-Z_\$][\w\$]*)/g)?.[1];
-		const target = matchLast(croppedInput, /triggerRef:([a-zA-Z_\$][\w\$]*)/g)?.[1];
+		const [, menu, trigger, target] = matchLast(croppedInput, /\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)/g) ?? [];
 
 		let value: string;
 		if (menu && trigger && target) {
