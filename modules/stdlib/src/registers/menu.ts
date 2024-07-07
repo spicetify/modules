@@ -46,9 +46,17 @@ transformer(
 		const trigger = matchLast(croppedInput, /trigger:([a-zA-Z_\$][\w\$]*)/g)?.[1];
 		const target = matchLast(croppedInput, /triggerRef:([a-zA-Z_\$][\w\$]*)/g)?.[1];
 
+		let value: string;
+		if (menu && trigger && target) {
+			value = `{props:${menu}.props,trigger:${trigger},target:${target}}`;
+		} else {
+			value = `{props:e.menu?.props,trigger:e.trigger,target:e.triggerRef}`;
+		}
+
+
 		str = str.replace(
 			/render:(.{0,100}?\(0,([a-zA-Z_\$][\w\$]*)\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{value:"contextmenu",[^\}]+\}[^,]+),/,
-			`render:(props)=>{let value;if(e?.menu)value={props:e.menu?.props,trigger:e.trigger,target:e.triggerRef};else value={props:${menu}?.props,trigger:${trigger},target:${target}};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:$2.jsx($1,props)});},`,
+			`render:(props)=>{const value=${value};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:$2.jsx($1,props)});},`,
 		);
 
 		emit();
