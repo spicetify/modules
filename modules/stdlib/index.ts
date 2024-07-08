@@ -1,4 +1,4 @@
-export { default as loadMixins } from "./mix.ts";
+export { default as mixin } from "./mix.ts";
 
 export default async function load() {
 	const mod = await import("./mod.ts");

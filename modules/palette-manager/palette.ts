@@ -2,8 +2,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { storage } from "./mod.tsx";
-import { Color } from "/modules/stdlib/src/webpack/misc.ts";
+import { createStorage } from "/modules/stdlib/mod.ts";
+import type { Module } from "/hooks/index.ts";
+import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
+
+let storage: Storage;
+export default function (mod: Module) {
+	storage = createStorage(mod);
+	PaletteManager.INSTANCE._init();
+}
 
 // TODO: edit these keys
 const def_fields = {
@@ -76,10 +83,9 @@ export class PaletteManager {
 
 	private constructor() {
 		document.head.appendChild(this.stylesheet);
-		this.init();
 	}
 
-	private init() {
+	_init() {
 		const paletteStr = storage.getItem("palette");
 		const palette: Palette = paletteStr ? Palette.fromJSON(JSON.parse(paletteStr)) : this.getDefault();
 
