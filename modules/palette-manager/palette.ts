@@ -65,7 +65,7 @@ export class Palette {
 	}
 }
 
-const defaultPalette = new Palette("palette-manager/default", "Spotify • default", def_fields);
+const defaultPalette = new Palette("default", "Spotify • default", def_fields);
 
 export class PaletteManager {
 	public static INSTANCE = new PaletteManager();
@@ -76,7 +76,10 @@ export class PaletteManager {
 
 	private constructor() {
 		document.head.appendChild(this.stylesheet);
+		this.init();
+	}
 
+	private init() {
 		const paletteStr = storage.getItem("palette");
 		const palette: Palette = paletteStr ? Palette.fromJSON(JSON.parse(paletteStr)) : this.getDefault();
 
@@ -112,7 +115,7 @@ export class PaletteManager {
 		return this.palette;
 	}
 
-	public setCurrent(palette: Palette) {
+	public setCurrent(palette: Palette): Palette {
 		this.palette = palette;
 		this.writeCurrent();
 		return palette;
@@ -123,7 +126,7 @@ export class PaletteManager {
 		this.saveCurrent();
 	}
 
-	public saveCurrent(): void {
+	public saveCurrent() {
 		storage.setItem("palette", JSON.stringify(this.palette));
 	}
 

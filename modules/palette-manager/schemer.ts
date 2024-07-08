@@ -32,7 +32,7 @@ class Schemer {
 		if (PaletteManager.INSTANCE.isCurrent(palette)) {
 			PaletteManager.INSTANCE.setCurrent(palette);
 		}
-		return;
+		return this;
 	}
 
 	unregister(name: string) {
