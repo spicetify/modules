@@ -84,7 +84,7 @@ declare global {
 }
 
 globalThis.__renderPanel = (state: string) => {
-	if (!state.startsWith("bespoke")) {
+	if (!state.startsWith("bespoke_")) {
 		return null;
 	}
 
@@ -96,7 +96,7 @@ let STATES: Record<string, any> = {};
 let ACTIONS: Record<string, any> = {};
 
 transformer(
-	emit => str => {
+	(emit) => (str) => {
 		str = str.replace(
 			/(=\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\{id:"RightPanelState)/,
 			"=__Machine$1",
@@ -124,7 +124,7 @@ transformer(
 						v.on = new Proxy(v.on!, {
 							get(target, p, receiver) {
 								// @ts-ignore
-								if (p.startsWith("bespoke")) {
+								if (p.startsWith("bespoke_")) {
 									// @ts-ignore
 									return ON[p];
 								}
