@@ -42,7 +42,11 @@ transformer(
 		const croppedInput = str.match(/.*value:"contextmenu"/)![0];
 		const react = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)\.useRef/g)[1];
 
-		const [, menu, trigger, target] = matchLast(croppedInput, /\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)/g) ?? [];
+		const [, menu, trigger, target] =
+			matchLast(
+				croppedInput,
+				/\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)/g,
+			) ?? [];
 
 		let value: string;
 		if (menu && trigger && target) {
@@ -51,10 +55,9 @@ transformer(
 			value = `{props:e.menu?.props,trigger:e.trigger,target:e.triggerRef}`;
 		}
 
-
 		str = str.replace(
 			/render:(.{0,100}?\(0,([a-zA-Z_\$][\w\$]*)\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{value:"contextmenu",[^\}]+\}[^,]+),/,
-			`render:(props)=>{const value=${value};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:$2.jsx($1,props)});},`,
+			`render:(props)=>{const value=${value};return ($2.jsx)((globalThis.__MenuContext??=${react}.createContext(null)).Provider,{value,children:($1)(props)});},`,
 		);
 
 		emit();

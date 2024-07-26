@@ -12,7 +12,7 @@ export let Platform: Platform;
 export let Cosmos: ReturnType<Platform["getPlayerAPI"]>["_cosmos"];
 
 transformer<Platform>(
-	emit => str => {
+	(emit) => (str) => {
 		str = str.replace(
 			/(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:[a-zA-Z_\$][\w\$]*,)/,
 			"$1__Platform=$2",
@@ -25,7 +25,16 @@ transformer<Platform>(
 	{
 		then: ($: Platform) => {
 			Platform = $;
-			Cosmos = $.getRegistry()._map.get(Symbol.for("Cosmos")).instance;
+			const registry = $.getRegistry();
+			for (const s of registry._map.keys()) {
+				const getter = `get${s.description}`;
+				if (Object.prototype.hasOwnProperty.call(Platform, getter)) {
+					continue;
+				}
+				Object.defineProperty(Platform, getter, {
+					get: () => () => registry.resolve(s),
+				});
+			}
 		},
 		glob: /^\/xpui\.js/,
 	},

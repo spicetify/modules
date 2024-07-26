@@ -5,13 +5,7 @@
 
 import { capitalize } from "../../deps.ts";
 import { Platform } from "../expose/Platform.ts";
-import {
-	chunks,
-	exportedForwardRefs,
-	exportedFunctions,
-	exportedMemos,
-	require,
-} from "./index.ts";
+import { chunks, exportedForwardRefs, exportedFunctions, exportedMemos, require } from "./index.ts";
 import { findBy } from "/hooks/util.ts";
 import { React } from "../expose/React.ts";
 
@@ -34,9 +28,7 @@ export const Menus: any = Object.fromEntries(
 	}),
 );
 
-const [ContextMenuModuleID] = chunks.find(([_, v]) =>
-	v.toString().includes("toggleContextMenu")
-)!;
+const [ContextMenuModuleID] = chunks.find(([_, v]) => v.toString().includes("toggleContextMenu"))!;
 const [playlistMenuChunkID] = chunks.find(
 	([, v]) =>
 		v.toString().includes('value:"playlist"') &&
@@ -163,14 +155,13 @@ export const RemoteConfigProvider = ({
 		children,
 	);
 
-export const PanelHeader: React.FC<any> = exportedFunctions.find(
-	(m) => m.toString().includes("panel") && m.toString().includes("actions"),
+export const PanelHeader: React.FC<any> = exportedFunctions.find((m) =>
+	m.toString().includes("PanelHeader_CloseButton")
 )!;
 export const PanelContent: React.FC<any> = exportedForwardRefs.find((f) =>
 	f.render.toString().includes("fixedHeader")
 );
-export const PanelSkeleton: React.FC<any> =
-	findBy("label", "aside")(exportedFunctions) ||
+export const PanelSkeleton: React.FC<any> = findBy("label", "aside")(exportedFunctions) ||
 	findBy((m) => m.render.toString().includes("section"))(exportedForwardRefs);
 
 export const Snackbar = {
