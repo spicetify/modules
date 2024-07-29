@@ -11,8 +11,11 @@ export type React = typeof ReactT;
 export let React: React;
 
 transformer(
-	emit => str => {
-		str = str.replace(/([a-zA-Z_\$][\w\$]*\.prototype\.setState=)/, "__React=t;$1");
+	(emit) => (str) => {
+		str = str.replace(
+			/([a-zA-Z_\$][\w\$]*\.prototype\.setState=)/,
+			"__React=t;$1",
+		);
 		Object.defineProperty(globalThis, "__React", {
 			set: emit,
 		});

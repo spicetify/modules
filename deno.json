@@ -1,4 +1,24 @@
 {
+	"compilerOptions": {
+		"experimentalDecorators": true,
+		"lib": [
+			"DOM",
+			"DOM.Iterable",
+			"ESNext"
+		]
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 112,
+		"indentWidth": 3,
+		"semiColons": true,
+		"singleQuote": false,
+		"proseWrap": "preserve"
+	},
+	"imports": {
+		"/hooks/": "/Users/Delusoire/AppData/Local/Spicetify/hooks/",
+		"/modules/": "/Users/Delusoire/AppData/Local/Spicetify/modules/"
+	},
 	"tasks": {
 		"cm:fetch": "deno run -A scripts/classmap-fetch.ts",
 		"pw:build": "./scripts/build.ps1",
