@@ -4,7 +4,7 @@
       "v": {
         "0.2.1+sp-1.2.40-cm-1906ea8d2e9": {
           "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-07-18/palette-manager@0.2.1+sp-1.2.40-cm-1906ea8d2e9.zip"
+            "https://github.com/spicetify/modules/releases/download/2024-08-06/palette-manager@0.2.1+sp-1.2.40-cm-1906ea8d2e9.zip"
           ],
           "providers": []
         }
@@ -14,7 +14,7 @@
       "v": {
         "0.2.2+sp-1.2.40-cm-1906ea8d2e9": {
           "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-07-18/stdlib@0.2.2+sp-1.2.40-cm-1906ea8d2e9.zip"
+            "https://github.com/spicetify/modules/releases/download/2024-08-06/stdlib@0.2.2+sp-1.2.40-cm-1906ea8d2e9.zip"
           ],
           "providers": []
         }
