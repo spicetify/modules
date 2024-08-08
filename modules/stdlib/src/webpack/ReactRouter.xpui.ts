@@ -12,7 +12,6 @@ const [ReactRouterModuleID] = chunks.find(([_, v]) => v.toString().includes("Rea
 const ReactRouterModule = Object.values(require(ReactRouterModuleID));
 
 // https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/hooks.tsx#L131
-export const useMatch: Function = findBy(
-	"let{pathname:",
-	/\(([a-zA-Z_\$][\w\$]*),([a-zA-Z_\$][\w\$]*)\)\),\[\2,\1\]/,
-)(ReactRouterModule);
+export const useMatch: Function = ReactRouterModule.find((f) =>
+	f.toString().includes("let{pathname:") && !f.toString().includes(".createElement(")
+);
