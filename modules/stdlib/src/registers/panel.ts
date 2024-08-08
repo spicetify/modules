@@ -109,7 +109,7 @@ transformer(
 					ON = {
 						...ON,
 						...Machine.config.states!.disabled.on,
-						panel_close_click_or_collapse: [
+						panel_close_click: [
 							{
 								target: "disabled",
 							},
