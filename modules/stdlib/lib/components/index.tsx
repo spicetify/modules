@@ -21,15 +21,11 @@ import { React } from "../../src/expose/React.ts";
 import { _ } from "../../deps.ts";
 import Dropdown, { type DropdownOptions } from "./Dropdown.tsx";
 import { ChipFilter } from "./ChipFilter.tsx";
-import { FilterContext } from "../../src/webpack/FilterContext.ts";
-import { FilterBox } from "../../src/webpack/ReactComponents.ts";
+import { FilterContext } from "../../src/webpack/FilterContext.xpui.ts";
+import { FilterBox } from "../../src/webpack/ReactComponents.xpui.ts";
 
 // * Who doesn't love some Fixed Point (Functional) Programming?
-const Bluebird =
-	<A, B>(a: (b: B) => A) =>
-		<C,>(b: (c: C) => B) =>
-			(c: C) =>
-				a(b(c));
+const Bluebird = <A, B>(a: (b: B) => A) => <C,>(b: (c: C) => B) => (c: C) => a(b(c));
 
 const createStorage = (provider: Pick<Storage, "getItem" | "setItem">) => ({
 	getItem(key: string, def: () => any) {
@@ -46,22 +42,22 @@ type Thunk<A> = () => A;
 
 const usePersistedState =
 	({ getItem, setItem }: ReturnType<typeof createStorage>) =>
-		<K extends string>(key: K) =>
-			<A,>(initialState: Thunk<A>) => {
-				const [state, setState] = React.useState<A>(() => getItem(key, initialState));
+	<K extends string>(key: K) =>
+	<A,>(initialState: Thunk<A>) => {
+		const [state, setState] = React.useState<A>(() => getItem(key, initialState));
 
-				const persistentSetState = React.useCallback(
-					(reducer: (state: A) => A) => {
-						const nextState = reducer(state);
+		const persistentSetState = React.useCallback(
+			(reducer: (state: A) => A) => {
+				const nextState = reducer(state);
 
-						setItem(key, nextState);
-						setState(nextState);
-					},
-					[state, setItem, key],
-				);
+				setItem(key, nextState);
+				setState(nextState);
+			},
+			[state, setItem, key],
+		);
 
-				return [state, persistentSetState] as const;
-			};
+		return [state, persistentSetState] as const;
+	};
 
 const createPersistedState = Bluebird(usePersistedState)(createStorage);
 
@@ -93,7 +89,7 @@ export const useDropdown = <O extends DropdownOptions>({
 		<Dropdown
 			options={options}
 			activeOption={activeOption}
-			onSwitch={o => setActiveOption(() => o)}
+			onSwitch={(o) => setActiveOption(() => o)}
 		/>
 	);
 
@@ -107,7 +103,7 @@ export const getProp = (obj: any, path: string) => {
 	return obj;
 };
 
-export const useSearchBar = ({ placeholder, expanded }: { placeholder: string; expanded: boolean; }) => {
+export const useSearchBar = ({ placeholder, expanded }: { placeholder: string; expanded: boolean }) => {
 	const [search, setSearch] = React.useState("");
 	const searchProps = { filter: "", setFilter: (f: string) => setSearch(f) };
 
@@ -134,8 +130,8 @@ export type RTree<E> = {
 	[key: string]: Tree<E>;
 };
 
-export type FilterOpt = { key: string, filter: Tree<React.ReactNode>; };
-export type RFilterOpt = { key: string; filter: Required<Tree<React.ReactNode>>; };
+export type FilterOpt = { key: string; filter: Tree<React.ReactNode> };
+export type RFilterOpt = { key: string; filter: Required<Tree<React.ReactNode>> };
 
 export const useChipFilter = (filters: Tree<React.ReactNode>) => {
 	const [selectedFilterFullKey, setSelectedFilterFullKey] = React.useState("");
@@ -144,7 +140,7 @@ export const useChipFilter = (filters: Tree<React.ReactNode>) => {
 		() =>
 			selectedFilterFullKey
 				.split(".")
-				.slice(1,)
+				.slice(1)
 				.reduce(
 					(selectedFilters, selectedFilterFullKeyPart) => {
 						const prevSelectedFilter = selectedFilters.at(-1)!;
@@ -167,8 +163,7 @@ export const useChipFilter = (filters: Tree<React.ReactNode>) => {
 	}
 
 	const toggleFilter = React.useCallback(
-		(filter: RFilterOpt) =>
-			setSelectedFilterFullKey(filter.key === selectedFilterFullKey ? "" : filter.key),
+		(filter: RFilterOpt) => setSelectedFilterFullKey(filter.key === selectedFilterFullKey ? "" : filter.key),
 		[selectedFilterFullKey],
 	);
 	const treeNodeHasVal = (n: FilterOpt): n is RFilterOpt => !!n.filter[TreeNodeVal];

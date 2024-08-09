@@ -20,7 +20,7 @@
 import { React } from "../../src/expose/React.ts";
 import { UI } from "../../src/webpack/ComponentLibrary.ts";
 import { ScrollableContainer } from "../../src/webpack/ReactComponents.ts";
-import { TreeNodeVal, type RFilterOpt } from "./index.tsx";
+import { type RFilterOpt, TreeNodeVal } from "./index.tsx";
 
 export interface ChipFilterProps {
 	availableFilters: RFilterOpt[];
@@ -30,8 +30,7 @@ export interface ChipFilterProps {
 }
 export const ChipFilter = React.memo(
 	({ availableFilters, selectedFilters, toggleFilter, className }: ChipFilterProps) => {
-		const createChip = (isSelected: boolean) => (filter: RFilterOpt, index: number) =>
-		(
+		const createChip = (isSelected: boolean) => (filter: RFilterOpt, index: number) => (
 			<UI.Chip
 				onClick={() => toggleFilter(filter)}
 				selectedColorSet="invertedLight"

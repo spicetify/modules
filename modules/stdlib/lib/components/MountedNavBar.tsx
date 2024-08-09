@@ -18,9 +18,9 @@
  */
 
 import { React } from "../../src/expose/React.ts";
-import { UI } from "../../src/webpack/ComponentLibrary.ts";
+import { UI } from "../../src/webpack/ComponentLibrary.xpui.ts";
 import { ReactDOM } from "../../src/webpack/React.xpui.ts";
-import { NavTo, ScrollableContainer } from "../../src/webpack/ReactComponents.ts";
+import { NavTo, ScrollableContainer } from "../../src/webpack/ReactComponents.xpui.ts";
 import { isGlobalNavBarEnabled } from "../../src/utils/index.ts";
 
 interface NavToChipProps {
@@ -29,7 +29,7 @@ interface NavToChipProps {
 	selected: boolean;
 	onClick: () => void;
 }
-const NavToChip: React.FC<NavToChipProps> = props => (
+const NavToChip: React.FC<NavToChipProps> = (props) => (
 	<NavTo
 		replace={true}
 		to={props.to}
@@ -57,7 +57,7 @@ const NavBar = ({ namespace, categories, selectedCategory }: NavBarProps) => (
 		<div className={`${MAP.search_chips.wrapper} contentSpacing`}>
 			<div className={MAP.search_chips.container}>
 				<ScrollableContainer>
-					{categories.map(category => (
+					{categories.map((category) => (
 						<NavToChip
 							to={`spotify:app:bespoke:${namespace}:${category}`}
 							title={category}
@@ -75,7 +75,7 @@ const NavBar = ({ namespace, categories, selectedCategory }: NavBarProps) => (
 interface TopBarMountedProps {
 	children?: React.ReactNode;
 }
-const TopBarMounted: React.FC<TopBarMountedProps> = props => {
+const TopBarMounted: React.FC<TopBarMountedProps> = (props) => {
 	const children = (
 		<div
 			className="qHWqOt_TYlFxiF0Dm2fD"
