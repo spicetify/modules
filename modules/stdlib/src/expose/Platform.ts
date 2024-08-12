@@ -14,8 +14,8 @@ export let Cosmos: ReturnType<Platform["getPlayerAPI"]>["_cosmos"];
 transformer<Platform>(
 	(emit) => (str) => {
 		str = str.replace(
-			/(setTitlebarHeight[\w(){}.,&$!=;"" ]+)(\{version:[a-zA-Z_\$][\w\$]*,)/,
-			"$1__Platform=$2",
+			/({(?=[^{}]*(?<=,|)version:[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*})(?=[^{}]*(?<=,|)container:[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}))/,
+			"__Platform=$1",
 		);
 		Object.defineProperty(globalThis, "__Platform", {
 			set: emit,
