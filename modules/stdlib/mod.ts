@@ -105,7 +105,7 @@ const PlaylistAPI = Platform.getPlaylistAPI();
 
 export function createSyncedStorage(playlistUri: string) {
 	const CHUNK_SIZE = 200;
-	const MAX_DOUBLE_CHUNCKS = 1000;
+	const MAX_DOUBLE_CHUNKS = 1000;
 
 	function markKey(key: string) {
 		return `\x02${key}\x03`;
@@ -168,8 +168,8 @@ export function createSyncedStorage(playlistUri: string) {
 		assertSmallerSize(
 			encodedValue,
 			CHUNK_SIZE,
-			MAX_DOUBLE_CHUNCKS,
-			`Can't fit value in ${MAX_DOUBLE_CHUNCKS} double chunks`,
+			MAX_DOUBLE_CHUNKS,
+			`Can't fit value in ${MAX_DOUBLE_CHUNKS} double chunks`,
 		);
 
 		const uris = Array
