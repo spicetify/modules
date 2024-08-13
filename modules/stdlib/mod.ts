@@ -104,28 +104,51 @@ export const cancel = History.listen((location) => EventBus.History.updated.next
 const PlaylistAPI = Platform.getPlaylistAPI();
 
 export function createSyncedStorage(playlistUri: string) {
-	function encodeKey(key: string) {
+	const CHUNK_SIZE = 200;
+
+	function markKey(key: string) {
 		return `\x02${key}\x03`;
 	}
 
+	function ensureValidKey(encodedKey: string, chunk_size: number) {
+		for (let s = "", n = 0, o = 0, l = 0;; l++) {
+			if (chunk_size * n + l + o >= encodedKey.length) {
+				return encodedKey;
+			}
+			if (n > 0) {
+				throw new Error("Can't fit key in a single chunk");
+			}
+			if (encodedKey[chunk_size * n + l + o] === "%") {
+				o += 2;
+			}
+			if (l === chunk_size - 1) {
+				l = -1;
+				n++;
+			}
+		}
+	}
+
 	async function getUris(key: string) {
+		ensureValidKey(encodeURIComponent(key), CHUNK_SIZE);
+
 		const { items } = await PlaylistAPI.getContents(playlistUri, {
 			filter: key,
 			limit: 1e9,
 		});
-		const encodedKey = encodeKey(key);
+
 		return items
 			.map((item) => fromString(item.uri))
 			.filter((uri) => uri.type === "local")
-			.filter((uri) => uri.track === encodedKey);
+			.filter((uri) => uri.track === key);
 	}
 
-	async function addKey(encodedKey: string, encodedData: string) {
-		const uris = Array
-			.from(collectTuples(generateStringChunks(encodedData, 200), 2, ""))
-			.map(([a, b], i) => `spotify:local:${a}:${b}:${encodedKey}:${i + 1}`);
-
-		await PlaylistAPI.add(playlistUri, uris, { after: "end" });
+	async function getKey(key: string) {
+		const uris = await getUris(key);
+		if (uris.length === 0) return null;
+		return uris
+			.sort((a, b) => a.duration - b.duration)
+			.map((uri) => uri.artist + uri.album)
+			.join("");
 	}
 
 	async function removeKey(key: string) {
@@ -134,69 +157,72 @@ export function createSyncedStorage(playlistUri: string) {
 			await PlaylistAPI.remove(playlistUri, uris.map((u) => ({ uri: u.toURI(), uid: "" })));
 		}
 	}
+	async function addKey(key: string, encodedData: string) {
+		ensureValidKey(encodeURIComponent(key), CHUNK_SIZE);
 
-	function* generateStringChunks(string: string, chunk_size: number) {
-		for (let s = "", n = 0, o = 0, l = 0;; l++) {
-			if (chunk_size * n + l + o >= string.length) {
-				if (l > 0) {
-					yield s;
-				}
-				break;
-			}
-			s += string[chunk_size * n + l + o];
-			if (string[chunk_size * n + l + o] === "%") {
-				s += string[chunk_size * n + l + ++o] + string[chunk_size * n + l + ++o];
-			}
-			if (l === chunk_size - 1) {
-				l = -1;
-				n++;
-				yield s;
-				s = "";
-			}
-		}
-	}
+		const uris = Array
+			.from(collectTuples(generateStringChunks(encodedData, CHUNK_SIZE), 2, ""))
+			.map(([a, b], i) => `spotify:local:${a}:${b}:${key}:${i + 1}`);
 
-	function* collectTuples<T>(gen: Generator<T, void, unknown>, l: number, unit: T) {
-		let result: IteratorResult<T, void>;
-		let done: boolean | undefined;
-
-		function next() {
-			if (done) return unit;
-			result = gen.next();
-			done = result.done;
-			if (done) return unit;
-			return result.value;
-		}
-
-		while (!done) {
-			yield Array.from({ length: l }, next);
-		}
+		await PlaylistAPI.add(playlistUri, uris, { after: "end" });
 	}
 
 	return {
 		async getItem(key: string) {
-			const uris = await getUris(key);
-			if (uris.length === 0) return null;
-			const encodedData = uris
-				.sort((a, b) => a.duration - b.duration)
-				.map((uri) => uri.artist + uri.album)
-				.join("");
+			const encodedData = await getKey(markKey(key));
 			return decodeURIComponent(encodedData);
-		},
-		async setItem(key: string, data: string) {
-			const encodedKey = encodeURIComponent(encodeKey(key));
-			const encodedData = encodeURIComponent(data);
-			await removeKey(key);
-			await addKey(encodedKey, encodedData);
-			return data;
 		},
 		async removeItem(key: string) {
 			try {
-				await removeKey(key);
+				await removeKey(markKey(key));
 			} catch (_) {
 				return false;
 			}
 			return true;
 		},
+		async setItem(key: string, data: string) {
+			const encodedData = encodeURIComponent(data);
+			await removeKey(markKey(key));
+			await addKey(markKey(key), encodedData);
+			return data;
+		},
 	};
+}
+
+function* generateStringChunks(string: string, chunk_size: number) {
+	for (let s = "", n = 0, o = 0, l = 0;; l++) {
+		if (chunk_size * n + l + o >= string.length) {
+			if (l > 0) {
+				yield s;
+			}
+			break;
+		}
+		s += string[chunk_size * n + l + o];
+		if (string[chunk_size * n + l + o] === "%") {
+			s += string[chunk_size * n + l + ++o] + string[chunk_size * n + l + ++o];
+		}
+		if (l === chunk_size - 1) {
+			l = -1;
+			n++;
+			yield s;
+			s = "";
+		}
+	}
+}
+
+function* collectTuples<T>(gen: Generator<T, void, unknown>, l: number, unit: T) {
+	let result: IteratorResult<T, void>;
+	let done: boolean | undefined;
+
+	function next() {
+		if (done) return unit;
+		result = gen.next();
+		done = result.done;
+		if (done) return unit;
+		return result.value;
+	}
+
+	while (!done) {
+		yield Array.from({ length: l }, next);
+	}
 }
