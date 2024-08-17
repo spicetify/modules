@@ -9,7 +9,8 @@ export const isGlobalNavBarEnabled = () => {
 	if (!Platform) {
 		return undefined;
 	}
-	const { enableGlobalNavBar } = Platform.getLocalStorageAPI().getItem("remote-config-overrides");
+	const RemoteConfiguration = Platform.getRemoteConfiguration();
+	const enableGlobalNavBar = RemoteConfiguration.getValue("enableGlobalNavBar");
 	return (
 		enableGlobalNavBar === "home-next-to-navigation" || enableGlobalNavBar === "home-next-to-search"
 	);

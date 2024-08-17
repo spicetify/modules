@@ -28,8 +28,6 @@ export const fallbackPreset: any = exports.find((m) => m.colorDark);
 
 export const getPlayContext: Function = findBy("referrerIdentifier", "usePlayContextItem")(exportedFunctions);
 
-export const useLocation: Function = findBy("location", "useContext")(exportedFunctions);
-
 export const useTrackListColumns: Function = findBy("useTrackListColumns")(exportedFunctions);
 
 export const usePanelStateMachine: () => [state: any, actor: any, machine: any] = findBy(

@@ -11,7 +11,6 @@ export let useContextMenuState: typeof CustomHooks_xpui_ts.useContextMenuState;
 export let imageAnalysis: typeof CustomHooks_xpui_ts.imageAnalysis;
 export let fallbackPreset: typeof CustomHooks_xpui_ts.fallbackPreset;
 export let getPlayContext: typeof CustomHooks_xpui_ts.getPlayContext;
-export let useLocation: typeof CustomHooks_xpui_ts.useLocation;
 export let useTrackListColumns: typeof CustomHooks_xpui_ts.useTrackListColumns;
 export let usePanelStateMachine: typeof CustomHooks_xpui_ts.usePanelStateMachine;
 export let extractColorPreset: typeof CustomHooks_xpui_ts.extractColorPreset;
@@ -23,7 +22,6 @@ import("./CustomHooks.xpui.ts").then(m => {
 	imageAnalysis = m.imageAnalysis;
 	fallbackPreset = m.fallbackPreset;
 	getPlayContext = m.getPlayContext;
-	useLocation = m.useLocation;
 	useTrackListColumns = m.useTrackListColumns;
 	usePanelStateMachine = m.usePanelStateMachine;
 	extractColorPreset = m.extractColorPreset;
