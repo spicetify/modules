@@ -1,4 +1,3 @@
-
 import path from "node:path";
 
 import { genClassMapDts } from "jsr:@delu/tailor";

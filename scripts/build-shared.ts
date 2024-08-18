@@ -6,7 +6,7 @@ import { Builder, readJSON, Transpiler } from "jsr:@delu/tailor";
 
 export type ClassmapInfo = {
 	classmap: any;
-	version: string;
+	version: number;
 	timestamp: number;
 };
 
@@ -14,9 +14,9 @@ export default async function (classmapInfos: ClassmapInfo[], inputDirs: string[
 	for (const inputDir of inputDirs) {
 		const metadata = await readJSON<any>(path.join(inputDir, "metadata.json"));
 
-		for (const { classmap, version: spVersion, timestamp } of classmapInfos) {
+		for (const { classmap, version, timestamp } of classmapInfos) {
 			const m = Object.assign({}, metadata);
-			m.version += `+sp-${spVersion}-cm-${timestamp.toString(16)}`;
+			m.version += `+cm-${version}-${timestamp.toString(36)}`;
 
 			const identifier = `${m.name}`;
 			const fingerprint = `${m.name}@${m.version}`;
