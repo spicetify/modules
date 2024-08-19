@@ -9,7 +9,6 @@ import type { PlatformAutoGen } from "/hooks/PlatformAutoGen.d.ts";
 
 export type Platform = PlatformAutoGen;
 export let Platform: Platform;
-export let Cosmos: ReturnType<Platform["getPlayerAPI"]>["_cosmos"];
 
 transformer<Platform>(
 	(emit) => (str) => {
