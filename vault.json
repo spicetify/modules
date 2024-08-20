@@ -2,12 +2,6 @@
   "modules": {
     "palette-manager": {
       "v": {
-        "0.2.1+sp-1.2.40-cm-1906ea8d2e9": {
-          "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-08-10/palette-manager@0.2.1+sp-1.2.40-cm-1906ea8d2e9.zip"
-          ],
-          "providers": []
-        },
         "0.2.1+cm-1020040-ly32efah": {
           "artifacts": [
             "https://github.com/spicetify/modules/releases/download/2024-08-20/palette-manager@0.2.1+cm-1020040-ly32efah.zip"
@@ -18,12 +12,6 @@
     },
     "stdlib": {
       "v": {
-        "0.2.2+sp-1.2.40-cm-1906ea8d2e9": {
-          "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-08-10/stdlib@0.2.2+sp-1.2.40-cm-1906ea8d2e9.zip"
-          ],
-          "providers": []
-        },
         "0.2.2+cm-1020040-ly32efah": {
           "artifacts": [
             "https://github.com/spicetify/modules/releases/download/2024-08-20/stdlib@0.2.2+cm-1020040-ly32efah.zip"
