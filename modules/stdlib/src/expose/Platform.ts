@@ -13,8 +13,8 @@ export let Platform: Platform;
 transformer<Platform>(
 	(emit) => (str) => {
 		str = str.replace(
-			/({(?=[^{}]*(?<=,|)version:[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*})(?=[^{}]*(?<=,|)container:[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}))/,
-			"__Platform=$1",
+			/{(?=[^{}]*(?:{[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}[^{}]*)*(?<=[,{])version:)(?=[^{}]*(?:{[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}[^{}]*)*(?<=[,{])container:)/,
+			"__Platform={",
 		);
 		Object.defineProperty(globalThis, "__Platform", {
 			set: emit,
