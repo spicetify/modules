@@ -13,6 +13,11 @@ import type { Module } from "/hooks/index.ts";
 
 type Task<A> = (() => Awaited<A>) | (() => Promise<Awaited<A>>);
 
+type FlattenRecord<T> = {
+	[K in keyof T]: T[K];
+};
+type MergeRecords<T, U> = FlattenRecord<T & U>;
+
 type OmitType<A> = Omit<A, "type">;
 
 export enum FieldType {
@@ -54,8 +59,8 @@ export interface HiddenField<I extends string = any> extends BaseField<I> {
 	type: FieldType.HIDDEN;
 }
 
-export class Settings<A = Record<string, never>> {
-	public sectionFields: { [key: string]: JSX.Element; } = {};
+export class Settings<A = {}> {
+	public sectionFields: { [key: string]: JSX.Element } = {};
 	private proxy;
 
 	getName() {
@@ -94,6 +99,10 @@ export class Settings<A = Record<string, never>> {
 		return this;
 	};
 
+	private extend<B extends {}>() {
+		return this as Settings<MergeRecords<A, B>>;
+	}
+
 	addButton = <I extends string>(props: OmitType<ButtonField<I>>) => {
 		this.addField(FieldType.BUTTON, props, this.ButtonField);
 		return this;
@@ -104,7 +113,7 @@ export class Settings<A = Record<string, never>> {
 		defaultValue: Task<boolean> = () => false,
 	) => {
 		this.addField(FieldType.TOGGLE, props, this.ToggleField, defaultValue);
-		return this as Settings<A & { [X in I]: boolean }>;
+		return this.extend<{ [X in I]: boolean }>();
 	};
 
 	addInput = <I extends string>(
@@ -112,7 +121,7 @@ export class Settings<A = Record<string, never>> {
 		defaultValue: Task<string> = () => "",
 	) => {
 		this.addField(FieldType.INPUT, props, this.InputField, defaultValue);
-		return this as Settings<A & { [X in I]: string }>;
+		return this.extend<{ [X in I]: string }>();
 	};
 
 	private addField<SF extends SettingsField>(
@@ -179,7 +188,7 @@ export class Settings<A = Record<string, never>> {
 	};
 
 	SettingField = (
-		{ field, children }: { field: SettingsField; children?: any; },
+		{ field, children }: { field: SettingsField; children?: any },
 	) => (
 		<S.SettingsRow filterMatchQuery={field.id}>
 			<S.SettingsRowStart>
@@ -242,7 +251,7 @@ export class Settings<A = Record<string, never>> {
 }
 
 export const createSettings = (
-	mod: Module & { settings?: Settings; },
+	mod: Module & { settings?: Settings },
 ) => {
 	if (!mod.settings) {
 		mod.settings = Settings.fromModule(mod);
