@@ -51,10 +51,10 @@ export const createLogger = (mod: Module) => {
 	});
 };
 
-const PlayerAPI = Platform.getPlayerAPI();
-const History = Platform.getHistory();
-
 const newEventBus = () => {
+	const PlayerAPI = Platform.getPlayerAPI();
+	const History = Platform.getHistory();
+
 	const playerState = PlayerAPI.getState();
 	return {
 		Player: {
@@ -89,7 +89,7 @@ export const createEventBus = (mod: Module) => {
 };
 
 let cachedState = {};
-export const listener = ({ data: state }) => {
+export const playerListener = ({ data: state }) => {
 	EventBus.Player.state_updated.next(state);
 	if (state?.item?.uri !== cachedState?.item?.uri) EventBus.Player.song_changed.next(state);
 	if (state?.isPaused !== cachedState?.isPaused || state?.isBuffering !== cachedState?.isBuffering) {
@@ -97,15 +97,14 @@ export const listener = ({ data: state }) => {
 	}
 	cachedState = state;
 };
-PlayerAPI.getEvents().addListener("update", listener);
 
-export const cancel = History.listen((location) => EventBus.History.updated.next(location));
-
-const PlaylistAPI = Platform.getPlaylistAPI();
+export const historyListener = (location) => EventBus.History.updated.next(location);
 
 export function createSyncedStorage(playlistUri: string) {
 	const CHUNK_SIZE = 200;
 	const MAX_DOUBLE_CHUNKS = 1000;
+
+	const PlaylistAPI = Platform.getPlaylistAPI();
 
 	function markKey(key: string) {
 		return `\x02${key}\x03`;

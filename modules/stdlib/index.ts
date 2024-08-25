@@ -1,10 +1,12 @@
 export { default as mixin } from "./mix.ts";
 
 export default async function load() {
-	const mod = await import("./mod.ts");
+	const { historyListener, playerListener } = await import("./mod.ts");
 	const { Platform } = await import("./src/expose/Platform.ts");
+	const cancelPlayerListener = Platform.getPlayerAPI().getEvents().addListener("update", playerListener);
+	const cancelHistoryListener = Platform.getHistory().listen(historyListener);
 	return () => {
-		Platform.getPlayerAPI().getEvents().removeListener("update", mod.listener);
-		mod.cancel();
+		cancelPlayerListener();
+		cancelHistoryListener();
 	};
 }
