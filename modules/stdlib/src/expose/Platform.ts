@@ -22,19 +22,18 @@ transformer<Platform>(
 		return str;
 	},
 	{
-		then: ($: Platform) => {
-			Platform = $;
-			const registry = $.getRegistry();
-			for (const s of registry._map.keys()) {
-				const getter = `get${s.description}`;
-				if (Object.prototype.hasOwnProperty.call(Platform, getter)) {
-					continue;
-				}
-				Object.defineProperty(Platform, getter, {
-					get: () => () => registry.resolve(s),
-				});
-			}
-		},
 		glob: /^\/xpui\.js/,
 	},
-);
+).then(($) => {
+	Platform = $;
+	const registry = $.getRegistry();
+	for (const s of registry._map.keys()) {
+		const getter = `get${s.description}`;
+		if (Object.prototype.hasOwnProperty.call(Platform, getter)) {
+			continue;
+		}
+		Object.defineProperty(Platform, getter, {
+			get: () => () => registry.resolve(s),
+		});
+	}
+});

@@ -20,7 +20,9 @@ export const GraphQLDefs = {
 } as GraphQLDefs;
 
 transformer(
-	emit => str => {
+	(emit) => (str) => {
+		emit();
+
 		const matches = str.matchAll(
 			/(=new [a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\("(?<name>\w+)","(?<operation>query|mutation)","(?<sha256Hash>[\w\d]{64})",null\))/g,
 		);
@@ -29,7 +31,7 @@ transformer(
 			// @ts-ignore
 			GraphQLDefs[operation][name] = { name, operation, sha256Hash, value: null };
 		}
-		emit();
+
 		return str;
 	},
 	{

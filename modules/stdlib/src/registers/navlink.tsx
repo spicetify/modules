@@ -63,6 +63,8 @@ globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 	});
 transformer(
 	(emit) => (str) => {
+		emit();
+
 		const j = str.search(/\("li",\{[^\{]*\{[^\{]*\{to:"\/search/);
 		const i = findMatchingPos(str, j, 1, ["(", ")"], 1);
 
@@ -75,7 +77,6 @@ transformer(
 
 		str = str.replace(/(\["\/","\/home\/")/, '$1,"/bespoke/*"');
 
-		emit();
 		return str;
 	},
 	{

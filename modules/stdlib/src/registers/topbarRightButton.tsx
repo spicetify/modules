@@ -34,12 +34,13 @@ declare global {
 let topbarRightButtonFactoryCtx: React.Context<React.FC<TopbarRightButtonProps>>;
 globalThis.__renderTopbarRightButtons = () =>
 	React.createElement(() => {
-		[, refresh] = React.useReducer(n => n + 1, 0);
+		[, refresh] = React.useReducer((n) => n + 1, 0);
 
 		const topbarRightButtonFactory = isGlobalNavBarEnabled() ? _TopbarRightButtonT : _TopbarRightButton;
 
-		if (!topbarRightButtonFactoryCtx)
+		if (!topbarRightButtonFactoryCtx) {
 			topbarRightButtonFactoryCtx = React.createContext<TopbarRightButtonFactory>(null!);
+		}
 
 		return (
 			<topbarRightButtonFactoryCtx.Provider value={topbarRightButtonFactory}>
@@ -48,12 +49,14 @@ globalThis.__renderTopbarRightButtons = () =>
 		);
 	});
 transformer(
-	emit => str => {
+	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/("login-button"[^\}]*\}[^\}]*\}[^\}]*\}\))/,
 			"$1,__renderTopbarRightButtons()",
 		);
-		emit();
+
 		return str;
 	},
 	{
@@ -74,7 +77,7 @@ export const TopbarRightButton = (props: TopbarRightButtonProps) => {
 
 type TopbarRightButtonFactory = React.FC<TopbarRightButtonProps>;
 
-const _TopbarRightButtonT: TopbarRightButtonFactory = props => (
+const _TopbarRightButtonT: TopbarRightButtonFactory = (props) => (
 	<Tooltip label={props.label}>
 		<UI.ButtonTertiary
 			aria-label={props.label}
@@ -88,7 +91,7 @@ const _TopbarRightButtonT: TopbarRightButtonFactory = props => (
 	</Tooltip>
 );
 
-const _TopbarRightButton: TopbarRightButtonFactory = props => (
+const _TopbarRightButton: TopbarRightButtonFactory = (props) => (
 	<Tooltip label={props.label}>
 		<button
 			aria-label={props.label}

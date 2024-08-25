@@ -97,6 +97,8 @@ let ACTIONS: Record<string, any> = {};
 
 transformer(
 	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/(=\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\{id:"RightPanelState)/,
 			"=__Machine$1",
@@ -153,7 +155,6 @@ transformer(
 			"$1__renderPanel($2),",
 		);
 
-		emit();
 		return str;
 	},
 	{

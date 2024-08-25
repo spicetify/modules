@@ -10,7 +10,7 @@ import type ReactT from "npm:@types/react";
 export type React = typeof ReactT;
 export let React: React;
 
-transformer(
+transformer<React>(
 	(emit) => (str) => {
 		str = str.replace(
 			/([a-zA-Z_\$][\w\$]*\.prototype\.setState=)/,
@@ -22,9 +22,8 @@ transformer(
 		return str;
 	},
 	{
-		then: ($: React) => {
-			React = $;
-		},
 		glob: /^\/vendor~xpui\.js/,
 	},
-);
+).then(($) => {
+	React = $;
+});

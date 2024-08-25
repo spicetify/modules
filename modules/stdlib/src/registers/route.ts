@@ -15,12 +15,14 @@ declare global {
 
 globalThis.__renderRoutes = () => registry.all();
 transformer(
-	emit => str => {
+	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/(\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{[^\{]*path:"\/search\/\*")/,
 			"...__renderRoutes(),$1",
 		);
-		emit();
+
 		return str;
 	},
 	{

@@ -19,9 +19,11 @@ declare global {
 
 globalThis.__renderNowPlayingWidgets = () => registry.all();
 transformer(
-	emit => str => {
-		str = str.replace(/(hideButtonFactory[^\]]*)/, "$1,...__renderNowPlayingWidgets()");
+	(emit) => (str) => {
 		emit();
+
+		str = str.replace(/(hideButtonFactory[^\]]*)/, "$1,...__renderNowPlayingWidgets()");
+
 		return str;
 	},
 	{
@@ -29,7 +31,7 @@ transformer(
 	},
 );
 
-export type PlaybarWidgetProps = { label: string; icon?: string; onClick: () => void; };
+export type PlaybarWidgetProps = { label: string; icon?: string; onClick: () => void };
 export const PlaybarWidget = ({ label, icon, onClick }: PlaybarWidgetProps) => (
 	<Tooltip label={label}>
 		<UI.ButtonTertiary

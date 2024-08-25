@@ -10,7 +10,7 @@ import type SnackbarT from "npm:notistack";
 export type Snackbar = typeof SnackbarT;
 export let Snackbar: Snackbar;
 
-transformer(
+transformer<Snackbar>(
 	(emit) => (str) => {
 		str = str.replace(
 			/var ([a-zA-Z_\$][\w\$]*);return\(\1=([^;]*?)\)\.enqueueSnackbar=/,
@@ -27,9 +27,8 @@ transformer(
 		return str;
 	},
 	{
-		then: ($: Snackbar) => {
-			Snackbar = $;
-		},
 		glob: /^\/vendor~xpui\.js/,
 	},
-);
+).then(($) => {
+	Snackbar = $;
+});

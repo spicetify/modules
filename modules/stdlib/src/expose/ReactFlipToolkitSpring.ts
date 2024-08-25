@@ -10,8 +10,8 @@ import type { spring } from "npm:react-flip-toolkit";
 export type ReactFlipToolkitSpring = typeof spring;
 export let ReactFlipToolkitSpring: ReactFlipToolkitSpring;
 
-transformer(
-	emit => str => {
+transformer<ReactFlipToolkitSpring>(
+	(emit) => (str) => {
 		str = str.replace(
 			/([a-zA-Z_\$][\w\$]*)=((?:function|\()([\w$.,{}()= ]+(?:springConfig|overshootClamping)){2})/,
 			"$1=__ReactFlipToolkitSpring=$2",
@@ -20,9 +20,8 @@ transformer(
 		return str;
 	},
 	{
-		then: ($: ReactFlipToolkitSpring) => {
-			ReactFlipToolkitSpring = $;
-		},
 		glob: /^\/vendor~xpui\.js/,
 	},
-);
+).then(($) => {
+	ReactFlipToolkitSpring = $;
+});

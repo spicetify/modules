@@ -49,8 +49,10 @@ globalThis.__renderTopbarLeftButtons = () =>
 	});
 transformer(
 	(emit) => (str) => {
-		str = str.replace(/("top-bar-forward-button"[^\]]*)/g, "$1,__renderTopbarLeftButtons()");
 		emit();
+
+		str = str.replace(/("top-bar-forward-button"[^\]]*)/g, "$1,__renderTopbarLeftButtons()");
+
 		return str;
 	},
 	{

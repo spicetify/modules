@@ -62,18 +62,23 @@ globalThis.__renderRootProviders = (providers: React.ReactElement[]) => {
 		}
 		providersRegistry.refresh.value = refresh;
 		const providers = providersRegistry.all() as React.ReactElement[];
-		return providers.reduceRight((acc: React.ReactElement, e: React.ReactElement) => React.cloneElement(e, undefined, acc), React.createElement(React.Fragment, undefined, children));
+		return providers.reduceRight(
+			(acc: React.ReactElement, e: React.ReactElement) => React.cloneElement(e, undefined, acc),
+			React.createElement(React.Fragment, undefined, children),
+		);
 	};
 
 	return React.useMemo(() => [providers, React.createElement(MultiProvider)].flat(), [providers]);
 };
 transformer(
 	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/\bproviders:([a-zA-Z_\$][\w\$]*),children:\[([^\]]+"data-testid.:.root")/,
 			"providers:__renderRootProviders($1),children:[__renderRootChildren(),$2",
 		);
-		emit();
+
 		return str;
 	},
 	{

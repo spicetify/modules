@@ -20,12 +20,14 @@ declare global {
 
 globalThis.__renderPlaybarBarControls = () => registry.all().reverse();
 transformer(
-	emit => str => {
+	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/(children:\[)([^\[]*djJumpButtonFactory)/,
 			"$1...__renderPlaybarBarControls(),$2",
 		);
-		emit();
+
 		return str;
 	},
 	{

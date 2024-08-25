@@ -15,17 +15,18 @@ declare global {
 
 globalThis.__renderSettingSections = () => registry.all();
 transformer(
-	emit => str => {
+	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/(\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\([a-zA-Z_\$][\w\$]*,{settings:[a-zA-Z_\$][\w\$]*,setValue:[a-zA-Z_\$][\w\$]*}\))]/,
 			"$1,...__renderSettingSections()]",
 		);
 
-		emit();
 		return str;
 	},
 	{
-		noAwait: true,
+		await: false,
 		glob: /^\/xpui-routes-desktop-settings\.js/,
 	},
 );
