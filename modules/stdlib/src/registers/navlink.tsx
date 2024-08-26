@@ -55,7 +55,7 @@ globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 
 		return isTouchscreenUi
 			? (
-				<ScrollableContainer className="custom-navlinks-scrollable_container">
+				<ScrollableContainer className="custom-navlinks-scrollable_container" onlyHorizontalWheel>
 					{children}
 				</ScrollableContainer>
 			)
