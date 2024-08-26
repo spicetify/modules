@@ -12,9 +12,9 @@ type WebpackChunk = any;
 type WebpackModule = any;
 
 export let require: WebpackRequire;
-export let chunks: Array<[string, WebpackChunk]>;
-export let modules: Array<WebpackModule>;
-export let exports: Array<any>;
+export let modules: Array<[string, WebpackChunk]>;
+export let exports: Array<WebpackModule>;
+export let exported: Array<any>;
 
 export let exportedFunctions: Array<Function>;
 
@@ -24,9 +24,9 @@ export let exportedForwardRefs: Array<React.ForwardRefExoticComponent<any>>;
 export let exportedMemos: React.NamedExoticComponent[];
 
 export const analyzeWebpackRequire = (require: WebpackRequire) => {
-	const chunks = Object.entries(require.m) as Array<[string, WebpackChunk]>;
-	const modules = chunks.map(([id]) => require(id)) as Array<WebpackModule>;
-	const exports = modules
+	const modules = Object.entries(require.m) as Array<[string, WebpackChunk]>;
+	const exports = modules.map(([id]) => require(id)) as Array<WebpackModule>;
+	const exported = exports
 		.filter((module) => typeof module === "object")
 		.flatMap((module) => {
 			try {
@@ -36,9 +36,9 @@ export const analyzeWebpackRequire = (require: WebpackRequire) => {
 		.filter(Boolean) as Array<any>;
 
 	const isFunction = (obj: any): obj is Function => typeof obj === "function";
-	const exportedFunctions = exports.filter(isFunction);
+	const exportedFunctions = exported.filter(isFunction);
 
-	const exportedReactObjects = Object.groupBy(exports, (x) => x.$$typeof);
+	const exportedReactObjects = Object.groupBy(exported, (x) => x.$$typeof);
 	const exportedContexts = exportedReactObjects[Symbol.for("react.context") as any]! as Array<
 		React.Context<any>
 	>;
@@ -48,9 +48,9 @@ export const analyzeWebpackRequire = (require: WebpackRequire) => {
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo") as any]! as React.NamedExoticComponent[];
 
 	return {
-		chunks,
 		modules,
 		exports,
+		exported,
 		exportedFunctions,
 		exportedReactObjects,
 		exportedContexts,
@@ -70,9 +70,9 @@ Object.assign(CHUNKS, {
 CHUNKS.xpui.promise.then(() => {
 	require = globalThis.webpackChunkclient_web.push([[Symbol()], {}, (re: any) => re]);
 	const analysis = analyzeWebpackRequire(require);
-	chunks = analysis.chunks;
 	modules = analysis.modules;
 	exports = analysis.exports;
+	exported = analysis.exported;
 	exportedFunctions = analysis.exportedFunctions;
 	exportedReactObjects = analysis.exportedReactObjects;
 	exportedContexts = analysis.exportedContexts;

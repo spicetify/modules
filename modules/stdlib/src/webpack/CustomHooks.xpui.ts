@@ -4,7 +4,7 @@
  */
 
 import { Platform } from "../expose/Platform.ts";
-import { exportedFunctions, exports } from "./index.ts";
+import { exported, exportedFunctions } from "./index.ts";
 import { findBy } from "/hooks/util.ts";
 
 await CHUNKS.xpui.promise;
@@ -24,7 +24,7 @@ export const imageAnalysis: Function = findBy(/\![a-zA-Z_\$][\w\$]*\.isFallback|
 	exportedFunctions,
 );
 
-export const fallbackPreset: any = exports.find((m) => m.colorDark);
+export const fallbackPreset: any = exported.find((m) => m.colorDark);
 
 export const getPlayContext: Function = findBy("referrerIdentifier", "usePlayContextItem")(exportedFunctions);
 

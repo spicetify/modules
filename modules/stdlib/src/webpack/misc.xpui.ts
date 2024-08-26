@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { exportedFunctions, exports } from "./index.ts";
+import { exported, exportedFunctions } from "./index.ts";
 import { findBy } from "/hooks/util.ts";
 
 await CHUNKS.xpui.promise;
@@ -11,11 +11,11 @@ await CHUNKS.xpui.promise;
 export const Color: Function & {
 	Format: any;
 } = Object.assign(findBy("this.rgb")(exportedFunctions)!, {
-	Format: exports.find((m) => m.RGBA)!,
+	Format: exported.find((m) => m.RGBA)!,
 });
 
-export const Locale: any = exports.find((m) => m.getTranslations);
+export const Locale: any = exported.find((m) => m.getTranslations);
 
 export const createUrlLocale: Function = findBy("has", "baseName", "language")(exportedFunctions);
 
-export const InternalPropetyMap: any = exports.find((o) => o.Builder);
+export const InternalPropetyMap: any = exported.find((o) => o.Builder);

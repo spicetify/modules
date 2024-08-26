@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { chunks, exportedFunctions, modules, require } from "./index.ts";
+import { exportedFunctions, exports, modules, require } from "./index.ts";
 
 import type {
 	notifyManager as notifyManagerT,
@@ -24,7 +24,7 @@ export const PersistQueryClientProvider = findBy("persistOptions")(exportedFunct
 export const QueryClientProvider: typeof QueryClientProviderT = findBy("use QueryClientProvider")(
 	exportedFunctions,
 );
-export const notifyManager: typeof notifyManagerT = modules.find((m) => m.setBatchNotifyFunction);
+export const notifyManager: typeof notifyManagerT = exports.find((m) => m.setBatchNotifyFunction);
 export const useMutation: typeof useMutationT = findBy("mutateAsync")(exportedFunctions);
 export const useQuery: typeof useQueryT = findBy(
 	/^function [a-zA-Z_\$][\w\$]*\(([a-zA-Z_\$][\w\$]*),([a-zA-Z_\$][\w\$]*)\)\{return\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\1,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\2\)\}$/,
@@ -36,9 +36,9 @@ export const useSuspenseQuery: typeof useSuspenseQueryT = findBy(
 	"enabled",
 )(exportedFunctions);
 
-const [infiniteQueryChunkID] = chunks.find(
+const [infiniteQueryModuleID] = modules.find(
 	([_, v]) => v.toString().includes("fetchPreviousPage") && v.toString().includes("getOptimisticResult"),
 )!;
-export const useInfiniteQuery: typeof useInfiniteQueryT = Object.values(require(infiniteQueryChunkID)).find(
+export const useInfiniteQuery: typeof useInfiniteQueryT = Object.values(require(infiniteQueryModuleID)).find(
 	(m) => typeof m === "function",
 );

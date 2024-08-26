@@ -26,7 +26,7 @@ transformer(
 		return str;
 	},
 	{
-		await: false,
+		wait: false,
 		glob: /^\/xpui-routes-desktop-settings\.js/,
 	},
 );

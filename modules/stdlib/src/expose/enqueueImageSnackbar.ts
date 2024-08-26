@@ -18,7 +18,7 @@ transformer(
 	},
 	{
 		glob: /^\/xpui\.js/,
-		await: false,
+		wait: false,
 	},
 ).then(($: any) => {
 	enqueueImageSnackbar = $;

@@ -5,12 +5,12 @@
 
 import { transformer } from "../../mix.ts";
 
-export type SettingsSectionProps = { filterMatchQuery: string };
+export type SettingsSectionProps = { filterMatchQuery: string; };
 export type SettingsSection = React.FC<SettingsSectionProps>;
 export let SettingsSection: SettingsSection;
 
 export const future = {
-	push: () => {},
+	push: () => { },
 	pull(fn: () => void) {
 		const push = this.push;
 		this.push = () => {
@@ -35,7 +35,7 @@ transformer<SettingsSection>(
 	},
 	{
 		glob: /^\/xpui-routes-desktop-settings\.js/,
-		await: false,
+		wait: false,
 	},
 ).then(($) => {
 	SettingsSection = $;
@@ -53,7 +53,7 @@ transformer<SettingsSectionTitle>(
 	},
 	{
 		glob: /^\/xpui-routes-desktop-settings\.js/,
-		await: false,
+		wait: false,
 	},
 ).then(($) => {
 	SettingsSectionTitle = $;

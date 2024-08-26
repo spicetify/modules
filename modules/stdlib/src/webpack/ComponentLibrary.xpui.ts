@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { exportedForwardRefs, exportedFunctions, exports } from "./index.ts";
+import { exported, exportedForwardRefs, exportedFunctions } from "./index.ts";
 
 await CHUNKS.xpui.promise;
 
-const componentNames = Object.keys(exports.find((e) => e.BrowserDefaultFocusStyleProvider));
+const componentNames = Object.keys(exported.find((e) => e.BrowserDefaultFocusStyleProvider));
 const componentRegexes = componentNames.map(
 	(n) => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`),
 );

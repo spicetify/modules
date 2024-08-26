@@ -7,10 +7,10 @@ import { analyzeWebpackRequire, require } from "./index.ts";
 
 await (CHUNKS["/xpui-desktop-routes-settings.js"] ??= Promise.withResolvers()).promise;
 
-const { modules } = analyzeWebpackRequire(require);
+const { exports } = analyzeWebpackRequire(require);
 export const Settings: {
 	SettingsLabel: React.FC<{}>;
 	SettingsRow: React.FC<{}>;
 	SettingsRowEnd: React.FC<{}>;
 	SettingsRowStart: React.FC<{}>;
-} = modules.find((m) => m.SettingsRow);
+} = exports.find((m) => m.SettingsRow);

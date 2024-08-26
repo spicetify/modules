@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { chunks, require } from "./index.ts";
+import { modules, require } from "./index.ts";
 import { capitalize } from "../../deps.ts";
 import { IsThisURIType, ParsableAsURI, URIClass, URITypes } from "./URI.ts";
 
@@ -56,7 +56,7 @@ type Create = {
 
 await CHUNKS.xpui.promise;
 
-const [URIModuleID] = chunks.find(
+const [URIModuleID] = modules.find(
 	([id, v]) => v.toString().includes("Invalid Spotify URI!") && Object.keys(require(id)).length > 10,
 )!;
 const URIModule = require(URIModuleID);
