@@ -10,12 +10,14 @@ export const createLogger = (mod: ModuleInstance) => {
 
 	return new Proxy(globalThis.console, {
 		get(target, p, receiver) {
+			const func = Reflect.get(target, p, receiver);
+
 			if (typeof p === "string" && hookedMethods.has(p)) {
 				// @ts-ignore
-				return (...data: any[]) => target[p](`[${mod.getModuleIdentifier()}]:`, ...data);
+				return (...data: any[]) => func(`[${mod.getModuleIdentifier()}]:`, ...data);
 			}
 
-			return target[p as keyof typeof target];
+			return func;
 		},
 	});
 };
