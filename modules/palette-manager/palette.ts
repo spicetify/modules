@@ -3,11 +3,11 @@
  */
 
 import { createStorage } from "/modules/stdlib/mod.ts";
-import type { Module } from "/hooks/index.ts";
+import type { ModuleInstance } from "/hooks/index.ts";
 import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
 
 let storage: Storage;
-export default function (mod: Module) {
+export default function (mod: ModuleInstance) {
 	storage = createStorage(mod);
 	PaletteManager.INSTANCE._init();
 }
@@ -31,9 +31,14 @@ const def_fields = {
 	playbar_active: Color.fromHex("#1ed760"),
 };
 
-type PaletteData = { id: string, name: string, colors: Record<string, string>; };
+type PaletteData = { id: string; name: string; colors: Record<string, string> };
 export class Palette {
-	constructor(public id: string, public name: string, public colors: Record<string, Color>, public isStatic = true) { }
+	constructor(
+		public id: string,
+		public name: string,
+		public colors: Record<string, Color>,
+		public isStatic = true,
+	) {}
 
 	overwrite(map: Record<string, Color>) {
 		if (this.isStatic) {
@@ -60,7 +65,7 @@ export class Palette {
 		for (const [k, v] of Object.entries(this.colors)) {
 			colors[k] = JSON.stringify(v);
 		}
-		return { id: this.id, name: this.name, colors, };
+		return { id: this.id, name: this.name, colors };
 	}
 
 	static fromJSON(json: PaletteData) {

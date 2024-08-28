@@ -3,11 +3,11 @@
  */
 
 import { Palette, PaletteManager } from "./palette.ts";
-import { Module } from "/hooks/index.ts";
+import { ModuleInstance } from "/hooks/index.ts";
 import type { Color } from "/modules/stdlib/src/webpack/misc.ts";
 
 class Schemer {
-	constructor(private mod: Module) {
+	constructor(private mod: ModuleInstance) {
 		const unloadJs = mod._unloadJs!;
 		mod._unloadJs = () => {
 			this.dispose();
@@ -49,6 +49,6 @@ class Schemer {
 	}
 }
 
-export function createSchemer(mod: Module) {
+export function createSchemer(mod: ModuleInstance) {
 	return new Schemer(mod);
 }

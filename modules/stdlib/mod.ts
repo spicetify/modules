@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Module } from "/hooks/index.ts";
+import type { ModuleInstance } from "/hooks/index.ts";
 
 import { Platform } from "./src/expose/Platform.ts";
 import { Registrar } from "./src/registers/index.ts";
@@ -11,7 +11,7 @@ import { fromString } from "./src/webpack/URI.ts";
 
 import { BehaviorSubject, Subscription } from "https://esm.sh/rxjs";
 
-export const createRegistrar = (mod: Module) => {
+export const createRegistrar = (mod: ModuleInstance) => {
 	const registrar = new Registrar(mod.getModuleIdentifier());
 	const unloadJs = mod._unloadJs!;
 	mod._unloadJs = () => {
@@ -21,7 +21,7 @@ export const createRegistrar = (mod: Module) => {
 	return registrar;
 };
 
-export const createStorage = (mod: Module) => {
+export const createStorage = (mod: ModuleInstance) => {
 	const hookedNativeStorageMethods = new Set(["getItem", "setItem", "removeItem"]);
 
 	return new Proxy(globalThis.localStorage, {
@@ -36,7 +36,7 @@ export const createStorage = (mod: Module) => {
 	});
 };
 
-export const createLogger = (mod: Module) => {
+export const createLogger = (mod: ModuleInstance) => {
 	const hookedMethods = new Set(["debug", "error", "info", "log", "warn"]);
 
 	return new Proxy(globalThis.console, {
@@ -71,7 +71,7 @@ const newEventBus = () => {
 const EventBus = newEventBus();
 export type EventBus = typeof EventBus;
 
-export const createEventBus = (mod: Module) => {
+export const createEventBus = (mod: ModuleInstance) => {
 	const eventBus = newEventBus();
 	// TODO: come up with a nicer solution
 	const s = new Subscription();

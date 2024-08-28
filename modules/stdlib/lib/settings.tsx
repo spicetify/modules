@@ -9,7 +9,7 @@ import SettingsSectionRegistry from "../src/registers/settingsSection.ts";
 import { UI } from "../src/webpack/ComponentLibrary.ts";
 import { Settings as S, SettingsToggle } from "../src/webpack/ReactComponents.ts";
 import SettingsButton from "./components/SettingsButton.tsx";
-import type { Module } from "/hooks/index.ts";
+import type { ModuleInstance } from "/hooks/index.ts";
 
 type Task<A> = (() => Awaited<A>) | (() => Promise<Awaited<A>>);
 
@@ -86,7 +86,7 @@ export class Settings<A = {}> {
 		);
 	}
 
-	static fromModule(mod: Module) {
+	static fromModule(mod: ModuleInstance) {
 		return new Settings(mod.getName(), mod.getModuleIdentifier());
 	}
 
@@ -251,7 +251,7 @@ export class Settings<A = {}> {
 }
 
 export const createSettings = (
-	mod: Module & { settings?: Settings },
+	mod: ModuleInstance & { settings?: Settings },
 ) => {
 	if (!mod.settings) {
 		mod.settings = Settings.fromModule(mod);
