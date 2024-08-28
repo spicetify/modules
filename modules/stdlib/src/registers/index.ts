@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { ModuleInstance } from "/hooks/module.ts";
 import menu from "./menu.ts";
 import navlink from "./navlink.tsx";
 import panel from "./panel.ts";
@@ -31,7 +32,7 @@ const registers = {
 type Registers = typeof registers;
 
 export class Registrar {
-	constructor(public id: string) { }
+	constructor(public id: string) {}
 
 	private ledger = new Map<any, keyof Registers>();
 
@@ -52,3 +53,13 @@ export class Registrar {
 		this.ledger.clear();
 	}
 }
+
+export const createRegistrar = (mod: ModuleInstance) => {
+	const registrar = new Registrar(mod.getModuleIdentifier());
+	const unloadJs = mod._unloadJs!;
+	mod._unloadJs = () => {
+		registrar!.dispose();
+		return unloadJs();
+	};
+	return registrar;
+};
