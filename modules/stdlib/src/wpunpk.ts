@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2024 Delusoire
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { assertEquals } from "/hooks/std/assert.ts";
 
 import { Subject } from "https://esm.sh/rxjs";

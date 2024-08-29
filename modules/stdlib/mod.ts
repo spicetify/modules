@@ -9,12 +9,7 @@ export * from "./src/storage.ts";
 export * from "./src/logger.ts";
 
 export default async function () {
-	const { historyListener, playerListener } = await import("./src/events.ts");
-	const { Platform } = await import("./src/expose/Platform.ts");
-	const cancelPlayerListener = Platform.getPlayerAPI().getEvents().addListener("update", playerListener);
-	const cancelHistoryListener = Platform.getHistory().listen(historyListener);
-	return () => {
-		cancelPlayerListener();
-		cancelHistoryListener();
-	};
+	const { startEventHandlers } = await import("./src/events.ts");
+
+	return startEventHandlers();
 }

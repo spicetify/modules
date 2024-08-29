@@ -17,6 +17,7 @@ export default async function (t: Transformer) {
 	await Promise.all([
 		import("./src/expose/index.ts"),
 		import("./src/registers/index.ts"),
+		import("./src/events.mix.ts"),
 		import("./src/wpunpk.mix.ts"),
 	]);
 }
