@@ -14,6 +14,9 @@ Object.defineProperty = function (obj, prop, descriptor) {
 export let transformer: Transformer;
 export default async function (t: Transformer) {
 	transformer = t;
-	await import("./src/expose/index.js");
-	await import("./src/registers/index.js");
+	await Promise.all([
+		import("./src/expose/index.ts"),
+		import("./src/registers/index.ts"),
+		import("./src/wpunpk.mix.ts"),
+	]);
 }

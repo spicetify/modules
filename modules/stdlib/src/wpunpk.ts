@@ -2,7 +2,7 @@ import { assertEquals } from "/hooks/std/assert.ts";
 
 import { Subject } from "https://esm.sh/rxjs";
 
-import { type Chunk, type Module, type Modules, type WebpackRequire, webpackRequire } from "./wpunkp.mix.ts";
+import { type Chunk, type Module, type Modules, webpackRequire } from "./wpunpk.mix.ts";
 
 type ChunkModulesPair = [Chunk, Modules];
 const chunkLoadedSubject = new Subject<ChunkModulesPair>();
