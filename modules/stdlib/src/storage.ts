@@ -13,10 +13,11 @@ export const createStorage = (mod: ModuleInstance) => {
 
 	return new Proxy(globalThis.localStorage, {
 		get(target, p, receiver) {
-			const func = Reflect.get(target, p, receiver);
+			const func: unknown = Reflect.get(target, p, receiver);
 
-			if (typeof p === "string" && hookedNativeStorageMethods.has(p)) {
-				return (key: string, ...data: any[]) => func(`module:${mod.getModuleIdentifier()}:${key}`, ...data);
+			if (typeof p === "string" && hookedNativeStorageMethods.has(p) && typeof func === "function") {
+				return (key: string, ...data: any[]) =>
+					func.call(target, `module:${mod.getModuleIdentifier()}:${key}`, ...data);
 			}
 
 			return func;
