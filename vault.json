@@ -4,7 +4,7 @@
       "v": {
         "0.2.1+cm-1020040-ly32efah": {
           "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-08-20/palette-manager@0.2.1+cm-1020040-ly32efah.zip"
+            "https://github.com/spicetify/modules/releases/download/2024-08-29/palette-manager@0.2.1+cm-1020040-ly32efah.zip"
           ],
           "providers": []
         }
@@ -14,7 +14,7 @@
       "v": {
         "0.2.2+cm-1020040-ly32efah": {
           "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-08-20/stdlib@0.2.2+cm-1020040-ly32efah.zip"
+            "https://github.com/spicetify/modules/releases/download/2024-08-29/stdlib@0.2.2+cm-1020040-ly32efah.zip"
           ],
           "providers": []
         }
