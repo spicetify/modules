@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { Transformer } from "/hooks/index.ts";
+import type { Transformer } from "/hooks/transform.ts";
 
 const nativeObjectDefineProperty = Object.defineProperty;
 Object.defineProperty = function (obj, prop, descriptor) {

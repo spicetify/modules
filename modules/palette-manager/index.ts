@@ -1,9 +1,9 @@
-import type { ModuleInstance } from "/hooks/index.ts";
+import { IndexLoadFn, IndexPreloadFn } from "/hooks/module.ts";
 
-export async function preload(mod: ModuleInstance) {
-	return await (await import("./palette.ts")).default(mod);
-}
+export const preload: IndexPreloadFn = async (tr) => {
+	return await (await import("./palette.ts")).default(tr);
+};
 
-export async function load(mod: ModuleInstance) {
+export const load: IndexLoadFn = async (mod) => {
 	return await (await import("./mod.tsx")).default(mod);
-}
+};
