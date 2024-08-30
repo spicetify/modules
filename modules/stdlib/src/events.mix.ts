@@ -19,7 +19,9 @@ function createGlobalThisShadow() {
 	return globalThisShadow;
 }
 
-export const ControlMessageListenerSubject = new Subject<{ uri: string; method: string; body: string }>();
+type CosmosRequest = { uri: string; method: string; body: string };
+
+const CosmosRequestSubject = new Subject<CosmosRequest>();
 export const UpdateTitlebarSubject = new BehaviorSubject<number>(-1);
 
 postWebpackRequireHooks.push(($) => {
@@ -30,14 +32,14 @@ postWebpackRequireHooks.push(($) => {
 		value: function ($: any) {
 			const request = JSON.parse($.request);
 
-			ControlMessageListenerSubject.next(request);
+			CosmosRequestSubject.next(request);
 
 			return $sendCosmosRequest($);
 		},
 	});
 });
 
-const controlMessageListener = (request: { uri: string; method: string; body: string }) => {
+const controlMessageListener = (request: CosmosRequest) => {
 	const { uri, method } = request;
 
 	if (uri === "sp://messages/v1/container/control" && method === "POST") {
@@ -50,4 +52,4 @@ const controlMessageListener = (request: { uri: string; method: string; body: st
 	}
 };
 
-ControlMessageListenerSubject.subscribe(controlMessageListener);
+CosmosRequestSubject.subscribe(controlMessageListener);
