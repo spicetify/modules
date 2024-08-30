@@ -18,7 +18,7 @@ export type Chunk = [
 
 export let webpackRequire: WebpackRequire;
 
-export const postWebpackRequireHooks = new Array<(wpr: WebpackRequire) => void>();
+export let postWebpackRequireHooks = new Array<(wpr: WebpackRequire) => void>();
 
 declare global {
 	var __webpack_require__: WebpackRequire;
