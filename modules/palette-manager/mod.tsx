@@ -16,9 +16,9 @@ export default async function (mod: ModuleInstance) {
 
 	registrar.register("topbarLeftButton", <EditButton />);
 
-	const schemer = await import("./schemer.ts");
+	const { createSchemer } = await import("./schemer.ts");
 
-	schemer.createSchemer(mod)
+	createSchemer(mod)
 		.register("Spicetify", {
 			text: Color.fromHex("#ffffff"),
 			subtext: Color.fromHex("#c0b4b4"),

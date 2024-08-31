@@ -127,7 +127,7 @@ const PaletteField = (props: PaletteFieldProps) => {
 		let color: Color;
 		try {
 			color = Color.fromHex(value);
-		} catch (_) { }
+		} catch (_) {}
 		if (!color) {
 			return;
 		}

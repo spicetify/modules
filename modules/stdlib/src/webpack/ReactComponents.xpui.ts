@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { capitalize } from "../../deps.ts";
+import { toPascalCase } from "/hooks/std/text.ts";
+import { findBy } from "/hooks/util.ts";
+
 import { Platform } from "../expose/Platform.ts";
 import { exportedForwardRefs, exportedFunctions, exportedMemos, modules, require } from "./index.ts";
-import { findBy } from "/hooks/util.ts";
 import { React } from "../expose/React.ts";
 
 import type { SnackbarProvider as SnackbarProviderT } from "npm:notistack";
@@ -63,7 +64,7 @@ export const Cards: any = Object.assign(
 					const match = str.match(/featureIdentifier:"(.+?)"/);
 					if (!match) return [];
 					const name = match[1];
-					return [[capitalize(name), m]];
+					return [[toPascalCase(name), m]];
 				} catch (e) {
 					return [];
 				}
@@ -74,7 +75,7 @@ export const Cards: any = Object.assign(
 					const match = str.match(/featureIdentifier:"(.+?)"/);
 					if (!match) return [];
 					const name = match[1];
-					return [[capitalize(name), m]];
+					return [[toPascalCase(name), m]];
 				} catch (e) {
 					return [];
 				}

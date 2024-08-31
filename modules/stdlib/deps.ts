@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @deno-types="npm:@types/lodash"
-import ld from "https://esm.sh/lodash";
-export const _ = ld;
-
-// @deno-types="npm:@types/lodash/fp"
-import ld_fp from "https://esm.sh/lodash/fp";
-export const fp = ld_fp;
-
 export { default as startCase } from "https://esm.sh/lodash/startCase";
-export { default as kebabCase } from "https://esm.sh/lodash/kebabCase";
 export { default as capitalize } from "https://esm.sh/lodash/fp/capitalize";
+export { default as shuffle } from "https://esm.sh/lodash/fp/shuffle";
+export { default as clamp } from "https://esm.sh/lodash/clamp";
+export { default as sortedLastIndexBy } from "https://esm.sh/lodash/sortedLastIndexBy";
+export { default as sortedLastIndex } from "https://esm.sh/lodash/sortedLastIndex";
+export { default as range } from "https://esm.sh/lodash/range";
+export { default as uniq } from "https://esm.sh/lodash/uniq";
+
+import mean from "https://esm.sh/lodash/fp/mean";
+export const fp = { mean };

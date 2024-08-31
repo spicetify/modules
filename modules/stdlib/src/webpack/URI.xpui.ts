@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { toPascalCase } from "/hooks/std/text.ts";
 import { modules, require } from "./index.ts";
-import { capitalize } from "../../deps.ts";
 import { IsThisURIType, ParsableAsURI, URIClass, URITypes } from "./URI.ts";
 
 type Is = {
@@ -67,14 +67,12 @@ const TypesKeys = Object.keys(Types);
 const isTestFn = (fn: Function) => TypesKeys.some((t) => fn.toString().includes(`${t}}`));
 const isCreateFn = (fn: Function) => TypesKeys.some((t) => fn.toString().includes(`${t},`));
 
-const CaseLikeThis = (s: string) => s.split("_").map(capitalize).join("");
-
 const fnsByType = Object.groupBy(vs, (fn) => isTestFn(fn) ? "test" : isCreateFn(fn) ? "create" : undefined!);
 export const is: Is = Object.fromEntries(
-	fnsByType.test!.map((fn) => [CaseLikeThis(fn.toString().match(/([\w_\d]{2,})\}/)![1]), fn]),
+	fnsByType.test!.map((fn) => [toPascalCase(fn.toString().match(/([\w_\d]{2,})\}/)![1]), fn]),
 ) as any;
 export const create: Create = Object.fromEntries(
-	fnsByType.create!.map((fn) => [CaseLikeThis(fn.toString().match(/([\w_\d]{2,})\,/)![1]), fn]),
+	fnsByType.create!.map((fn) => [toPascalCase(fn.toString().match(/([\w_\d]{2,})\,/)![1]), fn]),
 ) as any;
 const uniqueFns = fnsByType[undefined as unknown as keyof typeof fnsByType]!;
 
