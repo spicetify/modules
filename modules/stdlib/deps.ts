@@ -12,5 +12,10 @@ export { default as sortedLastIndex } from "https://esm.sh/lodash/sortedLastInde
 export { default as range } from "https://esm.sh/lodash/range";
 export { default as uniq } from "https://esm.sh/lodash/uniq";
 
-import mean from "https://esm.sh/lodash/fp/mean";
+// export { clamp, capitalize, shuffle, range, sortedLastIndex, sortedLastIndexBy, startCase, uniq } from "https://esm.sh/lodash?exports=clamp,capitalize,shuffle,range,sortedLastIndex,sortedLastIndexBy,startCase,uniq";
+
+import { default as mean } from "https://esm.sh/lodash/fp/mean";
 export const fp = { mean };
+
+// import _fp from "https://esm.sh/lodash/fp?exports=mean";
+// export const fp = _fp;
