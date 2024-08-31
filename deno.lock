@@ -16,14 +16,18 @@
       "npm:@types/mousetrap": "npm:@types/mousetrap@1.6.15",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:@types/react": "npm:@types/react@18.3.3",
+      "npm:@types/redux": "npm:@types/redux@3.6.0",
       "npm:autoprefixer@10.4.19": "npm:autoprefixer@10.4.19_postcss@8.4.38",
       "npm:notistack": "npm:notistack@3.0.1_react@18.3.1_react-dom@18.3.1__react@18.3.1",
       "npm:open@10.1.0": "npm:open@10.1.0",
       "npm:postcss-import@16.1.0": "npm:postcss-import@16.1.0_postcss@8.4.38",
       "npm:postcss-selector-parser@6.1.0": "npm:postcss-selector-parser@6.1.0",
       "npm:postcss@8.4.38": "npm:postcss@8.4.38",
+      "npm:react-flip-toolkit": "npm:react-flip-toolkit@7.2.4_react@18.3.1_react-dom@18.3.1__react@18.3.1",
       "npm:react-router": "npm:react-router@6.26.0_react@18.3.1",
-      "npm:tailwindcss@3.4.3": "npm:tailwindcss@3.4.3_postcss@8.4.38"
+      "npm:tailwindcss@3.4.3": "npm:tailwindcss@3.4.3_postcss@8.4.38",
+      "npm:tippy.js": "npm:tippy.js@6.3.7",
+      "npm:xstate": "npm:xstate@5.16.0"
     },
     "jsr": {
       "@delu/postcss-plugin-remapper@0.1.1": {
@@ -132,6 +136,10 @@
       },
       "@pkgjs/parseargs@0.11.0": {
         "integrity": "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==",
+        "dependencies": {}
+      },
+      "@popperjs/core@2.11.8": {
+        "integrity": "sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==",
         "dependencies": {}
       },
       "@remix-run/router@1.19.0": {
@@ -289,6 +297,12 @@
         "dependencies": {
           "@types/prop-types": "@types/prop-types@15.7.12",
           "csstype": "csstype@3.1.3"
+        }
+      },
+      "@types/redux@3.6.0": {
+        "integrity": "sha512-ic+60DXHW5seNyqFvfr7Sk5cnXs+HsF9tIeIaxjOuSP5kzgDXC+AzKTYmjAfuLx4Sccm/0vjwBQj3OOkUkwOqg==",
+        "dependencies": {
+          "redux": "redux@5.0.1"
         }
       },
       "ansi-regex@5.0.1": {
@@ -493,6 +507,12 @@
         "integrity": "sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==",
         "dependencies": {
           "to-regex-range": "to-regex-range@5.0.1"
+        }
+      },
+      "flip-toolkit@7.2.4": {
+        "integrity": "sha512-NT81ikyHPk72riMe1U01x698YIMSypMF5mQBhRklWVgf2xgWH3EPfrrVRAkz/+TSCq0rLPsr/uKIYkwHrowKZQ==",
+        "dependencies": {
+          "rematrix": "rematrix@0.2.2"
         }
       },
       "foreground-child@3.2.1": {
@@ -808,6 +828,14 @@
           "source-map-js": "source-map-js@1.2.0"
         }
       },
+      "prop-types@15.8.1": {
+        "integrity": "sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==",
+        "dependencies": {
+          "loose-envify": "loose-envify@1.4.0",
+          "object-assign": "object-assign@4.1.1",
+          "react-is": "react-is@16.13.1"
+        }
+      },
       "queue-microtask@1.2.3": {
         "integrity": "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==",
         "dependencies": {}
@@ -819,6 +847,19 @@
           "react": "react@18.3.1",
           "scheduler": "scheduler@0.23.2"
         }
+      },
+      "react-flip-toolkit@7.2.4_react@18.3.1_react-dom@18.3.1__react@18.3.1": {
+        "integrity": "sha512-+aZBZwzHBDfJzMRLjAAOKiBkrk8PV0YFVE0k1x85+UsykApLwg8a0LlQ5H80uFltFZmGtrQ7EE1krhiZ1jI5ig==",
+        "dependencies": {
+          "flip-toolkit": "flip-toolkit@7.2.4",
+          "prop-types": "prop-types@15.8.1",
+          "react": "react@18.3.1",
+          "react-dom": "react-dom@18.3.1_react@18.3.1"
+        }
+      },
+      "react-is@16.13.1": {
+        "integrity": "sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==",
+        "dependencies": {}
       },
       "react-router@6.26.0_react@18.3.1": {
         "integrity": "sha512-wVQq0/iFYd3iZ9H2l3N3k4PL8EEHcb0XlU2Na8nEwmiXgIUElEH6gaJDtUQxJ+JFzmIXaQjfdpcGWaM6IoQGxg==",
@@ -844,6 +885,14 @@
         "dependencies": {
           "picomatch": "picomatch@2.3.1"
         }
+      },
+      "redux@5.0.1": {
+        "integrity": "sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==",
+        "dependencies": {}
+      },
+      "rematrix@0.2.2": {
+        "integrity": "sha512-agFFS3RzrLXJl5LY5xg/xYyXvUuVAnkhgKO7RaO9J1Ssth6yvbO+PIiV67V59MB5NCdAK2flvGvNT4mdKVniFA==",
+        "dependencies": {}
       },
       "resolve@1.22.8": {
         "integrity": "sha512-oKWePCxqpd6FlLvGV1VU0x7bkPmmCNolxzjMf4NczoDnQcIWrAF+cPtZn5i6n+RfD2d9i0tzpKnG6Yk168yIyw==",
@@ -974,6 +1023,12 @@
           "any-promise": "any-promise@1.3.0"
         }
       },
+      "tippy.js@6.3.7": {
+        "integrity": "sha512-E1d3oP2emgJ9dRQZdf3Kkn0qJgI6ZLpyS5z6ZkY1DF3kaQaBsGZsndEpHwx+eC+tYM41HaSNvNtLx8tU57FzTQ==",
+        "dependencies": {
+          "@popperjs/core": "@popperjs/core@2.11.8"
+        }
+      },
       "to-regex-range@5.0.1": {
         "integrity": "sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==",
         "dependencies": {
@@ -1018,11 +1073,59 @@
           "strip-ansi": "strip-ansi@7.1.0"
         }
       },
+      "xstate@5.16.0": {
+        "integrity": "sha512-qws7r2nsCsQ/Qgpn75+FYM84M88/nopGsxij/qYNSOyKJKO4n7x8B5isQKv6DMruyF4gGg7y4gsFDTzJUlKcWw==",
+        "dependencies": {}
+      },
       "yaml@2.5.0": {
         "integrity": "sha512-2wWLbGbYDiSqqIKoPjar3MPgB94ErzCtrNE1FdqGuaO0pi2JGjmE8aW8TDZwzU7vuxcGRdL/4gPQwQ7hD5AMSw==",
         "dependencies": {}
       }
     }
   },
-  "remote": {}
+  "redirects": {
+    "https://esm.sh/lodash/clamp": "https://esm.sh/lodash@4.17.21/clamp",
+    "https://esm.sh/lodash/fp/capitalize": "https://esm.sh/lodash@4.17.21/fp/capitalize",
+    "https://esm.sh/lodash/fp/mean": "https://esm.sh/lodash@4.17.21/fp/mean",
+    "https://esm.sh/lodash/fp/shuffle": "https://esm.sh/lodash@4.17.21/fp/shuffle",
+    "https://esm.sh/lodash/get": "https://esm.sh/lodash@4.17.21/get",
+    "https://esm.sh/lodash/range": "https://esm.sh/lodash@4.17.21/range",
+    "https://esm.sh/lodash/sortedLastIndex": "https://esm.sh/lodash@4.17.21/sortedLastIndex",
+    "https://esm.sh/lodash/sortedLastIndexBy": "https://esm.sh/lodash@4.17.21/sortedLastIndexBy",
+    "https://esm.sh/lodash/startCase": "https://esm.sh/lodash@4.17.21/startCase",
+    "https://esm.sh/lodash/uniq": "https://esm.sh/lodash@4.17.21/uniq",
+    "https://esm.sh/v135/@types/lodash@4.17.7/index": "https://esm.sh/v135/@types/lodash@4.17.7/index~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/clamp~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/clamp~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/fp/capitalize~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/fp/capitalize~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/fp/mean~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/fp/mean~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/fp/shuffle~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/fp/shuffle~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/get~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/get~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/range~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/range~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/sortedLastIndexBy~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/sortedLastIndexBy~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/sortedLastIndex~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/sortedLastIndex~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/startCase~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/startCase~.d.ts",
+    "https://esm.sh/v135/@types/lodash@~4.17/uniq~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/uniq~.d.ts"
+  },
+  "remote": {
+    "https://esm.sh/lodash@4.17.21/clamp": "3915570246dba4c8f0c8ddc5b26c01d8f65c19a2832073d9807031102e179c57",
+    "https://esm.sh/lodash@4.17.21/fp/capitalize": "89a0c6c621ede68de355d2b5ad7968ba2f5ceb4f5e9f0c8adbef56e65d241f0d",
+    "https://esm.sh/lodash@4.17.21/fp/mean": "5417eb75764fc0995f82722142730dd909f0b95cab61529888a4b3028350b332",
+    "https://esm.sh/lodash@4.17.21/fp/shuffle": "b70aac380a1af1eb664f541b144ed920a133bc12256a99a8483cd1303c1b6c3a",
+    "https://esm.sh/lodash@4.17.21/get": "fc7fd6c6794aec55b195450ede6331c06b791ea1672180dc3e50c5a637120fa2",
+    "https://esm.sh/lodash@4.17.21/range": "b1b92d46a74240e74975349acda350c2e385c111f4a07b952eebe5109bda6dec",
+    "https://esm.sh/lodash@4.17.21/sortedLastIndex": "d166f1190aa74aa1635a7b3446ff07bf63c1335ee6e89063e4e9de17ec3c9c90",
+    "https://esm.sh/lodash@4.17.21/sortedLastIndexBy": "50bc043440ce2009907943777343f060504ee2a9809de267573a363f142ba994",
+    "https://esm.sh/lodash@4.17.21/startCase": "87777677fc334fac373c669600d587ed60c5421d225f100aa01c82a1c967967e",
+    "https://esm.sh/lodash@4.17.21/uniq": "4644cafb068f1d6512dfa2bd2b8b581eff84f9b04c284590660a665e33b8f13e",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/clamp.js": "8e971d294849fb45b989d3ce791a917ef3219ea91658388005aed043950415e2",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/fp/capitalize.js": "3e560c87c4b8fd836a6fb548829730322da83786f34ff2fab6d27ab43faec85d",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/fp/mean.js": "d09b6d88e3a07a6c1301cc020c9aa6109160ce04278e8b7d7795946a3d572d67",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/fp/shuffle.js": "75eed3452343e8249d1fec23dc6ea8a917857ba94edd92f97fc41d3225deff9c",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/get.js": "4f79a0f011051cc6a0625674c23ebb07e50d4a17172006efbecf256764c1f9e0",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/range.js": "a6c750f1bf2715070e8024009ecb87f7d812f3df123041e4436151dbb509b99b",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/sortedLastIndex.js": "645a4012c1ded59bec7900b57e9b17e749a54beb437451d81f9dab6ce0017a1b",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/sortedLastIndexBy.js": "02014870efb050c1a75dde090798cfeddba6b39f778e54ca87dccbd9b42c6fc3",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/startCase.js": "d417601663acf67fd0a74b2527a576c1192151974ed290d49690a6b1bd62c155",
+    "https://esm.sh/v135/lodash@4.17.21/denonext/uniq.js": "8142821933fe2d3b868a0e8f241fdb71d9f524ddedf4936c6adefb8233a32b44"
+  }
 }

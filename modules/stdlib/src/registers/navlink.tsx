@@ -33,7 +33,7 @@ declare global {
 }
 
 let navLinkFactoryCtx: React.Context<React.FC<NavLinkFactoryProps>>;
-globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
+globalThis.__renderNavLinks = (isGlobalNavBar: boolean) =>
 	React.createElement(() => {
 		[, refresh] = React.useReducer((n) => n + 1, 0);
 
@@ -41,7 +41,7 @@ globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 			return;
 		}
 
-		const navLinkFactory = isTouchscreenUi ? _NavLinkGlobal : _NavLinkSidebar;
+		const navLinkFactory = isGlobalNavBar ? _NavLinkGlobal : _NavLinkSidebar;
 
 		if (!navLinkFactoryCtx) {
 			navLinkFactoryCtx = React.createContext<React.FC<NavLinkFactoryProps>>(null!);
@@ -53,7 +53,7 @@ globalThis.__renderNavLinks = (isTouchscreenUi: boolean) =>
 			</navLinkFactoryCtx.Provider>
 		);
 
-		return isTouchscreenUi
+		return isGlobalNavBar
 			? (
 				<ScrollableContainer className="custom-navlinks-scrollable_container" onlyHorizontalWheel>
 					{children}

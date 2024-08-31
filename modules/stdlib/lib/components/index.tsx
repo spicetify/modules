@@ -18,8 +18,8 @@
  */
 
 import { React } from "../../src/expose/React.ts";
-import { _ } from "../../deps.ts";
 import Dropdown, { type DropdownOptions } from "./Dropdown.tsx";
+import { get } from "../../deps.ts";
 import { ChipFilter } from "./ChipFilter.tsx";
 import { FilterContext } from "../../src/webpack/FilterContext.xpui.ts";
 import { FilterBox } from "../../src/webpack/ReactComponents.xpui.ts";
@@ -98,7 +98,7 @@ export const useDropdown = <O extends DropdownOptions>({
 
 export const getProp = (obj: any, path: string) => {
 	if (path.startsWith(".")) {
-		return _.get(obj, path.slice(1));
+		return get(obj, path.slice(1));
 	}
 	return obj;
 };
