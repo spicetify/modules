@@ -3,17 +3,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-declare global {
-	var webpackChunkclient_web: any;
-}
+import { WebpackModule, WebpackRequire, webpackRequire } from "../wpunpk.mix.ts";
 
-type WebpackRequire = any;
-type WebpackChunk = any;
-type WebpackModule = any;
-
-export let require: WebpackRequire;
-export let modules: Array<[string, WebpackChunk]>;
-export let exports: Array<WebpackModule>;
+export let modules: Array<[number, WebpackModule]>;
+export let exports: Array<Record<string, any>>;
 export let exported: Array<any>;
 
 export let exportedFunctions: Array<Function>;
@@ -23,9 +16,9 @@ export let exportedContexts: Array<React.Context<any>>;
 export let exportedForwardRefs: Array<React.ForwardRefExoticComponent<any>>;
 export let exportedMemos: React.NamedExoticComponent[];
 
-export const analyzeWebpackRequire = (require: WebpackRequire) => {
-	const modules = Object.entries(require.m) as Array<[string, WebpackChunk]>;
-	const exports = modules.map(([id]) => require(id)) as Array<WebpackModule>;
+export const analyzeWebpackRequire = (webpackRequire: WebpackRequire) => {
+	const modules = Object.entries(webpackRequire.m) as Array<[keyof any, WebpackModule]>;
+	const exports = modules.map(([id]) => webpackRequire(id)) as Array<Record<string, any>>;
 	const exported = exports
 		.filter((module) => typeof module === "object")
 		.flatMap((module) => {
@@ -68,8 +61,7 @@ Object.assign(CHUNKS, {
 });
 
 CHUNKS.xpui.promise.then(() => {
-	require = globalThis.webpackChunkclient_web.push([[Symbol()], {}, (re: any) => re]);
-	const analysis = analyzeWebpackRequire(require);
+	const analysis = analyzeWebpackRequire(webpackRequire);
 	modules = analysis.modules;
 	exports = analysis.exports;
 	exported = analysis.exported;

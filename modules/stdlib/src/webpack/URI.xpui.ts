@@ -4,7 +4,8 @@
  */
 
 import { toPascalCase } from "/hooks/std/text.ts";
-import { modules, require } from "./index.ts";
+import { modules } from "./index.ts";
+import { webpackRequire } from "../wpunpk.mix.ts";
 import { IsThisURIType, ParsableAsURI, URIClass, URITypes } from "./URI.ts";
 
 type Is = {
@@ -57,9 +58,9 @@ type Create = {
 await CHUNKS.xpui.promise;
 
 const [URIModuleID] = modules.find(
-	([id, v]) => v.toString().includes("Invalid Spotify URI!") && Object.keys(require(id)).length > 10,
+	([id, v]) => v.toString().includes("Invalid Spotify URI!") && Object.keys(webpackRequire(id)).length > 10,
 )!;
-const URIModule = require(URIModuleID);
+const URIModule = webpackRequire(URIModuleID);
 const [_Types, ...vs] = Object.values(URIModule) as [URITypes, ...Function[]];
 export const Types = _Types;
 const TypesKeys = Object.keys(Types);

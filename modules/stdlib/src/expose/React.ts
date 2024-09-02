@@ -3,27 +3,71 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mix.ts";
+import { matchWebpackModule } from "../wpunpk.ts";
+import { postWebpackRequireHooks } from "../wpunpk.mix.ts";
 
-import type ReactT from "npm:@types/react";
+// @deno-types="npm:@types/react@18.3.1"
+import _React from "https://esm.sh/react@18.3.1";
+// @deno-types="npm:@types/react-dom@18.3.0"
+import _ReactDOM from "https://esm.sh/react-dom@18.3.1";
+// @deno-types="npm:@types/react-dom@18.3.0/server"
+import _ReactDOMServer from "https://esm.sh/react-dom@18.3.1/server";
 
-export type React = typeof ReactT;
-export let React: React;
+export const React = _React;
+export const ReactDOM = _ReactDOM;
+export const ReactDOMServer = _ReactDOMServer;
 
-transformer<React>(
-	(emit) => (str) => {
-		str = str.replace(
-			/([a-zA-Z_\$][\w\$]*\.prototype\.setState=)/,
-			"__React=t;$1",
+postWebpackRequireHooks.push(($) => {
+	matchWebpackModule((id, module) => {
+		const moduleStr = module.toString();
+
+		return moduleStr.includes(
+			'"setState(...): takes an object of state variables to update or a function which returns an object of state variables."',
 		);
-		Object.defineProperty(globalThis, "__React", {
-			set: emit,
-		});
-		return str;
-	},
-	{
-		glob: /^\/vendor~xpui\.js/,
-	},
-).then(($) => {
-	React = $;
+	}, (id) => {
+		$["m"][id] = function () {
+			Object.assign(this, React);
+		};
+	});
+
+	matchWebpackModule((id, module) => {
+		const moduleStr = module.toString();
+
+		return moduleStr.includes(',rendererPackageName:"react-dom"');
+	}, (id) => {
+		$["m"][id] = function () {
+			Object.assign(this, _ReactDOM);
+		};
+	});
+
+	matchWebpackModule((id, module) => {
+		const moduleStr = module.toString();
+
+		return moduleStr.search(/,([a-zA-Z_\$][\w\$]*)\.renderToString=([a-zA-Z_\$][\w\$]*)\.renderToString,/) !==
+			-1;
+	}, (id) => {
+		$["m"][id] = function () {
+			Object.assign(this, _ReactDOMServer);
+		};
+	});
 });
+
+// import { transformer } from "../../mix.ts";
+
+// transformer<React>(
+// 	(emit) => (str) => {
+// 		str = str.replace(
+// 			/([a-zA-Z_\$][\w\$]*\.prototype\.setState=)/,
+// 			"__React=t;$1",
+// 		);
+// 		Object.defineProperty(globalThis, "__React", {
+// 			set: emit,
+// 		});
+// 		return str;
+// 	},
+// 	{
+// 		glob: /^\/vendor~xpui\.js/,
+// 	},
+// ).then(($) => {
+// 	React = $;
+// });

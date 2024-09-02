@@ -7,7 +7,8 @@ import { toPascalCase } from "/hooks/std/text.ts";
 import { findBy } from "/hooks/util.ts";
 
 import { Platform } from "../expose/Platform.ts";
-import { exportedForwardRefs, exportedFunctions, exportedMemos, modules, require } from "./index.ts";
+import { exportedForwardRefs, exportedFunctions, exportedMemos, modules } from "./index.ts";
+import { webpackRequire } from "../wpunpk.mix.ts";
 import { React } from "../expose/React.ts";
 
 import type { SnackbarProvider as SnackbarProviderT } from "npm:notistack";
@@ -37,7 +38,7 @@ const [playlistMenuModuleID] = modules.find(
 		v.toString().includes("permissions"),
 )!;
 
-Menus.Playlist = Object.values(require(playlistMenuModuleID)).find(
+Menus.Playlist = Object.values(webpackRequire(playlistMenuModuleID)).find(
 	(m) => typeof m === "function" || typeof m === "object",
 );
 
@@ -117,7 +118,7 @@ export const SnackbarProvider: SnackbarProviderT = findBy(
 	exportedFunctions,
 ) as unknown as SnackbarProvider;
 
-export const ContextMenu: any = Object.values(require(ContextMenuModuleID))[0];
+export const ContextMenu: any = Object.values(webpackRequire(ContextMenuModuleID))[0];
 export const RightClickMenu: React.FC<any> = findBy(
 	"action",
 	"open",

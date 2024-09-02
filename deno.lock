@@ -4,18 +4,24 @@
     "specifiers": {
       "jsr:@delu/postcss-plugin-remapper@0.1.1": "jsr:@delu/postcss-plugin-remapper@0.1.1",
       "jsr:@delu/tailor": "jsr:@delu/tailor@1.1.0",
+      "jsr:@std/assert@1.0.3": "jsr:@std/assert@1.0.3",
       "jsr:@std/fs": "jsr:@std/fs@1.0.0",
       "jsr:@std/fs@1.0.0-rc.2": "jsr:@std/fs@1.0.0-rc.2",
+      "jsr:@std/internal@^1.0.2": "jsr:@std/internal@1.0.2",
       "jsr:@std/path@1.0.0-rc.2": "jsr:@std/path@1.0.0-rc.2",
       "npm:@delusoire/swc-plugin-remapper@0.1.3": "npm:@delusoire/swc-plugin-remapper@0.1.3",
       "npm:@delusoire/swc-plugin-transform-module-specifiers@0.1.4": "npm:@delusoire/swc-plugin-transform-module-specifiers@0.1.4",
       "npm:@swc/core": "npm:@swc/core@1.7.3",
       "npm:@swc/core@1.6.6": "npm:@swc/core@1.6.6",
+      "npm:@tanstack/react-query": "npm:@tanstack/react-query@5.51.15_react@18.3.1",
       "npm:@types/classnames": "npm:@types/classnames@2.3.1",
       "npm:@types/lodash": "npm:@types/lodash@4.17.7",
       "npm:@types/mousetrap": "npm:@types/mousetrap@1.6.15",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:@types/react": "npm:@types/react@18.3.3",
+      "npm:@types/react-dom": "npm:@types/react-dom@18.3.0",
+      "npm:@types/react-dom@18.3.0": "npm:@types/react-dom@18.3.0",
+      "npm:@types/react@18.3.1": "npm:@types/react@18.3.1",
       "npm:@types/redux": "npm:@types/redux@3.6.0",
       "npm:autoprefixer@10.4.19": "npm:autoprefixer@10.4.19_postcss@8.4.38",
       "npm:notistack": "npm:notistack@3.0.1_react@18.3.1_react-dom@18.3.1__react@18.3.1",
@@ -52,6 +58,12 @@
           "npm:tailwindcss@3.4.3"
         ]
       },
+      "@std/assert@1.0.3": {
+        "integrity": "b0d03ce1ced880df67132eea140623010d415848df66f6aa5df76507ca7c26d8",
+        "dependencies": [
+          "jsr:@std/internal@^1.0.2"
+        ]
+      },
       "@std/fs@1.0.0": {
         "integrity": "d72e4a125af7168d717a2ed1dca77a728b422b0d138fd20579e3fa41a77da943"
       },
@@ -60,6 +72,9 @@
         "dependencies": [
           "jsr:@std/path@1.0.0-rc.2"
         ]
+      },
+      "@std/internal@1.0.2": {
+        "integrity": "f4cabe2021352e8bfc24e6569700df87bf070914fc38d4b23eddd20108ac4495"
       },
       "@std/path@1.0.0-rc.2": {
         "integrity": "39f20d37a44d1867abac8d91c169359ea6e942237a45a99ee1e091b32b921c7d"
@@ -270,6 +285,17 @@
           "@swc/counter": "@swc/counter@0.1.3"
         }
       },
+      "@tanstack/query-core@5.51.15": {
+        "integrity": "sha512-xyobHDJ0yhPE3+UkSQ2/4X1fLSg7ICJI5J1JyU9yf7F3deQfEwSImCDrB1WSRrauJkMtXW7YIEcC0oA6ZZWt5A==",
+        "dependencies": {}
+      },
+      "@tanstack/react-query@5.51.15_react@18.3.1": {
+        "integrity": "sha512-UgFg23SrdIYrmfTSxAUn9g+J64VQy11pb9/EefoY/u2+zWuNMeqEOnvpJhf52XQy0yztQoyM9p6x8PFyTNaxXg==",
+        "dependencies": {
+          "@tanstack/query-core": "@tanstack/query-core@5.51.15",
+          "react": "react@18.3.1"
+        }
+      },
       "@types/classnames@2.3.1": {
         "integrity": "sha512-zeOWb0JGBoVmlQoznvqXbE0tEC/HONsnoUNH19Hc96NFsTAwTXbTqb8FMYkru1F/iqp7a18Ws3nWJvtA1sHD1A==",
         "dependencies": {
@@ -291,6 +317,19 @@
       "@types/prop-types@15.7.12": {
         "integrity": "sha512-5zvhXYtRNRluoE/jAp4GVsSduVUzNWKkOZrCDBWYtE7biZywwdC2AcEzg+cSMLFRfVgeAFqpfNabiPjxFddV1Q==",
         "dependencies": {}
+      },
+      "@types/react-dom@18.3.0": {
+        "integrity": "sha512-EhwApuTmMBmXuFOikhQLIBUn6uFg81SwLMOAUgodJF14SOBOCMdU04gDoYi0WOJJHD144TL32z4yDqCW3dnkQg==",
+        "dependencies": {
+          "@types/react": "@types/react@18.3.3"
+        }
+      },
+      "@types/react@18.3.1": {
+        "integrity": "sha512-V0kuGBX3+prX+DQ/7r2qsv1NsdfnCLnTgnRJ1pYnxykBhGMz+qj+box5lq7XsO5mtZsBqpjwwTu/7wszPfMBcw==",
+        "dependencies": {
+          "@types/prop-types": "@types/prop-types@15.7.12",
+          "csstype": "csstype@3.1.3"
+        }
       },
       "@types/react@18.3.3": {
         "integrity": "sha512-hti/R0pS0q1/xx+TsI73XIqk26eBsISZ2R0wUijXIngRK9R/e7Xw/cXVxQK7R5JjW+SV4zGcn5hXjudkN/pLIw==",
@@ -1094,6 +1133,10 @@
     "https://esm.sh/lodash/sortedLastIndexBy": "https://esm.sh/lodash@4.17.21/sortedLastIndexBy",
     "https://esm.sh/lodash/startCase": "https://esm.sh/lodash@4.17.21/startCase",
     "https://esm.sh/lodash/uniq": "https://esm.sh/lodash@4.17.21/uniq",
+    "https://esm.sh/react-dom/client@18.3.1": "https://esm.sh/react-dom@18.3.1/client@18.3.1",
+    "https://esm.sh/react-dom/server@18.3.1": "https://esm.sh/react-dom@18.3.1/server@18.3.1",
+    "https://esm.sh/rxjs": "https://esm.sh/rxjs@7.8.1",
+    "https://esm.sh/v128/@types/react@~18.3/index.d.ts": "https://esm.sh/v128/@types/react@18.2.38/index.d.ts",
     "https://esm.sh/v135/@types/lodash@4.17.7/index": "https://esm.sh/v135/@types/lodash@4.17.7/index~.d.ts",
     "https://esm.sh/v135/@types/lodash@~4.17/clamp~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/clamp~.d.ts",
     "https://esm.sh/v135/@types/lodash@~4.17/fp/capitalize~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/fp/capitalize~.d.ts",
@@ -1104,7 +1147,11 @@
     "https://esm.sh/v135/@types/lodash@~4.17/sortedLastIndexBy~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/sortedLastIndexBy~.d.ts",
     "https://esm.sh/v135/@types/lodash@~4.17/sortedLastIndex~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/sortedLastIndex~.d.ts",
     "https://esm.sh/v135/@types/lodash@~4.17/startCase~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/startCase~.d.ts",
-    "https://esm.sh/v135/@types/lodash@~4.17/uniq~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/uniq~.d.ts"
+    "https://esm.sh/v135/@types/lodash@~4.17/uniq~.d.ts": "https://esm.sh/v135/@types/lodash@4.17.7/uniq~.d.ts",
+    "https://esm.sh/v135/@types/react-dom@~18.3/client~.d.ts": "https://esm.sh/v135/@types/react-dom@18.3.0/client~.d.ts",
+    "https://esm.sh/v135/@types/react-dom@~18.3/index.d.ts": "https://esm.sh/v135/@types/react-dom@18.3.0/index.d.ts",
+    "https://esm.sh/v135/@types/react-dom@~18.3/server~.d.ts": "https://esm.sh/v135/@types/react-dom@18.3.0/server~.d.ts",
+    "https://esm.sh/v135/@types/react-dom@~18/index.d.ts": "https://esm.sh/v135/@types/react-dom@18.3.0/index.d.ts"
   },
   "remote": {
     "https://esm.sh/lodash@4.17.21/clamp": "3915570246dba4c8f0c8ddc5b26c01d8f65c19a2832073d9807031102e179c57",
@@ -1117,6 +1164,14 @@
     "https://esm.sh/lodash@4.17.21/sortedLastIndexBy": "50bc043440ce2009907943777343f060504ee2a9809de267573a363f142ba994",
     "https://esm.sh/lodash@4.17.21/startCase": "87777677fc334fac373c669600d587ed60c5421d225f100aa01c82a1c967967e",
     "https://esm.sh/lodash@4.17.21/uniq": "4644cafb068f1d6512dfa2bd2b8b581eff84f9b04c284590660a665e33b8f13e",
+    "https://esm.sh/react-dom@18.3.0": "b0d2bddcc87bf65650bd6f01be3d82f4972f01086e7a40edc939f3025ccbc015",
+    "https://esm.sh/react-dom@18.3.1": "8ce1b3c896918d0e6ccbe49775ca04866aba2fe0e8d2728bdbeb91faf60779b7",
+    "https://esm.sh/react-dom@18.3.1/client": "3e23a449c16029111f8fa64809dd83ea5f896a4065f956b6b6d87998854efa1e",
+    "https://esm.sh/react-dom@18.3.1/server": "90e374c5323303d5315c780b19e5d6297ec5a569f9cee1df28ee1030dd23af9c",
+    "https://esm.sh/react@18.3.1": "52480d4c00855e4f76843caa4f2818eb001671523740cbf064cbd108721c29c8",
+    "https://esm.sh/rxjs@7.8.1": "68e394db3f3b90054f22fe3f20c4d7359c989b282246a66ea0372d652912e244",
+    "https://esm.sh/stable/react@18.3.0/denonext/react.mjs": "d1bf18912ee31686de3e67bc06a68ced0511b7821af5bfa4cc7a378d2c677d63",
+    "https://esm.sh/stable/react@18.3.1/denonext/react.mjs": "fc048ffc55366baf7669519127d186761db72046e2bebf35fe8d0de3964defa3",
     "https://esm.sh/v135/lodash@4.17.21/denonext/clamp.js": "8e971d294849fb45b989d3ce791a917ef3219ea91658388005aed043950415e2",
     "https://esm.sh/v135/lodash@4.17.21/denonext/fp/capitalize.js": "3e560c87c4b8fd836a6fb548829730322da83786f34ff2fab6d27ab43faec85d",
     "https://esm.sh/v135/lodash@4.17.21/denonext/fp/mean.js": "d09b6d88e3a07a6c1301cc020c9aa6109160ce04278e8b7d7795946a3d572d67",
@@ -1126,6 +1181,14 @@
     "https://esm.sh/v135/lodash@4.17.21/denonext/sortedLastIndex.js": "645a4012c1ded59bec7900b57e9b17e749a54beb437451d81f9dab6ce0017a1b",
     "https://esm.sh/v135/lodash@4.17.21/denonext/sortedLastIndexBy.js": "02014870efb050c1a75dde090798cfeddba6b39f778e54ca87dccbd9b42c6fc3",
     "https://esm.sh/v135/lodash@4.17.21/denonext/startCase.js": "d417601663acf67fd0a74b2527a576c1192151974ed290d49690a6b1bd62c155",
-    "https://esm.sh/v135/lodash@4.17.21/denonext/uniq.js": "8142821933fe2d3b868a0e8f241fdb71d9f524ddedf4936c6adefb8233a32b44"
+    "https://esm.sh/v135/lodash@4.17.21/denonext/uniq.js": "8142821933fe2d3b868a0e8f241fdb71d9f524ddedf4936c6adefb8233a32b44",
+    "https://esm.sh/v135/react-dom@18.3.0/denonext/react-dom.mjs": "2474833d948c087da5569f835809430a6633bcff5228423885614e2f62fb9df0",
+    "https://esm.sh/v135/react-dom@18.3.1/denonext/client.js": "51910a60c05a5614b9dbec634d8594f74a4300fed2023dbdf1f8ea2a41a82b96",
+    "https://esm.sh/v135/react-dom@18.3.1/denonext/react-dom.mjs": "0c4ad76e514ad1c9d8987d49679c5f2a6299b34c1b7fbf10a5da056ae4a0963f",
+    "https://esm.sh/v135/react-dom@18.3.1/denonext/server.js": "b4db56f16b45002b5e9b127a9938ab45b12f39825161dffe875920510c524878",
+    "https://esm.sh/v135/rxjs@7.8.1/denonext/rxjs.mjs": "5b7ef4f0e05f81c90bb2fdf37ac4c2c2f30680a8fe90aa6b716750dd901529ca",
+    "https://esm.sh/v135/scheduler@0.23.1/denonext/scheduler.mjs": "bc16e9841d5e74683427c37bfb0b36f1dbca97e13671c5290048275fd33453b5",
+    "https://esm.sh/v135/scheduler@0.23.2/denonext/scheduler.mjs": "dc96e5be52b14a40ce36295d938d5211e520c4da3183fe2ad4283ed103747d82",
+    "https://esm.sh/v135/tslib@2.6.2/denonext/tslib.mjs": "29782bcd3139f77ec063dc5a9385c0fff4a8d0a23b6765c73d9edeb169a04bf1"
   }
 }

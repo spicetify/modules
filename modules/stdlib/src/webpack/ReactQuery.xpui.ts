@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { exportedFunctions, exports, modules, require } from "./index.ts";
+import { exportedFunctions, exports, modules } from "./index.ts";
 
 import type {
 	notifyManager as notifyManagerT,
@@ -16,6 +16,7 @@ import type {
 	useSuspenseQuery as useSuspenseQueryT,
 } from "npm:@tanstack/react-query";
 import { findBy } from "/hooks/util.ts";
+import { webpackRequire } from "../wpunpk.mix.ts";
 
 await CHUNKS.xpui.promise;
 
@@ -39,6 +40,7 @@ export const useSuspenseQuery: typeof useSuspenseQueryT = findBy(
 const [infiniteQueryModuleID] = modules.find(
 	([_, v]) => v.toString().includes("fetchPreviousPage") && v.toString().includes("getOptimisticResult"),
 )!;
-export const useInfiniteQuery: typeof useInfiniteQueryT = Object.values(require(infiniteQueryModuleID)).find(
-	(m) => typeof m === "function",
-);
+export const useInfiniteQuery: typeof useInfiniteQueryT = Object.values(webpackRequire(infiniteQueryModuleID))
+	.find(
+		(m) => typeof m === "function",
+	);
