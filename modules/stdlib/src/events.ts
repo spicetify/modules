@@ -7,7 +7,7 @@ import type { ModuleInstance } from "/hooks/module.ts";
 
 import { Platform } from "./expose/Platform.ts";
 
-import { BehaviorSubject, Subscription } from "https://esm.sh/rxjs";
+import { BehaviorSubject, Subscription } from "../deps.ts";
 import { UpdateTitlebarSubject } from "./events.mix.ts";
 
 const newEventBus = () => {
@@ -44,11 +44,9 @@ export const createEventBus = (mod: ModuleInstance) => {
 	s.add(EventBus.History.updated.subscribe(eventBus.History.updated));
 	s.add(EventBus.ControlMessage.titlebar_updated.subscribe(eventBus.ControlMessage.titlebar_updated));
 
-	const unloadJs = mod._unloadJs!;
-	mod._unloadJs = () => {
+	mod._jsIndex!.disposableStack.defer(() => {
 		s.unsubscribe();
-		return unloadJs();
-	};
+	});
 
 	return eventBus;
 };

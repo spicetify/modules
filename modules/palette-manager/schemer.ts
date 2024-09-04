@@ -3,16 +3,13 @@
  */
 
 import { Palette, PaletteManager } from "./palette.ts";
-import { ModuleInstance } from "/hooks/index.ts";
-import type { Color } from "/modules/stdlib/src/webpack/misc.ts";
+import type { ModuleInstance } from "/hooks/module.ts";
 
 class Schemer {
 	constructor(private mod: ModuleInstance) {
-		const unloadJs = mod._unloadJs!;
-		mod._unloadJs = () => {
+		mod._jsIndex!.disposableStack.defer(() => {
 			this.dispose();
-			return unloadJs();
-		};
+		});
 	}
 
 	palettes = new Set<Palette>();

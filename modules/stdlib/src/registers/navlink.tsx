@@ -6,7 +6,7 @@
 import { React } from "../expose/React.ts";
 import { findMatchingPos } from "/hooks/util.ts";
 import { createIconComponent } from "../../lib/createIconComponent.tsx";
-import { transformer } from "../../mix.ts";
+import { transformer } from "../../mixin.ts";
 import { Platform } from "../expose/Platform.ts";
 import { classnames } from "../webpack/ClassNames.ts";
 import { Nav, ScrollableContainer, Tooltip } from "../webpack/ReactComponents.ts";

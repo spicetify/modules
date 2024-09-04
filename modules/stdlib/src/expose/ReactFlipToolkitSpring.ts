@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mix.ts";
+import { transformer } from "../../mixin.ts";
 
 import type { spring } from "npm:react-flip-toolkit";
 

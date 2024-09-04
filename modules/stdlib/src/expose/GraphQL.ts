@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mix.ts";
+import { transformer } from "../../mixin.ts";
 
 export type GraphQLOp = "query" | "mutation";
 export type GraphQLDef<N extends string, O extends GraphQLOp> = {

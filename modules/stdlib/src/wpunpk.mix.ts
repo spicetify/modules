@@ -50,7 +50,7 @@ globalThis.webpackChunkclient_web = webpackChunkclient_web;
 
 import { assertEquals } from "/hooks/std/assert.ts";
 
-import { Subject } from "https://esm.sh/rxjs";
+import { Subject } from "../deps.ts";
 
 type ChunkModulesPair = [WebpackChunk, WebpackModules];
 export const chunkLoadedSubjectPre = new Subject<WebpackChunk>();

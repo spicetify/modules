@@ -7,7 +7,7 @@ import { React } from "../expose/React.ts";
 
 import { matchLast } from "/hooks/util.ts";
 
-import { transformer } from "../../mix.ts";
+import { transformer } from "../../mixin.ts";
 import { Registry } from "./registry.ts";
 
 type __MenuContext = React.Context<MenuContext>;
