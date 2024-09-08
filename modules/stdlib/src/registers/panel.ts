@@ -150,6 +150,17 @@ transformer(
 			"$1return true;",
 		);
 
+		return str;
+	},
+	{
+		glob: /^\/xpui\.js/,
+	},
+);
+
+transformer(
+	(emit) => (str) => {
+		emit();
+
 		str = str.replace(
 			/(\(([a-zA-Z_\$][\w\$]*),"PanelSection".+?children:\[?)/,
 			"$1__renderPanel($2),",
@@ -158,6 +169,6 @@ transformer(
 		return str;
 	},
 	{
-		glob: /^\/xpui\.js/,
+		glob: /^\/dwp\-panel\-section\.js/,
 	},
 );

@@ -156,16 +156,6 @@ export const RemoteConfigProvider = ({
 		{ configuration },
 		children,
 	);
-
-export const PanelHeader: React.FC<any> = exportedFunctions.find((m) =>
-	m.toString().includes("PanelHeader_CloseButton")
-)!;
-export const PanelContent: React.FC<any> = exportedForwardRefs.find((f) =>
-	f.render.toString().includes("fixedHeader")
-);
-export const PanelSkeleton: React.FC<any> = findBy("label", "aside")(exportedFunctions) ||
-	findBy((m) => m.render.toString().includes("section"))(exportedForwardRefs);
-
 export const Snackbar = {
 	wrapper: findBy("encore-light-theme", "elevated")(exportedFunctions),
 	simpleLayout: findBy("leading", "center", "trailing")(exportedFunctions),

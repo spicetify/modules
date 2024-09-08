@@ -28,25 +28,14 @@ export default registry;
 let refresh: React.DispatchWithoutAction | undefined;
 
 declare global {
-	var __renderTopbarRightButtons: any;
+	var __renderTopbarRightButtons: () => React.ReactNode;
 }
 
-let topbarRightButtonFactoryCtx: React.Context<React.FC<TopbarRightButtonProps>>;
 globalThis.__renderTopbarRightButtons = () =>
 	React.createElement(() => {
 		[, refresh] = React.useReducer((n) => n + 1, 0);
 
-		const topbarRightButtonFactory = isGlobalNavBarEnabled() ? _TopbarRightButtonT : _TopbarRightButton;
-
-		if (!topbarRightButtonFactoryCtx) {
-			topbarRightButtonFactoryCtx = React.createContext<TopbarRightButtonFactory>(null!);
-		}
-
-		return (
-			<topbarRightButtonFactoryCtx.Provider value={topbarRightButtonFactory}>
-				{registry.all().reverse()}
-			</topbarRightButtonFactoryCtx.Provider>
-		);
+		return <>{registry.all().reverse()}</>;
 	});
 transformer(
 	(emit) => (str) => {
@@ -70,14 +59,10 @@ type TopbarRightButtonProps = {
 	onClick: () => void;
 	icon?: string;
 };
-export const TopbarRightButton = (props: TopbarRightButtonProps) => {
-	const TopbarRightButtonFactory = React.useContext(topbarRightButtonFactoryCtx);
-	return TopbarRightButtonFactory && <TopbarRightButtonFactory {...props} />;
-};
 
 type TopbarRightButtonFactory = React.FC<TopbarRightButtonProps>;
 
-const _TopbarRightButtonT: TopbarRightButtonFactory = (props) => (
+export const TopbarRightButton: TopbarRightButtonFactory = (props) => (
 	<Tooltip label={props.label}>
 		<UI.ButtonTertiary
 			aria-label={props.label}
@@ -88,18 +73,5 @@ const _TopbarRightButtonT: TopbarRightButtonFactory = (props) => (
 		>
 			{props.icon && createIconComponent({ icon: props.icon, iconSize: 16, realIconSize: 24 })}
 		</UI.ButtonTertiary>
-	</Tooltip>
-);
-
-const _TopbarRightButton: TopbarRightButtonFactory = (props) => (
-	<Tooltip label={props.label}>
-		<button
-			aria-label={props.label}
-			className={classnames("encore-over-media-set", MAP.main.topbar.right.button.wrapper)}
-			onClick={props.onClick}
-			disabled={props.disabled}
-		>
-			{props.icon && createIconComponent({ icon: props.icon, iconSize: 16 })}
-		</button>
 	</Tooltip>
 );

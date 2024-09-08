@@ -6,7 +6,6 @@
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../../lib/createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
-import { isGlobalNavBarEnabled } from "../utils/index.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { Registry } from "./registry.ts";
@@ -27,25 +26,14 @@ export default registry;
 let refresh: React.DispatchWithoutAction | undefined;
 
 declare global {
-	var __renderTopbarLeftButtons: any;
+	var __renderTopbarLeftButtons: () => React.ReactNode;
 }
 
-let topbarLeftButtonFactoryCtx: React.Context<TopbarLeftButtonFactory>;
 globalThis.__renderTopbarLeftButtons = () =>
 	React.createElement(() => {
 		[, refresh] = React.useReducer((n) => n + 1, 0);
 
-		const topbarLeftButtonFactory = isGlobalNavBarEnabled() ? _TopbarLeftButtonB : _TopbarLeftButtonA;
-
-		if (!topbarLeftButtonFactoryCtx) {
-			topbarLeftButtonFactoryCtx = React.createContext<TopbarLeftButtonFactory>(null!);
-		}
-
-		return (
-			<topbarLeftButtonFactoryCtx.Provider value={topbarLeftButtonFactory}>
-				{registry.all()}
-			</topbarLeftButtonFactoryCtx.Provider>
-		);
+		return <>{registry.all()}</>;
 	});
 transformer(
 	(emit) => (str) => {
@@ -66,14 +54,9 @@ type TopbarLeftButtonProps = {
 	onClick: () => void;
 	icon?: string;
 };
-export const TopbarLeftButton = (props: TopbarLeftButtonProps) => {
-	const TopbarLeftButtonFactory = React.useContext(topbarLeftButtonFactoryCtx);
-	return TopbarLeftButtonFactory && <TopbarLeftButtonFactory {...props} />;
-};
 
 type TopbarLeftButtonFactory = React.FC<TopbarLeftButtonProps>;
-
-const _TopbarLeftButtonB: TopbarLeftButtonFactory = (props) => (
+export const TopbarLeftButton: TopbarLeftButtonFactory = (props) => (
 	<Tooltip label={props.label}>
 		<UI.ButtonTertiary
 			size="medium"
@@ -85,23 +68,5 @@ const _TopbarLeftButtonB: TopbarLeftButtonFactory = (props) => (
 			onClick={props.onClick}
 			className={MAP.main.topbar.left.button_t.wrapper}
 		/>
-	</Tooltip>
-);
-
-const _TopbarLeftButtonA: TopbarLeftButtonFactory = (props) => (
-	<Tooltip label={props.label}>
-		<button
-			aria-label={props.label}
-			disabled={props.disabled}
-			className={MAP.main.topbar.left.button.wrapper}
-			onClick={props.onClick}
-		>
-			{props.icon &&
-				createIconComponent({
-					icon: props.icon,
-					iconSize: 16,
-					className: MAP.main.topbar.left.button.icon.wrapper,
-				})}
-		</button>
 	</Tooltip>
 );

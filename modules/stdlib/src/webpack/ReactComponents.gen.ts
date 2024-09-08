@@ -9,6 +9,16 @@ import("./ReactComponents.desktop.ts").then(m => {
 	Settings = m.Settings;
 });
 
+import type * as ReactComponents_panel_ts from "./ReactComponents.panel.ts";
+export let PanelContainer: typeof ReactComponents_panel_ts.PanelContainer;
+export let PanelContent: typeof ReactComponents_panel_ts.PanelContent;
+export let PanelHeader: typeof ReactComponents_panel_ts.PanelHeader;
+import("./ReactComponents.panel.ts").then(m => {
+	PanelContainer = m.PanelContainer;
+	PanelContent = m.PanelContent;
+	PanelHeader = m.PanelHeader;
+});
+
 import type * as ReactComponents_xpui_ts from "./ReactComponents.xpui.ts";
 export let Menus: typeof ReactComponents_xpui_ts.Menus;
 export let Cards: typeof ReactComponents_xpui_ts.Cards;
@@ -26,9 +36,6 @@ export let Menu: typeof ReactComponents_xpui_ts.Menu;
 export let MenuItem: typeof ReactComponents_xpui_ts.MenuItem;
 export let MenuItemSubMenu: typeof ReactComponents_xpui_ts.MenuItemSubMenu;
 export let RemoteConfigProvider: typeof ReactComponents_xpui_ts.RemoteConfigProvider;
-export let PanelHeader: typeof ReactComponents_xpui_ts.PanelHeader;
-export let PanelContent: typeof ReactComponents_xpui_ts.PanelContent;
-export let PanelSkeleton: typeof ReactComponents_xpui_ts.PanelSkeleton;
 export let Snackbar: typeof ReactComponents_xpui_ts.Snackbar;
 export let FilterBox: typeof ReactComponents_xpui_ts.FilterBox;
 export let ScrollableContainer: typeof ReactComponents_xpui_ts.ScrollableContainer;
@@ -60,9 +67,6 @@ import("./ReactComponents.xpui.ts").then(m => {
 	MenuItem = m.MenuItem;
 	MenuItemSubMenu = m.MenuItemSubMenu;
 	RemoteConfigProvider = m.RemoteConfigProvider;
-	PanelHeader = m.PanelHeader;
-	PanelContent = m.PanelContent;
-	PanelSkeleton = m.PanelSkeleton;
 	Snackbar = m.Snackbar;
 	FilterBox = m.FilterBox;
 	ScrollableContainer = m.ScrollableContainer;
