@@ -7,9 +7,9 @@ import { React } from "../src/expose/React.ts";
 import { future, SettingsSection, SettingsSectionTitle } from "../src/expose/SettingsSection.ts";
 import SettingsSectionRegistry from "../src/registers/settingsSection.ts";
 import { UI } from "../src/webpack/ComponentLibrary.ts";
-import { Settings as S, SettingsToggle } from "../src/webpack/ReactComponents.ts";
+import { Settings as S, Toggle } from "../src/webpack/ReactComponents.ts";
 import SettingsButton from "./components/SettingsButton.tsx";
-import type { ModuleInstance } from "/hooks/index.ts";
+import type { ModuleInstance } from "/hooks/module.ts";
 
 type Task<A> = (() => Awaited<A>) | (() => Promise<Awaited<A>>);
 
@@ -216,7 +216,7 @@ export class Settings<A = {}> {
 		const [value, setValue] = this.useStateFor<boolean>(id);
 		return (
 			<this.SettingField field={field}>
-				<SettingsToggle
+				<Toggle
 					id={field.id}
 					value={Settings.getFieldValue(id)}
 					onSelected={(checked: boolean) => {

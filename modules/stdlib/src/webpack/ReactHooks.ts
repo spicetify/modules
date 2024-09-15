@@ -3,4 +3,4 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-export * from "./CustomHooks.gen.ts";
+export * from "./ReactHooks.gen.ts";

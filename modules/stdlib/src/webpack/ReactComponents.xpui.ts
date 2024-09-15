@@ -92,12 +92,6 @@ export const RemoteConfigProviderComponent: React.FC<any> = findBy(
 	exportedFunctions,
 );
 
-export const Slider: React.FC<any> = exportedFunctions.find(
-	(m) =>
-		m.toString().includes("onStepBackward") &&
-		!m.toString().includes("volume"),
-);
-
 const exportedMemoFRefs = exportedMemos.filter(
 	(m) => (m as any).type.$$typeof === Symbol.for("react.forward_ref"),
 );
@@ -128,11 +122,11 @@ export const RightClickMenu: React.FC<any> = findBy(
 	exportedFunctions,
 );
 
-export const ConfirmDialog: React.FC<any> = findBy(
-	"isOpen",
-	"shouldCloseOnEsc",
-	"onClose",
-)(exportedFunctions);
+// export const ConfirmDialog: React.FC<any> = findBy(
+// 	"isOpen",
+// 	"shouldCloseOnEsc",
+// 	"onClose",
+// )(exportedFunctions);
 export const Tooltip: React.FC<any> = findBy("hover-or-focus", "tooltip")(
 	exportedFunctions,
 );
@@ -176,9 +170,6 @@ export const ScrollableText: React.FC<any> = findBy(
 )(
 	exportedFunctions,
 );
-export const Toggle: React.FC<any> = findBy("onSelected", 'type:"checkbox"')(
-	exportedFunctions,
-);
 export const Router: React.FC<any> = findBy("navigationType", "static")(
 	exportedFunctions,
 );
@@ -200,17 +191,10 @@ export const GenericModal: React.FC<any> = findBy("isOpen", "contentLabel")(
 export const Tracklist: React.FC<any> = exportedMemos.find((f) =>
 	(f as any).type.toString().includes("nrValidItems")
 )!;
-export const TracklistRow: React.FC<any> = exportedMemos.find((f) =>
-	(f as any).type.toString().includes("track-icon")
-)!;
 export const TracklistColumnsContextProvider: React.FC<any> = findBy(
 	"columns",
 	"visibleColumns",
 	"toggleVisible",
 )(
-	exportedFunctions,
-);
-
-export const SettingsToggle: React.FC<any> = findBy("condensed", "onSelected")(
 	exportedFunctions,
 );

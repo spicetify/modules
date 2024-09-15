@@ -10,11 +10,6 @@ import { findBy } from "/hooks/util.ts";
 await CHUNKS.xpui.promise;
 
 export const DragHandler: Function = findBy("dataTransfer", "data-dragging")(exportedFunctions);
-export const useExtractedColor: Function = exportedFunctions.find(
-	(m) =>
-		m.toString().includes("extracted-color") ||
-		(m.toString().includes("colorRaw") && m.toString().includes("useEffect")),
-)!;
 
 export const usePanelAPI: Function = findBy("panelSend", "context")(exportedFunctions);
 
@@ -36,11 +31,11 @@ export const usePanelStateMachine: () => [state: any, actor: any, machine: any] 
 
 export const extractColorPreset = async (image: any) => {
 	const analysis = await imageAnalysis(Platform.getGraphQLLoader(), image);
-	for (const result of analysis) {
-		if ("isFallback" in result === false) {
-			result.isFallback = fallbackPreset === result; // Why ?
-		}
-	}
+	// for (const result of analysis) {
+	// 	if (!("isFallback" in result)) {
+	// 		result.isFallback = fallbackPreset === result;
+	// 	}
+	// }
 
 	return analysis;
 };
