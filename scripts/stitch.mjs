@@ -34,6 +34,26 @@ function sidecar(metadata, classmapKey) {
 	};
 }
 
+// generateClassmapDts emits a global MAP declaration so module sources get
+// typed classmap paths without importing anything.
+function generateClassmapDts(classmap) {
+	const render = (node, indent) => {
+		const pad = "\t".repeat(indent);
+		const lines = ["{"];
+		for (const key of Object.keys(node).sort()) {
+			const value = node[key];
+			if (typeof value === "string") {
+				lines.push(`${pad}\t${JSON.stringify(key)}: string;`);
+			} else {
+				lines.push(`${pad}\t${JSON.stringify(key)}: ${render(value, indent + 1)};`);
+			}
+		}
+		lines.push(`${pad}}`);
+		return lines.join("\n");
+	};
+	return `declare global {\n\tconst MAP: ${render(classmap, 1)};\n}\n\nexport {};\n`;
+}
+
 async function buildJs(inputDir, outputDir, identifier) {
 	const bundle = await rolldown({
 		input: path.join(inputDir, "index.ts"),
@@ -72,7 +92,7 @@ function copyAssets(inputDir, outputDir) {
 	}
 }
 
-async function stitchModule(moduleDir, classmapKey) {
+async function stitchModule(moduleDir, classmapKey, classmap) {
 	const inputDir = moduleDir.startsWith(MODULES_DIR) || moduleDir.startsWith("modules/")
 		? path.join(ROOT, moduleDir)
 		: path.join(MODULES_DIR, moduleDir);
@@ -87,6 +107,10 @@ async function stitchModule(moduleDir, classmapKey) {
 	buildCss(inputDir, outputDir);
 	copyAssets(inputDir, outputDir);
 
+	if (classmap) {
+		writeFileSync(path.join(inputDir, "classmap.d.ts"), generateClassmapDts(classmap));
+	}
+
 	writeFileSync(path.join(outputDir, "metadata.json"), JSON.stringify(metadata, null, 2) + "\n");
 	writeFileSync(
 		path.join(outputDir, "spicetify-module.json"),
@@ -98,6 +122,8 @@ async function stitchModule(moduleDir, classmapKey) {
 async function main() {
 	const args = process.argv.slice(2);
 	const classmapKey = process.env.CLASSMAP_KEY || "";
+	const classmapPath = process.env.CLASSMAP_JSON || path.join(ROOT, "classmap.json");
+	const classmap = existsSync(classmapPath) ? JSON.parse(readFileSync(classmapPath, "utf8")) : null;
 	const targets = args.length
 		? args
 		: readdirSync(MODULES_DIR).filter((d) => statSync(path.join(MODULES_DIR, d)).isDirectory());
@@ -105,8 +131,11 @@ async function main() {
 	if (!classmapKey) {
 		console.warn("warning: CLASSMAP_KEY not set; sidecar classmap_base will be empty (source remap only)");
 	}
+	if (classmap) {
+		console.log(`classmap: ${classmapPath} (generating classmap.d.ts)`);
+	}
 	for (const target of targets) {
-		await stitchModule(target, classmapKey);
+		await stitchModule(target, classmapKey, classmap);
 	}
 }
 
