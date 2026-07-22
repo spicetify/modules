@@ -1,0 +1,19 @@
+{
+	"name": "spicetify-modules",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"stitch": "node scripts/stitch.mjs"
+	},
+	"devDependencies": {
+		"rolldown": "^1.2.0",
+		"sass-embedded": "^1.80.0"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "nub",
+			"version": "^0.4.13",
+			"onFail": "warn"
+		}
+	}
+}

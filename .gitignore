@@ -7,3 +7,6 @@
 /modules/*/**/*.css
 /modules/*/timestamp
 /modules/*/classmap.d.ts
+
+# Dependencies
+node_modules/
