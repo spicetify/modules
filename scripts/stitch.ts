@@ -16,6 +16,42 @@ import * as sass from "sass-embedded";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+interface ModuleMetadata {
+	name: string;
+	tags: string[];
+	version: string;
+	authors: string[];
+	description: string;
+	entries: { js?: string; css?: string };
+	hasMixins: boolean;
+	dependencies: Record<string, string>;
+}
+
+interface ModuleSidecar {
+	installed_version: string;
+	classmap_base: string;
+	allow_stale: boolean;
+}
+
+interface StitchConfig {
+	classmap?: string;
+	classmapsDir?: string;
+	modulesDir?: string;
+	outDir?: string;
+}
+
+interface ClassmapResolution {
+	path: string | null;
+	key: string;
+}
+
+interface ParsedArgs {
+	targets: string[];
+	classmap: string | null;
+	outDir: string;
+	modulesDir: string;
+}
+
 const ROOT = process.cwd();
 const MODULES_DIR = path.join(ROOT, "modules");
 const DIST_DIR = path.join(ROOT, "dist");
@@ -24,7 +60,7 @@ const EXTERNALS = [/^\/hooks\//, /^https?:\/\//];
 
 const USAGE = `stitch - build v3 modules
 
-usage: node scripts/stitch.mjs [module...] [--classmap <key|path>] [--out <dir>]
+usage: node scripts/stitch.ts [module...] [--classmap <key|path>] [--out <dir>]
 
   module...        module folders to build (default: all in ./modules)
   --classmap, -c   classmap key (e.g. 1020094, resolved against the classmaps
@@ -38,11 +74,11 @@ resolution order for the classmap:
   3. newest key folder in the classmaps repo (../classmaps by default)
   4. ./classmap.json (back-compat)`
 
-function readMetadata(dir) {
+function readMetadata(dir: string): ModuleMetadata {
 	return JSON.parse(readFileSync(path.join(dir, "metadata.json"), "utf8"));
 }
 
-function sidecar(metadata, classmapKey) {
+function sidecar(metadata: ModuleMetadata, classmapKey: string): ModuleSidecar {
 	return {
 		installed_version: metadata.version,
 		classmap_base: classmapKey,
@@ -52,8 +88,8 @@ function sidecar(metadata, classmapKey) {
 
 // generateClassmapDts emits a global MAP declaration so module sources get
 // typed classmap paths without importing anything.
-function generateClassmapDts(classmap) {
-	const render = (node, indent) => {
+function generateClassmapDts(classmap: Record<string, unknown>): string {
+	const render = (node: Record<string, unknown>, indent: number): string => {
 		const pad = "\t".repeat(indent);
 		const lines = ["{"];
 		for (const key of Object.keys(node).sort()) {
@@ -70,7 +106,7 @@ function generateClassmapDts(classmap) {
 	return `declare global {\n\tconst MAP: ${render(classmap, 1)};\n}\n\nexport {};\n`;
 }
 
-function loadConfig() {
+function loadConfig(): StitchConfig {
 	const configPath = path.join(ROOT, "stitch.config.json");
 	if (!existsSync(configPath)) return {};
 	try {
@@ -80,24 +116,24 @@ function loadConfig() {
 	}
 }
 
-function latestClassmapFile(dir) {
+function latestClassmapFile(dir: string): string | null {
 	if (!existsSync(dir)) return null;
 	const files = readdirSync(dir).filter((f) => /^classmap(-.*)?\.json$/.test(f)).sort();
 	return files.length ? path.join(dir, files[files.length - 1]) : null;
 }
 
-function classmapKeyFromPath(filePath) {
+function classmapKeyFromPath(filePath: string): string {
 	return path.basename(path.dirname(filePath));
 }
 
-function classmapsDirs(config) {
+function classmapsDirs(config: StitchConfig): string[] {
 	const dirs = [];
 	if (config.classmapsDir) dirs.push(config.classmapsDir);
 	dirs.push(path.join(ROOT, "..", "classmaps"), path.join(ROOT, "classmaps"));
 	return dirs;
 }
 
-function resolveClassmap({ flag, config }) {
+function resolveClassmap({ flag, config }: { flag: string | null; config: StitchConfig }): ClassmapResolution {
 	const candidates = [];
 	if (flag) candidates.push(flag);
 	if (config.classmap) candidates.push(config.classmap);
@@ -128,8 +164,8 @@ function resolveClassmap({ flag, config }) {
 	return { path: null, key: "" };
 }
 
-function parseArgs(argv) {
-	const out = { targets: [], classmap: null, outDir: DIST_DIR, modulesDir: MODULES_DIR };
+function parseArgs(argv: string[]): ParsedArgs {
+	const out: ParsedArgs = { targets: [], classmap: null, outDir: DIST_DIR, modulesDir: MODULES_DIR };
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 		const next = () => argv[++i];
@@ -158,7 +194,7 @@ function parseArgs(argv) {
 	return out;
 }
 
-async function buildJs(inputDir, outputDir, identifier) {
+async function buildJs(inputDir: string, outputDir: string, identifier: string): Promise<void> {
 	const bundle = await rolldown({
 		input: path.join(inputDir, "index.ts"),
 		external: EXTERNALS,
@@ -173,7 +209,7 @@ async function buildJs(inputDir, outputDir, identifier) {
 	});
 }
 
-function buildCss(inputDir, outputDir) {
+function buildCss(inputDir: string, outputDir: string): string | null {
 	const scss = path.join(inputDir, "index.scss");
 	const css = path.join(inputDir, "index.css");
 	if (existsSync(scss)) {
@@ -188,7 +224,7 @@ function buildCss(inputDir, outputDir) {
 	return null;
 }
 
-function copyAssets(inputDir, outputDir) {
+function copyAssets(inputDir: string, outputDir: string): void {
 	for (const entry of readdirSync(inputDir)) {
 		if (["assets", "public"].includes(entry)) {
 			cpSync(path.join(inputDir, entry), path.join(outputDir, entry), { recursive: true });
@@ -196,7 +232,7 @@ function copyAssets(inputDir, outputDir) {
 	}
 }
 
-async function main() {
+async function main(): Promise<void> {
 	const args = parseArgs(process.argv.slice(2));
 	const config = loadConfig();
 	const resolved = resolveClassmap({ flag: args.classmap, config });

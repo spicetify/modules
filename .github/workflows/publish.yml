@@ -33,7 +33,7 @@ jobs:
             run: npm ci
 
          -  name: Build modules
-            run: node scripts/stitch.mjs
+            run: node scripts/stitch.ts
 
          -  name: Publish
             uses: ./.github/actions/release

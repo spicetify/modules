@@ -4,14 +4,27 @@ V3 modules for the spicetify modular runtime.
 
 ## Building (stitch)
 
-Modules are built with **stitch** (`scripts/stitch.mjs`), a thin builder on
-top of [rolldown](https://rolldown.rs). Node 22+ only; no Deno required.
+Modules are built with **stitch** (`scripts/stitch.ts`), a thin builder on
+top of [rolldown](https://rolldown.rs). Node 24 only; no Deno required, and
+TypeScript runs natively.
 
 ```shell
 nub install
-CLASSMAP_KEY=1020094 nub run stitch modules/stdlib   # one module
-CLASSMAP_KEY=1020094 nub run stitch                  # all modules
+nub run stitch modules/stdlib        # one module, auto-detects the classmap
+nub run stitch                       # all modules
+nub run stitch --classmap 1020092    # explicit classmap key
+nub run stitch -c path/to/classmap.json
+nub run stitch --help
 ```
+
+Classmap resolution order (no env vars needed):
+
+1. `--classmap <key|path>`: a key resolves to the newest `classmap-*.json`
+   in that folder of a classmaps checkout; a path is used directly.
+2. `stitch.config.json` (repo-level defaults, gitignored).
+3. Auto-detection: the newest key folder in `../classmaps` (sibling clone)
+   or `./classmaps` (in-repo, used by CI).
+4. `./classmap.json` as a fallback.
 
 What stitch does:
 
@@ -21,8 +34,8 @@ What stitch does:
 - writes `dist/<name>@<version>/` with `metadata.json` and the
   `spicetify-module.json` sidecar (`classmap_base`, `installed_version`,
   `allow_stale`),
-- optionally generates `classmap.d.ts` per module when `CLASSMAP_JSON`
-  points at a classmap file (typed `MAP` for authors).
+- generates `classmap.d.ts` per module from the resolved classmap (typed
+  `MAP` for authors).
 
 Modules ship **MAP-intact**: class references stay as `MAP.*` in the built
 output and are remapped by the spicetify CLI at apply time against the exact
