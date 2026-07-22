@@ -9,12 +9,12 @@ top of [rolldown](https://rolldown.rs). Node 24 only; no Deno required, and
 TypeScript runs natively.
 
 ```shell
-nub install
-nub run stitch modules/stdlib        # one module, auto-detects the classmap
-nub run stitch                       # all modules
-nub run stitch --classmap 1020092    # explicit classmap key
-nub run stitch -c path/to/classmap.json
-nub run stitch --help
+pnpm install
+pnpm stitch modules/stdlib        # one module, auto-detects the classmap
+pnpm stitch                       # all modules
+pnpm stitch --classmap 1020092    # explicit classmap key
+pnpm stitch -c path/to/classmap.json
+pnpm stitch --help
 ```
 
 Classmap resolution order (no env vars needed):

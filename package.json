@@ -9,11 +9,5 @@
     "rolldown": "^1.2.0",
     "sass-embedded": "^1.80.0"
   },
-  "devEngines": {
-    "packageManager": {
-      "name": "nub",
-      "version": "^0.4.13",
-      "onFail": "warn"
-    }
-  }
+  "packageManager": "pnpm@10.0.0"
 }
