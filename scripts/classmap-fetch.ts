@@ -1,23 +1,24 @@
+/*
+ * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import path from "node:path";
 
 import { genClassMapDts } from "jsr:@delu/tailor";
 
-import { GH_RAW_CLASSMAP_URL } from "./classmap-info.ts";
-
-const response = await fetch(GH_RAW_CLASSMAP_URL);
-const classmap = await response.text();
-
 const classmapPath = "classmap.json";
-await Deno.writeTextFile(classmapPath, classmap);
-console.log(`Fetched and saved classmap to ${classmapPath}`);
+console.log(`Using classmap from ${classmapPath}`);
+const classmap = JSON.parse(await Deno.readTextFile(classmapPath));
 
 for await (const module of Deno.readDir("modules")) {
 	if (!module.isDirectory) {
 		continue;
 	}
 
-	const classmapDts = genClassMapDts(JSON.parse(classmap));
+	const classmapDts = genClassMapDts(classmap);
 	const classmapDtsPath = path.join("modules", module.name, "classmap.d.ts");
-
 	await Deno.writeTextFile(classmapDtsPath, classmapDts);
+	console.log(`Generated ${classmapDtsPath}`);
 }

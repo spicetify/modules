@@ -16,8 +16,8 @@
 		"proseWrap": "preserve"
 	},
 	"imports": {
-		"/hooks/": "/Users/Delusoire/AppData/Local/Spicetify/hooks/",
-		"/modules/": "/Users/Delusoire/AppData/Local/Spicetify/modules/"
+		"/hooks/": "../hooks/",
+		"/modules/": "./modules/"
 	},
 	"tasks": {
 		"cm:fetch": "deno run -A scripts/classmap-fetch.ts",

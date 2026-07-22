@@ -1,26 +1,26 @@
-export const GH_RAW_CLASSMAP_URL =
-	"https://raw.githubusercontent.com/spicetify/classmaps/main/1020040/classmap-1906ea8d2e9.json";
+/*
+ * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
-async function parseGhRawUrl(rawUrl: string) {
-	const urlMatch = rawUrl.match(
-		/^https:\/\/raw\.githubusercontent\.com\/(?<owner>[^\/]+)\/(?<repo>[^\/]+)\/(?<branch>[^\/]+)\/(?<path>.+)$/,
-	);
-	if (!urlMatch) {
-		throw new Error(`Invalid raw url: ${rawUrl}`);
-	}
-	const { owner, repo, branch, path } = urlMatch.groups!;
+export type ClassmapInfo = {
+	classmap: any;
+	version: number;
+	timestamp: number;
+};
 
-	const pathMatch = path.match(/^(?<version>\d{7})\/classmap-(?<timestamp>[0-9a-f]{11})\.json$/);
-	if (!pathMatch) {
-		throw new Error(`Invalid path: ${path}`);
-	}
-	const { version, timestamp } = pathMatch.groups!;
-
+async function loadLocalClassmap(path: string): Promise<ClassmapInfo> {
+	const m = path.match(/(?<version>\d{7})\/classmap-(?<timestamp>[0-9a-f]{11,})\.json$/);
+	if (!m?.groups) throw new Error(`Invalid classmap path: ${path}`);
 	return {
-		classmap: await fetch(rawUrl).then((res) => res.json()),
-		version: Number(version),
-		timestamp: Number.parseInt(timestamp, 16),
+		classmap: JSON.parse(await Deno.readTextFile(path)),
+		version: Number(m.groups.version),
+		timestamp: Number.parseInt(m.groups.timestamp, 16),
 	};
 }
 
-export const classmapInfos = [await parseGhRawUrl(GH_RAW_CLASSMAP_URL)];
+export const classmapInfos: ClassmapInfo[] = await Promise.all([
+	loadLocalClassmap("../classmaps/1020092/classmap-19f8522e902.json"),
+	loadLocalClassmap("../classmaps/1020094/classmap-19f856aefd5.json"),
+]);
