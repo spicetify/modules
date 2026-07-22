@@ -17,13 +17,23 @@ jobs:
          -  name: Clone repository
             uses: actions/checkout@v4
 
-         -  name: Install Deno
-            uses: denoland/setup-deno@v1
+         -  name: Clone classmaps
+            uses: actions/checkout@v4
             with:
-               deno-version: v1.x
+               repository: spicetify/classmaps
+               path: classmaps
 
-         -  name: Build
-            run: deno task ci:build:release
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               cache: npm
+
+         -  name: Install dependencies
+            run: npm ci
+
+         -  name: Build modules
+            run: node scripts/stitch.mjs
 
          -  name: Publish
             uses: ./.github/actions/release

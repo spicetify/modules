@@ -22,6 +22,22 @@ const DIST_DIR = path.join(ROOT, "dist");
 
 const EXTERNALS = [/^\/hooks\//, /^https?:\/\//];
 
+const USAGE = `stitch - build v3 modules
+
+usage: node scripts/stitch.mjs [module...] [--classmap <key|path>] [--out <dir>]
+
+  module...        module folders to build (default: all in ./modules)
+  --classmap, -c   classmap key (e.g. 1020094, resolved against the classmaps
+                   repo) or a direct path to a classmap json
+  --out, -o        output dir (default: ./dist)
+  --modules, -m    modules dir (default: ./modules)
+
+resolution order for the classmap:
+  1. --classmap flag
+  2. stitch.config.json ("classmap" / "classmapsDir")
+  3. newest key folder in the classmaps repo (../classmaps by default)
+  4. ./classmap.json (back-compat)`
+
 function readMetadata(dir) {
 	return JSON.parse(readFileSync(path.join(dir, "metadata.json"), "utf8"));
 }
@@ -52,6 +68,94 @@ function generateClassmapDts(classmap) {
 		return lines.join("\n");
 	};
 	return `declare global {\n\tconst MAP: ${render(classmap, 1)};\n}\n\nexport {};\n`;
+}
+
+function loadConfig() {
+	const configPath = path.join(ROOT, "stitch.config.json");
+	if (!existsSync(configPath)) return {};
+	try {
+		return JSON.parse(readFileSync(configPath, "utf8"));
+	} catch {
+		return {};
+	}
+}
+
+function latestClassmapFile(dir) {
+	if (!existsSync(dir)) return null;
+	const files = readdirSync(dir).filter((f) => /^classmap(-.*)?\.json$/.test(f)).sort();
+	return files.length ? path.join(dir, files[files.length - 1]) : null;
+}
+
+function classmapKeyFromPath(filePath) {
+	return path.basename(path.dirname(filePath));
+}
+
+function classmapsDirs(config) {
+	const dirs = [];
+	if (config.classmapsDir) dirs.push(config.classmapsDir);
+	dirs.push(path.join(ROOT, "..", "classmaps"), path.join(ROOT, "classmaps"));
+	return dirs;
+}
+
+function resolveClassmap({ flag, config }) {
+	const candidates = [];
+	if (flag) candidates.push(flag);
+	if (config.classmap) candidates.push(config.classmap);
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) {
+			return { path: candidate, key: classmapKeyFromPath(candidate) };
+		}
+		for (const dir of classmapsDirs(config)) {
+			const file = latestClassmapFile(path.join(dir, candidate));
+			if (file) return { path: file, key: candidate };
+		}
+	}
+	// auto: newest key folder in any classmaps checkout
+	for (const dir of classmapsDirs(config)) {
+		if (!existsSync(dir)) continue;
+		const keys = readdirSync(dir)
+			.filter((d) => /^\d{7}$/.test(d))
+			.sort();
+		for (let i = keys.length - 1; i >= 0; i--) {
+			const file = latestClassmapFile(path.join(dir, keys[i]));
+			if (file) return { path: file, key: keys[i] };
+		}
+	}
+	// back-compat
+	if (existsSync(path.join(ROOT, "classmap.json"))) {
+		return { path: path.join(ROOT, "classmap.json"), key: "" };
+	}
+	return { path: null, key: "" };
+}
+
+function parseArgs(argv) {
+	const out = { targets: [], classmap: null, outDir: DIST_DIR, modulesDir: MODULES_DIR };
+	for (let i = 0; i < argv.length; i++) {
+		const a = argv[i];
+		const next = () => argv[++i];
+		switch (a) {
+			case "--classmap":
+			case "-c":
+				out.classmap = next();
+				break;
+			case "--out":
+			case "-o":
+				out.outDir = path.resolve(next());
+				break;
+			case "--modules":
+			case "-m":
+				out.modulesDir = path.resolve(next());
+				break;
+			case "--help":
+			case "-h":
+				console.log(USAGE);
+				process.exit(0);
+			default:
+				if (a.startsWith("-")) throw new Error(`unknown flag: ${a}`);
+				out.targets.push(a);
+		}
+	}
+	return out;
 }
 
 async function buildJs(inputDir, outputDir, identifier) {
@@ -92,50 +196,48 @@ function copyAssets(inputDir, outputDir) {
 	}
 }
 
-async function stitchModule(moduleDir, classmapKey, classmap) {
-	const inputDir = moduleDir.startsWith(MODULES_DIR) || moduleDir.startsWith("modules/")
-		? path.join(ROOT, moduleDir)
-		: path.join(MODULES_DIR, moduleDir);
-	const metadata = readMetadata(inputDir);
-	const identifier = `${metadata.name}@${metadata.version}`;
-	const outputDir = path.join(DIST_DIR, identifier);
-	rmSync(outputDir, { recursive: true, force: true });
-	mkdirSync(outputDir, { recursive: true });
-
-	console.log(`stitch ${identifier}`);
-	await buildJs(inputDir, outputDir, metadata.name);
-	buildCss(inputDir, outputDir);
-	copyAssets(inputDir, outputDir);
-
-	if (classmap) {
-		writeFileSync(path.join(inputDir, "classmap.d.ts"), generateClassmapDts(classmap));
-	}
-
-	writeFileSync(path.join(outputDir, "metadata.json"), JSON.stringify(metadata, null, 2) + "\n");
-	writeFileSync(
-		path.join(outputDir, "spicetify-module.json"),
-		JSON.stringify(sidecar(metadata, classmapKey), null, 2) + "\n",
-	);
-	console.log(`  -> ${outputDir}`);
-}
-
 async function main() {
-	const args = process.argv.slice(2);
-	const classmapKey = process.env.CLASSMAP_KEY || "";
-	const classmapPath = process.env.CLASSMAP_JSON || path.join(ROOT, "classmap.json");
-	const classmap = existsSync(classmapPath) ? JSON.parse(readFileSync(classmapPath, "utf8")) : null;
-	const targets = args.length
-		? args
-		: readdirSync(MODULES_DIR).filter((d) => statSync(path.join(MODULES_DIR, d)).isDirectory());
+	const args = parseArgs(process.argv.slice(2));
+	const config = loadConfig();
+	const resolved = resolveClassmap({ flag: args.classmap, config });
 
-	if (!classmapKey) {
-		console.warn("warning: CLASSMAP_KEY not set; sidecar classmap_base will be empty (source remap only)");
+	const modulesDir = config.modulesDir ? path.resolve(config.modulesDir) : args.modulesDir;
+	const outDir = config.outDir ? path.resolve(config.outDir) : args.outDir;
+
+	if (!resolved.path) {
+		console.error("no classmap found (pass --classmap <key|path>, set stitch.config.json, or clone spicetify/classmaps next to this repo)");
+		process.exit(1);
 	}
-	if (classmap) {
-		console.log(`classmap: ${classmapPath} (generating classmap.d.ts)`);
-	}
+	console.log(`classmap: ${resolved.path}${resolved.key ? ` (key ${resolved.key})` : ""}`);
+
+	const targets = args.targets.length
+		? args.targets
+		: readdirSync(modulesDir).filter((d) => statSync(path.join(modulesDir, d)).isDirectory());
+
 	for (const target of targets) {
-		await stitchModule(target, classmapKey, classmap);
+		const inputDir = target.startsWith(modulesDir) || target.startsWith("modules/")
+			? path.join(ROOT, target)
+			: path.join(modulesDir, target);
+		const metadata = readMetadata(inputDir);
+		const identifier = `${metadata.name}@${metadata.version}`;
+		const outputDir = path.join(outDir, identifier);
+		rmSync(outputDir, { recursive: true, force: true });
+		mkdirSync(outputDir, { recursive: true });
+
+		console.log(`stitch ${identifier}`);
+		await buildJs(inputDir, outputDir, metadata.name);
+		buildCss(inputDir, outputDir);
+		copyAssets(inputDir, outputDir);
+
+		const classmap = JSON.parse(readFileSync(resolved.path, "utf8"));
+		writeFileSync(path.join(inputDir, "classmap.d.ts"), generateClassmapDts(classmap));
+
+		writeFileSync(path.join(outputDir, "metadata.json"), JSON.stringify(metadata, null, 2) + "\n");
+		writeFileSync(
+			path.join(outputDir, "spicetify-module.json"),
+			JSON.stringify(sidecar(metadata, resolved.key), null, 2) + "\n",
+		);
+		console.log(`  -> ${outputDir}`);
 	}
 }
 

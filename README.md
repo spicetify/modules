@@ -35,14 +35,8 @@ The 2024 prototype was Deno-first (TS-native execution, JSR, web-standard
 APIs). Everything the current pipeline needs, Node 24 does natively: type
 stripping, rolldown (Rust bundler with TS support), and the package
 ecosystem the rest of spicetify already uses (the CLI wrapper builds with
-esbuild on Node). Deno remains only for the legacy tailor-based tasks in
-`deno.json`, kept for reference; stitch is the build path.
-
-## Legacy tasks (Deno + tailor)
-
-The `deno.json` tasks (`cm:fetch`, `sh:build`, `build:release`) use
-[tailor](https://jsr.io/@delu/tailor) and the frozen 2024 flow. They still
-work, but stitch output is what the CLI's staging consumes natively.
+esbuild on Node). The Deno/tailor tooling was removed; stitch is the only
+build path.
 
 ## License
 
