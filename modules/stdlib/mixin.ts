@@ -1,10 +1,8 @@
 /*
  * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
-
-import { hotwired, MixinContext } from "/hooks/module.ts";
-import type { Transformer } from "/hooks/transform.ts";
 
 // allows us to patch webpack module exports directly
 const nativeObjectDefineProperty = Object.defineProperty;
@@ -13,16 +11,14 @@ Object.defineProperty = function (obj, prop, descriptor) {
 	return nativeObjectDefineProperty(obj, prop, descriptor);
 };
 
-const { promise, transformer } = await hotwired<MixinContext>(import.meta);
-export { transformer };
+export let transformer: unknown;
 
-promise.wrap(
-	(async () => {
-		await Promise.all([
-			import("./src/expose/index.ts"),
-			import("./src/registers/index.ts"),
-			import("./src/events.mix.ts"),
-			import("./src/wpunpk.mix.ts"),
-		]);
-	})(),
-);
+export default async function (t: unknown, _ctx: { spotifyVersion: string }) {
+	transformer = t;
+	await Promise.all([
+		import("./src/expose/index.js"),
+		import("./src/registers/index.js"),
+		import("./src/events.mix.js"),
+		import("./src/wpunpk.mix.js"),
+	]);
+}

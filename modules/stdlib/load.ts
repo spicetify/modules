@@ -1,16 +1,14 @@
 /*
  * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { hotwired, type LoadContext } from "/hooks/module.ts";
+import { startEventHandlers } from "./src/events.js";
 
-import { startEventHandlers } from "./src/events.ts";
-
-const { promise } = await hotwired<LoadContext>(import.meta);
-
-const cancelEventHandlers = startEventHandlers();
-
-promise.resolve(() => {
-	cancelEventHandlers();
-});
+export default async function (_ctx: { spotifyVersion: string }) {
+	const cancelEventHandlers = startEventHandlers();
+	return () => {
+		cancelEventHandlers();
+	};
+}
