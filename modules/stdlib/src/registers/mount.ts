@@ -23,6 +23,29 @@ export interface AnchorSpec {
 	renderItems?: (items: any[]) => unknown;
 }
 
+// One shared observer serves every anchor: the client mutates the DOM
+// constantly, and per-anchor subtree observers multiply that cost. Each
+// tick is one isConnected check per pending or placed anchor.
+type WatchedAnchor = { host: HTMLElement; place: () => boolean; started: boolean; start: () => void };
+const watched: WatchedAnchor[] = [];
+let bodyObserver: MutationObserver | undefined;
+const watchAnchor = (anchor: WatchedAnchor) => {
+	watched.push(anchor);
+	bodyObserver ??= (() => {
+		const observer = new MutationObserver(() => {
+			for (const a of watched) {
+				if (a.host.isConnected) continue;
+				if (a.place() && !a.started) {
+					a.started = true;
+					a.start();
+				}
+			}
+		});
+		observer.observe(document.body, { childList: true, subtree: true });
+		return observer;
+	})();
+};
+
 export function mountRegistryAnchor(spec: AnchorSpec): void {
 	// Transform experiments render through the injected __renderX() calls;
 	// an anchor would double-render.
@@ -49,14 +72,6 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 		};
 
 		const start = () => {
-			// The client re-renders its own tree and can drop foreign
-			// children; re-insert the anchor whenever that happens. The root
-			// stays attached to the node, so rendering survives re-insertion.
-			const keeper = new MutationObserver(() => {
-				if (!host.isConnected) place();
-			});
-			keeper.observe(document.body, { childList: true, subtree: true });
-
 			const root = createRoot(host);
 			// One broken registered node must not take down the others.
 			class ItemBoundary extends R.Component {
@@ -89,13 +104,14 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 			root.render(R.createElement(Wrapper));
 		};
 
-		if (place()) return start();
-		const waiter = new MutationObserver(() => {
-			if (place()) {
-				waiter.disconnect();
-				start();
-			}
-		});
-		waiter.observe(document.body, { childList: true, subtree: true });
+		const anchor: WatchedAnchor = { host, place, started: false, start };
+		if (place()) {
+			anchor.started = true;
+			start();
+		}
+		// The shared observer both waits for a not-yet-rendered slot and
+		// re-places the host whenever client reconciliation drops it; the
+		// root stays attached to the node, so rendering survives.
+		watchAnchor(anchor);
 	});
 }
