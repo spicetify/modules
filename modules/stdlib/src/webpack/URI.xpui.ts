@@ -4,7 +4,7 @@
  */
 
 import { toPascalCase } from "/hooks/std/text.ts";
-import { modules } from "./index.ts";
+import { modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 import { IsThisURIType, ParsableAsURI, URIClass, URITypes } from "./URI.ts";
 
@@ -57,28 +57,42 @@ type Create = {
 
 await CHUNKS.xpui.promise;
 
-const [URIModuleID] = modules.find(
-	([id, v]) => v.toString().includes("Invalid Spotify URI!") && Object.keys(webpackRequire(id)).length > 10,
-)!;
-const URIModule = webpackRequire(URIModuleID);
+// Needle misses are version drift, not fatal errors: a miss costs the
+// affected surface member (undefined), never the whole module — a throw
+// here rejects the lazy URI.gen import and used to crash the client.
+const URIModuleHit = modules.find(
+	([id, v]) => src(v).includes("Invalid Spotify URI!") && Object.keys(webpackRequire(id) ?? {}).length > 10,
+);
+if (!URIModuleHit) console.warn("[stdlib] webpack needle miss: URI module (Invalid Spotify URI!)");
+const URIModule = URIModuleHit ? webpackRequire(URIModuleHit[0]) : {};
 const [_Types, ...vs] = Object.values(URIModule) as [URITypes, ...Function[]];
-export const Types = _Types;
+export const Types = _Types ?? ({} as URITypes);
 const TypesKeys = Object.keys(Types);
 
-const isTestFn = (fn: Function) => TypesKeys.some((t) => fn.toString().includes(`${t}}`));
-const isCreateFn = (fn: Function) => TypesKeys.some((t) => fn.toString().includes(`${t},`));
+const isTestFn = (fn: Function) => TypesKeys.some((t) => src(fn).includes(`${t}}`));
+const isCreateFn = (fn: Function) => TypesKeys.some((t) => src(fn).includes(`${t},`));
 
 const fnsByType = Object.groupBy(vs, (fn) => isTestFn(fn) ? "test" : isCreateFn(fn) ? "create" : undefined!);
 export const is: Is = Object.fromEntries(
-	fnsByType.test!.map((fn) => [toPascalCase(fn.toString().match(/([\w_\d]{2,})\}/)![1]), fn]),
+	(fnsByType.test ?? []).flatMap((fn) => {
+		const name = src(fn).match(/([\w_\d]{2,})\}/)?.[1];
+		return name ? [[toPascalCase(name), fn]] : [];
+	}),
 ) as any;
 export const create: Create = Object.fromEntries(
-	fnsByType.create!.map((fn) => [toPascalCase(fn.toString().match(/([\w_\d]{2,})\,/)![1]), fn]),
+	(fnsByType.create ?? []).flatMap((fn) => {
+		const name = src(fn).match(/([\w_\d]{2,})\,/)?.[1];
+		return name ? [[toPascalCase(name), fn]] : [];
+	}),
 ) as any;
-const uniqueFns = fnsByType[undefined as unknown as keyof typeof fnsByType]!;
+const uniqueFns = fnsByType[undefined as unknown as keyof typeof fnsByType] ?? [];
 
 const findAndExcludeBy = (...strings: string[]) => {
-	const i = uniqueFns.findIndex((f) => strings.every((str) => f.toString().includes(str)));
+	const i = uniqueFns.findIndex((f) => strings.every((str) => src(f).includes(str)));
+	if (i < 0) {
+		console.warn("[stdlib] webpack needle miss: URI helper", strings.join(" + "));
+		return undefined;
+	}
 	return uniqueFns.splice(i, 1)[0];
 };
 
@@ -93,4 +107,6 @@ export const fromString: (str: string) => URIClass<any> = findAndExcludeBy(
 	"Argument `uri` must be a string.",
 ) as any;
 
-is.PlaylistV1OrV2 = findAndExcludeBy(`${is.Playlist.name}(e)||${is.PlaylistV2.name}(e)`) as any;
+is.PlaylistV1OrV2 = (is.Playlist && is.PlaylistV2
+	? findAndExcludeBy(`${(is.Playlist as Function).name}(e)||${(is.PlaylistV2 as Function).name}(e)`)
+	: undefined) as any;
