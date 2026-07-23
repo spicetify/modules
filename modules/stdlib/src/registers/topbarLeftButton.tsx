@@ -8,6 +8,7 @@ import { createIconComponent } from "../../lib/createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
+import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 
 const registry = new (class extends Registry<React.ReactNode> {
@@ -47,6 +48,18 @@ transformer(
 		glob: /^\/xpui\.js/,
 	},
 );
+
+mountRegistryAnchor({
+	className: "spicetify-topbar-left-buttons",
+	registry,
+	setRefresh: (cb) => {
+		refresh = cb;
+	},
+	findSlot: () => {
+		const history = document.querySelector(".main-globalNav-historyButtons");
+		return history?.parentElement ? { parent: history.parentElement, before: history.nextSibling } : null;
+	},
+});
 
 type TopbarLeftButtonProps = {
 	label: string;

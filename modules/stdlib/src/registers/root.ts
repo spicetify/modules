@@ -4,6 +4,7 @@
  */
 
 import { transformer } from "../../mixin.ts";
+import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 import { React } from "../expose/React.ts";
 
@@ -85,3 +86,16 @@ transformer(
 		glob: /^\/xpui\.js/,
 	},
 );
+
+// Transform-free path: root children (modals, portals) render into a
+// body-level anchor. Providers cannot wrap the client tree without a
+// transform, so they stay transform-only.
+mountRegistryAnchor({
+	className: "spicetify-root-children",
+	registry: childrenRegistry,
+	setRefresh: (cb) => {
+		if (cb && !childrenRegistry.refresh.value) childrenRegistry.refresh.resolve(cb);
+		childrenRegistry.refresh.value = cb;
+	},
+	findSlot: () => (document.body ? { parent: document.body } : null),
+});
