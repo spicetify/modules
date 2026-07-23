@@ -21,8 +21,6 @@ import { React } from "../../src/expose/React.ts";
 import Dropdown, { type DropdownOptions } from "./Dropdown.tsx";
 import { get } from "../../deps.ts";
 import { ChipFilter } from "./ChipFilter.tsx";
-import { FilterContext } from "../../src/webpack/FilterContext.xpui.ts";
-import { FilterBox } from "../../src/webpack/ReactComponents.xpui.ts";
 
 // * Who doesn't love some Fixed Point (Functional) Programming?
 const Bluebird = <A, B>(a: (b: B) => A) => <C,>(b: (c: C) => B) => (c: C) => a(b(c));
@@ -103,17 +101,19 @@ export const getProp = (obj: any, path: string) => {
 	return obj;
 };
 
-export const useSearchBar = ({ placeholder, expanded }: { placeholder: string; expanded: boolean }) => {
+// Plain input on purpose: the client FilterBox needs the client tree's
+// RegistryContext, which register anchors and modals don't have.
+export const useSearchBar = ({ placeholder }: { placeholder: string; expanded?: boolean }) => {
 	const [search, setSearch] = React.useState("");
-	const searchProps = { filter: "", setFilter: (f: string) => setSearch(f) };
 
 	const searchbar = (
-		<FilterContext.Provider value={searchProps}>
-			<FilterBox
-				alwaysExpanded={expanded}
-				placeholder={placeholder}
-			/>
-		</FilterContext.Provider>
+		<input
+			className="x-filterBox-filterInput"
+			type="text"
+			placeholder={placeholder}
+			value={search}
+			onChange={(e) => setSearch(e.target.value)}
+		/>
 	);
 
 	return [searchbar, search] as const;
