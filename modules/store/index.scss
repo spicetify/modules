@@ -1,0 +1,111 @@
+.spicetify-store-anchor {
+	position: fixed;
+	top: 12px;
+	right: 12px;
+	z-index: 9999;
+
+	.spicetify-store-btn {
+		padding: 6px 16px;
+		border-radius: 999px;
+		border: none;
+		background: var(--spice-button, #1ed760);
+		color: var(--spice-button-text, #000);
+		font-weight: 700;
+		cursor: pointer;
+	}
+}
+
+.spicetify-store-panel {
+	position: fixed;
+	top: 64px;
+	right: 16px;
+	width: 380px;
+	max-height: 70vh;
+	overflow-y: auto;
+	z-index: 9999;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 16px;
+	border-radius: 8px;
+	background: var(--spice-player, #121212);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+	color: var(--spice-text, #fff);
+
+	h2, h3 {
+		margin: 0;
+	}
+
+	.spicetify-store-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.spicetify-store-close {
+		background: none;
+		border: none;
+		color: inherit;
+		font-size: 20px;
+		cursor: pointer;
+	}
+
+	.spicetify-store-search {
+		width: 100%;
+		padding: 8px;
+		border-radius: 4px;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		background: rgba(0, 0, 0, 0.3);
+		color: inherit;
+	}
+
+	.spicetify-store-status {
+		font-size: 12px;
+		opacity: 0.7;
+		min-height: 14px;
+	}
+
+	.spicetify-store-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 0;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	.spicetify-store-name {
+		font-weight: 600;
+		flex: 1;
+	}
+
+	.spicetify-store-version {
+		font-size: 11px;
+		opacity: 0.6;
+	}
+
+	.spicetify-store-row button {
+		padding: 4px 12px;
+		border-radius: 999px;
+		border: none;
+		background: var(--spice-button, #1ed760);
+		color: var(--spice-button-text, #000);
+		cursor: pointer;
+		font-size: 12px;
+	}
+
+	.spicetify-store-row button:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.spicetify-store-danger {
+		background: rgba(255, 255, 255, 0.1) !important;
+		color: inherit !important;
+	}
+
+	.spicetify-store-empty {
+		opacity: 0.5;
+		font-size: 12px;
+		padding: 8px 0;
+	}
+}

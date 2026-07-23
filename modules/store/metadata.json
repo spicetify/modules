@@ -1,0 +1,13 @@
+{
+	"name": "store",
+	"tags": ["ui"],
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "Browse, install, and manage v3 modules from vaults",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {}
+}
