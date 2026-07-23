@@ -3,11 +3,11 @@
  */
 
 import { Palette, PaletteManager } from "./palette.ts";
-import type { ModuleInstance } from "/hooks/module.ts";
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 class Schemer {
-	constructor(private mod: ModuleInstance) {
-		mod._jsIndex!.disposableStack.defer(() => {
+	constructor(private ctx: ModuleRuntimeContext) {
+		ctx.defer(() => {
 			this.dispose();
 		});
 	}
@@ -15,7 +15,7 @@ class Schemer {
 	palettes = new Set<Palette>();
 
 	getPaletteId(name: string) {
-		return `${this.mod.getModuleIdentifier()}/${name}`;
+		return `${this.ctx.identifier}/${name}`;
 	}
 
 	getPalette(name: string) {
@@ -46,6 +46,6 @@ class Schemer {
 	}
 }
 
-export function createSchemer(mod: ModuleInstance) {
-	return new Schemer(mod);
+export function createSchemer(ctx: ModuleRuntimeContext) {
+	return new Schemer(ctx);
 }

@@ -1,24 +1,25 @@
 {
-	"name": "palette-manager",
-	"tags": [
-		"extension",
-		"theming",
-		"scheming"
-	],
-	"preview": "./assets/PREVIEW.png",
-	"version": "0.2.1",
-	"authors": [
-		"spicetify",
-		"harbassan",
-		"Delusoire"
-	],
-	"description": "Manager for theme color schemes",
-	"readme": "./assets/README.md",
-	"entries": {
-		"js": "index.js",
-		"css": "index.css"
-	},
-	"dependencies": {
-		"stdlib": "0.2.2"
-	}
+  "name": "palette-manager",
+  "tags": [
+    "extension",
+    "theming",
+    "scheming"
+  ],
+  "preview": "./assets/PREVIEW.png",
+  "version": "0.3.0",
+  "authors": [
+    "spicetify",
+    "harbassan",
+    "Delusoire",
+    "Afonso Jorge Ramos"
+  ],
+  "description": "Manager for theme color schemes",
+  "readme": "./assets/README.md",
+  "entries": {
+    "js": "index.js",
+    "css": "index.css"
+  },
+  "dependencies": {
+    "stdlib": "^0.3.0"
+  }
 }

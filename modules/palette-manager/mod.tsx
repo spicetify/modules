@@ -6,11 +6,11 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 
 import { React } from "/modules/stdlib/src/expose/React.ts";
 
-import type { ModuleInstance } from "/hooks/index.ts";
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { Color } from "/modules/stdlib/src/webpack/misc.ts";
 
-export default async function (mod: ModuleInstance) {
-	const registrar = createRegistrar(mod);
+export default async function (ctx: ModuleRuntimeContext) {
+	const registrar = createRegistrar(ctx);
 
 	const { EditButton } = await import("./paletteManager.tsx");
 
@@ -18,7 +18,7 @@ export default async function (mod: ModuleInstance) {
 
 	const { createSchemer } = await import("./schemer.ts");
 
-	createSchemer(mod)
+	createSchemer(ctx)
 		.register("Spicetify", {
 			text: Color.fromHex("#ffffff"),
 			subtext: Color.fromHex("#c0b4b4"),
