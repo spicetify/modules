@@ -7,7 +7,7 @@ import type * as ReactHooks_fullscreen_ts from "./ReactHooks.fullscreen.ts";
 export let useExtractedColor: typeof ReactHooks_fullscreen_ts.useExtractedColor;
 import("./ReactHooks.fullscreen.ts").then(m => {
 	useExtractedColor = m.useExtractedColor;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactHooks.fullscreen.ts failed:", e));
 
 import type * as ReactHooks_xpui_ts from "./ReactHooks.xpui.ts";
 export let DragHandler: typeof ReactHooks_xpui_ts.DragHandler;
@@ -29,4 +29,4 @@ import("./ReactHooks.xpui.ts").then(m => {
 	useTrackListColumns = m.useTrackListColumns;
 	usePanelStateMachine = m.usePanelStateMachine;
 	extractColorPreset = m.extractColorPreset;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactHooks.xpui.ts failed:", e));

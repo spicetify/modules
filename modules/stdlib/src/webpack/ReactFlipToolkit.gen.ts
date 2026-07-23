@@ -9,4 +9,4 @@ export let Flipped: typeof ReactFlipToolkit_xpui_ts.Flipped;
 import("./ReactFlipToolkit.xpui.ts").then(m => {
 	Flipper = m.Flipper;
 	Flipped = m.Flipped;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactFlipToolkit.xpui.ts failed:", e));

@@ -23,4 +23,4 @@ import("./URI.xpui.ts").then(m => {
 	hexToId = m.hexToId;
 	from = m.from;
 	fromString = m.fromString;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./URI.xpui.ts failed:", e));

@@ -23,4 +23,4 @@ import("./ReactQuery.xpui.ts").then(m => {
 	useQueryClient = m.useQueryClient;
 	useSuspenseQuery = m.useSuspenseQuery;
 	useInfiniteQuery = m.useInfiniteQuery;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactQuery.xpui.ts failed:", e));

@@ -11,4 +11,4 @@ import("./React.xpui.ts").then(m => {
 	ReactJSX = m.ReactJSX;
 	ReactDOM = m.ReactDOM;
 	ReactDOMServer = m.ReactDOMServer;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./React.xpui.ts failed:", e));

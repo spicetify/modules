@@ -7,7 +7,7 @@ import type * as ReactComponents_desktop_ts from "./ReactComponents.desktop.ts";
 export let Settings: typeof ReactComponents_desktop_ts.Settings;
 import("./ReactComponents.desktop.ts").then(m => {
 	Settings = m.Settings;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactComponents.desktop.ts failed:", e));
 
 import type * as ReactComponents_panel_ts from "./ReactComponents.panel.ts";
 export let PanelContainer: typeof ReactComponents_panel_ts.PanelContainer;
@@ -17,7 +17,7 @@ import("./ReactComponents.panel.ts").then(m => {
 	PanelContainer = m.PanelContainer;
 	PanelContent = m.PanelContent;
 	PanelHeader = m.PanelHeader;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactComponents.panel.ts failed:", e));
 
 import type * as ReactComponents_xpui_ts from "./ReactComponents.xpui.ts";
 export let Menus: typeof ReactComponents_xpui_ts.Menus;
@@ -71,4 +71,4 @@ import("./ReactComponents.xpui.ts").then(m => {
 	GenericModal = m.GenericModal;
 	Tracklist = m.Tracklist;
 	TracklistColumnsContextProvider = m.TracklistColumnsContextProvider;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactComponents.xpui.ts failed:", e));

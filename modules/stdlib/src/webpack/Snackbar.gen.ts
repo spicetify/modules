@@ -9,4 +9,4 @@ export let enqueueCustomSnackbar: typeof Snackbar_xpui_ts.enqueueCustomSnackbar;
 import("./Snackbar.xpui.ts").then(m => {
 	useSnackbar = m.useSnackbar;
 	enqueueCustomSnackbar = m.enqueueCustomSnackbar;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./Snackbar.xpui.ts failed:", e));

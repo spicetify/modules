@@ -9,4 +9,4 @@ export let useLocation: typeof ReactRouter_xpui_ts.useLocation;
 import("./ReactRouter.xpui.ts").then(m => {
 	useMatch = m.useMatch;
 	useLocation = m.useLocation;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./ReactRouter.xpui.ts failed:", e));

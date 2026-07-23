@@ -13,4 +13,4 @@ import("./misc.xpui.ts").then(m => {
 	Locale = m.Locale;
 	createUrlLocale = m.createUrlLocale;
 	InternalPropetyMap = m.InternalPropetyMap;
-});
+}).catch((e) => console.warn("[stdlib] lazy webpack surface ./misc.xpui.ts failed:", e));

@@ -54,7 +54,7 @@ async function generateBarrelContent(filenames: string[]) {
 		const exportLets = exports.map((exp) => `export let ${exp}: typeof ${importAs}.${exp};\n`).join("");
 		const initializer = `import("${toImport}").then(m => {\n` +
 			exports.map((exp) => `	${exp} = m.${exp};\n`).join("") +
-			`});\n`;
+			`}).catch((e) => console.warn("[stdlib] lazy webpack surface ${toImport} failed:", e));\n`;
 
 		return importType + exportLets + initializer;
 	}));
