@@ -1,10 +1,10 @@
 /*
  * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { matchWebpackModule } from "../wpunpk.ts";
-import { postWebpackRequireHooks } from "../wpunpk.mix.ts";
+import { exports as webpackExports } from "../webpack/index.ts";
 
 // @deno-types="npm:@types/react@18.3.1"
 import _React from "https://esm.sh/react@18.3.1";
@@ -13,61 +13,28 @@ import _ReactDOM from "https://esm.sh/react-dom@18.3.1";
 // @deno-types="npm:@types/react-dom@18.3.0/server"
 import _ReactDOMServer from "https://esm.sh/react-dom@18.3.1/server";
 
-export const React = _React;
-export const ReactDOM = _ReactDOM;
+// One React rule: module trees mix stdlib chrome, module components, and
+// client components, so hooks and context identity must resolve to the
+// client's own React instance. The 2024 runtime unified the other way
+// (pre-boot factory swap to the esm.sh copy); post-boot that is impossible,
+// so the exposed React lazily forwards to the client instance once webpack
+// is captured. The esm.sh copy only backs pre-capture access — element
+// creation is instance-independent, and module hooks never run pre-capture.
+const lazyInstance = <T extends object>(fallback: T, find: () => object | undefined): T => {
+	let cached: object | undefined;
+	return new Proxy(fallback, {
+		get: (fb, key) => {
+			cached ??= find();
+			return ((cached ?? fb) as Record<PropertyKey, unknown>)[key];
+		},
+	}) as T;
+};
+
+export const React = lazyInstance(_React, () =>
+	webpackExports?.find((m) =>
+		m && typeof m.createElement === "function" && typeof m.useReducer === "function" &&
+		typeof m.useEffect === "function"
+	));
+export const ReactDOM = lazyInstance(_ReactDOM, () =>
+	webpackExports?.find((m) => m && typeof m.createRoot === "function" && typeof m.createPortal === "function"));
 export const ReactDOMServer = _ReactDOMServer;
-
-postWebpackRequireHooks.push(($) => {
-	matchWebpackModule((id, module) => {
-		const moduleStr = module.toString();
-
-		return moduleStr.includes(
-			'"setState(...): takes an object of state variables to update or a function which returns an object of state variables."',
-		);
-	}, (id) => {
-		$["m"][id] = function () {
-			Object.assign(this, React);
-		};
-	});
-
-	matchWebpackModule((id, module) => {
-		const moduleStr = module.toString();
-
-		return moduleStr.includes(',rendererPackageName:"react-dom"');
-	}, (id) => {
-		$["m"][id] = function () {
-			Object.assign(this, _ReactDOM);
-		};
-	});
-
-	matchWebpackModule((id, module) => {
-		const moduleStr = module.toString();
-
-		return moduleStr.search(/,([a-zA-Z_\$][\w\$]*)\.renderToString=([a-zA-Z_\$][\w\$]*)\.renderToString,/) !==
-			-1;
-	}, (id) => {
-		$["m"][id] = function () {
-			Object.assign(this, _ReactDOMServer);
-		};
-	});
-});
-
-// import { transformer } from "../../mix.ts";
-
-// transformer<React>(
-// 	(emit) => (str) => {
-// 		str = str.replace(
-// 			/([a-zA-Z_\$][\w\$]*\.prototype\.setState=)/,
-// 			"__React=t;$1",
-// 		);
-// 		Object.defineProperty(globalThis, "__React", {
-// 			set: emit,
-// 		});
-// 		return str;
-// 	},
-// 	{
-// 		glob: /^\/vendor~xpui\.js/,
-// 	},
-// ).then(($) => {
-// 	React = $;
-// });
