@@ -18,6 +18,9 @@ export interface AnchorSpec {
 	// Position for the anchor; null means the client has not rendered the
 	// slot yet and the mount should wait for it.
 	findSlot: () => { parent: Element; before?: Node | null } | null;
+	// Custom rendering over the registry items (e.g. route matching);
+	// defaults to rendering every item.
+	renderItems?: (items: any[]) => unknown;
 }
 
 export function mountRegistryAnchor(spec: AnchorSpec): void {
@@ -74,6 +77,9 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 					spec.setRefresh(refresh);
 					return () => spec.setRefresh(undefined);
 				}, []);
+				if (spec.renderItems) {
+					return R.createElement(ItemBoundary, null, spec.renderItems(spec.registry.all()));
+				}
 				return R.createElement(
 					R.Fragment,
 					null,
