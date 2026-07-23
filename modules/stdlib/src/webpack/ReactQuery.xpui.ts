@@ -25,7 +25,7 @@ export const PersistQueryClientProvider = findBy("persistOptions")(exportedFunct
 export const QueryClientProvider: typeof QueryClientProviderT = findBy("use QueryClientProvider")(
 	exportedFunctions,
 );
-export const notifyManager: typeof notifyManagerT = exported.find((m) => m.setBatchNotifyFunction);
+export const notifyManager: typeof notifyManagerT = exported.find((m) => typeof m.setBatchNotifyFunction === "function");
 export const useMutation: typeof useMutationT = findBy("mutateAsync")(exportedFunctions);
 export const useQuery: typeof useQueryT = findBy(
 	/^function [a-zA-Z_\$][\w\$]*\(([a-zA-Z_\$][\w\$]*),([a-zA-Z_\$][\w\$]*)\)\{return\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\1,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\2\)\}$/,

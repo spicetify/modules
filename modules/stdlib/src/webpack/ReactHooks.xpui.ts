@@ -19,7 +19,7 @@ export const imageAnalysis: Function = findBy(/\![a-zA-Z_\$][\w\$]*\.isFallback|
 	exportedFunctions,
 );
 
-export const fallbackPreset: any = exported.find((m) => m.colorDark);
+export const fallbackPreset: any = exported.find((m) => m.colorDark && Object.hasOwn(m, "colorDark"));
 
 export const getPlayContext: Function = findBy("referrerIdentifier", "usePlayContextItem")(exportedFunctions);
 

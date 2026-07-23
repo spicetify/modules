@@ -7,7 +7,7 @@ import { toPascalCase } from "/hooks/std/text.ts";
 import { findBy } from "/hooks/util.ts";
 
 import { Platform } from "../expose/Platform.ts";
-import { exportedForwardRefs, exportedFunctions, exportedMemos, modules } from "./index.ts";
+import { exportedForwardRefs, exportedFunctions, exportedMemos, modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 import { React } from "../expose/React.ts";
 
@@ -17,7 +17,7 @@ await CHUNKS.xpui.promise;
 
 export const Menus: any = Object.fromEntries(
 	exportedMemos.flatMap((m) => {
-		const str = (m as any).type.toString() as string;
+		const str = src((m as any).type);
 		const match = str.match(/value:"([\w-]+)"/);
 		const name = match?.[1] ?? "";
 		const type = {
@@ -30,25 +30,36 @@ export const Menus: any = Object.fromEntries(
 	}),
 );
 
-const [ContextMenuModuleID] = modules.find(([_, v]) => v.toString().includes("toggleContextMenu"))!;
-const [playlistMenuModuleID] = modules.find(
-	([, v]) =>
-		v.toString().includes('value:"playlist"') &&
-		v.toString().includes("canView") &&
-		v.toString().includes("permissions"),
-)!;
+// Needle misses are version drift, not fatal errors: a miss costs one
+// surface member (undefined), never the whole stdlib barrel. The warning
+// names the needle so a needle refresh can target it.
+const findModuleId = (needle: string, pred: (source: string) => boolean) => {
+	const hit = modules.find(([, v]) => pred(v.toString()));
+	if (!hit) console.warn("[stdlib] webpack needle miss:", needle);
+	return hit?.[0];
+};
+const requireExports = (id: ReturnType<typeof findModuleId>): Record<string, any> =>
+	id === undefined ? {} : (webpackRequire(id) as Record<string, any>);
 
-Menus.Playlist = Object.values(webpackRequire(playlistMenuModuleID)).find(
+const ContextMenuModuleID = findModuleId("toggleContextMenu", (s) => s.includes("toggleContextMenu"));
+// Dead since 1.2.9x: no module carries value:"playlist" + canView +
+// permissions anymore; Menus.Playlist stays undefined until re-needled.
+const playlistMenuModuleID = findModuleId(
+	'value:"playlist" + canView + permissions',
+	(s) => s.includes('value:"playlist"') && s.includes("canView") && s.includes("permissions"),
+);
+
+Menus.Playlist = Object.values(requireExports(playlistMenuModuleID)).find(
 	(m) => typeof m === "function" || typeof m === "object",
 );
 
 export const Cards: any = Object.assign(
 	{
 		Generic: exportedFunctions.find((f) =>
-			f.toString().includes("OnMouseDown") &&
-			f.toString().match(/^[^;]*headerText/) &&
-			f.toString().match(/^[^;]*featureIdentifier/) &&
-			f.toString().match(/^[^;]*renderCardImage/)
+			src(f).includes("OnMouseDown") &&
+			src(f).match(/^[^;]*headerText/) &&
+			src(f).match(/^[^;]*featureIdentifier/) &&
+			src(f).match(/^[^;]*renderCardImage/)
 		),
 		HeroGeneric: findBy(
 			"cardPlayButtonFactory",
@@ -96,14 +107,14 @@ const exportedMemoFRefs = exportedMemos.filter(
 	(m) => (m as any).type.$$typeof === Symbol.for("react.forward_ref"),
 );
 export const Nav: React.NamedExoticComponent = exportedMemoFRefs.find((m) =>
-	(m as any).type.render.toString().includes("navigationalRoot")
+	src((m as any).type.render).includes("navigationalRoot")
 )!;
 export const NavTo: React.NamedExoticComponent = exportedMemoFRefs.find((m) =>
-	(m as any).type.render.toString().includes("pageId")
+	src((m as any).type.render).includes("pageId")
 )!;
 
 export const InstrumentedRedirect: React.FC<any> = exportedFunctions.find((f) =>
-	f.toString().includes("getInteractionId") && /\bto:/.test(f)
+	src(f).includes("getInteractionId") && /\bto:/.test(src(f))
 );
 
 export const SnackbarProvider: SnackbarProviderT = findBy(
@@ -112,7 +123,7 @@ export const SnackbarProvider: SnackbarProviderT = findBy(
 	exportedFunctions,
 ) as unknown as SnackbarProvider;
 
-export const ContextMenu: any = Object.values(webpackRequire(ContextMenuModuleID))[0];
+export const ContextMenu: any = Object.values(requireExports(ContextMenuModuleID))[0];
 export const RightClickMenu: React.FC<any> = findBy(
 	"action",
 	"open",
@@ -158,7 +169,7 @@ export const Snackbar = {
 };
 
 export const FilterBox: React.NamedExoticComponent = exportedMemos.find((f) =>
-	(f as any).type.toString().includes("filterBoxApiRef")
+	src((f as any).type).includes("filterBoxApiRef")
 )!;
 export const ScrollableContainer: React.FC<any> = findBy(
 	"scrollLeft",
@@ -189,7 +200,7 @@ export const GenericModal: React.FC<any> = findBy("isOpen", "contentLabel")(
 );
 
 export const Tracklist: React.FC<any> = exportedMemos.find((f) =>
-	(f as any).type.toString().includes("nrValidItems")
+	src((f as any).type).includes("nrValidItems")
 )!;
 export const TracklistColumnsContextProvider: React.FC<any> = findBy(
 	"columns",

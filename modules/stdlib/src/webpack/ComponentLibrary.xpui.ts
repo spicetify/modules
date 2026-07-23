@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { exported, exportedForwardRefs, exportedFunctions } from "./index.ts";
+import { exported, exportedForwardRefs, exportedFunctions, src } from "./index.ts";
 
 await CHUNKS.xpui.promise;
 
-const componentNames = Object.keys(exported.find((e) => e.BrowserDefaultFocusStyleProvider));
+const componentNames = Object.keys(exported.find((e) => e.BrowserDefaultFocusStyleProvider && Object.hasOwn(e, "BrowserDefaultFocusStyleProvider")));
 const componentRegexes = componentNames.map(
 	(n) => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`),
 );
@@ -16,6 +16,6 @@ const componentPairs = [
 	exportedForwardRefs.map((f) => [(f as any).render, f]),
 ]
 	.flat()
-	.map(([s, f]) => [componentNames.find((n, i) => s.toString().match(componentRegexes[i])), f]);
+	.map(([s, f]) => [componentNames.find((n, i) => src(s).match(componentRegexes[i])), f]);
 
 export const UI: any = Object.fromEntries(componentPairs);

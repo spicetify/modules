@@ -11,11 +11,13 @@ await CHUNKS.xpui.promise;
 export const Color: Function & {
 	Format: any;
 } = Object.assign(findBy("this.rgb")(exportedFunctions)!, {
-	Format: exported.find((m) => m.RGBA)!,
+	// Typed predicate: some client exports are get-trap proxies that answer
+	// truthy for any key, so "has RGBA" alone can latch onto the wrong one.
+	Format: exported.find((m) => typeof m?.RGBA === "number" && typeof m?.HEX === "number")!,
 });
 
-export const Locale: any = exported.find((m) => m.getTranslations);
+export const Locale: any = exported.find((m) => typeof m.getTranslations === "function");
 
 export const createUrlLocale: Function = findBy("has", "baseName", "language")(exportedFunctions);
 
-export const InternalPropetyMap: any = exported.find((o) => o.Builder);
+export const InternalPropetyMap: any = exported.find((o) => typeof o.Builder === "function");
