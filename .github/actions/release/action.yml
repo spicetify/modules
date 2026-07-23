@@ -30,9 +30,11 @@ runs:
                IFS="@" read -r ID VERSION <<< "$ARCHIVE"
                VERSION="${VERSION%.zip}"
                URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE}"
+               CHECKSUM="sha256:$(sha256sum "${ARCHIVE}" | cut -d' ' -f1)"
                S='.modules["'"${ID}"'"].v["'"${VERSION}"'"]'
                yq -i '
                   '"${S}"'.artifacts = ["'"${URL}"'"] |
+                  '"${S}"'.checksum = "'"${CHECKSUM}"'" |
                   '"${S}"'.providers = []
                ' ../vault.json
             done
