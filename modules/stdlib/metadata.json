@@ -16,5 +16,6 @@
     "css": "index.css"
   },
   "hasMixins": true,
-  "dependencies": []
+  "dependencies": [],
+  "tree": true
 }

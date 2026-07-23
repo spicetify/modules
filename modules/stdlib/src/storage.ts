@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { ModuleInstance } from "/hooks/module.ts";
+import type { ModuleRuntimeContext } from "../mod.ts";
 
 import { Platform } from "./expose/Platform.ts";
 import { fromString } from "./webpack/URI.ts";
 
-export const createStorage = (mod: ModuleInstance) => {
+export const createStorage = (ctx: ModuleRuntimeContext) => {
 	const hookedNativeStorageMethods = new Set(["getItem", "setItem", "removeItem"]);
 
 	return new Proxy(globalThis.localStorage, {
@@ -17,7 +17,7 @@ export const createStorage = (mod: ModuleInstance) => {
 
 			if (typeof p === "string" && hookedNativeStorageMethods.has(p) && typeof func === "function") {
 				return (key: string, ...data: any[]) =>
-					func.call(target, `module:${mod.getModuleIdentifier()}:${key}`, ...data);
+					func.call(target, `module:${ctx.identifier}:${key}`, ...data);
 			}
 
 			return func;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { ModuleInstance } from "/hooks/module.ts";
+import type { ModuleRuntimeContext } from "../../mod.ts";
 
 import menu from "./menu.ts";
 import navlink from "./navlink.tsx";
@@ -55,9 +55,9 @@ export class Registrar {
 	}
 }
 
-export const createRegistrar = (mod: ModuleInstance) => {
-	const registrar = new Registrar(mod.getModuleIdentifier());
-	mod._jsIndex!.disposableStack.defer(() => {
+export const createRegistrar = (ctx: ModuleRuntimeContext) => {
+	const registrar = new Registrar(ctx.identifier);
+	ctx.defer(() => {
 		registrar.dispose();
 	});
 	return registrar;
