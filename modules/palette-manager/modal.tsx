@@ -7,10 +7,26 @@ import { Palette, PaletteManager } from "./palette.ts";
 import { createIconComponent } from "/modules/stdlib/lib/createIconComponent.tsx";
 import { startCase } from "/modules/stdlib/deps.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
-import { MenuItem } from "/modules/stdlib/src/webpack/ReactComponents.ts";
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
 import { ChangeEvent } from "npm:@types/react";
 import { Color } from "/modules/stdlib/src/webpack/misc.ts";
+
+// Context-free menu row: the client MenuItem needs the client tree's
+// navigation providers, which modal anchors don't have.
+const MenuRow = (props: {
+	leadingIcon?: React.ReactNode;
+	trailingIcon?: React.ReactNode;
+	onClick: () => void;
+	children: React.ReactNode;
+}) => (
+	<li>
+		<button type="button" className={MAP.context_menu.menu_item} onClick={props.onClick}>
+			{props.leadingIcon}
+			<span>{props.children}</span>
+			{props.trailingIcon}
+		</button>
+	</li>
+);
 
 export default function () {
 	const setCurrentPalette = (_: Palette, palette: Palette) => PaletteManager.INSTANCE.setCurrent(palette);
@@ -51,18 +67,17 @@ export default function () {
 			<div className="palette-list-container">
 				<ul>
 					{searchbar}
-					<MenuItem
+					<MenuRow
 						leadingIcon={createIconComponent({
 							icon: '<path d="M14 7H9V2H7v5H2v2h5v5h2V9h5z"/><path fill="none" d="M0 0h16v16H0z"/>',
 						})}
-						divider="after"
 						onClick={createPalette}
 					>
 						Create New Palette
-					</MenuItem>
+					</MenuRow>
 					<ul className="palette-list">
 						{filteredPalettes.map((palette) => (
-							<MenuItem
+							<MenuRow
 								key={palette.id}
 								trailingIcon={palette === selectedPalette &&
 									createIconComponent({
@@ -72,7 +87,7 @@ export default function () {
 								onClick={() => selectPalette(palette)}
 							>
 								{palette.name}
-							</MenuItem>
+							</MenuRow>
 						))}
 					</ul>
 				</ul>

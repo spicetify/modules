@@ -132,7 +132,10 @@ export class PaletteManager {
 	}
 
 	public writeCurrent() {
-		this.stylesheet.innerHTML = `.encore-dark-theme { ${this.palette.toCSS()} }`;
+		// :root.encore-dark-theme outranks the classic pipeline's :root rule
+		// in colors.css; the class lives on <html>, where plain
+		// .encore-dark-theme ties with :root and loses on document order.
+		this.stylesheet.textContent = `.encore-dark-theme, :root.encore-dark-theme { ${this.palette.toCSS()} }`;
 		this.saveCurrent();
 	}
 
