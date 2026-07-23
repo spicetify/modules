@@ -25,6 +25,7 @@ interface ModuleMetadata {
 	entries: { js?: string; css?: string };
 	hasMixins: boolean;
 	dependencies: Record<string, string>;
+	tree?: boolean;
 }
 
 interface ModuleSidecar {
@@ -194,19 +195,78 @@ function parseArgs(argv: string[]): ParsedArgs {
 	return out;
 }
 
-async function buildJs(inputDir: string, outputDir: string, identifier: string): Promise<void> {
+async function buildJs(inputDir: string, outputDir: string, identifier: string, tree: boolean): Promise<void> {
+	// Multi-entry: mod.ts (when present) is the module's public barrel and
+	// gets a stable facade at the dist root so OTHER modules can import it at
+	// runtime (e.g. /modules/stdlib/mod.js).
+	const input: Record<string, string> = { index: path.join(inputDir, "index.ts") };
+	const barrel = path.join(inputDir, "mod.ts");
+	if (existsSync(barrel)) input.mod = barrel;
+
+	// Tree modules are runtime libraries: every source file becomes an entry
+	// so dependent modules can deep-import any path, not just what the
+	// module's own graph happens to reach.
+	if (tree) {
+		const SKIP_DIRS = new Set(["node_modules", "assets", "public"]);
+		const SKIP_FILES = new Set(["CODEGEN.ts"]);
+		const addTreeEntries = (dir: string) => {
+			for (const entry of readdirSync(dir)) {
+				const full = path.join(dir, entry);
+				if (statSync(full).isDirectory()) {
+					if (!SKIP_DIRS.has(entry)) addTreeEntries(full);
+				} else if (/\.tsx?$/.test(entry) && !entry.endsWith(".d.ts") && !SKIP_FILES.has(entry)) {
+					const name = path.relative(inputDir, full).replace(/\.tsx?$/, "");
+					input[name] ??= full;
+				}
+			}
+		};
+		addTreeEntries(inputDir);
+	}
+
 	const bundle = await rolldown({
-		input: path.join(inputDir, "index.ts"),
-		external: EXTERNALS,
+		input,
+		external: [...EXTERNALS, /^\/modules\//],
+		transform: {
+			jsx: {
+				importSource: "https://esm.sh/react@18.3.1",
+			},
+		},
 		resolve: {
 			extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json"],
+			alias: {
+				"/modules": [path.join(ROOT, "modules")],
+				// The client provides React at runtime; never bundle it.
+				"react": ["https://esm.sh/react@18.3.1"],
+				"react/jsx-runtime": ["https://esm.sh/react@18.3.1/jsx-runtime"],
+				"react-dom": ["https://esm.sh/react-dom@18.3.1"],
+				"react-dom/client": ["https://esm.sh/react-dom@18.3.1/client"],
+				"react-dom/server": ["https://esm.sh/react-dom@18.3.1/server"],
+			},
 		},
 	});
 	await bundle.write({
 		dir: outputDir,
 		format: "esm",
 		sourcemap: true,
+		preserveModules: tree,
 	});
+
+	// The hooks compat pack serves .js; Deno-era sources import "/hooks/*.ts".
+	const rewriteHooksTs = (dir: string) => {
+		for (const entry of readdirSync(dir)) {
+			const full = path.join(dir, entry);
+			if (statSync(full).isDirectory()) {
+				rewriteHooksTs(full);
+			} else if (entry.endsWith(".js")) {
+				const content = readFileSync(full, "utf8");
+				const rewritten = content
+					.replace(/"(\/hooks\/[^"]+)\.tsx?"/g, '"$1.js"')
+					.replace(/"(\/modules\/[^"]+)\.tsx?"/g, '"$1.js"');
+				if (rewritten !== content) writeFileSync(full, rewritten);
+			}
+		}
+	};
+	rewriteHooksTs(outputDir);
 }
 
 function buildCss(inputDir: string, outputDir: string): string | null {
@@ -261,7 +321,7 @@ async function main(): Promise<void> {
 		mkdirSync(outputDir, { recursive: true });
 
 		console.log(`stitch ${identifier}`);
-		await buildJs(inputDir, outputDir, metadata.name);
+		await buildJs(inputDir, outputDir, metadata.name, metadata.tree ?? false);
 		buildCss(inputDir, outputDir);
 		copyAssets(inputDir, outputDir);
 
