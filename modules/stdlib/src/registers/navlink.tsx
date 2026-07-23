@@ -11,6 +11,7 @@ import { Platform } from "../expose/Platform.ts";
 import { classnames } from "../webpack/ClassNames.ts";
 import { Nav, ScrollableContainer, Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
+import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 
 const registry = new (class extends Registry<React.ReactNode> {
@@ -73,6 +74,18 @@ transformer(
 		glob: /^\/dwp\-top\-bar\.js/,
 	},
 );
+
+mountRegistryAnchor({
+	className: "spicetify-navlinks-anchor",
+	registry,
+	setRefresh: (cb) => {
+		refresh = cb;
+	},
+	findSlot: () => {
+		const wrapper = document.querySelector(".main-globalNav-historyButtonsWrapper");
+		return wrapper ? { parent: wrapper } : null;
+	},
+});
 
 export type NavLinkProps = {
 	localizedApp: string;

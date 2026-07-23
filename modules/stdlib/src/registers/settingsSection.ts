@@ -4,10 +4,23 @@
  */
 
 import { transformer } from "../../mixin.ts";
+import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 
-const registry = new Registry<React.ReactNode>();
+const registry = new (class extends Registry<React.ReactNode> {
+	override add(value: React.ReactNode): this {
+		refresh?.();
+		return super.add(value);
+	}
+
+	override delete(value: React.ReactNode): boolean {
+		refresh?.();
+		return super.delete(value);
+	}
+})();
 export default registry;
+
+let refresh: (() => void) | undefined;
 
 declare global {
 	var __renderSettingSections: any;
@@ -30,3 +43,17 @@ transformer(
 		glob: /^\/xpui-routes-desktop-settings\.js/,
 	},
 );
+
+// The settings container only exists while the settings route is open; the
+// anchor keeper re-places the host every time it reappears.
+mountRegistryAnchor({
+	className: "spicetify-settings-sections",
+	registry,
+	setRefresh: (cb) => {
+		refresh = cb;
+	},
+	findSlot: () => {
+		const container = document.querySelector(".x-settings-container");
+		return container ? { parent: container } : null;
+	},
+});

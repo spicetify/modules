@@ -9,10 +9,23 @@ import { transformer } from "../../mixin.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { classnames } from "../webpack/ClassNames.ts";
+import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 
-const registry = new Registry<React.ReactNode>();
+const registry = new (class extends Registry<React.ReactNode> {
+	override add(value: React.ReactNode): this {
+		refresh?.();
+		return super.add(value);
+	}
+
+	override delete(value: React.ReactNode): boolean {
+		refresh?.();
+		return super.delete(value);
+	}
+})();
 export default registry;
+
+let refresh: React.DispatchWithoutAction | undefined;
 
 declare global {
 	var __renderPlaybarBarControls: any;
@@ -34,6 +47,18 @@ transformer(
 		glob: /^\/xpui\.js/,
 	},
 );
+
+mountRegistryAnchor({
+	className: "spicetify-playbar-buttons",
+	registry,
+	setRefresh: (cb) => {
+		refresh = cb;
+	},
+	findSlot: () => {
+		const controls = document.querySelector(".main-nowPlayingBar-extraControls");
+		return controls ? { parent: controls, before: controls.firstChild } : null;
+	},
+});
 
 export type PlaybarButtonProps = {
 	label: string;

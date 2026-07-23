@@ -10,6 +10,7 @@ import { isGlobalNavBarEnabled } from "../utils/index.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { classnames } from "../webpack/ClassNames.ts";
+import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 
 const registry = new (class extends Registry<React.ReactNode> {
@@ -52,6 +53,18 @@ transformer(
 		glob: /^\/xpui\.js/,
 	},
 );
+
+mountRegistryAnchor({
+	className: "spicetify-topbar-right-buttons",
+	registry,
+	setRefresh: (cb) => {
+		refresh = cb;
+	},
+	findSlot: () => {
+		const actions = document.querySelector(".main-actionButtons");
+		return actions ? { parent: actions, before: actions.firstChild } : null;
+	},
+});
 
 type TopbarRightButtonProps = {
 	label: string;
