@@ -23,6 +23,21 @@ export interface AnchorSpec {
 	renderItems?: (items: any[]) => unknown;
 }
 
+// One broken registered node must not take down the others.
+export const createItemBoundary = (R: any, label: string) =>
+	class ItemBoundary extends R.Component {
+		override state = { failed: false };
+		static getDerivedStateFromError() {
+			return { failed: true };
+		}
+		override componentDidCatch(error: unknown) {
+			console.error(`[stdlib] registered ${label} item crashed:`, error);
+		}
+		override render() {
+			return (this.state as { failed: boolean }).failed ? null : (this.props as { children?: unknown }).children;
+		}
+	};
+
 // One shared observer serves every anchor: the client mutates the DOM
 // constantly, and per-anchor subtree observers multiply that cost. Each
 // tick is one isConnected check per pending or placed anchor.
@@ -73,19 +88,7 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 
 		const start = () => {
 			const root = createRoot(host);
-			// One broken registered node must not take down the others.
-			class ItemBoundary extends R.Component {
-				override state = { failed: false };
-				static getDerivedStateFromError() {
-					return { failed: true };
-				}
-				override componentDidCatch(error: unknown) {
-					console.error(`[stdlib] registered ${spec.className} item crashed:`, error);
-				}
-				override render() {
-					return (this.state as { failed: boolean }).failed ? null : (this.props as { children?: unknown }).children;
-				}
-			}
+			const ItemBoundary = createItemBoundary(R, spec.className);
 			const Wrapper = () => {
 				const [, refresh] = R.useReducer((n: number) => n + 1, 0);
 				R.useEffect(() => {

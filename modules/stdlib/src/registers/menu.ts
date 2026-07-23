@@ -70,3 +70,63 @@ transformer(
 
 export const createProfileMenuShouldAdd = () => ({ trigger, target }: MenuContext) =>
 	trigger === "click" && target.getAttribute("data-testid") === "user-widget-link";
+
+// Transform-free path: every context menu renders inside the #context-menu
+// tippy portal; registered items are appended to the menu list when one
+// opens. useMenuItem() carries the trigger and target captured from the
+// opening event — the menu component's own props are not reachable from
+// outside the client render pipeline and stay null.
+if (
+	!(globalThis as never as Record<string, unknown>).__SPICETIFY_APPLY_TRANSFORMS__ &&
+	typeof document !== "undefined"
+) {
+	void CHUNKS.xpui.promise.then(async () => {
+		const { ReactDOM } = await import("../expose/React.js");
+		const { createItemBoundary } = await import("./mount.js");
+		const R = React as any;
+		const createRoot = (ReactDOM as any).createRoot;
+		if (typeof createRoot !== "function") {
+			console.warn("[stdlib] cannot mount menu items (no createRoot)");
+			return;
+		}
+
+		let last: Omit<MenuContext, "props"> = { trigger: "", target: document.body } as never;
+		document.addEventListener("contextmenu", (e) => {
+			last = { trigger: "right-click", target: e.target as HTMLElement };
+		}, true);
+		document.addEventListener("mousedown", (e) => {
+			last = { trigger: "click", target: e.target as HTMLElement };
+		}, true);
+
+		const ItemBoundary = createItemBoundary(R, "menu");
+		const live: Array<{ menu: Element; root: { unmount: () => void } }> = [];
+		const processed = new WeakSet<Element>();
+
+		const sweep = () => {
+			for (let i = live.length - 1; i >= 0; i--) {
+				if (!live[i].menu.isConnected) {
+					live[i].root.unmount();
+					live.splice(i, 1);
+				}
+			}
+			if (items.size === 0) return;
+			for (const menu of document.querySelectorAll("#context-menu [role=menu]")) {
+				if (processed.has(menu)) continue;
+				processed.add(menu);
+				const host = document.createElement("li");
+				host.setAttribute("role", "presentation");
+				host.className = "spicetify-menu-items";
+				menu.appendChild(host);
+				const root = createRoot(host);
+				globalThis.__MenuContext ??= R.createContext(null);
+				root.render(R.createElement(
+					globalThis.__MenuContext.Provider,
+					{ value: { props: null, ...last } },
+					...items.all().map((item, i) => R.createElement(ItemBoundary, { key: i }, item)),
+				));
+				live.push({ menu, root });
+			}
+		};
+		new MutationObserver(sweep).observe(document.body, { childList: true, subtree: true });
+	});
+}
