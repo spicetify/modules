@@ -235,12 +235,15 @@ async function buildJs(inputDir: string, outputDir: string, identifier: string, 
 			extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json"],
 			alias: {
 				"/modules": [path.join(ROOT, "modules")],
-				// The client provides React at runtime; never bundle it.
-				"react": ["https://esm.sh/react@18.3.1"],
+				// One React rule: npm-style react imports resolve to stdlib's
+				// client-instance shims (runtime URLs, always external), so
+				// module hooks share the client dispatcher. The jsx runtime
+				// stays on esm.sh — element creation is instance-independent.
 				"react/jsx-runtime": ["https://esm.sh/react@18.3.1/jsx-runtime"],
-				"react-dom": ["https://esm.sh/react-dom@18.3.1"],
-				"react-dom/client": ["https://esm.sh/react-dom@18.3.1/client"],
+				"react": ["/modules/stdlib/src/expose/react-shim.js"],
+				"react-dom/client": ["/modules/stdlib/src/expose/react-dom-shim.js"],
 				"react-dom/server": ["https://esm.sh/react-dom@18.3.1/server"],
+				"react-dom": ["/modules/stdlib/src/expose/react-dom-shim.js"],
 			},
 		},
 	});
