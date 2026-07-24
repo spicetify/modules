@@ -16,6 +16,9 @@
  *     Record a stitched build: version and metadata come from the dist
  *     dir's metadata.json, the checksum from --zip when given (the file
  *     you are about to upload) or from downloading --artifact.
+ *   node scripts/vault.ts pack <dist-dir> [--out <dir>]
+ *     Zip a stitched build into <name>@<version>.zip and print its
+ *     sha256, ready to upload as a release artifact.
  */
 
 import { execFileSync } from "node:child_process";
@@ -121,9 +124,28 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 	console.log(`added ${id}@${version} to ${VAULT_PATH}`);
 }
 
+function pack(distDir: string, outDir: string): void {
+	const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
+	if (!meta.name || !meta.version) throw new Error(`${distDir}/metadata.json must set name and version`);
+	const zipName = `${meta.name}@${meta.version}.zip`;
+	const zipPath = path.resolve(outDir, zipName);
+	rmSync(zipPath, { force: true });
+	// Zip contents at the archive root (metadata.json at top level), the
+	// layout installLocal and the daemon-era installers expect.
+	execFileSync("zip", ["-qr", zipPath, "."], { cwd: distDir });
+	console.log(`${zipPath}
+${sha256(readFileSync(zipPath))}`);
+}
+
 async function main(): Promise<void> {
 	const [cmd, ...rest] = process.argv.slice(2);
 	if (cmd === "refresh") return refresh();
+	if (cmd === "pack") {
+		const distDir = rest.find((a) => !a.startsWith("--"));
+		const outIdx = rest.indexOf("--out");
+		if (!distDir) throw new Error("usage: vault.ts pack <dist-dir> [--out <dir>]");
+		return pack(distDir, outIdx >= 0 ? rest[outIdx + 1] : ".");
+	}
 	if (cmd === "add") {
 		const distDir = rest.find((a) => !a.startsWith("--"));
 		const flag = (name: string) => {
@@ -134,7 +156,7 @@ async function main(): Promise<void> {
 		if (!distDir || !artifact) throw new Error("usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>]");
 		return add(distDir, artifact, flag("zip"));
 	}
-	throw new Error("usage: vault.ts refresh | add <dist-dir> --artifact <url> [--zip <file>]");
+	throw new Error("usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>]");
 }
 
 main().catch((e) => {
