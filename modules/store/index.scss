@@ -213,6 +213,16 @@
 			gap: 6px;
 		}
 
+		.spicetify-store-card-actions button:not(.spicetify-store-cta):not(.spicetify-store-danger) {
+			border: 1px solid rgba(255, 255, 255, 0.15);
+			background: transparent;
+			color: var(--spice-text);
+			border-radius: 500px;
+			padding: 6px 14px;
+			cursor: pointer;
+			font-size: 13px;
+		}
+
 		.spicetify-store-card-actions {
 			display: flex;
 			gap: 8px;
@@ -285,4 +295,190 @@
 	&:hover {
 		border-color: var(--spice-text, #fff);
 	}
+}
+
+.spicetify-store-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 12px 0 4px;
+
+	.spicetify-store-chips {
+		display: flex;
+		gap: 8px;
+		flex: 1;
+	}
+
+	.spicetify-store-chip {
+		border: none;
+		border-radius: 16px;
+		padding: 6px 14px;
+		background: var(--spice-highlight, #1a1a1a);
+		color: var(--spice-text);
+		cursor: pointer;
+		font-size: 13px;
+	}
+
+	.spicetify-store-chip--active {
+		background: var(--spice-text);
+		color: var(--spice-main, #121212);
+	}
+}
+
+.spicetify-store-sort {
+	background: var(--spice-highlight, #1a1a1a);
+	color: var(--spice-text);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 6px;
+	padding: 6px 8px;
+	font: inherit;
+	font-size: 13px;
+}
+
+.spicetify-store-updates {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 8px 0;
+	padding: 10px 14px;
+	border-radius: 8px;
+	background: rgba(255, 209, 102, 0.12);
+	color: #ffd166;
+	font-size: 14px;
+}
+
+.spicetify-store-scrim {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.spicetify-store-dialog {
+	width: min(680px, 90vw);
+	max-height: 84vh;
+	display: flex;
+	flex-direction: column;
+	background: var(--spice-main-elevated, #242424);
+	color: var(--spice-text);
+	border-radius: 12px;
+	box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+
+	.spicetify-store-dialog-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 16px 20px 8px;
+
+		h2 {
+			font-size: 18px;
+			font-weight: 700;
+		}
+	}
+
+	.spicetify-store-dialog-body {
+		padding: 8px 20px 20px;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+}
+
+.spicetify-store-detail-preview {
+	width: 100%;
+	max-height: 260px;
+	object-fit: cover;
+	border-radius: 8px;
+}
+
+.spicetify-store-repo-link {
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 13px;
+	text-decoration: underline;
+}
+
+.spicetify-store-snippet-css {
+	min-height: 220px;
+	resize: vertical;
+	background: var(--spice-highlight, #1a1a1a);
+	color: var(--spice-text);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	padding: 12px;
+	font-family: ui-monospace, monospace;
+	font-size: 13px;
+	tab-size: 2;
+}
+
+.spicetify-store-markdown {
+	font-size: 14px;
+	line-height: 1.5;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	code {
+		background: rgba(255, 255, 255, 0.08);
+		border-radius: 4px;
+		padding: 1px 5px;
+		font-family: ui-monospace, monospace;
+		font-size: 12px;
+	}
+
+	pre {
+		background: rgba(0, 0, 0, 0.35);
+		border-radius: 8px;
+		padding: 12px;
+		overflow-x: auto;
+
+		code {
+			background: none;
+			padding: 0;
+			white-space: pre;
+		}
+	}
+
+	ul {
+		padding-left: 20px;
+		list-style: disc;
+	}
+
+	a {
+		color: var(--spice-button-active, #1ed760);
+	}
+}
+
+.spicetify-store-card--revoked {
+	outline: 1px solid rgba(255, 99, 99, 0.6);
+}
+
+.spicetify-store-data-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 28px 0 8px;
+	opacity: 0.9;
+
+	.spicetify-store-data-label {
+		font-size: 13px;
+		color: var(--spice-subtext, #a7a7a7);
+	}
+
+	button {
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		background: transparent;
+		color: var(--spice-text);
+		border-radius: 6px;
+		padding: 5px 12px;
+		cursor: pointer;
+		font-size: 13px;
+	}
+}
+
+.spicetify-store-card select {
+	margin-top: 6px;
 }
