@@ -27,3 +27,23 @@
 .custom-navlink {
 	-webkit-app-region: unset;
 }
+
+/* stdlib search bar (lib/components useSearchBar): sensible everywhere,
+   overridable by module stylesheets. */
+.spicetify-searchbar {
+	padding: 8px 10px;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	border-radius: 4px;
+	background: rgba(255, 255, 255, 0.06);
+	color: var(--spice-text, #fff);
+	font-size: 14px;
+
+	&::placeholder {
+		color: var(--spice-subtext, #a7a7a7);
+	}
+
+	&:focus {
+		outline: none;
+		border-color: rgba(255, 255, 255, 0.35);
+	}
+}

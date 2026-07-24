@@ -102,13 +102,15 @@ export const getProp = (obj: any, path: string) => {
 };
 
 // Plain input on purpose: the client FilterBox needs the client tree's
-// RegistryContext, which register anchors and modals don't have.
+// RegistryContext, which register anchors and modals don't have. Styled by
+// stdlib's own class — client utility classes carry state-dependent styling
+// (x-filterBox-filterInput is opacity: 0 unless the client expands it).
 export const useSearchBar = ({ placeholder }: { placeholder: string; expanded?: boolean }) => {
 	const [search, setSearch] = React.useState("");
 
 	const searchbar = (
 		<input
-			className="x-filterBox-filterInput"
+			className="spicetify-searchbar"
 			type="text"
 			placeholder={placeholder}
 			value={search}
