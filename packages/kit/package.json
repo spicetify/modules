@@ -1,0 +1,33 @@
+{
+	"name": "@spicetify/kit",
+	"version": "0.1.0",
+	"description": "Developer kit for spicetify v3 modules: scaffold, build, hot-push, and pack",
+	"license": "GPL-3.0-or-later",
+	"type": "module",
+	"bin": {
+		"spicetify-kit": "bin/spicetify-kit.js"
+	},
+	"exports": {
+		".": "./dist/cli.js",
+		"./create": "./dist/create.js",
+		"./build": "./dist/build.js",
+		"./dev": "./dist/dev.js",
+		"./pack": "./dist/pack.js"
+	},
+	"files": [
+		"bin",
+		"dist",
+		"vendor"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"scripts": {
+		"build": "../../node_modules/.bin/tsc -p tsconfig.build.json",
+		"prepack": "node scripts/sync-vendor.ts && ../../node_modules/.bin/tsc -p tsconfig.build.json"
+	},
+	"dependencies": {
+		"rolldown": "^1.2.0",
+		"sass-embedded": "^1.80.0"
+	}
+}

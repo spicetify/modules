@@ -11,3 +11,8 @@
 # Dependencies
 node_modules/
 stitch.config.json
+
+# Kit build artifacts
+/packages/kit/dist/
+/packages/kit/vendor/
+*.tgz

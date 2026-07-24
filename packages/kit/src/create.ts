@@ -1,0 +1,206 @@
+/*
+ * Copyright (C) 2026 Afonso Jorge Ramos
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+/**
+ * create - scaffold a new spicetify v3 module.
+ *
+ * Standalone (default): creates ./<name>/ as a self-contained project
+ * with metadata, sources, tsconfig wired to the kit's vendored stdlib
+ * types, and a package.json ready for `spicetify-kit build/dev`.
+ *
+ * --bare: emits only the module sources into modules/<name>/, for use
+ * inside the spicetify modules monorepo.
+ */
+
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+const USAGE = 'spicetify-kit create <name> [--description "..."] [--author "..."] [--bare]';
+
+export async function runCreate(argv: string[], cwd = process.cwd()): Promise<void> {
+	const name = argv.find((a) => !a.startsWith("--"));
+	const flag = (n: string) => {
+		const i = argv.indexOf(`--${n}`);
+		return i >= 0 ? argv[i + 1] : undefined;
+	};
+	const bare = argv.includes("--bare");
+
+	if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
+		throw new Error(`${USAGE}\nname must be kebab-case (it doubles as the module identifier)`);
+	}
+
+	const dir = bare ? path.join(cwd, "modules", name) : path.join(cwd, name);
+	if (existsSync(dir)) throw new Error(`${dir} already exists`);
+
+	const description = flag("description") ?? `${name} module`;
+	const author = flag("author") ?? "spicetify";
+	const year = new Date().getFullYear();
+	const header = `/*\n * Copyright (C) ${year} ${author}\n * SPDX-License-Identifier: GPL-3.0-or-later\n */\n`;
+
+	mkdirSync(dir, { recursive: true });
+
+	writeFileSync(
+		path.join(dir, "metadata.json"),
+		`${
+			JSON.stringify(
+				{
+					name,
+					tags: ["extension"],
+					version: "0.1.0",
+					authors: [author],
+					description,
+					entries: { js: "index.js", css: "index.css" },
+					hasMixins: false,
+					dependencies: { stdlib: "^0.3.0" },
+				},
+				null,
+				"\t",
+			)
+		}\n`,
+	);
+
+	// The loader imports index.js and calls load(); the shim defers the
+	// real entry so module code only evaluates once dependencies are up.
+	writeFileSync(
+		path.join(dir, "index.ts"),
+		`${header}
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+
+export async function load(ctx: ModuleRuntimeContext) {
+	return (await import("./mod.js")).default(ctx);
+}
+`,
+	);
+
+	writeFileSync(
+		path.join(dir, "mod.tsx"),
+		`${header}
+import { createRegistrar } from "/modules/stdlib/mod.ts";
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { React } from "/modules/stdlib/src/expose/React.ts";
+import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
+import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
+
+const ROUTE = "/bespoke/${name}";
+
+// 16-grid icon (a plain circle); replace with your own inner SVG markup.
+const ICON = '<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>';
+
+const Page = () => (
+	<div className="${name}-page">
+		<h1>${name}</h1>
+		<p>Hello from ${name}. Edit mod.tsx and run the dev command to iterate live.</p>
+	</div>
+);
+
+export default async function (ctx: ModuleRuntimeContext) {
+	const registrar = createRegistrar(ctx);
+
+	registrar.register(
+		"topbarRightButton",
+		<TopbarRightButton label="${name}" icon={ICON} onClick={() => Platform.getHistory().push(ROUTE)} />,
+	);
+	registrar.registerRoute(ROUTE, <Page />);
+}
+`,
+	);
+
+	writeFileSync(
+		path.join(dir, "index.scss"),
+		`.${name}-page {
+	padding: 24px 32px;
+	color: var(--spice-text);
+}
+`,
+	);
+
+	if (!bare) {
+		writeFileSync(
+			path.join(dir, "package.json"),
+			`${
+				JSON.stringify(
+					{
+						name,
+						private: true,
+						type: "module",
+						scripts: {
+							build: "spicetify-kit build .",
+							dev: "spicetify-kit dev .",
+							check: "tsc",
+						},
+						devDependencies: {
+							"@spicetify/kit": "^0.1.0",
+							"@types/react": "^18",
+							"rxjs": "^7.8.1",
+							"@types/react-dom": "^18",
+							"typescript": "^7",
+						},
+					},
+					null,
+					"\t",
+				)
+			}\n`,
+		);
+
+		// Editor/typecheck config: runtime URLs map to the kit's vendored
+		// stdlib and hooks sources.
+		writeFileSync(
+			path.join(dir, "tsconfig.json"),
+			`${
+				JSON.stringify(
+					{
+						compilerOptions: {
+							target: "ES2022",
+							module: "ESNext",
+							moduleResolution: "Bundler",
+							allowImportingTsExtensions: true,
+							noEmit: true,
+							jsx: "react-jsx",
+							lib: ["ES2024", "ESNext.Disposable", "DOM", "DOM.Iterable"],
+							strict: false,
+							skipLibCheck: true,
+							resolveJsonModule: true,
+							types: [],
+							paths: {
+								"/hooks/std/text.ts": ["./node_modules/@spicetify/kit/vendor/shims/hooks-std-text.d.ts"],
+								"/modules/*": ["./node_modules/@spicetify/kit/vendor/*"],
+								"/hooks/*": ["./node_modules/@spicetify/kit/vendor/hooks/*"],
+							},
+						},
+						include: ["**/*"],
+						files: [
+							"./node_modules/@spicetify/kit/vendor/shims/remote-modules.d.ts",
+							"./node_modules/@spicetify/kit/vendor/shims/chunks.d.ts",
+						],
+						exclude: ["node_modules", "dist"],
+					},
+					null,
+					"\t",
+				)
+			}\n`,
+		);
+
+		// Placeholder MAP declaration; the first build replaces it with the
+		// typed shape generated from the resolved classmap.
+		writeFileSync(
+			path.join(dir, "classmap.d.ts"),
+			"// Regenerated with real classmap paths on every build.\ndeclare global {\n\tconst MAP: any;\n}\n\nexport {};\n",
+		);
+
+		writeFileSync(path.join(dir, ".gitignore"), "node_modules/\ndist/\n");
+	}
+
+	const rel = path.relative(cwd, dir) || ".";
+	console.log(`created ${rel}/`);
+	console.log("next steps:");
+	if (bare) {
+		console.log(`  node scripts/stitch.ts modules/${name}     # one-off build into dist/`);
+		console.log(`  node scripts/dev.ts modules/${name}        # watch + hot-push into a running client`);
+	} else {
+		console.log(`  cd ${rel} && npm install`);
+		console.log("  npm run dev        # watch + hot-push into a running client (Spotify started with --remote-debugging-port=9229)");
+		console.log("  npm run build      # one-off build into dist/");
+	}
+}

@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true,
+		"outDir": "dist",
+		"rootDir": "src",
+		"lib": ["ES2024"],
+		"strict": false,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"types": ["node"],
+		"declaration": false,
+		"sourceMap": false
+	},
+	"include": ["src"]
+}
