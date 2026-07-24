@@ -15,7 +15,7 @@
  * fall back to the staged copy.
  */
 
-import { readdirSync, readFileSync, watch } from "node:fs";
+import { readdirSync, readFileSync, statSync, watch } from "node:fs";
 import path from "node:path";
 
 import { buildModule, readMetadata, resolveModuleDir } from "./build.ts";
@@ -29,8 +29,10 @@ function record(distDir: string, id: string) {
 	const sidecar = JSON.parse(readFileSync(path.join(distDir, "spicetify-module.json"), "utf8"));
 	const files: Record<string, string> = {};
 	for (const f of readdirSync(distDir)) {
-		// Maps stay out of localStorage; metadata rides separately.
+		// Maps and asset dirs stay out of localStorage; metadata rides
+		// separately. Assets only matter to store cards, not the runtime.
 		if (f === "metadata.json" || f.endsWith(".map")) continue;
+		if (statSync(path.join(distDir, f)).isDirectory()) continue;
 		files[f] = readFileSync(path.join(distDir, f), "utf8");
 	}
 	return { metadata, files, sidecar };
