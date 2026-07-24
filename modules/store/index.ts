@@ -243,11 +243,40 @@ function createPanel() {
 	};
 }
 
+// Marketplace-style circular icon button in the global nav, registered
+// through stdlib when it is installed. The store stays standalone by
+// design, so a fixed-position fallback button covers a missing or broken
+// stdlib.
+const STORE_ICON =
+	'<path d="M5 4a3 3 0 1 1 6 0h2.5A1.5 1.5 0 0 1 15 5.5l-.9 8A2 2 0 0 1 12.11 15H3.89a2 2 0 0 1-1.99-1.5l-.9-8A1.5 1.5 0 0 1 2.5 4H5zm1.5 0h3a1.5 1.5 0 1 0-3 0z"/>';
+
+async function createStdlibButton(onClick: () => void): Promise<(() => void) | null> {
+	try {
+		const [{ Registrar }, { TopbarLeftButton }, { React }] = await Promise.all([
+			import("/modules/stdlib/src/registers/index.js"),
+			import("/modules/stdlib/src/registers/topbarLeftButton.js"),
+			import("/modules/stdlib/src/expose/React.js"),
+		]);
+		const registrar = new Registrar("store");
+		registrar.register(
+			"topbarLeftButton",
+			React.createElement(TopbarLeftButton, { label: "Module Store", icon: STORE_ICON, onClick }),
+		);
+		return () => registrar.dispose();
+	} catch (e) {
+		console.warn("[store] stdlib topbar button unavailable, using fallback:", e);
+		return null;
+	}
+}
+
 export async function load() {
 	const panel = createPanel();
-	const btn = createTopbarButton(() => void panel.toggle());
+	const toggle = () => void panel.toggle();
+	const disposeStdlibButton = await createStdlibButton(toggle);
+	const fallbackBtn = disposeStdlibButton ? null : createTopbarButton(toggle);
 	return () => {
-		btn.remove();
+		disposeStdlibButton?.();
+		fallbackBtn?.remove();
 		panel.remove();
 	};
 }
