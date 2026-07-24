@@ -134,10 +134,12 @@ const _NavLinkGlobal: React.FC<NavLinkFactoryProps> = (props) => {
 				<UI.ButtonTertiary
 					iconOnly={props.createIcon}
 					className={classnames(
-						"M4MOhDLjSPUuMog9WxIM", // next to navigation
-						"dIfr5oVr5kotAi0HsIsW VUXMMFKWudUWE1kIXZoS",
+						// The circular chrome the client paints on its own nav links
+						// (Home); without it the button renders bare on the bar.
+						"main-globalNav-navLink",
+						"main-globalNav-link-icon link-subtle",
 						{
-							ETjtwGvAB4lRVqSzm8nA: props.isActive,
+							"main-globalNav-navLinkActive": props.isActive,
 						},
 					)}
 					aria-label={props.localizedApp}
