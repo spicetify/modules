@@ -125,20 +125,49 @@ export const ManagerPage = () => {
 		})();
 	};
 
-	const copyDiagnostics = async () => {
+	const copyToClipboard = async (text: string, done: string) => {
 		if (!navigator.clipboard) {
 			setStatus("clipboard unavailable in this client");
 			return;
 		}
-		const text = state.diagnostics
-			.map((d) => `${new Date(d.ts).toISOString()} [${d.level}] ${d.message}`)
-			.join("\n");
 		try {
 			await navigator.clipboard.writeText(text);
-			setStatus("diagnostics copied");
+			setStatus(done);
 		} catch (e) {
 			setStatus(`copy failed: ${(e as Error).message}`);
 		}
+	};
+
+	// A paste-ready environment summary for bug reports: versions, flags,
+	// update status, and every module's state.
+	const copyEnvironment = () => {
+		const advice = updateAdvice(state.spotifyVersion, support);
+		const lines = [
+			`Spotify: ${show(state.spotifyVersion)}`,
+			`classmap: ${show(state.classmapKey)}`,
+			`CLI: ${show(state.cliVersion)}`,
+			`updates blocked: ${showBool(state.updatesBlocked)}`,
+			`transforms: ${state.transformsEnabled ? "on" : "off"}`,
+			`modules: ${state.loadedCount}/${state.modules.length} loaded${
+				state.failedCount ? `, ${state.failedCount} failed` : ""
+			}`,
+			`update status: ${advice.message}`,
+			"",
+			"modules:",
+			...state.modules.map((m) =>
+				`  - ${m.id}@${m.version} [${m.source}] ${
+					m.loaded ? "loaded" : m.failed !== undefined ? `failed: ${m.failed}` : "disabled"
+				}`
+			),
+		];
+		void copyToClipboard(lines.join("\n"), "environment copied");
+	};
+
+	const copyDiagnostics = () => {
+		const text = state.diagnostics
+			.map((d) => `${new Date(d.ts).toISOString()} [${d.level}] ${d.message}`)
+			.join("\n");
+		void copyToClipboard(text, "diagnostics copied");
 	};
 
 	const q = filter.toLowerCase();
@@ -163,7 +192,12 @@ export const ManagerPage = () => {
 			<div className="spicetify-manager-status">{status}</div>
 
 			<section>
-				<h2>Environment</h2>
+				<div className="spicetify-manager-section-head">
+					<h2>Environment</h2>
+					<button type="button" onClick={copyEnvironment}>
+						Copy details
+					</button>
+				</div>
 				<div className="spicetify-manager-env">
 					<Badge>Spotify {show(state.spotifyVersion)}</Badge>
 					<Badge>classmap {show(state.classmapKey)}</Badge>
@@ -204,9 +238,9 @@ export const ManagerPage = () => {
 			</section>
 
 			<section>
-				<div className="spicetify-manager-diag-head">
+				<div className="spicetify-manager-section-head">
 					<h2>Diagnostics</h2>
-					<button type="button" onClick={() => void copyDiagnostics()} disabled={!state.diagnostics.length}>
+					<button type="button" onClick={copyDiagnostics} disabled={!state.diagnostics.length}>
 						Copy all
 					</button>
 				</div>
