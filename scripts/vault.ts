@@ -169,9 +169,16 @@ function importSnippets(snippetsPath: string, base: string): void {
 	const vault = loadVault();
 	let added = 0;
 	let refreshed = 0;
+	const seenIds = new Set<string>();
 	for (const snippet of snippets) {
 		if (!snippet.title || !snippet.code) continue;
-		const id = `snippet-${slugify(snippet.title)}`;
+		let slug = slugify(snippet.title);
+		// "snippet-user-*" is reserved for in-client user snippets.
+		if (slug.startsWith("user-")) slug = `catalog-${slug}`;
+		let id = `snippet-${slug}`;
+		// Colliding titles must not silently collapse into one entry.
+		for (let n = 2; seenIds.has(id); n++) id = `snippet-${slug}-${n}`;
+		seenIds.add(id);
 		const metadata: VaultMetadata = {
 			name: snippet.title,
 			description: snippet.description ?? "",
