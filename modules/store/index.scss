@@ -177,12 +177,34 @@
 		border-radius: 8px;
 		background: var(--spice-card, #202020);
 
+		.spicetify-store-card-preview {
+			width: 100%;
+			aspect-ratio: 16 / 9;
+			object-fit: cover;
+			border-radius: 4px;
+		}
+
 		.spicetify-store-card-name {
 			margin: 0;
 			font-size: 1rem;
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
+		}
+
+		.spicetify-store-card-desc {
+			margin: 0;
+			color: var(--spice-subtext, #a7a7a7);
+			font-size: 13px;
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+		}
+
+		.spicetify-store-card-authors {
+			color: var(--spice-subtext, #a7a7a7);
+			font-size: 12px;
 		}
 
 		.spicetify-store-card-meta {

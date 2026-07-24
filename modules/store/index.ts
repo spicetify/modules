@@ -4,7 +4,10 @@
  */
 
 const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
-const DEFAULT_VAULT_URL = "https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
+// Overridable for vault development: point at any URL (data: URLs work)
+// to preview a vault before publishing it.
+const DEFAULT_VAULT_URL = globalThis.localStorage?.getItem("spicetify:defaultVaultUrl") ??
+	"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
 
 // raw.githubusercontent and the vault hosts are CORS-enabled; github.com
 // release downloads are not. Only proxy what needs it, with the raw URL
@@ -23,6 +26,13 @@ type VaultModule = {
 	artifacts: string[];
 	checksum?: string;
 	vault: string;
+	meta?: {
+		name?: string;
+		description?: string;
+		authors?: string[];
+		tags?: string[];
+		preview?: string;
+	};
 };
 
 async function fetchJson(url: string) {
@@ -50,7 +60,7 @@ async function listVaultModules(): Promise<VaultModule[]> {
 				const version = mod.enabled ?? versions[versions.length - 1];
 				const entry = mod.v?.[version];
 				if (!entry?.artifacts?.length) continue;
-				out.push({ id, version, artifacts: entry.artifacts, checksum: entry.checksum, vault });
+				out.push({ id, version, artifacts: entry.artifacts, checksum: entry.checksum, vault, meta: entry.metadata });
 			}
 		} catch (e) {
 			console.warn("[store] vault failed", vault, e);
@@ -280,7 +290,18 @@ function createStorePage() {
 		for (const mod of modules.filter((m) => m.id.toLowerCase().includes(q))) {
 			const card = el("article", "spicetify-store-card");
 
-			card.appendChild(el("h3", "spicetify-store-card-name", mod.id));
+			if (mod.meta?.preview) {
+				const img = el("img", "spicetify-store-card-preview") as HTMLImageElement;
+				img.src = mod.meta.preview;
+				img.loading = "lazy";
+				img.alt = "";
+				card.appendChild(img);
+			}
+			card.appendChild(el("h3", "spicetify-store-card-name", mod.meta?.name ?? mod.id));
+			if (mod.meta?.description) card.appendChild(el("p", "spicetify-store-card-desc", mod.meta.description));
+			if (mod.meta?.authors?.length) {
+				card.appendChild(el("div", "spicetify-store-card-authors", `by ${mod.meta.authors.join(", ")}`));
+			}
 
 			const meta = el("div", "spicetify-store-card-meta");
 			meta.appendChild(badge(mod.version));
@@ -288,6 +309,7 @@ function createStorePage() {
 			try {
 				meta.appendChild(badge(new URL(mod.vault).host));
 			} catch {}
+			for (const tag of mod.meta?.tags ?? []) meta.appendChild(badge(tag));
 			const state = states.get(mod.id) as { loaded?: boolean } | undefined;
 			if (localIds.has(mod.id)) meta.appendChild(badge(state?.loaded ? "enabled" : "installed", true));
 			card.appendChild(meta);
