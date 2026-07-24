@@ -69,8 +69,30 @@ transformer(
 	},
 );
 
-export const createProfileMenuShouldAdd = () => ({ trigger, target }: MenuContext) =>
-	trigger === "click" && target.getAttribute("data-testid") === "user-widget-link";
+// True when the open menu came from the profile (avatar) button. 1.2.94
+// dropped the user-widget-link testid; the account image inside the
+// trigger button is the durable discriminator, with the old testid kept
+// as a fallback for older clients.
+export const openedFromProfileMenu = (
+	ctx: Pick<MenuContext, "trigger" | "target"> | null,
+): boolean => {
+	if (!ctx || ctx.trigger !== "click") return false;
+	const button = ctx.target?.closest?.("button");
+	if (!button) return false;
+	return !!button.querySelector("img, figure") ||
+		button.getAttribute("data-testid") === "user-widget-link";
+};
+
+export const createProfileMenuShouldAdd = () => (ctx: MenuContext) => openedFromProfileMenu(ctx);
+
+// Foreign menu items have no access to the client's dismissal context;
+// the tippy portal only closes on an outside press. Call after handling
+// a click. Deferred so the item's own handler finishes first.
+export const closeMenu = (): void => {
+	setTimeout(() => {
+		document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+	}, 0);
+};
 
 // Transform-free path: every context menu renders inside the #context-menu
 // tippy portal; registered items are appended to the menu list when one

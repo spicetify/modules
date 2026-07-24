@@ -88,24 +88,31 @@ mountRegistryAnchor({
 	},
 });
 
-export type NavLinkProps = {
-	localizedApp: string;
-	appRoutePath: string;
-	icon: string;
-	activeIcon: string;
-};
-export const NavLink: React.FC<NavLinkProps> = (props) => {
-	// Registered elements are frozen in the registry, so parent refreshes
-	// bail out on identical children; active state must self-subscribe.
+// Registered elements are frozen in the registry, so parent refreshes
+// bail out on identical children; any registered component that renders
+// route-dependent state must subscribe to history itself.
+export const useHistoryRefresh = (): void => {
 	const [, force] = React.useReducer((n: number) => n + 1, 0);
 	React.useEffect(() => {
 		try {
 			return Platform.getHistory().listen(() => force()) as (() => void) | undefined;
 		} catch (e) {
-			warn("[stdlib] NavLink cannot follow history:", e);
+			warn("[stdlib] cannot follow history:", e);
 			return undefined;
 		}
 	}, []);
+};
+
+export type NavLinkProps = {
+	localizedApp: string;
+	appRoutePath: string;
+	/** Inner SVG markup drawn on the stdlib 16-grid (upscaled to the client's 24px nav glyph). */
+	icon: string;
+	/** Filled variant shown while the route is active; same 16-grid contract. */
+	activeIcon: string;
+};
+export const NavLink: React.FC<NavLinkProps> = (props) => {
+	useHistoryRefresh();
 	const isActive = Platform.getHistory().location.pathname?.startsWith(props.appRoutePath);
 	const createIcon = () =>
 		// Icons are authored on the stdlib 16-grid; upscale to the client's
