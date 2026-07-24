@@ -19,6 +19,9 @@
  *   node scripts/vault.ts pack <dist-dir> [--out <dir>]
  *     Zip a stitched build into <name>@<version>.zip and print its
  *     sha256, ready to upload as a release artifact.
+ *   node scripts/vault.ts snippets <snippets.json> [--base <raw-url-prefix>]
+ *     Import a classic marketplace snippets.json catalog as inline
+ *     css-only vault entries (no artifacts; the vault is the content).
  */
 
 import { execFileSync } from "node:child_process";
@@ -34,6 +37,10 @@ interface VaultVersionEntry {
 	providers?: string[];
 	checksum?: string;
 	metadata?: VaultMetadata;
+	// Inline content for small css-only modules (snippets); the vault
+	// entry is the artifact.
+	files?: Record<string, string>;
+	updatedAt?: string;
 }
 
 interface VaultMetadata {
@@ -42,6 +49,8 @@ interface VaultMetadata {
 	authors?: string[];
 	tags?: string[];
 	preview?: string;
+	repository?: string;
+	readme?: string;
 }
 
 const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
@@ -53,8 +62,17 @@ const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	// Previews inside the zip are not hotlinkable; only absolute URLs are
 	// useful to the store.
 	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
+	// Source and readme links only when absolute; the store refuses
+	// anything else anyway.
+	if (typeof meta.repository === "string" && /^https:\/\//.test(meta.repository)) out.repository = meta.repository;
+	if (typeof meta.readme === "string" && /^https:\/\//.test(meta.readme)) out.readme = meta.readme;
 	return out;
 };
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const slugify = (name: string) =>
+	name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "snippet";
 
 const sha256 = (bytes: Buffer) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
@@ -119,6 +137,7 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 		providers: [],
 		checksum: sha256(bytes),
 		metadata: metadataSubset(meta),
+		updatedAt: today(),
 	};
 	saveVault(vault);
 	console.log(`added ${id}@${version} to ${VAULT_PATH}`);
@@ -137,9 +156,59 @@ function pack(distDir: string, outDir: string): void {
 ${sha256(readFileSync(zipPath))}`);
 }
 
+// Classic marketplace snippets ({title, description, code, preview?})
+// become css-only modules with inline files: nothing to host, nothing to
+// download, installable straight from the vault entry.
+function importSnippets(snippetsPath: string, base: string): void {
+	const snippets = JSON.parse(readFileSync(snippetsPath, "utf8")) as Array<{
+		title: string;
+		description?: string;
+		code: string;
+		preview?: string;
+	}>;
+	const vault = loadVault();
+	let added = 0;
+	let refreshed = 0;
+	for (const snippet of snippets) {
+		if (!snippet.title || !snippet.code) continue;
+		const id = `snippet-${slugify(snippet.title)}`;
+		const metadata: VaultMetadata = {
+			name: snippet.title,
+			description: snippet.description ?? "",
+			authors: ["spicetify"],
+			tags: ["snippet"],
+		};
+		if (snippet.preview) {
+			metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;
+		}
+		const existing = vault.modules[id]?.v?.["1.0.0"];
+		const unchanged = existing?.files?.["index.css"] === snippet.code;
+		vault.modules[id] ??= { v: {} };
+		vault.modules[id].v["1.0.0"] = {
+			artifacts: [],
+			files: { "index.css": snippet.code },
+			metadata,
+			updatedAt: unchanged ? (existing?.updatedAt ?? today()) : today(),
+		};
+		if (existing) refreshed++;
+		else added++;
+	}
+	saveVault(vault);
+	console.log(`snippets: ${added} added, ${refreshed} refreshed -> ${VAULT_PATH}`);
+}
+
 async function main(): Promise<void> {
 	const [cmd, ...rest] = process.argv.slice(2);
 	if (cmd === "refresh") return refresh();
+	if (cmd === "snippets") {
+		const file = rest.find((a) => !a.startsWith("--"));
+		const baseIdx = rest.indexOf("--base");
+		if (!file) throw new Error("usage: vault.ts snippets <snippets.json> [--base <raw-url-prefix>]");
+		return importSnippets(
+			file,
+			baseIdx >= 0 ? rest[baseIdx + 1] : "https://raw.githubusercontent.com/spicetify/marketplace/main/resources/",
+		);
+	}
 	if (cmd === "pack") {
 		const distDir = rest.find((a) => !a.startsWith("--"));
 		const outIdx = rest.indexOf("--out");
@@ -156,7 +225,7 @@ async function main(): Promise<void> {
 		if (!distDir || !artifact) throw new Error("usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>]");
 		return add(distDir, artifact, flag("zip"));
 	}
-	throw new Error("usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>]");
+	throw new Error("usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>] | snippets <snippets.json>");
 }
 
 main().catch((e) => {
