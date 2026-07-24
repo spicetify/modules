@@ -119,7 +119,7 @@ async function installModule(mod: VaultModule, status: (msg: string) => void) {
 	}
 }
 
-function el(tag: string, cls?: string, text?: string) {
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
 	const node = document.createElement(tag);
 	if (cls) node.className = cls;
 	if (text !== undefined) node.textContent = text;
@@ -168,7 +168,7 @@ function createPanel() {
 			installed.appendChild(el("div", "spicetify-store-empty", "Nothing installed yet"));
 			return;
 		}
-		const states = new Map(M().list().map((s: any) => [s.identifier, s]));
+		const states = new Map<string, any>(M().list().map((s: any) => [s.identifier, s]));
 		for (const record of local) {
 			const id = record.metadata.identifier;
 			const row = el("div", "spicetify-store-row");
@@ -287,7 +287,7 @@ function createStorePage() {
 		const locals = M().listLocal() as Array<{ metadata: { identifier: string }; sidecar?: { installed_version?: string } }>;
 		const localIds = new Set(locals.map((r) => r.metadata.identifier));
 		const localVersions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
-		const states = new Map(M().list().map((s: any) => [s.identifier, s]));
+		const states = new Map<string, any>(M().list().map((s: any) => [s.identifier, s]));
 		const q = filter.toLowerCase();
 		for (const mod of modules.filter((m) => m.id.toLowerCase().includes(q))) {
 			const card = el("article", "spicetify-store-card");
@@ -349,7 +349,7 @@ function createStorePage() {
 		installedGrid.replaceChildren();
 		const local = M().listLocal();
 		installedTitle.style.display = local.length ? "" : "none";
-		const states = new Map(M().list().map((s: any) => [s.identifier, s]));
+		const states = new Map<string, any>(M().list().map((s: any) => [s.identifier, s]));
 		for (const record of local) {
 			const id = record.metadata.identifier;
 			const state = states.get(id) as { loaded?: boolean } | undefined;
@@ -438,7 +438,7 @@ async function registerStorePage(
 					}
 				},
 			});
-		registrar.register("route", React.createElement("route", { path: STORE_ROUTE, element: React.createElement(Host) }));
+		registrar.registerRoute(STORE_ROUTE, React.createElement(Host));
 		return () => registrar.dispose();
 	} catch (e) {
 		console.warn("[store] page route unavailable:", e);

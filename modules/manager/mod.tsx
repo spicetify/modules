@@ -14,8 +14,5 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
 
 	registrar.register("menu", <SpicetifyMenuItem />);
-	registrar.register(
-		"route",
-		React.createElement("route", { path: MANAGER_ROUTE, element: <ManagerPage /> }),
-	);
+	registrar.registerRoute(MANAGER_ROUTE, <ManagerPage />);
 }
