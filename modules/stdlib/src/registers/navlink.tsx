@@ -108,7 +108,9 @@ export const NavLink: React.FC<NavLinkProps> = (props) => {
 	}, []);
 	const isActive = Platform.getHistory().location.pathname?.startsWith(props.appRoutePath);
 	const createIcon = () =>
-		createIconComponent({ icon: isActive ? props.activeIcon : props.icon, iconSize: 24 });
+		// Icons are authored on the stdlib 16-grid; upscale to the client's
+		// 24px nav glyph size so they fill the circle like Home's.
+		createIconComponent({ icon: isActive ? props.activeIcon : props.icon, iconSize: 16, realIconSize: 24 });
 
 	return (
 		<_NavLinkGlobal
