@@ -164,6 +164,8 @@
 
 		.text-input {
 			background-color: var(--input-bg2);
+			color: var(--spice-text, #fff);
+			font-family: inherit;
 			padding: 8px;
 			border: none;
 			border-radius: var(--border-radius);
@@ -221,7 +223,7 @@
 			height: 32px;
 			flex-grow: 1;
 			font-size: 1rem;
-			color: white;
+			color: var(--spice-text, #fff);
 		}
 	}
 }
