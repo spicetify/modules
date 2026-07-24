@@ -5,7 +5,7 @@
 
 import { transformer } from "../../mixin.ts";
 
-export type SettingsSectionProps = { filterMatchQuery: string };
+export type SettingsSectionProps = { filterMatchQuery: string; children?: React.ReactNode };
 export type SettingsSection = React.FC<SettingsSectionProps>;
 export let SettingsSection: SettingsSection;
 
@@ -20,7 +20,7 @@ export const future = {
 	},
 };
 
-export type SettingsSectionTitleProps = {};
+export type SettingsSectionTitleProps = { children?: React.ReactNode };
 export type SettingsSectionTitle = React.FC<SettingsSectionTitleProps>;
 export let SettingsSectionTitle: SettingsSectionTitle;
 

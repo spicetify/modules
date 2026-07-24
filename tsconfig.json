@@ -1,0 +1,34 @@
+{
+	// Editor and typecheck config only; builds go through scripts/stitch.ts
+	// (rolldown), which owns the runtime aliasing of /modules and react.
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"jsx": "react-jsx",
+		"lib": ["ES2024", "DOM", "DOM.Iterable"],
+		"strict": false,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"types": ["node"],
+		"paths": {
+			// Runtime URL imports, mapped to their sources for the editor.
+			"/modules/*": ["./modules/*"],
+			"/hooks/std/text.ts": ["./hooks-std-text.d.ts"],
+			"/hooks/*": ["../hooks/*"]
+		}
+	},
+	"include": ["modules", "scripts", "remote-modules.d.ts", "hooks-std-text.d.ts"],
+	// Every module gets an identical generated MAP declaration for
+	// standalone use; one copy in the program avoids global duplicates.
+	"exclude": [
+		"modules/stdlib/src/webpack/CODEGEN.ts",
+		"modules/manager/classmap.d.ts",
+		"modules/palette-manager/classmap.d.ts",
+		"modules/store/classmap.d.ts",
+		"node_modules",
+		"dist"
+	]
+}

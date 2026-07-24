@@ -8,8 +8,8 @@ import { createIconComponent } from "/modules/stdlib/lib/createIconComponent.tsx
 import { startCase } from "/modules/stdlib/deps.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
-import { ChangeEvent } from "npm:@types/react";
-import { Color } from "/modules/stdlib/src/webpack/misc.ts";
+import type { ChangeEvent } from "react";
+import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
 
 // Context-free menu row: the client MenuItem needs the client tree's
 // navigation providers, which modal anchors don't have. Styled by the

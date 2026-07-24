@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import type { Transformer } from "./mixin.ts";
+
 // Lifecycle contract for the spicetify v3 modular loader (no /hooks).
-export async function mixin(transformer: unknown, ctx: { spotifyVersion: string }) {
+export async function mixin(transformer: Transformer, ctx: { spotifyVersion: string }) {
 	return (await import("./mixin.js")).default(transformer, ctx);
 }
 

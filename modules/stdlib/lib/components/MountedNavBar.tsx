@@ -27,7 +27,8 @@ interface NavToChipProps {
 	to: string;
 	title: string;
 	selected: boolean;
-	onClick: () => void;
+	onClick?: () => void;
+	children?: React.ReactNode;
 }
 const NavToChip: React.FC<NavToChipProps> = (props) => (
 	<NavTo

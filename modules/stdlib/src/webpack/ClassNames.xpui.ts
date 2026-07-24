@@ -6,7 +6,7 @@
 import { modules } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 
-import type classNames from "npm:@types/classnames";
+type classNames = (...args: any[]) => string;
 
 await globalThis.CHUNKS.xpui.promise;
 

@@ -13,7 +13,7 @@ import { exportedForwardRefs, exportedFunctions, exportedMemos, modules, src } f
 import { webpackRequire } from "../wpunpk.mix.ts";
 import { React } from "../expose/React.ts";
 
-import type { SnackbarProvider as SnackbarProviderT } from "npm:notistack";
+type SnackbarProviderT = any;
 
 await CHUNKS.xpui.promise;
 
@@ -108,10 +108,10 @@ export const RemoteConfigProviderComponent: React.FC<any> = findBy(
 const exportedMemoFRefs = exportedMemos.filter(
 	(m) => (m as any).type.$$typeof === Symbol.for("react.forward_ref"),
 );
-export const Nav: React.NamedExoticComponent = exportedMemoFRefs.find((m) =>
+export const Nav: React.NamedExoticComponent<any> = exportedMemoFRefs.find((m) =>
 	src((m as any).type.render).includes("navigationalRoot")
 )!;
-export const NavTo: React.NamedExoticComponent = exportedMemoFRefs.find((m) =>
+export const NavTo: React.NamedExoticComponent<any> = exportedMemoFRefs.find((m) =>
 	src((m as any).type.render).includes("pageId")
 )!;
 
@@ -123,7 +123,7 @@ export const SnackbarProvider: SnackbarProviderT = findBy(
 	"enqueueSnackbar called with invalid argument",
 )(
 	exportedFunctions,
-) as unknown as SnackbarProvider;
+) as unknown as SnackbarProviderT;
 
 export const ContextMenu: any = Object.values(requireExports(ContextMenuModuleID))[0];
 export const RightClickMenu: React.FC<any> = findBy(

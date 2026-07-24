@@ -18,7 +18,7 @@ matchWebpackModule((id, module) => {
 	return moduleStr.includes('"data-testid":"progress-bar"');
 }, (id, $) => {
 	const module = webpackRequire(id);
-	Slider = Object.values(module)[0];
+	Slider = Object.values<any>(module)[0];
 });
 
 matchWebpackModule((id, module) => {
@@ -26,7 +26,7 @@ matchWebpackModule((id, module) => {
 	return moduleStr.includes('"JWYoNAyrIIdW30u4PSGE"');
 }, (id, $) => {
 	const module = webpackRequire(id);
-	Toggle = Object.values(module)[0];
+	Toggle = Object.values<any>(module)[0];
 });
 
 matchWebpackModule((id, module) => {
@@ -34,8 +34,8 @@ matchWebpackModule((id, module) => {
 	return moduleStr.includes('"data-testid":"track-icon"');
 }, async (id, $) => {
 	//! HACKY ALERT (this module depennds on chunks that aren't loaded yet)
-	await new Promise(setTimeout);
+	await new Promise((resolve) => setTimeout(resolve));
 	const module = webpackRequire(id);
-	TracklistRow = Object.values(module)[0];
+	TracklistRow = Object.values<any>(module)[0];
 });
 // })

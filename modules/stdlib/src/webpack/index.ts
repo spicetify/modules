@@ -5,15 +5,15 @@
 
 import { postWebpackRequireHooks, WebpackModule, WebpackRequire, webpackRequire } from "../wpunpk.mix.ts";
 
-export let modules: Array<[number, WebpackModule]>;
+export let modules: Array<[PropertyKey, WebpackModule]>;
 export let exports: Array<Record<string, any>>;
 export let exported: Array<any>;
 
-export let exportedFunctions: Array<Function>;
+export let exportedFunctions: Array<any>;
 
 export let exportedReactObjects: Partial<Record<any, any[]>>;
 export let exportedContexts: Array<React.Context<any>>;
-export let exportedForwardRefs: Array<React.ForwardRefExoticComponent<any>>;
+export let exportedForwardRefs: Array<any>;
 export let exportedMemos: React.NamedExoticComponent[];
 
 // Some client exports are functions whose own toString is not callable; they
@@ -43,15 +43,13 @@ export const analyzeWebpackRequire = (webpackRequire: WebpackRequire) => {
 		.filter(Boolean) as Array<any>;
 
 	const isFunction = (obj: any): obj is Function => typeof obj === "function";
-	const exportedFunctions = exported.filter(isFunction);
+	const exportedFunctions = exported.filter(isFunction) as any[];
 
 	const exportedReactObjects = Object.groupBy(exported, (x) => x.$$typeof);
 	const exportedContexts = exportedReactObjects[Symbol.for("react.context") as any]! as Array<
 		React.Context<any>
 	>;
-	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref") as any]! as Array<
-		React.ForwardRefExoticComponent<any>
-	>;
+	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref") as any]! as any[];
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo") as any]! as React.NamedExoticComponent[];
 
 	return {

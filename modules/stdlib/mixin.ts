@@ -11,9 +11,17 @@ Object.defineProperty = function (obj, prop, descriptor) {
 	return nativeObjectDefineProperty(obj, prop, descriptor);
 };
 
-export let transformer: unknown;
+// Shape of the loader-provided source transformer: registers a rewrite
+// over client bundles matched by glob. emit() reports the needle matched
+// (optionally with a captured value the returned promise resolves with).
+export type Transformer = <T = unknown>(
+	fn: (emit: (value?: T) => void) => (str: string) => string,
+	opts?: { glob?: RegExp; wait?: boolean; noAwait?: boolean },
+) => Promise<T>;
 
-export default async function (t: unknown, _ctx: { spotifyVersion: string }) {
+export let transformer: Transformer;
+
+export default async function (t: Transformer, _ctx: { spotifyVersion: string }) {
 	transformer = t;
 	await Promise.all([
 		import("./src/expose/index.js"),

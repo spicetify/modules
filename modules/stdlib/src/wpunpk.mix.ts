@@ -44,9 +44,9 @@ export const chunkLoadedSubjectPre = new Subject<unknown>();
 export const chunkLoadedSubjectPost = new Subject<unknown>();
 export const moduleLoadedSubject = new Subject<unknown>();
 
-const pendingHooks: Array<(wpr: unknown) => void> = [];
+const pendingHooks: Array<(wpr: any) => void> = [];
 export const postWebpackRequireHooks = {
-	push(hook: (wpr: unknown) => void) {
+	push(hook: (wpr: any) => void) {
 		if (typeof globalThis.__webpack_require__ === "function") {
 			try {
 				hook(globalThis.__webpack_require__);
@@ -61,14 +61,16 @@ export const postWebpackRequireHooks = {
 	},
 };
 
+export type WebpackModule = (module: any, exports: any, require: any) => void;
+
 export type WebpackRequire = {
-	(id: string | number): unknown;
+	(id: PropertyKey): any;
 	m: Record<string, unknown>;
 };
 
 export const webpackRequire: WebpackRequire = new Proxy(function () {}, {
 	get: (_, k) => globalThis.__webpack_require__?.[k as never] ?? (k === "m" ? {} : undefined),
-	apply: (_, __, args) => (globalThis.__webpack_require__ as never as WebpackRequire)(...args),
+	apply: (_, __, args) => (globalThis.__webpack_require__ as any)(...args),
 }) as never;
 
 const drain = () => {

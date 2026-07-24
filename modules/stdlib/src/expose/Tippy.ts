@@ -5,7 +5,7 @@
 
 import { transformer } from "../../mixin.ts";
 
-import type { Tippy as TippyT } from "npm:tippy.js";
+type TippyT = any;
 
 export type Tippy = TippyT;
 export let Tippy: Tippy;

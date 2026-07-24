@@ -10,7 +10,7 @@ type ModulePair = [keyof any, WebpackModule];
 
 export function matchWebpackModuleSync(moduleMatcher: ModuleMatcher): ModulePair | null {
 	if (webpackRequire) {
-		for (const [id, module] of Object.entries(webpackRequire!.m)) {
+		for (const [id, module] of Object.entries(webpackRequire!.m) as Array<[string, WebpackModule]>) {
 			if (moduleMatcher(id, module)) {
 				return [id, module] as ModulePair;
 			}

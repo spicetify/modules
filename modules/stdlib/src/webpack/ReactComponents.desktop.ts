@@ -10,8 +10,8 @@ await (CHUNKS["/xpui-desktop-routes-settings.js"] ??= Promise.withResolvers()).p
 
 const { exports } = analyzeWebpackRequire(webpackRequire);
 export const Settings: {
-	SettingsLabel: React.FC<{}>;
-	SettingsRow: React.FC<{}>;
-	SettingsRowEnd: React.FC<{}>;
-	SettingsRowStart: React.FC<{}>;
-} = exports.find((m) => m.SettingsRow);
+	SettingsLabel: React.FC<any>;
+	SettingsRow: React.FC<any>;
+	SettingsRowEnd: React.FC<any>;
+	SettingsRowStart: React.FC<any>;
+} = exports.find((m) => m.SettingsRow) as any;

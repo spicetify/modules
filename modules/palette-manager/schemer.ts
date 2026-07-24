@@ -4,6 +4,7 @@
 
 import { Palette, PaletteManager } from "./palette.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import type { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
 
 class Schemer {
 	constructor(private ctx: ModuleRuntimeContext) {

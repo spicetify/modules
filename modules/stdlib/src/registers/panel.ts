@@ -119,7 +119,7 @@ transformer(
 					};
 					delete ON.playback_autoplay_context_changed;
 
-					for (const [k, v] of Object.entries(Machine.config.states!)) {
+					for (const [k, v] of Object.entries(Machine.config.states! as Record<string, any>)) {
 						if (k === "puffin_activation") {
 							continue;
 						}

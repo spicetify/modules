@@ -5,7 +5,7 @@
 
 import { transformer } from "../../mixin.ts";
 
-import type { Store } from "npm:@types/redux";
+type Store = any;
 
 export type ReduxStore = Store;
 export let ReduxStore: ReduxStore;

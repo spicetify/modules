@@ -16,8 +16,14 @@ export { default as uniq } from "https://esm.sh/lodash@4.17.21/uniq";
 import { default as mean } from "https://esm.sh/lodash@4.17.21/fp/mean";
 export const fp = { mean };
 
-export {
-	BehaviorSubject,
-	Subject,
-	Subscription,
+import {
+	BehaviorSubject as _BehaviorSubject,
+	Subject as _Subject,
+	Subscription as _Subscription,
 } from "https://esm.sh/rxjs@7.8.1?exports=BehaviorSubject,Subscription,Subject";
+import type * as rxjsTypes from "rxjs";
+
+// The esm.sh URL carries no types; the rxjs dev dependency provides them.
+export const BehaviorSubject: typeof rxjsTypes.BehaviorSubject = _BehaviorSubject;
+export const Subject: typeof rxjsTypes.Subject = _Subject;
+export const Subscription: typeof rxjsTypes.Subscription = _Subscription;

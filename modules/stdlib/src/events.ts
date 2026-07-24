@@ -51,8 +51,8 @@ export const createEventBus = (mod: ModuleInstance) => {
 	return eventBus;
 };
 
-let cachedState = {};
-const playerListener = ({ data: state }) => {
+let cachedState: any = {};
+const playerListener = ({ data: state }: any) => {
 	EventBus.Player.state_updated.next(state);
 	if (state?.item?.uri !== cachedState?.item?.uri) EventBus.Player.song_changed.next(state);
 	if (state?.isPaused !== cachedState?.isPaused || state?.isBuffering !== cachedState?.isBuffering) {

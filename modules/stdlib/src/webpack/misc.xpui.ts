@@ -8,8 +8,12 @@ import { findBy } from "/hooks/util.ts";
 
 await CHUNKS.xpui.promise;
 
+// The client's own color class; no static types exist for it.
+export type Color = any;
+
 export const Color: Function & {
 	Format: any;
+	[member: string]: any;
 } = Object.assign(findBy("this.rgb")(exportedFunctions)!, {
 	// Typed predicate: some client exports are get-trap proxies that answer
 	// truthy for any key, so "has RGBA" alone can latch onto the wrong one.

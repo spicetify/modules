@@ -27,14 +27,14 @@ export interface AnchorSpec {
 // One broken registered node must not take down the others.
 export const createItemBoundary = (R: any, label: string) =>
 	class ItemBoundary extends R.Component {
-		override state = { failed: false };
+		state = { failed: false };
 		static getDerivedStateFromError() {
 			return { failed: true };
 		}
-		override componentDidCatch(error: unknown) {
+		componentDidCatch(error: unknown) {
 			console.error(`[stdlib] registered ${label} item crashed:`, error);
 		}
-		override render() {
+		render() {
 			return (this.state as { failed: boolean }).failed ? null : (this.props as { children?: unknown }).children;
 		}
 	};
