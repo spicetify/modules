@@ -98,7 +98,7 @@ function generateClassmapDts(classmap: Record<string, unknown>): string {
 			if (typeof value === "string") {
 				lines.push(`${pad}\t${JSON.stringify(key)}: string;`);
 			} else {
-				lines.push(`${pad}\t${JSON.stringify(key)}: ${render(value, indent + 1)};`);
+				lines.push(`${pad}\t${JSON.stringify(key)}: ${render(value as Record<string, unknown>, indent + 1)};`);
 			}
 		}
 		lines.push(`${pad}}`);
@@ -252,6 +252,9 @@ async function buildJs(inputDir: string, outputDir: string, identifier: string, 
 		format: "esm",
 		sourcemap: true,
 		preserveModules: tree,
+		// Leaf modules ship as one chunk: local installs run entries through
+		// blob URLs, where relative chunk imports cannot resolve.
+		inlineDynamicImports: !tree && Object.keys(input).length === 1,
 	});
 
 	// The hooks compat pack serves .js; Deno-era sources import "/hooks/*.ts".
