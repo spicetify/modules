@@ -38,10 +38,12 @@ export interface ManagerState {
 type LoaderGlobals = {
 	Spicetify?: {
 		Modules?: {
+			manifest?: Manifest;
 			registry?: { manifest?: Manifest };
 			report?: { loaded: string[]; failed: Record<string, string> };
-			list?: () => Array<{ identifier: string; version: string; loaded: boolean; mixedIn: boolean; failed?: string }>;
-			listLocal?: () => Array<{ metadata: { identifier: string } }>;
+			list?: () => Array<
+				{ identifier: string; version: string; loaded: boolean; mixedIn: boolean; local?: boolean; failed?: string }
+			>;
 		};
 	};
 	__SPICETIFY_MODULAR_MANIFEST__?: Manifest;
@@ -60,23 +62,21 @@ type Manifest = {
 export function deriveManagerState(): ManagerState {
 	const g = globalThis as never as LoaderGlobals;
 	const M = g.Spicetify?.Modules;
-	const manifest = M?.registry?.manifest ?? g.__SPICETIFY_MODULAR_MANIFEST__;
+	const manifest = M?.manifest ?? M?.registry?.manifest ?? g.__SPICETIFY_MODULAR_MANIFEST__;
 
-	const states = new Map((M?.list?.() ?? []).map((s) => [s.identifier, s]));
-	const local = new Set((M?.listLocal?.() ?? []).map((r) => r.metadata.identifier));
-
-	const modules: ManagerModuleRow[] = (manifest?.modules ?? []).map((m) => {
-		const s = states.get(m.identifier);
-		return {
-			id: m.identifier,
-			version: m.version,
-			source: local.has(m.identifier) ? "local" : "staged",
-			loaded: s?.loaded ?? false,
-			mixedIn: s?.mixedIn ?? false,
-			failed: s?.failed,
-			dependencies: m.dependencies ?? {},
-		};
-	});
+	// list() is registry truth: it covers staged modules, live local
+	// installs, and removals, and its `local` flag marks records actually
+	// loaded from localStorage (not stale shadowed copies).
+	const manifestById = new Map((manifest?.modules ?? []).map((m) => [m.identifier, m]));
+	const modules: ManagerModuleRow[] = (M?.list?.() ?? []).map((s) => ({
+		id: s.identifier,
+		version: s.version,
+		source: s.local ? "local" : "staged",
+		loaded: s.loaded,
+		mixedIn: s.mixedIn,
+		failed: s.failed,
+		dependencies: manifestById.get(s.identifier)?.dependencies ?? {},
+	}));
 
 	return {
 		spotifyVersion: manifest?.spotifyVersion,

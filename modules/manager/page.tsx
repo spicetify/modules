@@ -13,8 +13,8 @@ const LEVEL_CLASS: Record<string, string> = {
 	warn: "spicetify-manager-diag--warn",
 };
 
-const Chip = ({ kind, children }: { kind?: "ok" | "bad"; children: React.ReactNode }) => (
-	<span className={`spicetify-manager-chip${kind ? ` spicetify-manager-chip--${kind}` : ""}`}>{children}</span>
+const Badge = ({ kind, children }: { kind?: "ok" | "bad"; children: React.ReactNode }) => (
+	<span className={`spicetify-manager-badge${kind ? ` spicetify-manager-badge--${kind}` : ""}`}>{children}</span>
 );
 
 const ModuleRow = (
@@ -29,12 +29,12 @@ const ModuleRow = (
 		<div className="spicetify-manager-module">
 			<div className="spicetify-manager-module__head">
 				<span className="spicetify-manager-module__name">{row.id}</span>
-				<Chip>{row.version}</Chip>
-				<Chip>{row.source}</Chip>
-				{row.loaded && <Chip kind="ok">loaded</Chip>}
-				{!row.loaded && !row.failed && <Chip>disabled</Chip>}
-				{row.mixedIn && <Chip>mixins</Chip>}
-				{row.failed !== undefined && <Chip kind="bad">failed</Chip>}
+				<Badge>{row.version}</Badge>
+				<Badge>{row.source}</Badge>
+				{row.loaded && <Badge kind="ok">loaded</Badge>}
+				{!row.loaded && !row.failed && <Badge>disabled</Badge>}
+				{row.mixedIn && <Badge>mixins</Badge>}
+				{row.failed !== undefined && <Badge kind="bad">failed</Badge>}
 			</div>
 			{deps && <div className="spicetify-manager-module__deps">needs {deps}</div>}
 			{row.failed !== undefined && <div className="spicetify-manager-module__failure">{row.failed}</div>}
@@ -99,12 +99,20 @@ export const ManagerPage = () => {
 		})();
 	};
 
-	const copyDiagnostics = () => {
+	const copyDiagnostics = async () => {
+		if (!navigator.clipboard) {
+			setStatus("clipboard unavailable in this client");
+			return;
+		}
 		const text = state.diagnostics
 			.map((d) => `${new Date(d.ts).toISOString()} [${d.level}] ${d.message}`)
 			.join("\n");
-		void navigator.clipboard?.writeText(text);
-		setStatus("diagnostics copied");
+		try {
+			await navigator.clipboard.writeText(text);
+			setStatus("diagnostics copied");
+		} catch (e) {
+			setStatus(`copy failed: ${(e as Error).message}`);
+		}
 	};
 
 	const q = filter.toLowerCase();
@@ -131,13 +139,13 @@ export const ManagerPage = () => {
 			<section>
 				<h2>Environment</h2>
 				<div className="spicetify-manager-env">
-					<Chip>Spotify {show(state.spotifyVersion)}</Chip>
-					<Chip>classmap {show(state.classmapKey)}</Chip>
-					<Chip>CLI {show(state.cliVersion)}</Chip>
-					<Chip kind={state.updatesBlocked ? "ok" : undefined}>
+					<Badge>Spotify {show(state.spotifyVersion)}</Badge>
+					<Badge>classmap {show(state.classmapKey)}</Badge>
+					<Badge>CLI {show(state.cliVersion)}</Badge>
+					<Badge kind={state.updatesBlocked ? "ok" : undefined}>
 						updates blocked: {showBool(state.updatesBlocked)}
-					</Chip>
-					<Chip>transforms: {state.transformsEnabled ? "on" : "off"}</Chip>
+					</Badge>
+					<Badge>transforms: {state.transformsEnabled ? "on" : "off"}</Badge>
 				</div>
 				<p className="spicetify-manager-note">
 					Installing or staging modules on disk happens outside the client — after changing staged modules, run{" "}
@@ -160,7 +168,7 @@ export const ManagerPage = () => {
 			<section>
 				<div className="spicetify-manager-diag-head">
 					<h2>Diagnostics</h2>
-					<button type="button" onClick={copyDiagnostics} disabled={!state.diagnostics.length}>
+					<button type="button" onClick={() => void copyDiagnostics()} disabled={!state.diagnostics.length}>
 						Copy all
 					</button>
 				</div>

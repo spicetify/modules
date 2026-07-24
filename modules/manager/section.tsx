@@ -9,10 +9,15 @@ import { deriveManagerState, show, showBool } from "./state.ts";
 
 export const MANAGER_ROUTE = "/bespoke/manager";
 
-// The settings anchor remounts this section on every settings visit, so a
-// per-render derivation is always fresh.
+// The settings anchor keeps one React root alive across visits, so the
+// section must refresh itself; a light poll keeps values honest while the
+// settings page is open (and is idle-cheap while the root sits detached).
 export const ManagerSection = () => {
-	const state = deriveManagerState();
+	const [state, setState] = React.useState(deriveManagerState);
+	React.useEffect(() => {
+		const timer = setInterval(() => setState(deriveManagerState()), 2000);
+		return () => clearInterval(timer);
+	}, []);
 
 	const rows: Array<[string, string]> = [
 		["Spotify version", show(state.spotifyVersion)],
