@@ -8,6 +8,7 @@ import { findMatchingPos } from "/hooks/util.ts";
 import { createIconComponent } from "../../lib/createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
 import { Platform } from "../expose/Platform.ts";
+import { warn } from "../logger.ts";
 import { classnames } from "../webpack/ClassNames.ts";
 import { Nav, ScrollableContainer, Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
@@ -94,6 +95,17 @@ export type NavLinkProps = {
 	activeIcon: string;
 };
 export const NavLink: React.FC<NavLinkProps> = (props) => {
+	// Registered elements are frozen in the registry, so parent refreshes
+	// bail out on identical children; active state must self-subscribe.
+	const [, force] = React.useReducer((n: number) => n + 1, 0);
+	React.useEffect(() => {
+		try {
+			return Platform.getHistory().listen(() => force()) as (() => void) | undefined;
+		} catch (e) {
+			warn("[stdlib] NavLink cannot follow history:", e);
+			return undefined;
+		}
+	}, []);
 	const isActive = Platform.getHistory().location.pathname?.startsWith(props.appRoutePath);
 	const createIcon = () =>
 		createIconComponent({ icon: isActive ? props.activeIcon : props.icon, iconSize: 24 });
