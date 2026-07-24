@@ -5,6 +5,7 @@
 
 import type { ModuleRuntimeContext } from "../../mod.ts";
 
+import { React } from "../expose/React.ts";
 import menu from "./menu.ts";
 import navlink from "./navlink.tsx";
 import panel from "./panel.ts";
@@ -41,6 +42,14 @@ export class Registrar {
 		this.ledger.set(args[0], type);
 		// @ts-ignore
 		registers[type].add(...args);
+	}
+
+	// Routes are registered as elements with a string "route" tag; this
+	// hides that incantation. Returns the item for manual unregister.
+	registerRoute(path: string, element: React.ReactNode): React.ReactNode {
+		const item = React.createElement("route", { path, element });
+		this.register("route", item);
+		return item;
 	}
 
 	unregister<R extends keyof Registers>(type: R, ...args: Parameters<Registers[R]["delete"]>) {
