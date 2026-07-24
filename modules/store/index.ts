@@ -242,6 +242,180 @@ function createPanel() {
 	};
 }
 
+// Full store page on /bespoke/store, registered through stdlib's route
+// register. Same standalone rule as the button: the popover panel keeps
+// working without stdlib; the page is progressive enhancement.
+const STORE_ROUTE = "/bespoke/store";
+
+function createStorePage() {
+	const page = el("div", "spicetify-store-page");
+
+	const header = el("header", "spicetify-store-page-header");
+	const titles = el("div");
+	titles.appendChild(el("h1", undefined, "Module Store"));
+	titles.appendChild(el("p", "spicetify-store-page-subtitle", "Modules from your trusted vaults"));
+	const search = el("input", "spicetify-searchbar spicetify-store-page-search") as HTMLInputElement;
+	search.placeholder = "Search modules…";
+	header.append(titles, search);
+
+	const status = el("div", "spicetify-store-status");
+	const grid = el("div", "spicetify-store-grid");
+	const installedTitle = el("h2", "spicetify-store-section-title", "Installed");
+	const installedGrid = el("div", "spicetify-store-grid");
+	page.append(header, status, grid, installedTitle, installedGrid);
+
+	let modules: VaultModule[] = [];
+	let filter = "";
+	const setStatus = (msg: string) => (status.textContent = msg);
+
+	function badge(text: string, ok = false) {
+		return el("span", `spicetify-store-badge${ok ? " spicetify-store-badge--ok" : ""}`, text);
+	}
+
+	function renderGrid() {
+		grid.replaceChildren();
+		const localIds = new Set(M().listLocal().map((r: any) => r.metadata.identifier));
+		const states = new Map(M().list().map((s: any) => [s.identifier, s]));
+		const q = filter.toLowerCase();
+		for (const mod of modules.filter((m) => m.id.toLowerCase().includes(q))) {
+			const card = el("article", "spicetify-store-card");
+
+			card.appendChild(el("h3", "spicetify-store-card-name", mod.id));
+
+			const meta = el("div", "spicetify-store-card-meta");
+			meta.appendChild(badge(mod.version));
+			meta.appendChild(badge(mod.checksum ? "checksum ✓" : "unverified", !!mod.checksum));
+			try {
+				meta.appendChild(badge(new URL(mod.vault).host));
+			} catch {}
+			const state = states.get(mod.id) as { loaded?: boolean } | undefined;
+			if (localIds.has(mod.id)) meta.appendChild(badge(state?.loaded ? "enabled" : "installed", true));
+			card.appendChild(meta);
+
+			const actions = el("div", "spicetify-store-card-actions");
+			const install = el("button", "spicetify-store-cta", localIds.has(mod.id) ? "Reinstall" : "Install");
+			install.addEventListener("click", async () => {
+				install.disabled = true;
+				try {
+					await installModule(mod, setStatus);
+				} catch (e) {
+					setStatus(`failed: ${(e as Error).message}`);
+				}
+				install.disabled = false;
+				renderAll();
+			});
+			actions.appendChild(install);
+			card.appendChild(actions);
+			grid.appendChild(card);
+		}
+		if (!grid.childElementCount) {
+			grid.appendChild(
+				el("div", "spicetify-store-empty", modules.length ? "No modules match your search" : "No modules found in any vault"),
+			);
+		}
+	}
+
+	function renderInstalledGrid() {
+		installedGrid.replaceChildren();
+		const local = M().listLocal();
+		installedTitle.style.display = local.length ? "" : "none";
+		const states = new Map(M().list().map((s: any) => [s.identifier, s]));
+		for (const record of local) {
+			const id = record.metadata.identifier;
+			const state = states.get(id) as { loaded?: boolean } | undefined;
+			const card = el("article", "spicetify-store-card");
+
+			card.appendChild(el("h3", "spicetify-store-card-name", id));
+
+			const meta = el("div", "spicetify-store-card-meta");
+			const version = record.sidecar?.installed_version ?? "";
+			if (version) meta.appendChild(badge(version));
+			meta.appendChild(badge(state?.loaded ? "enabled" : "disabled", !!state?.loaded));
+			card.appendChild(meta);
+
+			const actions = el("div", "spicetify-store-card-actions");
+			const toggle = el("button", "spicetify-store-cta", state?.loaded ? "Disable" : "Enable");
+			toggle.addEventListener("click", async () => {
+				try {
+					if (state?.loaded) await M().disable(id);
+					else await M().enable(id);
+				} catch (e) {
+					setStatus(`failed: ${(e as Error).message}`);
+				}
+				renderAll();
+			});
+			const remove = el("button", "spicetify-store-danger", "Remove");
+			remove.addEventListener("click", async () => {
+				try {
+					await M().removeLocal(id);
+				} catch (e) {
+					setStatus(`failed: ${(e as Error).message}`);
+				}
+				renderAll();
+			});
+			actions.append(toggle, remove);
+			card.appendChild(actions);
+			installedGrid.appendChild(card);
+		}
+	}
+
+	function renderAll() {
+		renderGrid();
+		renderInstalledGrid();
+	}
+
+	search.addEventListener("input", () => {
+		filter = search.value;
+		renderGrid();
+	});
+
+	let loaded = false;
+	return {
+		node: page,
+		async ensureLoaded() {
+			if (loaded) return;
+			loaded = true;
+			setStatus("loading vaults…");
+			try {
+				modules = await listVaultModules();
+				setStatus(modules.length ? "" : "no modules found in any vault");
+			} catch (e) {
+				setStatus(`failed to load vaults: ${(e as Error).message}`);
+			}
+			renderAll();
+		},
+	};
+}
+
+async function registerStorePage(
+	page: ReturnType<typeof createStorePage>,
+): Promise<(() => void) | null> {
+	try {
+		const [{ Registrar }, { React }] = await Promise.all([
+			import("/modules/stdlib/src/registers/index.js"),
+			import("/modules/stdlib/src/expose/React.js"),
+		]);
+		const registrar = new Registrar("store-page");
+		// Hook-free host: the route overlay renders it with the client
+		// React; the vanilla page node mounts through the ref.
+		const Host = () =>
+			React.createElement("div", {
+				className: "spicetify-store-page-host",
+				ref: (node: HTMLElement | null) => {
+					if (node && !node.contains(page.node)) {
+						node.appendChild(page.node);
+						void page.ensureLoaded();
+					}
+				},
+			});
+		registrar.register("route", React.createElement("route", { path: STORE_ROUTE, element: React.createElement(Host) }));
+		return () => registrar.dispose();
+	} catch (e) {
+		console.warn("[store] page route unavailable:", e);
+		return null;
+	}
+}
+
 // Marketplace-style circular icon button in the global nav, registered
 // through stdlib when it is installed. The store stays standalone by
 // design, so a fixed-position fallback button covers a missing or broken
@@ -270,6 +444,8 @@ async function createStdlibButton(onClick: () => void): Promise<(() => void) | n
 
 export async function load() {
 	const panel = createPanel();
+	const page = createStorePage();
+	const disposePage = await registerStorePage(page);
 
 	// Anchored under the topbar button via stdlib's popover when available;
 	// the fixed-position panel stays as the standalone fallback.
@@ -280,6 +456,17 @@ export async function load() {
 		popoverApi = null;
 	}
 	let popover: { close: () => void } | null = null;
+
+	if (disposePage) {
+		const openPage = el("button", "spicetify-store-open-page", "Open full store ↗");
+		openPage.addEventListener("click", () => {
+			popover?.close();
+			panel.node.style.display = "none";
+			(globalThis as never as Record<string, any>).Spicetify?.Platform?.History?.push?.(STORE_ROUTE);
+		});
+		const header = panel.node.querySelector(".spicetify-store-header");
+		header?.insertBefore(openPage, header.querySelector(".spicetify-store-close"));
+	}
 	const toggle = () => {
 		const anchor = document.querySelector<HTMLElement>(
 			".spicetify-topbar-left-buttons button[aria-label='Module Store']",
@@ -309,6 +496,8 @@ export async function load() {
 	const fallbackBtn = disposeStdlibButton ? null : createTopbarButton(toggle);
 	return () => {
 		popover?.close();
+		disposePage?.();
+		page.node.remove();
 		disposeStdlibButton?.();
 		fallbackBtn?.remove();
 		panel.remove();
