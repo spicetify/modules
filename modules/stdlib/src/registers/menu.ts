@@ -7,6 +7,7 @@ import { React } from "../expose/React.ts";
 
 import { matchLast } from "/hooks/util.ts";
 
+import { warn } from "../logger.ts";
 import { transformer } from "../../mixin.ts";
 import { Registry } from "./registry.ts";
 
@@ -86,7 +87,7 @@ if (
 		const R = React as any;
 		const createRoot = (ReactDOM as any).createRoot;
 		if (typeof createRoot !== "function") {
-			console.warn("[stdlib] cannot mount menu items (no createRoot)");
+			warn("[stdlib] cannot mount menu items (no createRoot)");
 			return;
 		}
 

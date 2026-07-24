@@ -9,6 +9,7 @@
 // chrome, and module components all share one hook dispatcher.
 
 import { React, ReactDOM } from "../expose/React.ts";
+import { warn } from "../logger.ts";
 import type { Registry } from "./registry.ts";
 
 export interface AnchorSpec {
@@ -84,7 +85,7 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 		const R = React as any;
 		const createRoot = (ReactDOM as any).createRoot;
 		if (typeof createRoot !== "function") {
-			console.warn("[stdlib] cannot mount register anchor (no createRoot):", spec.className);
+			warn("[stdlib] cannot mount register anchor (no createRoot):", spec.className);
 			return;
 		}
 

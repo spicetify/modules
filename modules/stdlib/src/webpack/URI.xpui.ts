@@ -4,6 +4,7 @@
  */
 
 import { toPascalCase } from "/hooks/std/text.ts";
+import { warn } from "../logger.ts";
 import { modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 import { IsThisURIType, ParsableAsURI, URIClass, URITypes } from "./URI.ts";
@@ -63,7 +64,7 @@ await CHUNKS.xpui.promise;
 const URIModuleHit = modules.find(
 	([id, v]) => src(v).includes("Invalid Spotify URI!") && Object.keys(webpackRequire(id) ?? {}).length > 10,
 );
-if (!URIModuleHit) console.warn("[stdlib] webpack needle miss: URI module (Invalid Spotify URI!)");
+if (!URIModuleHit) warn("[stdlib] webpack needle miss: URI module (Invalid Spotify URI!)");
 const URIModule = URIModuleHit ? webpackRequire(URIModuleHit[0]) : {};
 const [_Types, ...vs] = Object.values(URIModule) as [URITypes, ...Function[]];
 export const Types = _Types ?? ({} as URITypes);
@@ -90,7 +91,7 @@ const uniqueFns = fnsByType[undefined as unknown as keyof typeof fnsByType] ?? [
 const findAndExcludeBy = (...strings: string[]) => {
 	const i = uniqueFns.findIndex((f) => strings.every((str) => src(f).includes(str)));
 	if (i < 0) {
-		console.warn("[stdlib] webpack needle miss: URI helper", strings.join(" + "));
+		warn("[stdlib] webpack needle miss: URI helper", strings.join(" + "));
 		return undefined;
 	}
 	return uniqueFns.splice(i, 1)[0];

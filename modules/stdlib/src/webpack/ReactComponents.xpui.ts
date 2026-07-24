@@ -6,6 +6,8 @@
 import { toPascalCase } from "/hooks/std/text.ts";
 import { findBy } from "/hooks/util.ts";
 
+import { warn } from "../logger.ts";
+
 import { Platform } from "../expose/Platform.ts";
 import { exportedForwardRefs, exportedFunctions, exportedMemos, modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
@@ -35,7 +37,7 @@ export const Menus: any = Object.fromEntries(
 // names the needle so a needle refresh can target it.
 const findModuleId = (needle: string, pred: (source: string) => boolean) => {
 	const hit = modules.find(([, v]) => pred(v.toString()));
-	if (!hit) console.warn("[stdlib] webpack needle miss:", needle);
+	if (!hit) warn("[stdlib] webpack needle miss:", needle);
 	return hit?.[0];
 };
 const requireExports = (id: ReturnType<typeof findModuleId>): Record<string, any> =>
