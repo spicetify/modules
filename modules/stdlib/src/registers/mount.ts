@@ -38,6 +38,19 @@ export const createItemBoundary = (R: any, label: string) =>
 		}
 	};
 
+// The top bar doubles as the window drag region; like the client's own
+// buttons, anchor children must opt out or physical clicks drag the window
+// instead of reaching them (synthetic and CDP clicks bypass this, so only
+// real mice notice).
+const ensureAnchorStyle = () => {
+	if (document.getElementById("spicetify-anchor-style")) return;
+	const style = document.createElement("style");
+	style.id = "spicetify-anchor-style";
+	style.textContent =
+		"[data-spicetify-anchor] > * { -webkit-app-region: no-drag; app-region: no-drag; }";
+	document.head.appendChild(style);
+};
+
 // One shared observer serves every anchor: the client mutates the DOM
 // constantly, and per-anchor subtree observers multiply that cost. Each
 // tick is one isConnected check per pending or placed anchor.
@@ -78,6 +91,8 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 		const host = document.createElement("span");
 		host.className = spec.className;
 		host.style.display = "contents";
+		host.dataset.spicetifyAnchor = "";
+		ensureAnchorStyle();
 
 		const place = () => {
 			const slot = spec.findSlot();
