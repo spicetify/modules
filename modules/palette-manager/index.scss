@@ -94,6 +94,15 @@
 		border-top: 1px solid rgba(255, 255, 255, 0.08);
 	}
 
+	.palette-scheme-heading {
+		padding: 12px 12px 4px;
+		font-size: 11px;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		opacity: 0.6;
+		list-style: none;
+	}
+
 	.palette-row {
 		display: flex;
 		align-items: center;
