@@ -47,3 +47,19 @@
 		border-color: rgba(255, 255, 255, 0.35);
 	}
 }
+
+/* Module surfaces: text controls follow the theme by default. Form elements
+   never inherit color (the UA default is near-black), so every module UI on
+   dark surfaces would repeat this fix otherwise. Buttons are left alone —
+   they are usually component-styled. */
+.spicetify-root-children,
+.spicetify-popover,
+.spicetify-route-page,
+[data-spicetify-anchor] {
+	input,
+	textarea,
+	select {
+		color: var(--spice-text, #fff);
+		font: inherit;
+	}
+}
