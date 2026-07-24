@@ -5,9 +5,11 @@
 
 const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
 // Overridable for vault development: point at any URL (data: URLs work)
-// to preview a vault before publishing it.
-const DEFAULT_VAULT_URL = globalThis.localStorage?.getItem("spicetify:defaultVaultUrl") ??
-	"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
+// to preview a vault before publishing it. Read lazily like the other
+// overrides so a change applies on the next load, not the next boot.
+const DEFAULT_VAULT_URL = () =>
+	globalThis.localStorage?.getItem("spicetify:defaultVaultUrl") ??
+		"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
 
 // raw.githubusercontent and the vault hosts are CORS-enabled; github.com
 // release downloads are not. Only proxy what needs it, with the raw URL
@@ -47,7 +49,20 @@ type VaultModule = {
 	};
 };
 
-type Catalog = { modules: VaultModule[]; revoked: Record<string, string> };
+// ok: at least one vault answered; an all-failed load must not latch an
+// empty catalog.
+type Catalog = { modules: VaultModule[]; revoked: Record<string, string>; ok: boolean };
+
+// Numeric semver-ish compare; plain string sort breaks at x.10.0.
+function compareVersions(a: string, b: string): number {
+	const parse = (v: string) => v.split(/[+-]/)[0].split(".").map((n) => Number.parseInt(n, 10) || 0);
+	const [pa, pb] = [parse(a), parse(b)];
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+		if (d) return d;
+	}
+	return a.localeCompare(b);
+}
 
 async function fetchJson(url: string) {
 	const res = await fetch(corsProxy(url));
@@ -56,7 +71,7 @@ async function fetchJson(url: string) {
 }
 
 async function vaultUrls(): Promise<string[]> {
-	const urls = [DEFAULT_VAULT_URL];
+	const urls = [DEFAULT_VAULT_URL()];
 	try {
 		const community = await fetchJson(COMMUNITY_VAULTS_URL);
 		for (const v of community as Array<{ url: string }>) {
@@ -80,16 +95,24 @@ async function loadCatalog(): Promise<Catalog> {
 	const out: VaultModule[] = [];
 	const seen = new Set<string>();
 	const revoked: Record<string, string> = {};
-	for (const vault of await vaultUrls()) {
+	let ok = false;
+	const urls = await vaultUrls();
+	for (const vault of urls) {
 		try {
 			const data = await fetchJson(vault);
-			for (const [id, reason] of Object.entries<string>(data.revoked ?? {})) {
-				revoked[id] ??= reason;
+			ok = true;
+			// Only the default (curated) vault may revoke globally; a
+			// community vault must not be able to disable other vaults'
+			// modules.
+			if (vault === urls[0]) {
+				for (const [id, reason] of Object.entries<string>(data.revoked ?? {})) {
+					revoked[id] ??= reason;
+				}
 			}
 			for (const [id, mod] of Object.entries<any>(data.modules ?? {})) {
 				// First vault wins; the default vault is fetched first.
 				if (seen.has(id)) continue;
-				const versions = Object.keys(mod.v ?? {}).sort();
+				const versions = Object.keys(mod.v ?? {}).sort(compareVersions);
 				const version = mod.enabled ?? versions[versions.length - 1];
 				const entry = mod.v?.[version];
 				if (!entry) continue;
@@ -110,7 +133,7 @@ async function loadCatalog(): Promise<Catalog> {
 			console.warn("[store] vault failed", vault, e);
 		}
 	}
-	return { modules: out, revoked };
+	return { modules: out, revoked, ok };
 }
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
@@ -123,6 +146,11 @@ async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 const installCounts: Record<string, number> = {};
 // The page subscribes so a freshly counted install refreshes its badge.
 let onCountsChanged: (() => void) | null = null;
+// Module lifecycle: dispose() must cancel retry timers and close
+// overlays; nothing may outlive the module.
+let disposed = false;
+const retryTimers = new Set<ReturnType<typeof setTimeout>>();
+const openScrims = new Set<HTMLElement>();
 
 async function fetchInstallCounts(ids: string[]): Promise<void> {
 	const base = INSTALLS_API();
@@ -144,6 +172,7 @@ async function fetchInstallCounts(ids: string[]): Promise<void> {
 // stores only a keyed hash of the account id, so repeat installs by the
 // same account are not double counted.
 function reportInstall(mod: VaultModule, attempt = 0): void {
+	if (disposed) return;
 	try {
 		const session = PLATFORM()?.Session;
 		const token = session?.accessToken;
@@ -157,7 +186,11 @@ function reportInstall(mod: VaultModule, attempt = 0): void {
 			// deferred retry recovers most of those counts.
 			if (res.status === 503 && attempt === 0) {
 				const wait = Number(res.headers.get("retry-after") ?? 60);
-				setTimeout(() => reportInstall(mod, 1), Math.min(wait, 120) * 1000);
+				const timer = setTimeout(() => {
+					retryTimers.delete(timer);
+					if (!disposed) reportInstall(mod, 1);
+				}, Math.min(wait, 120) * 1000);
+				retryTimers.add(timer);
 				return;
 			}
 			if (!res.ok) return;
@@ -194,17 +227,34 @@ async function enforceSingleTheme(id: string, status: (msg: string) => void): Pr
 	}
 }
 
+const installing = new Set<string>();
+
 async function installModule(mod: VaultModule, status: (msg: string) => void) {
+	if (installing.has(mod.id)) {
+		status(`${mod.id} is already installing`);
+		return;
+	}
+	installing.add(mod.id);
+	try {
+		await installModuleInner(mod, status);
+	} finally {
+		installing.delete(mod.id);
+	}
+}
+
+async function installModuleInner(mod: VaultModule, status: (msg: string) => void) {
 	let metadata: any = null;
 	let files: Record<string, string>;
 
 	if (mod.files) {
-		// Inline content: the vault entry is the artifact.
-		files = { ...mod.files };
-		if (files["metadata.json"]) {
-			metadata = JSON.parse(files["metadata.json"]);
-			delete files["metadata.json"];
+		// Inline content: the vault entry is the artifact. Inline entries
+		// are stylesheet-only; executable content must ship as a
+		// checksummed artifact.
+		files = {};
+		for (const [name, content] of Object.entries(mod.files)) {
+			if (name.endsWith(".css")) files[name] = content;
 		}
+		if (!Object.keys(files).length) throw new Error("inline entry has no css files");
 	} else {
 		status(`downloading ${mod.id}@${mod.version}…`);
 		const res = await fetch(corsProxy(mod.artifacts[0]));
@@ -364,17 +414,22 @@ function renderMarkdown(md: string): HTMLElement {
 // ---------- modal overlay (details, snippet editor) ----------
 
 function openOverlay(title: string): { body: HTMLElement; close: () => void } {
-	const scrim = el("div", "spicetify-store-scrim");
-	const dialog = el("div", "spicetify-store-dialog");
-	const header = el("div", "spicetify-store-dialog-header");
+	const scrim = el("div", "spicetify-scrim");
+	const dialog = el("div", "spicetify-dialog");
+	const header = el("div", "spicetify-dialog-header");
 	header.appendChild(el("h2", undefined, title));
-	const closeBtn = el("button", "spicetify-store-close", "×");
+	const closeBtn = el("button", "spicetify-button-circle", "×");
+	closeBtn.setAttribute("aria-label", "Close");
 	header.appendChild(closeBtn);
-	const body = el("div", "spicetify-store-dialog-body");
+	const body = el("div", "spicetify-dialog-body");
 	dialog.append(header, body);
 	scrim.appendChild(dialog);
 	document.body.appendChild(scrim);
-	const close = () => scrim.remove();
+	openScrims.add(scrim);
+	const close = () => {
+		openScrims.delete(scrim);
+		scrim.remove();
+	};
 	closeBtn.addEventListener("click", close);
 	scrim.addEventListener("click", (e) => {
 		if (e.target === scrim) close();
@@ -405,11 +460,17 @@ function openSnippetEditor(
 	css.spellcheck = false;
 
 	const actions = el("div", "spicetify-store-card-actions");
-	const save = el("button", "spicetify-store-cta", existing ? "Save" : "Create");
+	const save = el("button", "spicetify-button", existing ? "Save" : "Create");
 	save.addEventListener("click", async () => {
 		const name = nameInput.value.trim();
 		if (!name || !css.value.trim()) return;
 		const id = existing?.id ?? `snippet-user-${slugify(name)}`;
+		// Creating over an existing snippet needs an explicit second click.
+		if (!existing && localRecords().some((r) => r.metadata.identifier === id) && save.dataset.confirm !== "1") {
+			save.dataset.confirm = "1";
+			save.textContent = "Overwrite existing?";
+			return;
+		}
 		save.disabled = true;
 		try {
 			try {
@@ -488,7 +549,7 @@ function openModuleDetails(
 	}
 
 	const actions = el("div", "spicetify-store-card-actions");
-	const install = el("button", "spicetify-store-cta", installLabel);
+	const install = el("button", "spicetify-button", installLabel);
 	install.addEventListener("click", () => onInstall(install));
 	actions.appendChild(install);
 	body.appendChild(actions);
@@ -507,21 +568,28 @@ function openModuleDetails(
 // ---------- store data (backup / restore / reset) ----------
 
 const OWNED_PREFIXES = ["spicetify.modules.local.", "spicetify:scheme:"];
-const OWNED_KEYS = [
+// Endpoint overrides are deliberately excluded from backups: importing a
+// crafted file must never be able to repoint the vault, the CORS proxy,
+// or the installs API (which receives the session token). Setting those
+// stays a manual, deliberate act.
+const ENDPOINT_KEYS = [
 	"spicetify:defaultVaultUrl",
 	"spicetify:corsProxyTemplate",
 	"spicetify:installsApiUrl",
+];
+const PREF_KEYS = [
 	"spicetify:store:sort",
 	"spicetify:store:tab",
 ];
 
-const isOwnedKey = (key: string) => OWNED_KEYS.includes(key) || OWNED_PREFIXES.some((p) => key.startsWith(p));
+const isBackupKey = (key: string) => PREF_KEYS.includes(key) || OWNED_PREFIXES.some((p) => key.startsWith(p));
+const isOwnedKey = (key: string) => isBackupKey(key) || ENDPOINT_KEYS.includes(key);
 
 function exportStoreData(): string {
 	const keys: Record<string, string> = {};
 	for (let i = 0; i < localStorage.length; i++) {
 		const key = localStorage.key(i)!;
-		if (isOwnedKey(key)) keys[key] = localStorage.getItem(key)!;
+		if (isBackupKey(key)) keys[key] = localStorage.getItem(key)!;
 	}
 	return JSON.stringify({ format: "spicetify-store-backup", version: 1, keys }, null, "\t");
 }
@@ -531,7 +599,7 @@ function importStoreData(text: string): number {
 	if (data.format !== "spicetify-store-backup" || !data.keys) throw new Error("not a store backup");
 	let written = 0;
 	for (const [key, value] of Object.entries(data.keys)) {
-		if (!isOwnedKey(key) || typeof value !== "string") continue;
+		if (!isBackupKey(key) || typeof value !== "string") continue;
 		localStorage.setItem(key, value);
 		written++;
 	}
@@ -581,7 +649,7 @@ function createPanel() {
 	panel.append(header, search, status, list, installed);
 	document.body.appendChild(panel);
 
-	let modules: VaultModule[] = [];
+	let catalog: Catalog = { modules: [], revoked: {}, ok: false };
 	let filter = "";
 
 	async function renderInstalled() {
@@ -626,7 +694,7 @@ function createPanel() {
 	async function renderList() {
 		list.replaceChildren();
 		const q = filter.toLowerCase();
-		for (const mod of modules.filter((m) => searchHaystack(m).includes(q))) {
+		for (const mod of catalog.modules.filter((m) => !catalog.revoked[m.id] && searchHaystack(m).includes(q))) {
 			const row = el("div", "spicetify-store-row");
 			row.appendChild(el("span", "spicetify-store-name", mod.id));
 			row.appendChild(el("span", "spicetify-store-version", mod.version));
@@ -654,16 +722,21 @@ function createPanel() {
 		void renderList();
 	});
 
+	let loading = false;
 	return {
 		node: panel,
 		async ensureLoaded() {
-			if (modules.length) return;
+			// Retry until at least one vault has actually answered.
+			if (catalog.ok || loading) return;
+			loading = true;
 			status.textContent = "loading vaults…";
 			try {
-				modules = (await loadCatalog()).modules;
-				status.textContent = modules.length ? "" : "no modules found in any vault";
-			} catch (e) {
-				status.textContent = `failed to load vaults: ${(e as Error).message}`;
+				catalog = await loadCatalog();
+				status.textContent = catalog.ok
+					? (catalog.modules.length ? "" : "no modules found in any vault")
+					: "vaults unreachable, will retry";
+			} finally {
+				loading = false;
 			}
 			await renderList();
 			try {
@@ -741,7 +814,7 @@ function createStorePage() {
 
 	page.append(header, toolbar, updates, status, grid, installedTitle, installedGrid, dataRow);
 
-	let catalog: Catalog = { modules: [], revoked: {} };
+	let catalog: Catalog = { modules: [], revoked: {}, ok: false };
 	let filter = "";
 	let activeTab = globalThis.localStorage?.getItem("spicetify:store:tab") ?? "all";
 	let activeSort = globalThis.localStorage?.getItem("spicetify:store:sort") ?? "installs";
@@ -798,9 +871,10 @@ function createStorePage() {
 	}
 
 	function updatableModules(): VaultModule[] {
-		const versions = new Map(
-			localRecords().map((r) => [r.metadata.identifier, r.sidecar?.installed_version]),
-		);
+		// User-authored (custom) modules are never vault-managed, even if a
+		// vault entry happens to share their id.
+		const locals = localRecords().filter((r) => !(r.metadata.tags ?? []).includes("custom"));
+		const versions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
 		return catalog.modules.filter((mod) => {
 			const installed = versions.get(mod.id);
 			return installed !== undefined && installed !== mod.version && !catalog.revoked[mod.id];
@@ -877,10 +951,15 @@ function createStorePage() {
 				card.appendChild(el("div", "spicetify-store-card-authors", `by ${mod.meta.authors.join(", ")}`));
 			}
 
+			card.dataset.moduleId = mod.id;
 			const meta = el("div", "spicetify-store-card-meta");
 			meta.appendChild(badge(mod.version));
 			const count = installCounts[mod.id];
-			if (count !== undefined) meta.appendChild(badge(`${count} installs`));
+			if (count !== undefined) {
+				const countBadge = badge(`${count} installs`);
+				countBadge.classList.add("spicetify-store-badge--count");
+				meta.appendChild(countBadge);
+			}
 			meta.appendChild(
 				badge(mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified", !!(mod.checksum || mod.files)),
 			);
@@ -896,7 +975,7 @@ function createStorePage() {
 			const actions = el("div", "spicetify-store-card-actions");
 			const install = el("button", "spicetify-store-cta", installCta(mod, localVersions.get(mod.id)));
 			install.addEventListener("click", () => runInstall(mod, install));
-			const details = el("button", undefined, "Details");
+			const details = el("button", "spicetify-button spicetify-button--secondary", "Details");
 			details.addEventListener("click", () =>
 				openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn)));
 			actions.append(install, details);
@@ -945,6 +1024,10 @@ function createStorePage() {
 					void M().disable(id).then(() => {
 						setStatus(`${id} disabled: revoked by the vault`);
 						renderAll();
+					}).catch((e: Error) => {
+						// Unlatch so the next render retries.
+						autoDisabledRevoked.delete(id);
+						setStatus(`${id}: failed to disable revoked module: ${e.message}`);
 					});
 				}
 			}
@@ -984,7 +1067,7 @@ function createStorePage() {
 			actions.appendChild(toggle);
 
 			if ((record.metadata.tags ?? []).includes("custom") && record.files?.["index.css"] !== undefined) {
-				const edit = el("button", undefined, "Edit");
+				const edit = el("button", "spicetify-button spicetify-button--secondary", "Edit");
 				edit.addEventListener("click", () =>
 					openSnippetEditor(
 						{ id, name: record.metadata.name ?? id, css: record.files!["index.css"] },
@@ -1070,7 +1153,25 @@ function createStorePage() {
 		}, 4000);
 	});
 
-	onCountsChanged = () => renderGrid();
+	// Count updates arrive asynchronously; patch badges in place instead
+	// of re-sorting the grid under the user's pointer.
+	onCountsChanged = () => {
+		for (const card of grid.querySelectorAll<HTMLElement>("[data-module-id]")) {
+			const count = installCounts[card.dataset.moduleId!];
+			if (count === undefined) continue;
+			const existing = card.querySelector(".spicetify-store-badge--count");
+			if (existing) {
+				existing.textContent = `${count} installs`;
+			} else {
+				const countBadge = badge(`${count} installs`);
+				countBadge.classList.add("spicetify-store-badge--count");
+				card.querySelector(".spicetify-store-card-meta")?.insertBefore(
+					countBadge,
+					card.querySelector(".spicetify-store-card-meta")!.children[1] ?? null,
+				);
+			}
+		}
+	};
 
 	let loaded = false;
 	let loading = false;
@@ -1089,10 +1190,14 @@ function createStorePage() {
 			setStatus("loading vaults…");
 			try {
 				catalog = await loadCatalog();
-				loaded = true;
-				setStatus(catalog.modules.length ? "" : "no modules found in any vault");
-			} catch (e) {
-				setStatus(`failed to load vaults: ${(e as Error).message}`);
+				// Only a load where some vault answered may latch; an offline
+				// page keeps retrying on later visits.
+				loaded = catalog.ok;
+				setStatus(
+					catalog.ok
+						? (catalog.modules.length ? "" : "no modules found in any vault")
+						: "vaults unreachable, will retry on the next visit",
+				);
 			} finally {
 				loading = false;
 			}
@@ -1189,6 +1294,12 @@ export async function load() {
 	}
 
 	return () => {
+		disposed = true;
+		for (const timer of retryTimers) clearTimeout(timer);
+		retryTimers.clear();
+		for (const scrim of openScrims) scrim.remove();
+		openScrims.clear();
+		onCountsChanged = null;
 		disposePage?.();
 		page.node.remove();
 		disposeNavlink?.();

@@ -213,13 +213,8 @@
 			gap: 6px;
 		}
 
-		.spicetify-store-card-actions button:not(.spicetify-store-cta):not(.spicetify-store-danger) {
-			border: 1px solid rgba(255, 255, 255, 0.15);
-			background: transparent;
-			color: var(--spice-text);
-			border-radius: 500px;
-			padding: 6px 14px;
-			cursor: pointer;
+		.spicetify-store-card-actions .spicetify-button {
+			padding: 6px 16px;
 			font-size: 13px;
 		}
 
@@ -347,46 +342,6 @@
 	font-size: 14px;
 }
 
-.spicetify-store-scrim {
-	position: fixed;
-	inset: 0;
-	z-index: 1000;
-	background: rgba(0, 0, 0, 0.6);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.spicetify-store-dialog {
-	width: min(680px, 90vw);
-	max-height: 84vh;
-	display: flex;
-	flex-direction: column;
-	background: var(--spice-main-elevated, #242424);
-	color: var(--spice-text);
-	border-radius: 12px;
-	box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
-
-	.spicetify-store-dialog-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 16px 20px 8px;
-
-		h2 {
-			font-size: 18px;
-			font-weight: 700;
-		}
-	}
-
-	.spicetify-store-dialog-body {
-		padding: 8px 20px 20px;
-		overflow-y: auto;
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-}
 
 .spicetify-store-detail-preview {
 	width: 100%;
