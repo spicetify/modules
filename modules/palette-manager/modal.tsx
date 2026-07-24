@@ -12,17 +12,24 @@ import { ChangeEvent } from "npm:@types/react";
 import { Color } from "/modules/stdlib/src/webpack/misc.ts";
 
 // Context-free menu row: the client MenuItem needs the client tree's
-// navigation providers, which modal anchors don't have.
+// navigation providers, which modal anchors don't have. Styled by the
+// module's own stylesheet — client classes only look right in their own
+// containers.
 const MenuRow = (props: {
 	leadingIcon?: React.ReactNode;
 	trailingIcon?: React.ReactNode;
+	active?: boolean;
 	onClick: () => void;
 	children: React.ReactNode;
 }) => (
 	<li>
-		<button type="button" className={MAP.context_menu.menu_item} onClick={props.onClick}>
+		<button
+			type="button"
+			className={`palette-row${props.active ? " palette-row--active" : ""}`}
+			onClick={props.onClick}
+		>
 			{props.leadingIcon}
-			<span>{props.children}</span>
+			<span className="palette-row__label">{props.children}</span>
 			{props.trailingIcon}
 		</button>
 	</li>
@@ -79,6 +86,7 @@ export default function () {
 						{filteredPalettes.map((palette) => (
 							<MenuRow
 								key={palette.id}
+								active={palette === selectedPalette}
 								trailingIcon={palette === selectedPalette &&
 									createIconComponent({
 										icon:
