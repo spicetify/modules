@@ -1,24 +1,51 @@
 {
-  "modules": {
-    "palette-manager": {
-      "v": {
-        "0.2.1+cm-1020040-ly32efah": {
-          "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-08-29/palette-manager@0.2.1+cm-1020040-ly32efah.zip"
-          ],
-          "providers": []
-        }
-      }
-    },
-    "stdlib": {
-      "v": {
-        "0.2.2+cm-1020040-ly32efah": {
-          "artifacts": [
-            "https://github.com/spicetify/modules/releases/download/2024-08-29/stdlib@0.2.2+cm-1020040-ly32efah.zip"
-          ],
-          "providers": []
-        }
-      }
-    }
-  }
+	"modules": {
+		"palette-manager": {
+			"v": {
+				"0.2.1+cm-1020040-ly32efah": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/2024-08-29/palette-manager@0.2.1+cm-1020040-ly32efah.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:50475d0d2d81ed9cdac81c055efb7391d00681d5528f88664a6361b6b53d70a6",
+					"metadata": {
+						"name": "palette-manager",
+						"description": "Manager for theme color schemes",
+						"authors": [
+							"spicetify",
+							"harbassan",
+							"Delusoire"
+						],
+						"tags": [
+							"extension",
+							"theming",
+							"scheming"
+						]
+					}
+				}
+			}
+		},
+		"stdlib": {
+			"v": {
+				"0.2.2+cm-1020040-ly32efah": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/2024-08-29/stdlib@0.2.2+cm-1020040-ly32efah.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:98c39a76407eef9ca34b2e4d8dd8f3ddbd476d86ba942ed578f0beee4516877c",
+					"metadata": {
+						"name": "stdlib",
+						"description": "The standard library",
+						"authors": [
+							"spicetify",
+							"Delusoire"
+						],
+						"tags": [
+							"lib"
+						]
+					}
+				}
+			}
+		}
+	}
 }
