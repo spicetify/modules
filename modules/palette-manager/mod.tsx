@@ -14,7 +14,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	const { EditButton } = await import("./paletteManager.tsx");
 
-	registrar.register("topbarLeftButton", <EditButton />);
+	registrar.register("topbarRightButton", <EditButton />);
 
 	const { createSchemer } = await import("./schemer.ts");
 
