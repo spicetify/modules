@@ -1,0 +1,12 @@
+{
+	"name": "@spicetify/installs-api",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Unique-install counting for the module store (Cloudflare Worker + D1)",
+	"license": "GPL-3.0-or-later",
+	"type": "module",
+	"scripts": {
+		"test": "node --test test/",
+		"check": "../../node_modules/.bin/tsc -p tsconfig.json"
+	}
+}
