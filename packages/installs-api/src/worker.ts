@@ -62,8 +62,23 @@ async function verifySpotifyToken(token: string): Promise<string | null | "throt
 	}
 	// Cap the cache so a revoked token stops counting quickly.
 	tokenCache.set(token, { accountId, until: Date.now() + 5 * 60_000 });
-	if (tokenCache.size > 5000) tokenCache.clear();
+	if (tokenCache.size > 5000) evictTokenCache();
 	return accountId;
+}
+
+// Bounded eviction: drop expired entries first, then the oldest half; a
+// flood of garbage tokens must not flush valid identities.
+function evictTokenCache(): void {
+	const now = Date.now();
+	for (const [key, value] of tokenCache) {
+		if (value.until <= now) tokenCache.delete(key);
+	}
+	if (tokenCache.size <= 5000) return;
+	let toDrop = Math.floor(tokenCache.size / 2);
+	for (const key of tokenCache.keys()) {
+		if (toDrop-- <= 0) break;
+		tokenCache.delete(key);
+	}
 }
 
 async function knownModules(vaultUrl: string): Promise<Set<string>> {
@@ -136,6 +151,12 @@ function makeDeps(env: Env): Deps {
 }
 
 export default {
+	// Cron: expired rate-limit windows are dead rows; without this the
+	// table grows without bound as client IPs rotate.
+	async scheduled(_event: unknown, env: Env): Promise<void> {
+		await env.DB.prepare("DELETE FROM rate_limits WHERE reset_at <= ?1").bind(Date.now()).run();
+	},
+
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
 		let body: unknown;

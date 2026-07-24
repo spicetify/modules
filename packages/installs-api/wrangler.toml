@@ -10,6 +10,9 @@ workers_dev = true
 # database_name = "installs"
 # database_id = "TBD-on-deploy"
 
+[triggers]
+crons = ["17 * * * *"]
+
 [vars]
 VAULT_URL = "https://raw.githubusercontent.com/spicetify/modules/main/vault.json"
 # HMAC_SECRET is a wrangler secret: wrangler secret put HMAC_SECRET
