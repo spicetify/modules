@@ -221,22 +221,21 @@ function createPanel() {
 	});
 
 	return {
-		async toggle() {
-			panel.style.display = panel.style.display === "none" ? "flex" : "none";
-			if (panel.style.display !== "none" && !modules.length) {
-				status.textContent = "loading vaults…";
-				try {
-					modules = await listVaultModules();
-					status.textContent = modules.length ? "" : "no modules found in any vault";
-				} catch (e) {
-					status.textContent = `failed to load vaults: ${(e as Error).message}`;
-				}
-				await renderList();
-				try {
-					await renderInstalled();
-				} catch (e) {
-					status.textContent = `failed to load installs: ${(e as Error).message}`;
-				}
+		node: panel,
+		async ensureLoaded() {
+			if (modules.length) return;
+			status.textContent = "loading vaults…";
+			try {
+				modules = await listVaultModules();
+				status.textContent = modules.length ? "" : "no modules found in any vault";
+			} catch (e) {
+				status.textContent = `failed to load vaults: ${(e as Error).message}`;
+			}
+			await renderList();
+			try {
+				await renderInstalled();
+			} catch (e) {
+				status.textContent = `failed to load installs: ${(e as Error).message}`;
 			}
 		},
 		remove: () => panel.remove(),
@@ -271,10 +270,45 @@ async function createStdlibButton(onClick: () => void): Promise<(() => void) | n
 
 export async function load() {
 	const panel = createPanel();
-	const toggle = () => void panel.toggle();
+
+	// Anchored under the topbar button via stdlib's popover when available;
+	// the fixed-position panel stays as the standalone fallback.
+	let popoverApi: { openPopover: (opts: unknown) => { close: () => void } } | null = null;
+	try {
+		popoverApi = await import("/modules/stdlib/lib/popover.js");
+	} catch {
+		popoverApi = null;
+	}
+	let popover: { close: () => void } | null = null;
+	const toggle = () => {
+		const anchor = document.querySelector<HTMLElement>(
+			".spicetify-topbar-left-buttons button[aria-label='Module Store']",
+		);
+		if (popoverApi && anchor) {
+			if (popover) {
+				popover.close();
+				return;
+			}
+			panel.node.classList.add("spicetify-store-panel--anchored");
+			panel.node.style.display = "flex";
+			popover = popoverApi.openPopover({
+				anchor,
+				content: panel.node,
+				onClose: () => {
+					popover = null;
+				},
+			});
+			void panel.ensureLoaded();
+			return;
+		}
+		panel.node.style.display = panel.node.style.display === "none" ? "flex" : "none";
+		if (panel.node.style.display !== "none") void panel.ensureLoaded();
+	};
+
 	const disposeStdlibButton = await createStdlibButton(toggle);
 	const fallbackBtn = disposeStdlibButton ? null : createTopbarButton(toggle);
 	return () => {
+		popover?.close();
 		disposeStdlibButton?.();
 		fallbackBtn?.remove();
 		panel.remove();
