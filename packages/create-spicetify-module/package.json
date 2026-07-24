@@ -1,0 +1,19 @@
+{
+	"name": "create-spicetify-module",
+	"version": "0.1.0",
+	"description": "Scaffold a spicetify v3 module (delegates to @spicetify/kit)",
+	"license": "GPL-3.0-or-later",
+	"type": "module",
+	"bin": {
+		"create-spicetify-module": "bin/create-spicetify-module.js"
+	},
+	"files": [
+		"bin"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"dependencies": {
+		"@spicetify/kit": "^0.1.0"
+	}
+}
