@@ -159,6 +159,12 @@
 				color: #ff4151;
 			}
 		}
+
+		&__note {
+			align-self: center;
+			font-size: 12px;
+			color: var(--spice-subtext, #a7a7a7);
+		}
 	}
 
 	.spicetify-manager-badge {

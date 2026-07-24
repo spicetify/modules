@@ -28,6 +28,12 @@ const INSTALLS_API = () =>
 const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
 const PLATFORM = () => (globalThis as never as Record<string, any>).Spicetify?.Platform;
 
+// Infrastructure modules: stdlib is the foundation every module depends
+// on, and store/manager are the management surfaces themselves. Disabling
+// or removing any of them from inside the client destroys the very UI
+// doing it, so the store never offers those actions for them.
+const PROTECTED = new Set(["stdlib", "store", "manager"]);
+
 type VaultModule = {
 	id: string;
 	version: string;
@@ -1001,6 +1007,7 @@ function createStorePage() {
 		for (const record of local) {
 			const id = record.metadata.identifier;
 			const state = states.get(id) as { loaded?: boolean } | undefined;
+			const isProtected = PROTECTED.has(id);
 			const revokedReason = catalog.revoked[id];
 			const card = el(
 				"article",
@@ -1014,6 +1021,7 @@ function createStorePage() {
 			if (version) meta.appendChild(badge(version));
 			for (const tag of record.metadata.tags ?? []) meta.appendChild(badge(tag));
 			meta.appendChild(badge(state?.loaded ? "enabled" : "disabled", !!state?.loaded));
+			if (isProtected) meta.appendChild(badge("core"));
 			if (revokedReason) meta.appendChild(badge("revoked"));
 			card.appendChild(meta);
 
@@ -1050,21 +1058,25 @@ function createStorePage() {
 			}
 
 			const actions = el("div", "spicetify-store-card-actions");
-			const toggle = el("button", "spicetify-store-cta", state?.loaded ? "Disable" : "Enable");
-			toggle.addEventListener("click", async () => {
-				try {
-					if (state?.loaded) {
-						await M().disable(id);
-					} else {
-						await M().enable(id);
-						await enforceSingleTheme(id, setStatus);
+			// Protected modules can be re-enabled if somehow down, but never
+			// disabled (that would unload the UI) or removed.
+			if (!isProtected || !state?.loaded) {
+				const toggle = el("button", "spicetify-store-cta", state?.loaded ? "Disable" : "Enable");
+				toggle.addEventListener("click", async () => {
+					try {
+						if (state?.loaded) {
+							await M().disable(id);
+						} else {
+							await M().enable(id);
+							await enforceSingleTheme(id, setStatus);
+						}
+					} catch (e) {
+						setStatus(`failed: ${(e as Error).message}`);
 					}
-				} catch (e) {
-					setStatus(`failed: ${(e as Error).message}`);
-				}
-				renderAll();
-			});
-			actions.appendChild(toggle);
+					renderAll();
+				});
+				actions.appendChild(toggle);
+			}
 
 			if ((record.metadata.tags ?? []).includes("custom") && record.files?.["index.css"] !== undefined) {
 				const edit = el("button", "spicetify-button spicetify-button--secondary", "Edit");
@@ -1077,16 +1089,18 @@ function createStorePage() {
 				actions.appendChild(edit);
 			}
 
-			const remove = el("button", "spicetify-store-danger", "Remove");
-			remove.addEventListener("click", async () => {
-				try {
-					await M().removeLocal(id);
-				} catch (e) {
-					setStatus(`failed: ${(e as Error).message}`);
-				}
-				renderAll();
-			});
-			actions.appendChild(remove);
+			if (!isProtected) {
+				const remove = el("button", "spicetify-store-danger", "Remove");
+				remove.addEventListener("click", async () => {
+					try {
+						await M().removeLocal(id);
+					} catch (e) {
+						setStatus(`failed: ${(e as Error).message}`);
+					}
+					renderAll();
+				});
+				actions.appendChild(remove);
+			}
 			card.appendChild(actions);
 			installedGrid.appendChild(card);
 		}

@@ -21,6 +21,12 @@ const LEVEL_CLASS: Record<string, string> = {
 	warn: "spicetify-manager-diag--warn",
 };
 
+// Infrastructure modules: disabling or removing them from inside the
+// client tears down the management UI itself. stdlib is the foundation
+// (its unload cascades to every dependent, so it also cannot be reloaded);
+// store and manager are the two management surfaces.
+const CORE = new Set(["stdlib", "store", "manager"]);
+
 const Badge = ({ kind, children }: { kind?: "ok" | "bad"; children: React.ReactNode }) => (
 	<span className={`spicetify-manager-badge${kind ? ` spicetify-manager-badge--${kind}` : ""}`}>{children}</span>
 );
@@ -33,12 +39,14 @@ const ModuleRow = (
 	},
 ) => {
 	const deps = Object.entries(row.dependencies).map(([id, range]) => `${id}@${range}`).join(", ");
+	const isCore = CORE.has(row.id);
 	return (
 		<div className="spicetify-manager-module">
 			<div className="spicetify-manager-module__head">
 				<span className="spicetify-manager-module__name">{row.id}</span>
 				<Badge>{row.version}</Badge>
 				<Badge>{row.source}</Badge>
+				{isCore && <Badge>core</Badge>}
 				{row.loaded && <Badge kind="ok">loaded</Badge>}
 				{!row.loaded && !row.failed && <Badge>disabled</Badge>}
 				{row.mixedIn && <Badge>mixins</Badge>}
@@ -50,12 +58,17 @@ const ModuleRow = (
 				{row.loaded
 					? (
 						<>
-							<button type="button" disabled={busy} onClick={() => onAction(`disable ${row.id}`, () => M().disable(row.id))}>
-								Disable
-							</button>
-							<button type="button" disabled={busy} onClick={() => onAction(`reload ${row.id}`, () => M().reload(row.id))}>
-								Reload
-							</button>
+							{!isCore && (
+								<button type="button" disabled={busy} onClick={() => onAction(`disable ${row.id}`, () => M().disable(row.id))}>
+									Disable
+								</button>
+							)}
+							{row.id !== "stdlib" && (
+								<button type="button" disabled={busy} onClick={() => onAction(`reload ${row.id}`, () => M().reload(row.id))}>
+									Reload
+								</button>
+							)}
+							{isCore && <span className="spicetify-manager-module__note">core module</span>}
 						</>
 					)
 					: (
@@ -63,7 +76,7 @@ const ModuleRow = (
 							Enable
 						</button>
 					)}
-				{row.source === "local" && (
+				{row.source === "local" && !isCore && (
 					<button
 						type="button"
 						className="spicetify-manager-danger"
