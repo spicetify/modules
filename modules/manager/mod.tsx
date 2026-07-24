@@ -8,12 +8,12 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 
 import { ManagerPage } from "./page.tsx";
-import { ManagerSection, MANAGER_ROUTE } from "./section.tsx";
+import { SpicetifyMenuItem, MANAGER_ROUTE } from "./menuItem.tsx";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
 
-	registrar.register("settingsSection", <ManagerSection />);
+	registrar.register("menu", <SpicetifyMenuItem />);
 	registrar.register(
 		"route",
 		React.createElement("route", { path: MANAGER_ROUTE, element: <ManagerPage /> }),

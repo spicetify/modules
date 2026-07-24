@@ -237,3 +237,21 @@
 		font-size: 14px;
 	}
 }
+
+.spicetify-manager-menu-item {
+	width: 100%;
+}
+
+.spicetify-manager-page .spicetify-manager-update {
+	margin: 10px 0 0;
+	font-size: 13px;
+	color: var(--spice-subtext, #a7a7a7);
+
+	&--waiting {
+		color: #ffd166;
+	}
+
+	&--ready {
+		color: var(--spice-button, #1ed760);
+	}
+}

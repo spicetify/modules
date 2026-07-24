@@ -4,7 +4,15 @@
  */
 
 import { React } from "/modules/stdlib/src/expose/React.ts";
-import { deriveManagerState, show, showBool, type ManagerModuleRow } from "./state.ts";
+import {
+	deriveManagerState,
+	fetchSupportStatus,
+	show,
+	showBool,
+	updateAdvice,
+	type ManagerModuleRow,
+	type SpotifySupportStatus,
+} from "./state.ts";
 
 const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
 
@@ -75,6 +83,11 @@ export const ManagerPage = () => {
 	const [filter, setFilter] = React.useState("");
 	const [status, setStatus] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
+	const [support, setSupport] = React.useState<SpotifySupportStatus | null>(null);
+
+	React.useEffect(() => {
+		void fetchSupportStatus().then(setSupport);
+	}, []);
 
 	// Diagnostics and module state arrive asynchronously; a light poll keeps
 	// the page honest while it is mounted.
@@ -146,7 +159,19 @@ export const ManagerPage = () => {
 						updates blocked: {showBool(state.updatesBlocked)}
 					</Badge>
 					<Badge>transforms: {state.transformsEnabled ? "on" : "off"}</Badge>
+					<Badge kind={state.failedCount ? "bad" : "ok"}>
+						modules: {state.loadedCount}/{state.modules.length} loaded
+						{state.failedCount ? `, ${state.failedCount} failed` : ""}
+					</Badge>
 				</div>
+				{(() => {
+					const advice = updateAdvice(state.spotifyVersion, support);
+					return (
+						<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
+							{advice.message}
+						</p>
+					);
+				})()}
 				<p className="spicetify-manager-note">
 					Installing or staging modules on disk happens outside the client — after changing staged modules, run{" "}
 					<code>spicetify restore backup apply</code>.

@@ -95,3 +95,70 @@ export const show = (value: string | undefined): string => value ?? "unknown";
 
 export const showBool = (value: boolean | undefined): string =>
 	value === undefined ? "unknown" : value ? "yes" : "no";
+
+// "Is a Spotify update waiting on spicetify?" — the client's own updater is
+// blind while updates are blocked, so the answer comes from a support feed
+// published with the classmap releases.
+export interface SpotifySupportStatus {
+	latestSpotify?: string;
+	supportedSpotify?: string;
+	updatedAt?: string;
+}
+
+const SUPPORT_URL = () =>
+	globalThis.localStorage?.getItem("spicetify:supportUrl") ??
+		"https://raw.githubusercontent.com/spicetify/modules/main/spotify-support.json";
+
+let supportCache: SpotifySupportStatus | undefined;
+
+// Successful responses are cached for the session; failures are not, so a
+// transient 404 or offline boot does not lock "unknown" until restart.
+export async function fetchSupportStatus(): Promise<SpotifySupportStatus | null> {
+	if (supportCache !== undefined) return supportCache;
+	try {
+		const res = await fetch(SUPPORT_URL());
+		if (!res.ok) return null;
+		supportCache = (await res.json()) as SpotifySupportStatus;
+		return supportCache;
+	} catch {
+		return null;
+	}
+}
+
+// Numeric dotted-prefix compare ("1.2.95.120" vs "1.2.94.583.g..."): git
+// suffixes and missing segments are ignored.
+export function compareSpotifyVersions(a: string, b: string): number {
+	const parse = (v: string) => v.split(".").map((part) => parseInt(part, 10)).filter((n) => !Number.isNaN(n));
+	const pa = parse(a);
+	const pb = parse(b);
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+		if (d !== 0) return d;
+	}
+	return 0;
+}
+
+export type UpdateAdvice =
+	| { kind: "unknown"; message: string }
+	| { kind: "current"; message: string }
+	| { kind: "waiting"; message: string }
+	| { kind: "ready"; message: string };
+
+export function updateAdvice(installed: string | undefined, support: SpotifySupportStatus | null): UpdateAdvice {
+	if (!installed || !support?.latestSpotify) {
+		return { kind: "unknown", message: "Spotify update status unknown" };
+	}
+	if (compareSpotifyVersions(support.latestSpotify, installed) <= 0) {
+		return { kind: "current", message: `Spotify is up to date (latest known: ${support.latestSpotify})` };
+	}
+	if (support.supportedSpotify && compareSpotifyVersions(support.supportedSpotify, support.latestSpotify) >= 0) {
+		return {
+			kind: "ready",
+			message: `Spotify ${support.latestSpotify} is available and spicetify supports it — update via the CLI`,
+		};
+	}
+	return {
+		kind: "waiting",
+		message: `Spotify ${support.latestSpotify} is available but held — waiting for spicetify support`,
+	};
+}
