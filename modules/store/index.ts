@@ -784,7 +784,7 @@ function createStorePage() {
 
 	const toolbar = el("div", "spicetify-store-toolbar");
 	const chips = el("div", "spicetify-store-chips");
-	const sortSelect = el("select", "spicetify-store-sort") as HTMLSelectElement;
+	const sortSelect = el("select", "spicetify-select") as HTMLSelectElement;
 	for (const sort of SORTS) {
 		const option = el("option", undefined, sort.label) as HTMLOptionElement;
 		option.value = sort.key;
@@ -1035,7 +1035,7 @@ function createStorePage() {
 			// Theme modules expose their color schemes for live switching.
 			const schemes = M().schemes?.(id) as { active: string; names: string[] } | null;
 			if (schemes && schemes.names.length > 1) {
-				const picker = el("select", "spicetify-store-sort") as HTMLSelectElement;
+				const picker = el("select", "spicetify-select") as HTMLSelectElement;
 				for (const name of schemes.names) {
 					const option = el("option", undefined, name || "default") as HTMLOptionElement;
 					option.value = name;

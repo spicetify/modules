@@ -119,6 +119,40 @@
 	}
 }
 
+/* Matches the client's own main-dropDown-dropDown select: elevated
+   base, no border, custom chevron (appearance:none for a consistent
+   arrow across platforms). */
+.spicetify-select {
+	height: 32px;
+	padding: 0 32px 0 12px;
+	border: none;
+	border-radius: 4px;
+	background-color: var(--spice-main-elevated, #242424);
+	color: var(--spice-subtext, #a7a7a7);
+	font-family: inherit;
+	font-size: 14px;
+	font-weight: 400;
+	cursor: pointer;
+	appearance: none;
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	background-size: 16px;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23a7a7a7'%3E%3Cpath d='M14 6l-6 6-6-6 1.4-1.4L8 9.2l4.6-4.6z'/%3E%3C/svg%3E");
+
+	&:hover {
+		color: var(--spice-text, #fff);
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	option {
+		background-color: var(--spice-main-elevated, #242424);
+		color: var(--spice-text, #fff);
+	}
+}
+
 /* The circular icon button Spotify uses for modal close (Credits, etc). */
 .spicetify-button-circle {
 	display: inline-flex;
