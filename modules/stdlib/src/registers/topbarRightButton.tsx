@@ -84,7 +84,7 @@ export const TopbarRightButton: TopbarRightButtonFactory = (props) => (
 			condensedAll
 			className={MAP.main.topbar.right.button_t.wrapper}
 		>
-			{props.icon && createIconComponent({ icon: props.icon, iconSize: 16, realIconSize: 24 })}
+			{props.icon && createIconComponent({ icon: props.icon, iconSize: 16 })}
 		</UI.ButtonTertiary>
 	</Tooltip>
 );
