@@ -50,9 +50,12 @@ const VERSION_RE = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][\w.-]{0,40})?$/;
 const MAX_COUNT_QUERY = 100;
 
 // Velocity caps: an IP may submit a burst of installs (fresh machine
-// applying a profile), but sustained spam trips either bucket.
+// applying a profile), but sustained spam trips either bucket. Reads get
+// their own generous gate so the endpoint cannot be used for unbounded
+// D1 read amplification.
 const IP_LIMIT = { limit: 30, windowSeconds: 600 };
 const USER_LIMIT = { limit: 40, windowSeconds: 86_400 };
+const READ_LIMIT = { limit: 120, windowSeconds: 600 };
 
 const CORS_ORIGINS = new Set([
 	"https://xpui.app.spotify.com",
@@ -94,6 +97,9 @@ export async function handle(req: ApiRequest, deps: Deps): Promise<ApiResponse> 
 	if (req.method === "OPTIONS") return json(204, {}, cors);
 
 	if (req.method === "GET" && req.path === "/v1/installs") {
+		if (!(await deps.allow(`read:${req.ip}`, READ_LIMIT.limit, READ_LIMIT.windowSeconds, deps.now()))) {
+			return json(429, { error: "rate limited" }, cors);
+		}
 		const raw = req.query.get("modules") ?? "";
 		const modules = [...new Set(raw.split(",").map((m) => m.trim()).filter((m) => MODULE_RE.test(m)))];
 		if (!modules.length) return json(400, { error: "modules query required" }, cors);
@@ -106,10 +112,8 @@ export async function handle(req: ApiRequest, deps: Deps): Promise<ApiResponse> 
 
 	if (req.method === "POST" && req.path === "/v1/installs") {
 		const now = deps.now();
-		if (!(await deps.allow(`ip:${req.ip}`, IP_LIMIT.limit, IP_LIMIT.windowSeconds, now))) {
-			return json(429, { error: "rate limited" }, cors);
-		}
-
+		// Free validation first: malformed or unauthenticated requests must
+		// not cost a rate-limit write.
 		const body = req.body as { module?: unknown; version?: unknown } | undefined;
 		const module = typeof body?.module === "string" ? body.module : "";
 		const version = typeof body?.version === "string" ? body.version : "";
@@ -119,6 +123,10 @@ export async function handle(req: ApiRequest, deps: Deps): Promise<ApiResponse> 
 		const auth = req.headers.get("authorization") ?? "";
 		const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
 		if (!token) return json(401, { error: "missing bearer token" }, cors);
+
+		if (!(await deps.allow(`ip:${req.ip}`, IP_LIMIT.limit, IP_LIMIT.windowSeconds, now))) {
+			return json(429, { error: "rate limited" }, cors);
+		}
 		const accountId = await deps.verifyToken(token);
 		// Spotify throttles the identity endpoint; that is not the caller's
 		// fault and must not read as an invalid token.
