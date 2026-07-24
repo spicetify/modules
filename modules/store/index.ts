@@ -284,7 +284,9 @@ function createStorePage() {
 
 	function renderGrid() {
 		grid.replaceChildren();
-		const localIds = new Set(M().listLocal().map((r: any) => r.metadata.identifier));
+		const locals = M().listLocal() as Array<{ metadata: { identifier: string }; sidecar?: { installed_version?: string } }>;
+		const localIds = new Set(locals.map((r) => r.metadata.identifier));
+		const localVersions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
 		const states = new Map(M().list().map((s: any) => [s.identifier, s]));
 		const q = filter.toLowerCase();
 		for (const mod of modules.filter((m) => m.id.toLowerCase().includes(q))) {
@@ -315,7 +317,13 @@ function createStorePage() {
 			card.appendChild(meta);
 
 			const actions = el("div", "spicetify-store-card-actions");
-			const install = el("button", "spicetify-store-cta", localIds.has(mod.id) ? "Reinstall" : "Install");
+			const installedVersion = localVersions.get(mod.id);
+			const cta = installedVersion === undefined
+				? "Install"
+				: installedVersion === mod.version
+				? "Reinstall"
+				: "Update";
+			const install = el("button", "spicetify-store-cta", cta);
 			install.addEventListener("click", async () => {
 				install.disabled = true;
 				try {
@@ -442,86 +450,67 @@ async function registerStorePage(
 // through stdlib when it is installed. The store stays standalone by
 // design, so a fixed-position fallback button covers a missing or broken
 // stdlib.
-const STORE_ICON =
+// Filled bag for the active route, outlined bag otherwise -- the same
+// active/inactive glyph pattern Home uses.
+const STORE_ICON_FILLED =
 	'<path d="M5 4a3 3 0 1 1 6 0h2.5A1.5 1.5 0 0 1 15 5.5l-.9 8A2 2 0 0 1 12.11 15H3.89a2 2 0 0 1-1.99-1.5l-.9-8A1.5 1.5 0 0 1 2.5 4H5zm1.5 0h3a1.5 1.5 0 1 0-3 0z"/>';
+const STORE_ICON_OUTLINE =
+	'<path fill-rule="evenodd" d="M5 4a3 3 0 1 1 6 0h2.5A1.5 1.5 0 0 1 15 5.5l-.9 8A2 2 0 0 1 12.11 15H3.89a2 2 0 0 1-1.99-1.5l-.9-8A1.5 1.5 0 0 1 2.5 4H5zm1.5 0h3a1.5 1.5 0 1 0-3 0zM2.75 5.25l.84 7.5a.75.75 0 0 0 .75.65h7.32a.75.75 0 0 0 .75-.65l.84-7.5H2.75z"/>';
 
-async function createStdlibButton(onClick: () => void): Promise<(() => void) | null> {
+async function createStdlibNavlink(): Promise<(() => void) | null> {
 	try {
-		const [{ Registrar }, { TopbarLeftButton }, { React }] = await Promise.all([
+		const [{ Registrar }, { NavLink }, { React }] = await Promise.all([
 			import("/modules/stdlib/src/registers/index.js"),
-			import("/modules/stdlib/src/registers/topbarLeftButton.js"),
+			import("/modules/stdlib/src/registers/navlink.js"),
 			import("/modules/stdlib/src/expose/React.js"),
 		]);
 		const registrar = new Registrar("store");
 		registrar.register(
-			"topbarLeftButton",
-			React.createElement(TopbarLeftButton, { label: "Module Store", icon: STORE_ICON, onClick }),
+			"navlink",
+			React.createElement(NavLink, {
+				localizedApp: "Module Store",
+				appRoutePath: STORE_ROUTE,
+				icon: STORE_ICON_OUTLINE,
+				activeIcon: STORE_ICON_FILLED,
+			}),
 		);
 		return () => registrar.dispose();
 	} catch (e) {
-		console.warn("[store] stdlib topbar button unavailable, using fallback:", e);
+		console.warn("[store] stdlib navlink unavailable, using fallback:", e);
 		return null;
 	}
 }
 
+// Marketplace-style circular icon button in the global nav, registered
+// through stdlib when it is installed. The store stays standalone by
+// design, so a fixed-position fallback button covers a missing or broken
+// stdlib.
+
 export async function load() {
-	const panel = createPanel();
 	const page = createStorePage();
 	const disposePage = await registerStorePage(page);
+	// With stdlib present the store is a navlink + full page, following the
+	// Home/marketplace pattern with an active state. The fixed button and
+	// panel remain the standalone fallback so the store can always rescue a
+	// broken setup.
+	const disposeNavlink = await createStdlibNavlink();
 
-	// Anchored under the topbar button via stdlib's popover when available;
-	// the fixed-position panel stays as the standalone fallback.
-	let popoverApi: { openPopover: (opts: unknown) => { close: () => void } } | null = null;
-	try {
-		popoverApi = await import("/modules/stdlib/lib/popover.js");
-	} catch {
-		popoverApi = null;
-	}
-	let popover: { close: () => void } | null = null;
-
-	if (disposePage) {
-		const openPage = el("button", "spicetify-store-open-page", "Open full store ↗");
-		openPage.addEventListener("click", () => {
-			popover?.close();
-			panel.node.style.display = "none";
-			(globalThis as never as Record<string, any>).Spicetify?.Platform?.History?.push?.(STORE_ROUTE);
+	let fallbackBtn: HTMLElement | null = null;
+	let panel: ReturnType<typeof createPanel> | null = null;
+	if (!disposeNavlink) {
+		panel = createPanel();
+		const p = panel;
+		fallbackBtn = createTopbarButton(() => {
+			p.node.style.display = p.node.style.display === "none" ? "flex" : "none";
+			if (p.node.style.display !== "none") void p.ensureLoaded();
 		});
-		const header = panel.node.querySelector(".spicetify-store-header");
-		header?.insertBefore(openPage, header.querySelector(".spicetify-store-close"));
 	}
-	const toggle = () => {
-		const anchor = document.querySelector<HTMLElement>(
-			".spicetify-topbar-left-buttons button[aria-label='Module Store']",
-		);
-		if (popoverApi && anchor) {
-			if (popover) {
-				popover.close();
-				return;
-			}
-			panel.node.classList.add("spicetify-store-panel--anchored");
-			panel.node.style.display = "flex";
-			popover = popoverApi.openPopover({
-				anchor,
-				content: panel.node,
-				onClose: () => {
-					popover = null;
-				},
-			});
-			void panel.ensureLoaded();
-			return;
-		}
-		panel.node.style.display = panel.node.style.display === "none" ? "flex" : "none";
-		if (panel.node.style.display !== "none") void panel.ensureLoaded();
-	};
 
-	const disposeStdlibButton = await createStdlibButton(toggle);
-	const fallbackBtn = disposeStdlibButton ? null : createTopbarButton(toggle);
 	return () => {
-		popover?.close();
 		disposePage?.();
 		page.node.remove();
-		disposeStdlibButton?.();
+		disposeNavlink?.();
 		fallbackBtn?.remove();
-		panel.remove();
+		panel?.remove();
 	};
 }
