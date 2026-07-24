@@ -166,9 +166,15 @@ export async function buildModule(
 	mkdirSync(outputDir, { recursive: true });
 
 	console.log(`stitch ${identifier}`);
-	await buildJs(inputDir, outputDir, metadata.tree ?? false, cwd);
+	// Theme modules are css-only: no js entry means nothing to bundle.
+	if (metadata.entries.js) await buildJs(inputDir, outputDir, metadata.tree ?? false, cwd);
 	buildCss(inputDir, outputDir);
 	copyAssets(inputDir, outputDir);
+	// The loader applies color schemes from a color.ini shipped with the
+	// module (sections become switchable schemes).
+	if (existsSync(path.join(inputDir, "color.ini"))) {
+		cpSync(path.join(inputDir, "color.ini"), path.join(outputDir, "color.ini"));
+	}
 
 	const classmap = JSON.parse(readFileSync(resolved.path!, "utf8"));
 	writeFileSync(path.join(inputDir, "classmap.d.ts"), generateClassmapDts(classmap));

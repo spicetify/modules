@@ -12,7 +12,8 @@
 		"./create": "./dist/create.js",
 		"./build": "./dist/build.js",
 		"./dev": "./dist/dev.js",
-		"./pack": "./dist/pack.js"
+		"./pack": "./dist/pack.js",
+		"./from-theme": "./dist/from-theme.js"
 	},
 	"files": [
 		"bin",
