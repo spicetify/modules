@@ -17,6 +17,9 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.7(@types/react@18.3.31)
+      happy-dom:
+        specifier: ^20.11.1
+        version: 20.11.1
       rolldown:
         specifier: ^1.2.0
         version: 1.2.0
@@ -238,6 +241,12 @@ packages:
   '@types/react@18.3.31':
     resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
 
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
     engines: {node: '>=16.20.0'}
@@ -358,6 +367,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  buffer-image-size@0.6.4:
+    resolution: {integrity: sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==}
+    engines: {node: '>=4.0'}
+
   chokidar@5.0.0:
     resolution: {integrity: sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==}
     engines: {node: '>= 20.19.0'}
@@ -371,6 +384,14 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  entities@7.0.1:
+    resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
+    engines: {node: '>=0.12'}
+
+  happy-dom@20.11.1:
+    resolution: {integrity: sha512-XSt8tMzbW9ymE7687xztkO1ckR7qJNQ3LywY9vlYGhGi3zXrGBHuUo2Cl1ztZaICW+1eAGdkLbj6iwVqDT33kg==}
+    engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -550,6 +571,22 @@ packages:
   varint@6.0.0:
     resolution: {integrity: sha512-cXEIW6cfr15lFv563k4GuVuW/fiwjknytD37jIOLSdSWuOI6WnO/oKwmP2FQTU2l01LP8/M5TSAJpzUaGe3uWg==}
 
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
+
+  ws@8.21.1:
+    resolution: {integrity: sha512-+0NTnW77fFN/DjQi6k/Sq/Yvk4Sgajw7urW8V+asjXnRgDs9gyGkdb7EzgfhA4goXsRIZKE28fzIXBHEzhuiWw==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
 snapshots:
 
   '@bufbuild/protobuf@2.13.0': {}
@@ -707,6 +744,12 @@ snapshots:
       '@types/prop-types': 15.7.15
       csstype: 3.2.3
 
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 26.1.1
+
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
 
@@ -767,6 +810,10 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
+  buffer-image-size@0.6.4:
+    dependencies:
+      '@types/node': 26.1.1
+
   chokidar@5.0.0:
     dependencies:
       readdirp: 5.0.0
@@ -778,6 +825,21 @@ snapshots:
 
   detect-libc@2.1.2:
     optional: true
+
+  entities@7.0.1: {}
+
+  happy-dom@20.11.1:
+    dependencies:
+      '@types/node': 26.1.1
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.1
+      buffer-image-size: 0.6.4
+      entities: 7.0.1
+      whatwg-mimetype: 3.0.0
+      ws: 8.21.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   has-flag@4.0.0: {}
 
@@ -962,3 +1024,7 @@ snapshots:
   undici-types@8.3.0: {}
 
   varint@6.0.0: {}
+
+  whatwg-mimetype@3.0.0: {}
+
+  ws@8.21.1: {}
