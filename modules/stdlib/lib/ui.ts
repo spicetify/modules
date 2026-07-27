@@ -17,6 +17,24 @@
  * stdlib's ComponentLibrary; this kit is for module-owned DOM.
  */
 
+import {
+	badgeClass,
+	buttonClass,
+	type BadgeTone,
+	type ButtonVariant,
+	CARD_CLASS,
+	chipClass,
+	DIALOG_BODY_CLASS,
+	DIALOG_CLASS,
+	DIALOG_HEADER_CLASS,
+	ICON_BUTTON_CLASS,
+	SCRIM_CLASS,
+	SEARCHBAR_CLASS,
+	SELECT_CLASS,
+} from "./ui-classes.ts";
+
+export type { BadgeTone, ButtonVariant } from "./ui-classes.ts";
+
 // Typed event handlers: only real DOM events are accepted, so a
 // misspelled `onClik` is a type error rather than a silently-attached
 // listener for a "clik" event.
@@ -80,11 +98,6 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 
 // ---------- buttons ----------
 
-export type ButtonVariant = "primary" | "secondary" | "danger";
-
-const buttonClass = (variant: ButtonVariant = "primary") =>
-	variant === "primary" ? "spicetify-button" : `spicetify-button spicetify-button--${variant}`;
-
 export function Button(
 	props: { label: string; variant?: ButtonVariant; onClick: () => void; disabled?: boolean; icon?: Node },
 ): HTMLButtonElement {
@@ -102,7 +115,7 @@ export function IconButton(
 ): HTMLButtonElement {
 	return h("button", {
 		type: "button",
-		className: "spicetify-button-circle",
+		className: ICON_BUTTON_CLASS,
 		"aria-label": props.ariaLabel,
 		textContent: props.glyph,
 		onClick: props.onClick,
@@ -115,7 +128,7 @@ export function Select<T extends string>(
 	props: { options: ReadonlyArray<{ value: T; label: string }>; value: T; onChange: (value: T) => void },
 ): HTMLSelectElement {
 	const select = h("select", {
-		className: "spicetify-select",
+		className: SELECT_CLASS,
 		onChange: () => props.onChange(select.value as T),
 	});
 	for (const option of props.options) {
@@ -130,7 +143,7 @@ export function TextInput(
 ): HTMLInputElement {
 	const input = h("input", {
 		type: "text",
-		className: "spicetify-searchbar",
+		className: SEARCHBAR_CLASS,
 		placeholder: props.placeholder,
 		value: props.value,
 		disabled: props.disabled,
@@ -152,17 +165,14 @@ export function Textarea(
 
 // ---------- badges, chips, cards ----------
 
-export type BadgeTone = "neutral" | "ok" | "bad";
-
 export function Badge(props: { text: string; tone?: BadgeTone }): HTMLSpanElement {
-	const cls = props.tone && props.tone !== "neutral" ? `spicetify-badge spicetify-badge--${props.tone}` : "spicetify-badge";
-	return h("span", { className: cls, textContent: props.text });
+	return h("span", { className: badgeClass(props.tone), textContent: props.text });
 }
 
 export function Chip(props: { label: string; active: boolean; onClick: () => void }): HTMLButtonElement {
 	return h("button", {
 		type: "button",
-		className: props.active ? "spicetify-chip spicetify-chip--active" : "spicetify-chip",
+		className: chipClass(props.active),
 		textContent: props.label,
 		onClick: props.onClick,
 	});
@@ -170,7 +180,7 @@ export function Chip(props: { label: string; active: boolean; onClick: () => voi
 
 // A plain elevated container; slot layout is the consumer's own concern.
 export function Card(props: { children: Child }): HTMLElement {
-	return h("article", { className: "spicetify-card" }, props.children);
+	return h("article", { className: CARD_CLASS }, props.children);
 }
 
 // ---------- two-step confirm ----------
@@ -226,7 +236,7 @@ export interface DialogHandle {
 // so onClose fires exactly once on any dismissal path (consumers use it
 // to drop their own bookkeeping, e.g. a dispose registry).
 export function openDialog(props: { title: string; children: Child; onClose?: () => void }): DialogHandle {
-	const body = h("div", { className: "spicetify-dialog-body" }, props.children);
+	const body = h("div", { className: DIALOG_BODY_CLASS }, props.children);
 	let closed = false;
 	const close = () => {
 		if (closed) return;
@@ -236,13 +246,13 @@ export function openDialog(props: { title: string; children: Child; onClose?: ()
 	};
 	const header = h(
 		"div",
-		{ className: "spicetify-dialog-header" },
+		{ className: DIALOG_HEADER_CLASS },
 		h("h2", { textContent: props.title }),
 		IconButton({ glyph: "×", ariaLabel: "Close", onClick: close }),
 	);
-	const dialog = h("div", { className: "spicetify-dialog" }, header, body);
+	const dialog = h("div", { className: DIALOG_CLASS }, header, body);
 	const scrim = h("div", {
-		className: "spicetify-scrim",
+		className: SCRIM_CLASS,
 		onClick: (e) => {
 			if (e.target === scrim) close();
 		},
