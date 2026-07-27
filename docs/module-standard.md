@@ -67,11 +67,14 @@ give you all of them for free when you follow the standard — do not opt out.
 
 ## The component-tier decision
 
-Build UI from the kit's named primitives — `Button`, `Select`, `TextInput`,
-`Textarea`, `Badge`, `Chip`, `Card`, `ConfirmButton`, `Dialog`, and the `h()`
-hyperscript — never hand-rolled `el("select", "spicetify-select")`. There are
-two tiers over **one shared class contract** (`lib/ui-classes.ts`), so the look
-is identical; the choice is purely about reliability.
+Build UI from the kit's named primitives — `Button`, `IconButton`, `Select`,
+`TextInput`, `Textarea`, `Badge`, `Chip`, `Card`, `ConfirmButton`, `Dialog`,
+`MenuItem`, and the `h()` hyperscript — never hand-rolled
+`el("select", "spicetify-select")`. Each primitive owns the client class it
+needs, so module code gets a native Spotify look without ever naming a client
+class itself (that is what keeps you MAP-intact by construction). There are two
+tiers over **one shared class contract** (`lib/ui-classes.ts`), so the look is
+identical; the choice is purely about reliability.
 
 | Your surface is… | Use | Because |
 |---|---|---|
@@ -99,7 +102,7 @@ for you on unload.
 |---|---|
 | `navlink` | Global-nav circular icon (the Home pattern), with active/inactive glyph states |
 | `route` | A full page at `/bespoke/<name>` — `registrar.registerRoute(path, element)` |
-| `menu` | Context-menu items — `openedFromProfileMenu(ctx)` / `closeMenu()` helpers |
+| `menu` | Context-menu items — the kit's `MenuItem` plus `openedFromProfileMenu(ctx)` / `closeMenu()` helpers |
 | `topbarLeftButton` / `topbarRightButton` | Top-bar icon buttons |
 | `playbarButton` / `playbarWidget` | The now-playing bar |
 | `settingsSection` | A section on Spotify's own settings page |
@@ -120,6 +123,31 @@ theme in one shot.
   running client). The client is the only real environment for anything using
   the client's React or components: happy-dom proves structure, the client
   proves rendering.
+
+---
+
+## Two worked examples
+
+The repo ships two ported modules that exercise the whole standard end to end:
+
+- **`auto-skip-explicit`** (an *extension*): behavior plus one UI leaf. It skips
+  explicit tracks by self-subscribing to the player and undoing that listener on
+  unload, and adds a profile-menu toggle through the `menu` register and the
+  kit's `MenuItem`. It declares no page and ships js-only.
+- **`new-releases`** (an *app*): a `navlink` + `route` page built from the React
+  kit (`Card`, `Button`, `IconButton`). It shows *degrade, never destroy* in the
+  large: its faithful primary source (Spotify's `browse/new-releases` Web API)
+  is unreliable from a v3 module — `CosmosAsync` does not proxy `api.spotify.com`
+  dependably — so an empty or failed result falls back to the native
+  `Platform.LibraryAPI`, and the page always renders real, playable content
+  instead of an error.
+
+That fallback is the general lesson for module data: **reach for the client's
+own `Spicetify.Platform.*API` before any external HTTP call.** The native APIs
+are authenticated, same-origin, and stable; external endpoints (`api.spotify.com`
+via `CosmosAsync`, or a cors-proxied third party like the classic reddit app's
+feed) are rate-limited or CORS-blocked from module code and must never be the
+only source a feature depends on.
 
 ---
 
