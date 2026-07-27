@@ -108,9 +108,11 @@ export function checkSource(rel: string, text: string): Finding[] {
 		if (/\b(createElement|el)\(\s*['"](select|input|button|textarea)['"]\s*,\s*['"](spicetify-select|spicetify-searchbar|spicetify-button)\b/.test(line)) {
 			out.push({ severity: "warn", rule: "use-the-kit", message: "build shared chrome from the kit (Button/Select/TextInput/...) instead of hand-rolling it", file: at });
 		}
-		// A hand-rolled context-menu row. The kit's MenuItem owns Spotify's
-		// menu-item class so modules never name it directly.
-		if (/class[nN]ame\s*=\s*["'`][^"'`]*main-contextMenu-menuItemButton/.test(line)) {
+		// A hand-rolled context-menu row, in any form (className=, a template
+		// literal, an el() call). The kit's MenuItem owns Spotify's menu-item
+		// class via MENU_ITEM_CLASS, so modules never name it directly; the
+		// kit's own source is the one legitimate home for the literal.
+		if (/main-contextMenu-menuItemButton/.test(line) && !/ui-classes|ui-react/.test(rel)) {
 			out.push({ severity: "warn", rule: "use-the-kit", message: "render context-menu rows with the kit's MenuItem instead of hardcoding main-contextMenu-menuItemButton", file: at });
 		}
 	});
