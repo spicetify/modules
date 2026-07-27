@@ -4,7 +4,7 @@
  */
 
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
-import { MenuItem } from "/modules/stdlib/lib/ui-react.js";
+import { MenuItem } from "/modules/stdlib/lib/primitives.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
 export const MANAGER_ROUTE = "/bespoke/manager";

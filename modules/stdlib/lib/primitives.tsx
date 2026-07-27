@@ -4,14 +4,14 @@
  */
 
 /**
- * The React tier of the component kit: the same Spotify-look chrome as
- * the vanilla kit (lib/ui.ts), as React components for module UI that
- * already renders inside a React tree (routes, registers, modals). Both
- * tiers apply the shared class contract (ui-classes.ts) so they can
- * never drift.
+ * The React tier of the component kit: the reusable UI primitives, the
+ * same Spotify-look chrome as the vanilla kit (lib/ui.ts) but as React
+ * components for module UI that already renders inside a React tree
+ * (routes, registers, modals). Both tiers apply the shared class contract
+ * (ui-classes.ts) so they can never drift.
  *
  * Deep-import at runtime: `import { Button } from
- * "/modules/stdlib/lib/ui-react.js"`. This is not in the mod.ts barrel
+ * "/modules/stdlib/lib/primitives.js"`. This is not in the mod.ts barrel
  * to avoid colliding with the vanilla kit's identical export names; a
  * module uses one tier. Requires the client React instance, so only
  * modules that declare stdlib as a dependency should use it (the vanilla

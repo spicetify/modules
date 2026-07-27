@@ -112,7 +112,7 @@ export function checkSource(rel: string, text: string): Finding[] {
 		// literal, an el() call). The kit's MenuItem owns Spotify's menu-item
 		// class via MENU_ITEM_CLASS, so modules never name it directly; the
 		// kit's own source is the one legitimate home for the literal.
-		if (/main-contextMenu-menuItemButton/.test(line) && !/ui-classes|ui-react/.test(rel)) {
+		if (/main-contextMenu-menuItemButton/.test(line) && !/ui-classes|primitives/.test(rel)) {
 			out.push({ severity: "warn", rule: "use-the-kit", message: "render context-menu rows with the kit's MenuItem instead of hardcoding main-contextMenu-menuItemButton", file: at });
 		}
 	});

@@ -14,7 +14,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
-import { Button, Card, IconButton } from "/modules/stdlib/lib/ui-react.js";
+import { Button, Card, IconButton } from "/modules/stdlib/lib/primitives.js";
 
 const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
 const ROUTE = "/bespoke/new-releases";

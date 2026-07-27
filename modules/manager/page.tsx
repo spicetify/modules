@@ -4,7 +4,7 @@
  */
 
 import { React } from "/modules/stdlib/src/expose/React.ts";
-import { TextInput } from "/modules/stdlib/lib/ui-react.js";
+import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
 	fetchSupportStatus,

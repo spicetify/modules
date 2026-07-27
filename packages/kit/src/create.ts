@@ -55,7 +55,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
-import { Button } from "/modules/stdlib/lib/ui-react.js";
+import { Button } from "/modules/stdlib/lib/primitives.js";
 
 const ROUTE = "${route}";
 const ICON = ${ICON_LITERAL};
@@ -63,7 +63,7 @@ const ICON = ${ICON_LITERAL};
 const Page = () => (
 	<div className="${name}-page">
 		<h1>${name}</h1>
-		<p>A full page at ${route}. Build it from the React kit (ui-react).</p>
+		<p>A full page at ${route}. Build it from the React primitives (lib/primitives).</p>
 		<Button variant="secondary" onClick={() => {}}>A kit button</Button>
 	</div>
 );

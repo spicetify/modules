@@ -79,7 +79,7 @@ identical; the choice is purely about reliability.
 | Your surface is… | Use | Because |
 |---|---|---|
 | A **recovery / infrastructure** tool that must keep working when *other* modules break — a store, a module manager, anything you would reach for to fix a broken client | **Vanilla kit** — `lib/ui.ts` | React-free DOM survives a failed React capture or needle drift after a Spotify update, which is the exact moment you need it |
-| A **leaf feature** — a settings pane, a nice-to-have panel, a route page that is not itself a recovery tool | **React kit** — `lib/ui-react.js` (or real Encore components from `ComponentLibrary`) | Richer and more native; here "goes dark after an update until a needle refresh" is an annoyance, not a trap |
+| A **leaf feature** — a settings pane, a nice-to-have panel, a route page that is not itself a recovery tool | **React primitives** — `lib/primitives.js` (or real Encore components from `ComponentLibrary`) | Richer and more native; here "goes dark after an update until a needle refresh" is an annoyance, not a trap |
 
 The test: **if the client half-breaks after a Spotify update, does this surface
 still need to work?** Yes → vanilla. No → React. When unsure, vanilla costs you

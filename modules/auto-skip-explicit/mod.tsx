@@ -9,7 +9,7 @@
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
-import { MenuItem } from "/modules/stdlib/lib/ui-react.js";
+import { MenuItem } from "/modules/stdlib/lib/primitives.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
 const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;

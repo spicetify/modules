@@ -5,7 +5,7 @@
 
 /**
  * The single source of truth for the module chrome-class contract. Both
- * the vanilla kit (ui.ts) and the React kit (ui-react.tsx) apply these,
+ * the vanilla kit (ui.ts) and the React primitives (primitives.tsx) apply these,
  * so the two tiers can never drift on which class means which primitive.
  * The classes themselves live in stdlib's stylesheet (index.scss).
  */
