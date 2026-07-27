@@ -18,7 +18,7 @@
  */
 
 import { React } from "../../src/expose/React.ts";
-import { createIconComponent } from "../createIconComponent.tsx";
+import { createIconComponent } from "../../src/createIconComponent.tsx";
 import { ContextMenu, Menu, MenuItem } from "../../src/webpack/ReactComponents.ts";
 import { UI } from "../../src/webpack/ComponentLibrary.ts";
 

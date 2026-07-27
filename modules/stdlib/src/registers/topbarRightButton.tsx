@@ -4,7 +4,7 @@
  */
 
 import { React } from "../expose/React.ts";
-import { createIconComponent } from "../../lib/createIconComponent.tsx";
+import { createIconComponent } from "../createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
 import { isGlobalNavBarEnabled } from "../utils/index.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";

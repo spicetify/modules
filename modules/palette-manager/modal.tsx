@@ -4,7 +4,7 @@
 
 import { useSearchBar } from "/modules/stdlib/lib/components/index.tsx";
 import { Palette, PaletteManager } from "./palette.ts";
-import { createIconComponent } from "/modules/stdlib/lib/createIconComponent.tsx";
+import { createIconComponent } from "/modules/stdlib/src/createIconComponent.tsx";
 import { startCase } from "/modules/stdlib/deps.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";

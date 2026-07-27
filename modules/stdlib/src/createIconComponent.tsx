@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { React } from "../src/expose/React.ts";
-import { UI } from "../src/webpack/ComponentLibrary.ts";
+import { React } from "./expose/React.ts";
+import { UI } from "./webpack/ComponentLibrary.ts";
 
 export const createIconComponent = ({
 	icon,

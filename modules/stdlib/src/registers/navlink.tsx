@@ -5,7 +5,7 @@
 
 import { React } from "../expose/React.ts";
 import { findMatchingPos } from "/hooks/util.ts";
-import { createIconComponent } from "../../lib/createIconComponent.tsx";
+import { createIconComponent } from "../createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
 import { Platform } from "../expose/Platform.ts";
 import { warn } from "../logger.ts";

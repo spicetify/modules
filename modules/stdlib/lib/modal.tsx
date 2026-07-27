@@ -8,7 +8,7 @@ import { Locale } from "../src/webpack/misc.ts";
 
 import RootRegistry from "../src/registers/root.ts";
 const [RootChildrenRegistry, RootProvidersRegistry] = RootRegistry;
-import { createIconComponent } from "./createIconComponent.tsx";
+import { createIconComponent } from "../src/createIconComponent.tsx";
 
 let ref: React.ReactElement | undefined = undefined;
 
