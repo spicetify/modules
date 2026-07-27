@@ -3,7 +3,23 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Badge, Button, Chip, openDialog, Select, Textarea, TextInput } from "/modules/stdlib/lib/ui.js";
+// Type-only import (erased at build): the kit is loaded at runtime via a
+// dynamic import in the enhanced path only, so the standalone fallback
+// keeps working even when stdlib is absent (the store declares no hard
+// dependency on it, by design — learnings 26/27).
+import type * as UIKit from "/modules/stdlib/lib/ui.ts";
+
+let Badge: typeof UIKit.Badge;
+let Button: typeof UIKit.Button;
+let Chip: typeof UIKit.Chip;
+let openDialog: typeof UIKit.openDialog;
+let Select: typeof UIKit.Select;
+let Textarea: typeof UIKit.Textarea;
+let TextInput: typeof UIKit.TextInput;
+
+async function loadKit(): Promise<void> {
+	({ Badge, Button, Chip, openDialog, Select, Textarea, TextInput } = await import("/modules/stdlib/lib/ui.js"));
+}
 
 const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
 // Overridable for vault development: point at any URL (data: URLs work)
@@ -423,14 +439,12 @@ function renderMarkdown(md: string): HTMLElement {
 
 function openOverlay(title: string): { body: HTMLElement; close: () => void } {
 	// The kit owns the scrim/dialog/close chrome; the store tracks the
-	// closer so a module unload tears down any open dialog.
-	const handle = openDialog({ title, children: [] });
+	// closer so a module unload tears down any open dialog. onClose fires
+	// on every dismissal path (×, backdrop, programmatic), keeping the set
+	// leak-free without the store owning the close affordances.
+	const handle = openDialog({ title, children: [], onClose: () => openDialogClosers.delete(handle.close) });
 	openDialogClosers.add(handle.close);
-	const close = () => {
-		openDialogClosers.delete(handle.close);
-		handle.close();
-	};
-	return { body: handle.body, close };
+	return { body: handle.body, close: handle.close };
 }
 
 // ---------- snippet authoring ----------
@@ -1267,14 +1281,23 @@ async function createStdlibNavlink(): Promise<(() => void) | null> {
 }
 
 export async function load() {
-	const page = createStorePage();
-	const disposePage = await registerStorePage(page);
-	// With stdlib present the store is a navlink + full page, following the
-	// Home/marketplace pattern with an active state. The fixed button and
-	// panel remain the standalone fallback so the store can always rescue a
-	// broken setup.
-	const disposeNavlink = await createStdlibNavlink();
+	// Enhanced path: the kit and the full page require stdlib. If stdlib is
+	// absent (or its route register is broken), this throws and we drop to
+	// the vanilla fallback below — the store's standalone-survival design.
+	let page: ReturnType<typeof createStorePage> | null = null;
+	let disposePage: (() => void) | null = null;
+	let disposeNavlink: (() => void) | null = null;
+	try {
+		await loadKit();
+		page = createStorePage();
+		disposePage = await registerStorePage(page);
+		disposeNavlink = await createStdlibNavlink();
+	} catch (e) {
+		console.warn("[store] enhanced path unavailable, using fallback:", e);
+	}
 
+	// The fixed button and popover panel are the standalone fallback (plain
+	// DOM, no kit) so the store can always rescue a broken setup.
 	let fallbackBtn: HTMLElement | null = null;
 	let panel: ReturnType<typeof createPanel> | null = null;
 	if (!disposeNavlink) {
@@ -1294,7 +1317,7 @@ export async function load() {
 		openDialogClosers.clear();
 		onCountsChanged = null;
 		disposePage?.();
-		page.node.remove();
+		page?.node.remove();
 		disposeNavlink?.();
 		fallbackBtn?.remove();
 		panel?.remove();
