@@ -13,7 +13,7 @@ export interface ModuleRuntimeContext {
 export * from "./src/registers/index.ts";
 export * from "./src/events.ts";
 // Vanilla component kit for module-owned DOM (React-free).
-export * from "./lib/ui.ts";
+export * from "./lib/primitives-vanilla.ts";
 export * from "./src/storage.ts";
 export * from "./src/wpunpk.ts";
 export * from "./src/logger.ts";

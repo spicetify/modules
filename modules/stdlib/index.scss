@@ -225,7 +225,7 @@
 }
 
 /* Shared chrome for module-owned badges, chips, and card containers —
-   the reusable base the vanilla component kit (lib/ui.ts) applies.
+   the reusable base the vanilla component kit (lib/primitives-vanilla.ts) applies.
    Values mirror the store's original store-local classes so the look is
    unchanged. Layout of card contents stays the consumer's concern. */
 .spicetify-badge {

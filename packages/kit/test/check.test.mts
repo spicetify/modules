@@ -66,6 +66,6 @@ describe("checkSource", () => {
 
 	it("exempts the kit's own source, which owns the menu-item class", () => {
 		const line = 'export const MENU_ITEM_CLASS = "main-contextMenu-menuItemButton";';
-		assert.deepEqual(checkSource("lib/ui-classes.ts", line), []);
+		assert.deepEqual(checkSource("lib/primitives-classes.ts", line), []);
 	});
 });

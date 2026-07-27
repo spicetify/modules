@@ -8,7 +8,7 @@ import "./test-setup.mts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { Badge, Button, Card, Chip, ConfirmButton, h, IconButton, openDialog, Select, Textarea, TextInput } from "./ui.ts";
+import { Badge, Button, Card, Chip, ConfirmButton, h, IconButton, openDialog, Select, Textarea, TextInput } from "./primitives-vanilla.ts";
 
 describe("h()", () => {
 	it("creates a typed element with class and text", () => {

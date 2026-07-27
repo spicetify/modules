@@ -31,9 +31,9 @@ import {
 	SCRIM_CLASS,
 	SEARCHBAR_CLASS,
 	SELECT_CLASS,
-} from "./ui-classes.ts";
+} from "./primitives-classes.ts";
 
-export type { BadgeTone, ButtonVariant } from "./ui-classes.ts";
+export type { BadgeTone, ButtonVariant } from "./primitives-classes.ts";
 
 // Typed event handlers: only real DOM events are accepted, so a
 // misspelled `onClik` is a type error rather than a silently-attached

@@ -5,10 +5,10 @@
 
 /**
  * The React tier of the component kit: the reusable UI primitives, the
- * same Spotify-look chrome as the vanilla kit (lib/ui.ts) but as React
+ * same Spotify-look chrome as the vanilla kit (lib/primitives-vanilla.ts) but as React
  * components for module UI that already renders inside a React tree
  * (routes, registers, modals). Both tiers apply the shared class contract
- * (ui-classes.ts) so they can never drift.
+ * (primitives-classes.ts) so they can never drift.
  *
  * Deep-import at runtime: `import { Button } from
  * "/modules/stdlib/lib/primitives.js"`. This is not in the mod.ts barrel
@@ -34,9 +34,9 @@ import {
 	SCRIM_CLASS,
 	SEARCHBAR_CLASS,
 	SELECT_CLASS,
-} from "./ui-classes.ts";
+} from "./primitives-classes.ts";
 
-export type { BadgeTone, ButtonVariant } from "./ui-classes.ts";
+export type { BadgeTone, ButtonVariant } from "./primitives-classes.ts";
 
 // ---------- buttons ----------
 

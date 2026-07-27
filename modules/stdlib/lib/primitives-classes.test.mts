@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { badgeClass, buttonClass, chipClass } from "./ui-classes.ts";
+import { badgeClass, buttonClass, chipClass } from "./primitives-classes.ts";
 
 describe("chrome class contract", () => {
 	it("maps button variants", () => {

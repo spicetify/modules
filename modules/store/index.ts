@@ -7,7 +7,7 @@
 // dynamic import in the enhanced path only, so the standalone fallback
 // keeps working even when stdlib is absent (the store declares no hard
 // dependency on it, by design — learnings 26/27).
-import type * as UIKit from "/modules/stdlib/lib/ui.ts";
+import type * as UIKit from "/modules/stdlib/lib/primitives-vanilla.ts";
 
 let Badge: typeof UIKit.Badge;
 let Button: typeof UIKit.Button;
@@ -18,7 +18,7 @@ let Textarea: typeof UIKit.Textarea;
 let TextInput: typeof UIKit.TextInput;
 
 async function loadKit(): Promise<void> {
-	({ Badge, Button, Chip, openDialog, Select, Textarea, TextInput } = await import("/modules/stdlib/lib/ui.js"));
+	({ Badge, Button, Chip, openDialog, Select, Textarea, TextInput } = await import("/modules/stdlib/lib/primitives-vanilla.js"));
 }
 
 const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
