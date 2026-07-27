@@ -8,7 +8,7 @@ import "./test-setup.mts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { Button, h, IconButton, Select, Textarea, TextInput } from "./ui.ts";
+import { Badge, Button, Card, Chip, ConfirmButton, h, IconButton, openDialog, Select, Textarea, TextInput } from "./ui.ts";
 
 describe("h()", () => {
 	it("creates a typed element with class and text", () => {
@@ -109,5 +109,90 @@ describe("TextInput / Textarea", () => {
 		assert.equal(ta.tagName, "TEXTAREA");
 		assert.equal(ta.placeholder, "css");
 		assert.equal(ta.value, "body{}");
+	});
+});
+
+describe("Badge", () => {
+	it("renders text and maps tones to modifiers", () => {
+		assert.equal(Badge({ text: "1.0.0" }).outerHTML, '<span class="spicetify-badge">1.0.0</span>');
+		assert.equal(Badge({ text: "ok", tone: "ok" }).className, "spicetify-badge spicetify-badge--ok");
+		assert.equal(Badge({ text: "bad", tone: "bad" }).className, "spicetify-badge spicetify-badge--bad");
+	});
+});
+
+describe("Chip", () => {
+	it("marks active and fires onClick", () => {
+		let clicks = 0;
+		assert.equal(Chip({ label: "All", active: false, onClick() {} }).className, "spicetify-chip");
+		const active = Chip({ label: "All", active: true, onClick: () => clicks++ });
+		assert.equal(active.className, "spicetify-chip spicetify-chip--active");
+		active.dispatchEvent(new MouseEvent("click"));
+		assert.equal(clicks, 1);
+	});
+});
+
+describe("Card", () => {
+	it("wraps children in an article container in order", () => {
+		const a = h("span", { textContent: "a" });
+		const b = h("span", { textContent: "b" });
+		const card = Card({ children: [a, b] });
+		assert.equal(card.tagName, "ARTICLE");
+		assert.equal(card.className, "spicetify-card");
+		assert.deepEqual([...card.children], [a, b]);
+	});
+});
+
+describe("ConfirmButton", () => {
+	it("requires two clicks: first arms, second confirms", () => {
+		let confirmed = 0;
+		const btn = ConfirmButton({ label: "Reset", confirmLabel: "Really?", onConfirm: () => confirmed++ });
+		assert.equal(btn.textContent, "Reset");
+		btn.dispatchEvent(new MouseEvent("click"));
+		assert.equal(btn.textContent, "Really?");
+		assert.equal(confirmed, 0);
+		btn.dispatchEvent(new MouseEvent("click"));
+		assert.equal(confirmed, 1);
+	});
+
+	it("re-arms after the window: a lone late click does not confirm", () => {
+		let confirmed = 0;
+		let scheduled: (() => void) | undefined;
+		const btn = ConfirmButton({
+			label: "Reset",
+			confirmLabel: "Really?",
+			onConfirm: () => confirmed++,
+			// Inject the timer so the arm window is deterministic under node:test.
+			setTimer: (fn) => {
+				scheduled = fn;
+				return 0;
+			},
+			clearTimer: () => {
+				scheduled = undefined;
+			},
+		});
+		btn.dispatchEvent(new MouseEvent("click"));
+		assert.equal(btn.textContent, "Really?");
+		scheduled?.(); // window elapses
+		assert.equal(btn.textContent, "Reset");
+		btn.dispatchEvent(new MouseEvent("click")); // arms again, does not confirm
+		assert.equal(confirmed, 0);
+	});
+});
+
+describe("openDialog", () => {
+	it("mounts a scrim+dialog, returns a body, and tears down on close or backdrop", () => {
+		const one = openDialog({ title: "New snippet", children: [h("p", { textContent: "hi" })] });
+		assert.ok(document.querySelector(".spicetify-scrim"));
+		assert.ok(one.body.closest(".spicetify-dialog"));
+		assert.equal(one.body.querySelector("p")?.textContent, "hi");
+		one.close();
+		assert.equal(document.querySelector(".spicetify-scrim"), null);
+
+		// Backdrop click runs the same teardown.
+		const two = openDialog({ title: "T", children: [] });
+		const scrim = document.querySelector(".spicetify-scrim") as HTMLElement;
+		scrim.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+		assert.equal(document.querySelector(".spicetify-scrim"), null);
+		void two;
 	});
 });

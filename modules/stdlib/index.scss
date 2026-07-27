@@ -223,3 +223,50 @@
 		font: inherit;
 	}
 }
+
+/* Shared chrome for module-owned badges, chips, and card containers —
+   the reusable base the vanilla component kit (lib/ui.ts) applies.
+   Values mirror the store's original store-local classes so the look is
+   unchanged. Layout of card contents stays the consumer's concern. */
+.spicetify-badge {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.08);
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 11px;
+	white-space: nowrap;
+
+	&--ok {
+		background: rgba(30, 215, 96, 0.12);
+		color: var(--spice-button, #1ed760);
+	}
+
+	&--bad {
+		background: rgba(255, 107, 107, 0.14);
+		color: #ff6b6b;
+	}
+}
+
+.spicetify-chip {
+	border: none;
+	border-radius: 16px;
+	padding: 6px 14px;
+	background: var(--spice-highlight, #1a1a1a);
+	color: var(--spice-text, #fff);
+	cursor: pointer;
+	font-size: 13px;
+
+	&--active {
+		background: var(--spice-text, #fff);
+		color: var(--spice-main, #121212);
+	}
+}
+
+.spicetify-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 16px;
+	border-radius: 8px;
+	background: var(--spice-card, #202020);
+}

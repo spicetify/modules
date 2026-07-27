@@ -144,3 +144,96 @@ export function Textarea(
 	});
 	return textarea;
 }
+
+// ---------- badges, chips, cards ----------
+
+export type BadgeTone = "neutral" | "ok" | "bad";
+
+export function Badge(props: { text: string; tone?: BadgeTone }): HTMLSpanElement {
+	const cls = props.tone && props.tone !== "neutral" ? `spicetify-badge spicetify-badge--${props.tone}` : "spicetify-badge";
+	return h("span", { className: cls, textContent: props.text });
+}
+
+export function Chip(props: { label: string; active: boolean; onClick: () => void }): HTMLButtonElement {
+	return h("button", {
+		type: "button",
+		className: props.active ? "spicetify-chip spicetify-chip--active" : "spicetify-chip",
+		textContent: props.label,
+		onClick: props.onClick,
+	});
+}
+
+// A plain elevated container; slot layout is the consumer's own concern.
+export function Card(props: { children: Child }): HTMLElement {
+	return h("article", { className: "spicetify-card" }, props.children);
+}
+
+// ---------- two-step confirm ----------
+
+// ConfirmButton encapsulates the arm-then-confirm pattern: the first
+// click swaps the label and arms a revert timer; a second click within
+// the window confirms. Timers are injectable so the window is
+// deterministic under test.
+export function ConfirmButton(props: {
+	label: string;
+	confirmLabel: string;
+	onConfirm: () => void;
+	variant?: ButtonVariant;
+	windowMs?: number;
+	setTimer?: (fn: () => void, ms: number) => number;
+	clearTimer?: (handle: number) => void;
+}): HTMLButtonElement {
+	const setTimer = props.setTimer ?? ((fn, ms) => setTimeout(fn, ms) as unknown as number);
+	const clearTimer = props.clearTimer ?? ((handle) => clearTimeout(handle));
+	let armed: number | null = null;
+	const disarm = () => {
+		if (armed !== null) clearTimer(armed);
+		armed = null;
+		button.textContent = props.label;
+	};
+	const button = h("button", {
+		type: "button",
+		className: buttonClass(props.variant),
+		textContent: props.label,
+		onClick: () => {
+			if (armed !== null) {
+				disarm();
+				props.onConfirm();
+				return;
+			}
+			button.textContent = props.confirmLabel;
+			armed = setTimer(disarm, props.windowMs ?? 4000);
+		},
+	});
+	return button;
+}
+
+// ---------- dialog ----------
+
+export interface DialogHandle {
+	body: HTMLElement;
+	close: () => void;
+}
+
+// openDialog mounts a scrim + dialog (with a title and circular close),
+// appends it to document.body, and returns the body plus a close(). The
+// backdrop and close button both run the same teardown.
+export function openDialog(props: { title: string; children: Child }): DialogHandle {
+	const body = h("div", { className: "spicetify-dialog-body" }, props.children);
+	const close = () => scrim.remove();
+	const header = h(
+		"div",
+		{ className: "spicetify-dialog-header" },
+		h("h2", { textContent: props.title }),
+		IconButton({ glyph: "×", ariaLabel: "Close", onClick: close }),
+	);
+	const dialog = h("div", { className: "spicetify-dialog" }, header, body);
+	const scrim = h("div", {
+		className: "spicetify-scrim",
+		onClick: (e) => {
+			if (e.target === scrim) close();
+		},
+	}, dialog);
+	document.body.append(scrim);
+	return { body, close };
+}
