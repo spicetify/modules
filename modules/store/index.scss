@@ -225,20 +225,6 @@
 		}
 	}
 
-	.spicetify-store-badge {
-		padding: 2px 8px;
-		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.08);
-		color: var(--spice-subtext, #a7a7a7);
-		font-size: 11px;
-		white-space: nowrap;
-
-		&--ok {
-			background: rgba(30, 215, 96, 0.12);
-			color: var(--spice-button, #1ed760);
-		}
-	}
-
 	.spicetify-store-cta {
 		padding: 6px 16px;
 		border: none;
@@ -302,21 +288,6 @@
 		display: flex;
 		gap: 8px;
 		flex: 1;
-	}
-
-	.spicetify-store-chip {
-		border: none;
-		border-radius: 16px;
-		padding: 6px 14px;
-		background: var(--spice-highlight, #1a1a1a);
-		color: var(--spice-text);
-		cursor: pointer;
-		font-size: 13px;
-	}
-
-	.spicetify-store-chip--active {
-		background: var(--spice-text);
-		color: var(--spice-main, #121212);
 	}
 }
 

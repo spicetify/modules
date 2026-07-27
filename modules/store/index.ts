@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Badge, Button, Chip, openDialog, Select, Textarea, TextInput } from "/modules/stdlib/lib/ui.js";
+
 const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
 // Overridable for vault development: point at any URL (data: URLs work)
 // to preview a vault before publishing it. Read lazily like the other
@@ -156,7 +158,7 @@ let onCountsChanged: (() => void) | null = null;
 // overlays; nothing may outlive the module.
 let disposed = false;
 const retryTimers = new Set<ReturnType<typeof setTimeout>>();
-const openScrims = new Set<HTMLElement>();
+const openDialogClosers = new Set<() => void>();
 
 async function fetchInstallCounts(ids: string[]): Promise<void> {
 	const base = INSTALLS_API();
@@ -420,27 +422,15 @@ function renderMarkdown(md: string): HTMLElement {
 // ---------- modal overlay (details, snippet editor) ----------
 
 function openOverlay(title: string): { body: HTMLElement; close: () => void } {
-	const scrim = el("div", "spicetify-scrim");
-	const dialog = el("div", "spicetify-dialog");
-	const header = el("div", "spicetify-dialog-header");
-	header.appendChild(el("h2", undefined, title));
-	const closeBtn = el("button", "spicetify-button-circle", "×");
-	closeBtn.setAttribute("aria-label", "Close");
-	header.appendChild(closeBtn);
-	const body = el("div", "spicetify-dialog-body");
-	dialog.append(header, body);
-	scrim.appendChild(dialog);
-	document.body.appendChild(scrim);
-	openScrims.add(scrim);
+	// The kit owns the scrim/dialog/close chrome; the store tracks the
+	// closer so a module unload tears down any open dialog.
+	const handle = openDialog({ title, children: [] });
+	openDialogClosers.add(handle.close);
 	const close = () => {
-		openScrims.delete(scrim);
-		scrim.remove();
+		openDialogClosers.delete(handle.close);
+		handle.close();
 	};
-	closeBtn.addEventListener("click", close);
-	scrim.addEventListener("click", (e) => {
-		if (e.target === scrim) close();
-	});
-	return { body, close };
+	return { body: handle.body, close };
 }
 
 // ---------- snippet authoring ----------
@@ -455,19 +445,14 @@ function openSnippetEditor(
 ): void {
 	const { body, close } = openOverlay(existing ? `Edit ${existing.name}` : "New CSS snippet");
 
-	const nameInput = el("input", "spicetify-searchbar") as HTMLInputElement;
-	nameInput.placeholder = "Snippet name";
-	nameInput.value = existing?.name ?? "";
-	if (existing) nameInput.disabled = true;
+	const nameInput = TextInput({ placeholder: "Snippet name", value: existing?.name ?? "", disabled: !!existing });
 
-	const css = el("textarea", "spicetify-store-snippet-css") as HTMLTextAreaElement;
-	css.placeholder = "/* your css */";
-	css.value = existing?.css ?? "";
+	const css = Textarea({ placeholder: "/* your css */", value: existing?.css ?? "" });
+	css.className = "spicetify-store-snippet-css";
 	css.spellcheck = false;
 
 	const actions = el("div", "spicetify-store-card-actions");
-	const save = el("button", "spicetify-button", existing ? "Save" : "Create");
-	save.addEventListener("click", async () => {
+	const save = Button({ label: existing ? "Save" : "Create", onClick: async () => {
 		const name = nameInput.value.trim();
 		if (!name || !css.value.trim()) return;
 		const id = existing?.id ?? `snippet-user-${slugify(name)}`;
@@ -504,7 +489,7 @@ function openSnippetEditor(
 			status(`snippet failed: ${(e as Error).message}`);
 			save.disabled = false;
 		}
-	});
+	} });
 	actions.appendChild(save);
 	body.append(nameInput, css, actions);
 	nameInput.focus();
@@ -527,17 +512,16 @@ function openModuleDetails(
 	}
 
 	const meta = el("div", "spicetify-store-card-meta");
-	meta.appendChild(el("span", "spicetify-store-badge", mod.version));
+	meta.appendChild(Badge({ text: mod.version }));
 	const count = installCounts[mod.id];
-	if (count !== undefined) meta.appendChild(el("span", "spicetify-store-badge", `${count} installs`));
+	if (count !== undefined) meta.appendChild(Badge({ text: `${count} installs` }));
 	meta.appendChild(
-		el(
-			"span",
-			`spicetify-store-badge${mod.checksum || mod.files ? " spicetify-store-badge--ok" : ""}`,
-			mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified",
-		),
+		Badge({
+			text: mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified",
+			tone: mod.checksum || mod.files ? "ok" : "neutral",
+		}),
 	);
-	for (const tag of mod.meta?.tags ?? []) meta.appendChild(el("span", "spicetify-store-badge", tag));
+	for (const tag of mod.meta?.tags ?? []) meta.appendChild(Badge({ text: tag }));
 	body.appendChild(meta);
 
 	if (mod.meta?.authors?.length) {
@@ -555,8 +539,7 @@ function openModuleDetails(
 	}
 
 	const actions = el("div", "spicetify-store-card-actions");
-	const install = el("button", "spicetify-button", installLabel);
-	install.addEventListener("click", () => onInstall(install));
+	const install = Button({ label: installLabel, onClick: () => onInstall(install) });
 	actions.appendChild(install);
 	body.appendChild(actions);
 
@@ -784,18 +767,23 @@ function createStorePage() {
 	const titles = el("div");
 	titles.appendChild(el("h1", undefined, "Module Store"));
 	titles.appendChild(el("p", "spicetify-store-page-subtitle", "Modules from your trusted vaults"));
-	const search = el("input", "spicetify-searchbar spicetify-store-page-search") as HTMLInputElement;
-	search.placeholder = "Search modules…";
+	const search = TextInput({ placeholder: "Search modules…" });
+	search.classList.add("spicetify-store-page-search");
 	header.append(titles, search);
 
 	const toolbar = el("div", "spicetify-store-toolbar");
 	const chips = el("div", "spicetify-store-chips");
-	const sortSelect = el("select", "spicetify-select") as HTMLSelectElement;
-	for (const sort of SORTS) {
-		const option = el("option", undefined, sort.label) as HTMLOptionElement;
-		option.value = sort.key;
-		sortSelect.appendChild(option);
-	}
+	const sortSelect = Select({
+		options: SORTS.map((sort) => ({ value: sort.key, label: sort.label })),
+		value: "installs",
+		onChange: (value) => {
+			activeSort = value;
+			try {
+				localStorage.setItem("spicetify:store:sort", activeSort);
+			} catch {}
+			renderGrid();
+		},
+	});
 	const newSnippet = el("button", "spicetify-store-cta", "New snippet");
 	toolbar.append(chips, sortSelect, newSnippet);
 
@@ -829,27 +817,23 @@ function createStorePage() {
 	const autoDisabledRevoked = new Set<string>();
 	const setStatus = (msg: string) => (status.textContent = msg);
 
-	function badge(text: string, ok = false) {
-		return el("span", `spicetify-store-badge${ok ? " spicetify-store-badge--ok" : ""}`, text);
-	}
+	const badge = (text: string, ok = false) => Badge({ text, tone: ok ? "ok" : "neutral" });
 
 	function renderChips() {
 		chips.replaceChildren();
 		for (const tab of TABS) {
-			const chip = el(
-				"button",
-				`spicetify-store-chip${tab.key === activeTab ? " spicetify-store-chip--active" : ""}`,
-				tab.label,
-			);
-			chip.addEventListener("click", () => {
-				activeTab = tab.key;
-				try {
-					localStorage.setItem("spicetify:store:tab", activeTab);
-				} catch {}
-				renderChips();
-				renderGrid();
-			});
-			chips.appendChild(chip);
+			chips.appendChild(Chip({
+				label: tab.label,
+				active: tab.key === activeTab,
+				onClick: () => {
+					activeTab = tab.key;
+					try {
+						localStorage.setItem("spicetify:store:tab", activeTab);
+					} catch {}
+					renderChips();
+					renderGrid();
+				},
+			}));
 		}
 	}
 
@@ -981,9 +965,11 @@ function createStorePage() {
 			const actions = el("div", "spicetify-store-card-actions");
 			const install = el("button", "spicetify-store-cta", installCta(mod, localVersions.get(mod.id)));
 			install.addEventListener("click", () => runInstall(mod, install));
-			const details = el("button", "spicetify-button spicetify-button--secondary", "Details");
-			details.addEventListener("click", () =>
-				openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn)));
+			const details = Button({
+				label: "Details",
+				variant: "secondary",
+				onClick: () => openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn)),
+			});
 			actions.append(install, details);
 			card.appendChild(actions);
 			grid.appendChild(card);
@@ -1043,16 +1029,13 @@ function createStorePage() {
 			// Theme modules expose their color schemes for live switching.
 			const schemes = M().schemes?.(id) as { active: string; names: string[] } | null;
 			if (schemes && schemes.names.length > 1) {
-				const picker = el("select", "spicetify-select") as HTMLSelectElement;
-				for (const name of schemes.names) {
-					const option = el("option", undefined, name || "default") as HTMLOptionElement;
-					option.value = name;
-					option.selected = name === schemes.active;
-					picker.appendChild(option);
-				}
-				picker.addEventListener("change", () => {
-					M().setScheme(id, picker.value);
-					setStatus(`${id}: ${picker.value} scheme applied`);
+				const picker = Select({
+					options: schemes.names.map((name) => ({ value: name, label: name || "default" })),
+					value: schemes.active,
+					onChange: (name) => {
+						M().setScheme(id, name);
+						setStatus(`${id}: ${name} scheme applied`);
+					},
 				});
 				card.appendChild(picker);
 			}
@@ -1079,13 +1062,16 @@ function createStorePage() {
 			}
 
 			if ((record.metadata.tags ?? []).includes("custom") && record.files?.["index.css"] !== undefined) {
-				const edit = el("button", "spicetify-button spicetify-button--secondary", "Edit");
-				edit.addEventListener("click", () =>
-					openSnippetEditor(
-						{ id, name: record.metadata.name ?? id, css: record.files!["index.css"] },
-						renderAll,
-						setStatus,
-					));
+				const edit = Button({
+					label: "Edit",
+					variant: "secondary",
+					onClick: () =>
+						openSnippetEditor(
+							{ id, name: record.metadata.name ?? id, css: record.files!["index.css"] },
+							renderAll,
+							setStatus,
+						),
+				});
 				actions.appendChild(edit);
 			}
 
@@ -1115,13 +1101,6 @@ function createStorePage() {
 
 	search.addEventListener("input", () => {
 		filter = search.value;
-		renderGrid();
-	});
-	sortSelect.addEventListener("change", () => {
-		activeSort = sortSelect.value;
-		try {
-			localStorage.setItem("spicetify:store:sort", activeSort);
-		} catch {}
 		renderGrid();
 	});
 	newSnippet.addEventListener("click", () => openSnippetEditor(null, () => renderAll(), setStatus));
@@ -1311,8 +1290,8 @@ export async function load() {
 		disposed = true;
 		for (const timer of retryTimers) clearTimeout(timer);
 		retryTimers.clear();
-		for (const scrim of openScrims) scrim.remove();
-		openScrims.clear();
+		for (const close of openDialogClosers) close();
+		openDialogClosers.clear();
 		onCountsChanged = null;
 		disposePage?.();
 		page.node.remove();
