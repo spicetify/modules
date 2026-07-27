@@ -8,6 +8,7 @@ const USAGE = `spicetify-kit - developer kit for spicetify v3 modules
 usage: spicetify-kit <command> [args]
 
   create <name>      scaffold a new module project (--bare for monorepo layout)
+  check [module]     audit a module against the module standard (advisory)
   from-theme <dir>   migrate a classic theme (user.css + color.ini) to a module
   build [module...]  bundle modules (rolldown + scss) into dist/
   dev <module>       watch, rebuild, and hot-push into a running client
@@ -21,6 +22,8 @@ export async function main(argv: string[]): Promise<void> {
 		switch (command) {
 			case "create":
 				return await (await import("./create.ts")).runCreate(rest);
+			case "check":
+				return await (await import("./check.ts")).runCheck(rest);
 			case "from-theme":
 				return await (await import("./from-theme.ts")).runFromTheme(rest);
 			case "build":

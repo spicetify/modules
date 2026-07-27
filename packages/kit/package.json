@@ -13,7 +13,8 @@
 		"./build": "./dist/build.js",
 		"./dev": "./dist/dev.js",
 		"./pack": "./dist/pack.js",
-		"./from-theme": "./dist/from-theme.js"
+		"./from-theme": "./dist/from-theme.js",
+		"./check": "./dist/check.js"
 	},
 	"files": [
 		"bin",
