@@ -4,6 +4,7 @@
  */
 
 import { React } from "/modules/stdlib/src/expose/React.ts";
+import { TextInput } from "/modules/stdlib/lib/ui-react.js";
 import {
 	deriveManagerState,
 	fetchSupportStatus,
@@ -180,13 +181,7 @@ export const ManagerPage = () => {
 					<h1>Spicetify Manager</h1>
 					<p className="spicetify-manager-subtitle">Runtime control for modules, boot health, and diagnostics</p>
 				</div>
-				<input
-					className="spicetify-searchbar"
-					type="text"
-					placeholder="Filter modules…"
-					value={filter}
-					onChange={(e) => setFilter(e.target.value)}
-				/>
+				<TextInput placeholder="Filter modules…" value={filter} onInput={setFilter} />
 			</header>
 
 			<div className="spicetify-manager-status">{status}</div>
