@@ -23,6 +23,11 @@ export const chipClass = (active: boolean): string =>
 	active ? "spicetify-chip spicetify-chip--active" : "spicetify-chip";
 
 export const ICON_BUTTON_CLASS = "spicetify-button-circle";
+// A row in one of Spotify's own context menus. Unlike the spicetify-*
+// classes above (ours, styled in index.scss), this is Spotify's stable
+// semantic class — the kit owns it in this one place so module code never
+// has to name a client class to get a native-looking menu item.
+export const MENU_ITEM_CLASS = "main-contextMenu-menuItemButton";
 export const SELECT_CLASS = "spicetify-select";
 export const SEARCHBAR_CLASS = "spicetify-searchbar";
 export const CARD_CLASS = "spicetify-card";

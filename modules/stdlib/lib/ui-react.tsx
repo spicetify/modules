@@ -30,6 +30,7 @@ import {
 	DIALOG_CLASS,
 	DIALOG_HEADER_CLASS,
 	ICON_BUTTON_CLASS,
+	MENU_ITEM_CLASS,
 	SCRIM_CLASS,
 	SEARCHBAR_CLASS,
 	SELECT_CLASS,
@@ -110,6 +111,27 @@ export const Chip: React.FC<{ active: boolean; onClick?: () => void; children: R
 // A plain elevated container; slot layout is the consumer's own concern.
 export const Card: React.FC<{ children: React.ReactNode }> = (props) => (
 	<article className={CARD_CLASS}>{props.children}</article>
+);
+
+// ---------- context-menu item ----------
+
+// A row for one of Spotify's context menus — register it through the
+// "menu" register. It owns the native context-menu class so module code
+// gets Spotify styling without ever naming a client class; pass `className`
+// only for a module-specific hook on top of the native look.
+export const MenuItem: React.FC<{
+	onClick?: () => void;
+	className?: string;
+	children: React.ReactNode;
+}> = (props) => (
+	<button
+		type="button"
+		role="menuitem"
+		className={props.className ? `${MENU_ITEM_CLASS} ${props.className}` : MENU_ITEM_CLASS}
+		onClick={props.onClick}
+	>
+		<span>{props.children}</span>
+	</button>
 );
 
 // ---------- two-step confirm ----------
