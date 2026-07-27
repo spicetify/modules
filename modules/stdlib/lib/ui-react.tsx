@@ -18,7 +18,7 @@
  * kit is the React-free choice for standalone surfaces).
  */
 
-import { React } from "../src/expose/React.ts";
+import { React, ReactDOM } from "../src/expose/React.ts";
 import {
 	badgeClass,
 	buttonClass,
@@ -148,23 +148,28 @@ export const ConfirmButton: React.FC<{
 
 // ---------- dialog ----------
 
-// Modal chrome rendered inline: the consumer controls mounting with a
-// conditional render (`{open && <Dialog ... />}`), the idiomatic React
-// equivalent of the vanilla kit's openDialog(). The backdrop and the ×
+// Modal chrome: the consumer controls mounting with a conditional render
+// (`{open && <Dialog ... />}`), the idiomatic React equivalent of the
+// vanilla kit's openDialog(). It portals to document.body so the
+// position:fixed scrim anchors to the viewport — a fixed element inside a
+// transformed ancestor (the norm for Spotify's scroll containers) would
+// otherwise be clipped/offset to that ancestor. The backdrop and the ×
 // button both call onClose.
-export const Dialog: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = (props) => (
-	<div
-		className={SCRIM_CLASS}
-		onClick={(e) => {
-			if (e.target === e.currentTarget) props.onClose();
-		}}
-	>
-		<div className={DIALOG_CLASS}>
-			<div className={DIALOG_HEADER_CLASS}>
-				<h2>{props.title}</h2>
-				<IconButton ariaLabel="Close" onClick={props.onClose}>×</IconButton>
+export const Dialog: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = (props) =>
+	ReactDOM.createPortal(
+		<div
+			className={SCRIM_CLASS}
+			onClick={(e) => {
+				if (e.target === e.currentTarget) props.onClose();
+			}}
+		>
+			<div className={DIALOG_CLASS}>
+				<div className={DIALOG_HEADER_CLASS}>
+					<h2>{props.title}</h2>
+					<IconButton ariaLabel="Close" onClick={props.onClose}>×</IconButton>
+				</div>
+				<div className={DIALOG_BODY_CLASS}>{props.children}</div>
 			</div>
-			<div className={DIALOG_BODY_CLASS}>{props.children}</div>
-		</div>
-	</div>
-);
+		</div>,
+		document.body,
+	);
