@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { useSearchBar } from "/modules/stdlib/lib/components/index.tsx";
+import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import { Palette, PaletteManager } from "./palette.ts";
 import { createIconComponent } from "/modules/stdlib/src/createIconComponent.tsx";
 import { startCase } from "/modules/stdlib/deps.ts";
@@ -89,10 +89,7 @@ export default function () {
 		undefined,
 		getPalettes,
 	);
-	const [searchbar, search] = useSearchBar({
-		placeholder: "Search Palettes",
-		expanded: true,
-	});
+	const [search, setSearch] = React.useState("");
 
 	function createPalette() {
 		PaletteManager.INSTANCE.addUserPalette(
@@ -110,7 +107,7 @@ export default function () {
 		<div className="palette-modal-container">
 			<div className="palette-list-container">
 				<ul>
-					{searchbar}
+					<TextInput placeholder="Search Palettes" value={search} onInput={setSearch} />
 					<MenuRow
 						leadingIcon={createIconComponent({
 							icon: '<path d="M14 7H9V2H7v5H2v2h5v5h2V9h5z"/><path fill="none" d="M0 0h16v16H0z"/>',
