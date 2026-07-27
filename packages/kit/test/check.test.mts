@@ -50,4 +50,9 @@ describe("checkSource", () => {
 		const f = checkSource("mod.ts", 'const s = el("select", "spicetify-select");');
 		assert.equal(f[0].rule, "use-the-kit");
 	});
+
+	it("nudges a hardcoded context-menu row toward the kit's MenuItem", () => {
+		const f = checkSource("mod.tsx", '<button className="main-contextMenu-menuItemButton" />');
+		assert.equal(f[0].rule, "use-the-kit");
+	});
 });
