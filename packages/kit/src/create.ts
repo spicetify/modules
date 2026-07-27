@@ -17,7 +17,92 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const USAGE = 'spicetify-kit create <name> [--description "..."] [--author "..."] [--bare]';
+const USAGE =
+	'spicetify-kit create <name> [--template basic|extension|app] [--description "..."] [--author "..."] [--bare]';
+
+type Template = "basic" | "extension" | "app";
+
+const ICON_LITERAL = `'<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>'`;
+
+// modTemplate returns the mod.tsx for a template. Every template follows the
+// standard: it registers through createRegistrar (which auto-disposes),
+// imports React only from stdlib, and self-subscribes/disposes its own
+// listeners.
+function modTemplate(template: Template, name: string, header: string): string {
+	const route = `/bespoke/${name}`;
+	if (template === "extension") {
+		return `${header}
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+
+// Extensions add behavior (and optionally small UI via a register). The
+// golden rules: subscribe to client state yourself, and undo everything on
+// unload via ctx.defer — a module that lingers after a reload is a bug.
+const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
+
+export default async function (ctx: ModuleRuntimeContext) {
+	const onSongChange = () => {
+		// Runs on every track change. Replace with your behavior.
+		console.log("[${name}] now playing:", Spicetify?.Player?.data?.item?.name);
+	};
+	Spicetify?.Player?.addEventListener("songchange", onSongChange);
+	ctx.defer(() => Spicetify?.Player?.removeEventListener("songchange", onSongChange));
+}
+`;
+	}
+	if (template === "app") {
+		return `${header}
+import { createRegistrar } from "/modules/stdlib/mod.ts";
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { React } from "/modules/stdlib/src/expose/React.ts";
+import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
+import { Button } from "/modules/stdlib/lib/ui-react.js";
+
+const ROUTE = "${route}";
+const ICON = ${ICON_LITERAL};
+
+const Page = () => (
+	<div className="${name}-page">
+		<h1>${name}</h1>
+		<p>A full page at ${route}. Build it from the React kit (ui-react).</p>
+		<Button variant="secondary" onClick={() => {}}>A kit button</Button>
+	</div>
+);
+
+export default async function (ctx: ModuleRuntimeContext) {
+	const registrar = createRegistrar(ctx);
+	registrar.register("navlink", <NavLink localizedApp="${name}" appRoutePath={ROUTE} icon={ICON} activeIcon={ICON} />);
+	registrar.registerRoute(ROUTE, <Page />);
+}
+`;
+	}
+	return `${header}
+import { createRegistrar } from "/modules/stdlib/mod.ts";
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { React } from "/modules/stdlib/src/expose/React.ts";
+import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
+import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
+
+const ROUTE = "${route}";
+const ICON = ${ICON_LITERAL};
+
+const Page = () => (
+	<div className="${name}-page">
+		<h1>${name}</h1>
+		<p>Hello from ${name}. Edit mod.tsx and run the dev command to iterate live.</p>
+	</div>
+);
+
+export default async function (ctx: ModuleRuntimeContext) {
+	const registrar = createRegistrar(ctx);
+
+	registrar.register(
+		"topbarRightButton",
+		<TopbarRightButton label="${name}" icon={ICON} onClick={() => Platform.getHistory().push(ROUTE)} />,
+	);
+	registrar.registerRoute(ROUTE, <Page />);
+}
+`;
+}
 
 export async function runCreate(argv: string[], cwd = process.cwd()): Promise<void> {
 	const name = argv.find((a) => !a.startsWith("--"));
@@ -26,6 +111,10 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 		return i >= 0 ? argv[i + 1] : undefined;
 	};
 	const bare = argv.includes("--bare");
+	const template = (flag("template") ?? "basic") as Template;
+	if (!["basic", "extension", "app"].includes(template)) {
+		throw new Error(`${USAGE}\ntemplate must be basic, extension, or app`);
+	}
 
 	if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
 		throw new Error(`${USAGE}\nname must be kebab-case (it doubles as the module identifier)`);
@@ -41,17 +130,22 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 
 	mkdirSync(dir, { recursive: true });
 
+	const tag = template === "app" ? "app" : "extension";
+	// Extensions are behavior-only; templates that render a page ship css.
+	const hasCss = template !== "extension";
+	const entries = hasCss ? { js: "index.js", css: "index.css" } : { js: "index.js" };
+
 	writeFileSync(
 		path.join(dir, "metadata.json"),
 		`${
 			JSON.stringify(
 				{
 					name,
-					tags: ["extension"],
+					tags: [tag],
 					version: "0.1.0",
 					authors: [author],
 					description,
-					entries: { js: "index.js", css: "index.css" },
+					entries,
 					hasMixins: false,
 					dependencies: { stdlib: "^0.3.0" },
 				},
@@ -74,47 +168,18 @@ export async function load(ctx: ModuleRuntimeContext) {
 `,
 	);
 
-	writeFileSync(
-		path.join(dir, "mod.tsx"),
-		`${header}
-import { createRegistrar } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
-import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
+	writeFileSync(path.join(dir, "mod.tsx"), modTemplate(template, name, header));
 
-const ROUTE = "/bespoke/${name}";
-
-// 16-grid icon (a plain circle); replace with your own inner SVG markup.
-const ICON = '<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>';
-
-const Page = () => (
-	<div className="${name}-page">
-		<h1>${name}</h1>
-		<p>Hello from ${name}. Edit mod.tsx and run the dev command to iterate live.</p>
-	</div>
-);
-
-export default async function (ctx: ModuleRuntimeContext) {
-	const registrar = createRegistrar(ctx);
-
-	registrar.register(
-		"topbarRightButton",
-		<TopbarRightButton label="${name}" icon={ICON} onClick={() => Platform.getHistory().push(ROUTE)} />,
-	);
-	registrar.registerRoute(ROUTE, <Page />);
-}
-`,
-	);
-
-	writeFileSync(
-		path.join(dir, "index.scss"),
-		`.${name}-page {
+	if (hasCss) {
+		writeFileSync(
+			path.join(dir, "index.scss"),
+			`.${name}-page {
 	padding: 24px 32px;
 	color: var(--spice-text);
 }
 `,
-	);
+		);
+	}
 
 	if (!bare) {
 		writeFileSync(
