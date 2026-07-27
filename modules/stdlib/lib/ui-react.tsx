@@ -52,8 +52,19 @@ export const Button: React.FC<{
 );
 
 // The circular icon button Spotify uses for modal close (Credits, etc).
-export const IconButton: React.FC<{ ariaLabel: string; onClick?: () => void; children: React.ReactNode }> = (props) => (
-	<button type="button" className={ICON_BUTTON_CLASS} aria-label={props.ariaLabel} onClick={props.onClick}>
+export const IconButton: React.FC<{
+	ariaLabel: string;
+	disabled?: boolean;
+	onClick?: () => void;
+	children: React.ReactNode;
+}> = (props) => (
+	<button
+		type="button"
+		className={ICON_BUTTON_CLASS}
+		aria-label={props.ariaLabel}
+		disabled={props.disabled}
+		onClick={props.onClick}
+	>
 		{props.children}
 	</button>
 );
