@@ -17,19 +17,24 @@
  * stdlib's ComponentLibrary; this kit is for module-owned DOM.
  */
 
-type EventName<K extends string> = K extends `on${infer E}` ? Lowercase<E> : never;
+// Typed event handlers: only real DOM events are accepted, so a
+// misspelled `onClik` is a type error rather than a silently-attached
+// listener for a "clik" event.
+type EventHandlers = {
+	[E in keyof GlobalEventHandlersEventMap as `on${Capitalize<E>}`]?: (event: GlobalEventHandlersEventMap[E]) => void;
+};
 
 // Props for h(): className/textContent/style, dataset, aria-* attributes,
 // on<Event> listeners, and any writable property of the element itself
 // (value, disabled, placeholder, type, ...), so consumers never cast.
 export type Props<K extends keyof HTMLElementTagNameMap> =
-	& Partial<Omit<HTMLElementTagNameMap[K], "style" | "children" | "dataset">>
+	& Partial<Omit<HTMLElementTagNameMap[K], `on${string}` | "style" | "children" | "dataset">>
+	& EventHandlers
 	& {
 		className?: string;
 		dataset?: Record<string, string>;
 		style?: Partial<CSSStyleDeclaration>;
-		[ariaOrData: `aria-${string}`]: string | undefined;
-		[on: `on${string}`]: ((event: Event) => void) | undefined;
+		[aria: `aria-${string}`]: string | undefined;
 	};
 
 export type Child = string | Node | false | null | undefined | Child[];
@@ -62,8 +67,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 				Object.assign(node.style, value);
 			} else if (key.startsWith("aria-")) {
 				node.setAttribute(key, value as string);
-			} else if (key.startsWith("on") && typeof value === "function") {
-				node.addEventListener(key.slice(2).toLowerCase() as EventName<typeof key>, value as EventListener);
+			} else if (/^on[A-Z]/.test(key) && typeof value === "function") {
+				node.addEventListener(key.slice(2).toLowerCase(), value as EventListener);
 			} else {
 				(node as Record<string, unknown>)[key] = value;
 			}
@@ -217,10 +222,18 @@ export interface DialogHandle {
 
 // openDialog mounts a scrim + dialog (with a title and circular close),
 // appends it to document.body, and returns the body plus a close(). The
-// backdrop and close button both run the same teardown.
-export function openDialog(props: { title: string; children: Child }): DialogHandle {
+// backdrop, close button, and programmatic close() all run one teardown,
+// so onClose fires exactly once on any dismissal path (consumers use it
+// to drop their own bookkeeping, e.g. a dispose registry).
+export function openDialog(props: { title: string; children: Child; onClose?: () => void }): DialogHandle {
 	const body = h("div", { className: "spicetify-dialog-body" }, props.children);
-	const close = () => scrim.remove();
+	let closed = false;
+	const close = () => {
+		if (closed) return;
+		closed = true;
+		scrim.remove();
+		props.onClose?.();
+	};
 	const header = h(
 		"div",
 		{ className: "spicetify-dialog-header" },

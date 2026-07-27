@@ -195,4 +195,29 @@ describe("openDialog", () => {
 		assert.equal(document.querySelector(".spicetify-scrim"), null);
 		void two;
 	});
+
+	it("fires onClose exactly once, on every dismissal path", () => {
+		// Programmatic close.
+		let a = 0;
+		openDialog({ title: "A", children: [], onClose: () => a++ }).close();
+		assert.equal(a, 1);
+
+		// The × button.
+		let b = 0;
+		openDialog({ title: "B", children: [], onClose: () => b++ });
+		(document.querySelector(".spicetify-scrim .spicetify-button-circle") as HTMLElement).dispatchEvent(new MouseEvent("click"));
+		assert.equal(b, 1);
+
+		// Backdrop, and no double-fire if close() is also called afterward.
+		let c = 0;
+		const handle = openDialog({ title: "C", children: [], onClose: () => c++ });
+		(document.querySelector(".spicetify-scrim") as HTMLElement).dispatchEvent(new MouseEvent("click"));
+		handle.close();
+		assert.equal(c, 1);
+	});
+
+	it("rejects a misspelled event handler at the type level", () => {
+		// @ts-expect-error onClik is not a real DOM event handler
+		h("button", { onClik: () => {} });
+	});
 });
