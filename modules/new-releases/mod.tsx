@@ -78,17 +78,14 @@ const Page = () => {
 	const [items, setItems] = React.useState<Release[]>([]);
 	const [fellBack, setFellBack] = React.useState(false);
 
-	// The route element lives in a frozen registry, so guard against a
-	// setState landing after the page unmounts mid-fetch.
-	const mounted = React.useRef(true);
-	React.useEffect(() => {
-		mounted.current = true;
-		return () => {
-			mounted.current = false;
-		};
-	}, []);
-
+	// Each load claims a sequence number so a newer load (a refresh, or a
+	// remount) supersedes an in-flight one and only the latest result lands —
+	// otherwise the slower of two overlapping fetches would win. A setState
+	// after unmount is a harmless no-op in React 18, so no mounted flag is
+	// needed on top of this.
+	const gen = React.useRef(0);
 	const load = React.useCallback(async () => {
+		const seq = ++gen.current;
 		setStatus("loading");
 		let list = await fetchNewReleases();
 		let fallback = false;
@@ -96,7 +93,7 @@ const Page = () => {
 			list = await fetchRecentlyAdded();
 			fallback = true;
 		}
-		if (!mounted.current) return;
+		if (seq !== gen.current) return;
 		setItems(list);
 		setFellBack(fallback);
 		setStatus(list.length ? "ready" : "empty");
@@ -110,7 +107,7 @@ const Page = () => {
 		<div className="new-releases-page">
 			<div className="new-releases-header">
 				<h1>New Releases</h1>
-				<IconButton ariaLabel="Refresh" onClick={() => void load()}>⟳</IconButton>
+				<IconButton ariaLabel="Refresh" disabled={status === "loading"} onClick={() => void load()}>⟳</IconButton>
 			</div>
 
 			{fellBack && status === "ready" && (
@@ -128,8 +125,8 @@ const Page = () => {
 
 			{status === "ready" && (
 				<div className="new-releases-grid">
-					{items.map((r) => (
-						<Card key={r.uri}>
+					{items.map((r, i) => (
+						<Card key={`${r.uri}-${i}`}>
 							<div className="new-releases-card">
 								{r.imageUrl
 									? <img className="new-releases-cover" src={r.imageUrl} alt="" loading="lazy" />
