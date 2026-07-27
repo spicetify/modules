@@ -1,0 +1,78 @@
+.new-releases-page {
+	padding: 24px 32px;
+	color: var(--spice-text);
+}
+
+.new-releases-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+
+	h1 {
+		margin: 0;
+		font-size: 2rem;
+		font-weight: 700;
+	}
+}
+
+.new-releases-note {
+	margin: 8px 0 0;
+	color: var(--spice-subtext);
+	font-size: 0.875rem;
+}
+
+.new-releases-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 12px;
+	margin-top: 32px;
+	color: var(--spice-subtext);
+}
+
+.new-releases-grid {
+	margin-top: 20px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 16px;
+}
+
+.new-releases-card {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.new-releases-cover {
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	object-fit: cover;
+	border-radius: 6px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+
+	&--empty {
+		background: var(--spice-highlight-elevated, rgba(255, 255, 255, 0.1));
+	}
+}
+
+.new-releases-meta {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.new-releases-name {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.new-releases-artist {
+	color: var(--spice-subtext);
+	font-size: 0.875rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}

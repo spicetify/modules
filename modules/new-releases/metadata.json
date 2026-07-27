@@ -1,0 +1,19 @@
+{
+	"name": "new-releases",
+	"tags": [
+		"app"
+	],
+	"version": "0.1.0",
+	"authors": [
+		"spicetify"
+	],
+	"description": "New album releases, with a graceful fallback to what you have recently added.",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^0.3.0"
+	}
+}
