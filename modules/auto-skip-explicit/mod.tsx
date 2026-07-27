@@ -9,6 +9,7 @@
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
+import { MenuItem } from "/modules/stdlib/lib/ui-react.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
 const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
@@ -23,18 +24,15 @@ const ToggleItem = () => {
 	const [, force] = React.useReducer((n: number) => n + 1, 0);
 	if (!openedFromProfileMenu(ctx)) return null;
 	return (
-		<button
-			type="button"
-			role="menuitem"
-			className="main-contextMenu-menuItemButton"
+		<MenuItem
 			onClick={() => {
 				localStorage.setItem(KEY, isEnabled() ? "0" : "1");
 				force();
 				closeMenu();
 			}}
 		>
-			<span>Auto-skip explicit: {isEnabled() ? "on" : "off"}</span>
-		</button>
+			Auto-skip explicit: {isEnabled() ? "on" : "off"}
+		</MenuItem>
 	);
 };
 
