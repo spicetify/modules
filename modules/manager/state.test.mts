@@ -52,30 +52,25 @@ describe("updateAdvice", () => {
 });
 
 describe("effectiveSupport", () => {
-	it("prefers the live feed over the manifest snapshot", () => {
+	it("takes supported from the manifest (local applicability) and latest from the live feed", () => {
 		const merged = effectiveSupport(
-			{ supportedSpotify: "1.2.93.0", latestSpotify: "1.2.94.0" },
-			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" },
+			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.90.0" },
+			{ supportedSpotify: "1.2.96.0", latestSpotify: "1.2.95.100" },
 		);
-		assert.deepEqual(
-			{ latestSpotify: merged?.latestSpotify, supportedSpotify: merged?.supportedSpotify },
-			{ latestSpotify: "1.2.95.100", supportedSpotify: "1.2.94.583" },
-		);
+		assert.equal(merged?.supportedSpotify, "1.2.94.583"); // manifest wins for supported
+		assert.equal(merged?.latestSpotify, "1.2.95.100"); // feed wins for latest
 	});
 
-	it("falls back to the manifest snapshot when the feed is unavailable", () => {
+	it("falls back to the manifest for latest when the feed is unavailable", () => {
 		const merged = effectiveSupport({ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" }, null);
-		assert.equal(merged?.latestSpotify, "1.2.95.100");
 		assert.equal(merged?.supportedSpotify, "1.2.94.583");
+		assert.equal(merged?.latestSpotify, "1.2.95.100");
 	});
 
-	it("does not blend a partial feed with the manifest snapshot", () => {
-		const merged = effectiveSupport(
-			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.94.583" },
-			{ latestSpotify: "1.2.96.0" },
-		);
-		assert.equal(merged?.latestSpotify, "1.2.96.0");
-		assert.equal(merged?.supportedSpotify, undefined);
+	it("falls back to the feed for supported when the manifest lacks it (older CLI)", () => {
+		const merged = effectiveSupport({ latestSpotify: "1.2.90.0" }, { supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" });
+		assert.equal(merged?.supportedSpotify, "1.2.94.583");
+		assert.equal(merged?.latestSpotify, "1.2.95.100");
 	});
 
 	it("returns the feed unchanged when there is nothing to merge", () => {

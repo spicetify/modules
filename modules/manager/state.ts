@@ -147,23 +147,22 @@ export function compareSpotifyVersions(a: string, b: string): number {
 	return 0;
 }
 
-// The published feed is the freshest source of truth; the CLI also snapshots
-// the same versions onto the manifest at apply time, so those serve as an
-// offline fallback when the live fetch fails or is still pending.
+// Each field has one authoritative source, so they are never blended
+// incorrectly:
+//   supported = what THIS install can actually apply. The CLI derives it from
+//     the local classmaps and stamps it on the manifest, so the manifest is
+//     authoritative; the feed is only a fallback for an older CLI that did not
+//     stamp it.
+//   latest = the newest build that exists, which only the live feed knows;
+//     the manifest snapshot is the offline fallback.
 export function effectiveSupport(
 	state: Pick<ManagerState, "supportedSpotify" | "latestSpotify">,
 	feed: SpotifySupportStatus | null,
 ): SpotifySupportStatus | null {
-	// All-or-nothing: never blend a fresh feed field with a stale manifest
-	// field (a partial feed payload could pair a new `latest` with an old
-	// `supported` and flip the advice). Use the live feed whenever it carries
-	// any version; fall back to the manifest snapshot only when the feed is
-	// entirely absent.
-	if (feed?.latestSpotify || feed?.supportedSpotify) return feed;
-	if (state.latestSpotify || state.supportedSpotify) {
-		return { latestSpotify: state.latestSpotify, supportedSpotify: state.supportedSpotify };
-	}
-	return feed;
+	const supportedSpotify = state.supportedSpotify ?? feed?.supportedSpotify;
+	const latestSpotify = feed?.latestSpotify ?? state.latestSpotify;
+	if (!supportedSpotify && !latestSpotify) return feed;
+	return { supportedSpotify, latestSpotify, updatedAt: feed?.updatedAt };
 }
 
 export type UpdateAdvice =
