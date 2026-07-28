@@ -14,7 +14,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
-import { Button, Card, IconButton } from "/modules/stdlib/lib/primitives.js";
+import { Button, IconButton } from "/modules/stdlib/lib/primitives.js";
 
 const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
 const ROUTE = "/bespoke/new-releases";
@@ -126,18 +126,27 @@ const Page = () => {
 			{status === "ready" && (
 				<div className="new-releases-grid">
 					{items.map((r, i) => (
-						<Card key={`${r.uri}-${i}`}>
-							<div className="new-releases-card">
+						<div className="new-releases-card" key={`${r.uri}-${i}`}>
+							<div className="new-releases-cover-wrap">
 								{r.imageUrl
 									? <img className="new-releases-cover" src={r.imageUrl} alt="" loading="lazy" />
 									: <div className="new-releases-cover new-releases-cover--empty" />}
-								<div className="new-releases-meta">
-									<span className="new-releases-name" title={r.name}>{r.name}</span>
-									<span className="new-releases-artist" title={r.artist}>{r.artist}</span>
-								</div>
-								<Button onClick={() => Spicetify?.Player?.playUri?.(r.uri)}>Play</Button>
+								<button
+									type="button"
+									className="new-releases-play"
+									aria-label={`Play ${r.name}`}
+									onClick={() => Spicetify?.Player?.playUri?.(r.uri)}
+								>
+									<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+										<path d="M8 5v14l11-7z" fill="currentColor" />
+									</svg>
+								</button>
 							</div>
-						</Card>
+							<div className="new-releases-meta">
+								<span className="new-releases-name" title={r.name}>{r.name}</span>
+								<span className="new-releases-artist" title={r.artist}>{r.artist}</span>
+							</div>
+						</div>
 					))}
 				</div>
 			)}

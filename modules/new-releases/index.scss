@@ -32,19 +32,36 @@
 }
 
 .new-releases-grid {
-	margin-top: 20px;
+	margin-top: 16px;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-	gap: 16px;
+	gap: 0;
 }
 
+/* Native album-card behaviour: transparent at rest, elevates on hover, and
+   reveals the play button. Mirrors the client's own home/browse cards so a
+   module surface looks like it belongs in Spotify. */
 .new-releases-card {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: 8px;
+	padding: 12px;
+	border-radius: 8px;
+	background: transparent;
+	transition: background-color 0.3s ease;
+
+	&:hover,
+	&:focus-within {
+		background: var(--spice-card, #1f1f1f);
+	}
+}
+
+.new-releases-cover-wrap {
+	position: relative;
 }
 
 .new-releases-cover {
+	display: block;
 	width: 100%;
 	aspect-ratio: 1 / 1;
 	object-fit: cover;
@@ -54,6 +71,48 @@
 	&--empty {
 		background: var(--spice-highlight-elevated, rgba(255, 255, 255, 0.1));
 	}
+}
+
+.new-releases-play {
+	position: absolute;
+	right: 8px;
+	bottom: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: var(--spice-button, #1ed760);
+	color: #000;
+	cursor: pointer;
+	opacity: 0;
+	transform: translateY(8px);
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+	transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.15s ease;
+
+	svg {
+		/* Optically centre the play triangle in the circle. */
+		margin-left: 2px;
+	}
+
+	&:hover {
+		transform: scale(1.05);
+		background: var(--spice-button-active, #1fdf64);
+	}
+}
+
+.new-releases-card:hover .new-releases-play,
+.new-releases-play:focus-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.new-releases-play:focus-visible {
+	outline: 2px solid var(--spice-text, #fff);
+	outline-offset: 2px;
 }
 
 .new-releases-meta {
