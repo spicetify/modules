@@ -365,6 +365,12 @@ function searchHaystack(mod: VaultModule): string {
 
 const displayName = (mod: VaultModule) => mod.meta?.name ?? mod.id;
 
+// Vault version keys carry a "+cm-<classmap>-<hash>" build-metadata suffix
+// identifying which classmap the artifact was stitched against. That is an
+// internal packaging detail, so strip it for anything a user reads; the full
+// key is still used for install, checksum, and count calls.
+const displayVersion = (version: string) => version.split("+")[0];
+
 // ---------- tiny safe markdown (readme rendering) ----------
 // Built with createElement/textContent only; raw HTML in the source is
 // rendered as text, never interpreted.
@@ -526,7 +532,7 @@ function openModuleDetails(
 	}
 
 	const meta = el("div", "spicetify-store-card-meta");
-	meta.appendChild(Badge({ text: mod.version }));
+	meta.appendChild(Badge({ text: displayVersion(mod.version) }));
 	const count = installCounts[mod.id];
 	if (count !== undefined) meta.appendChild(Badge({ text: `${count} installs` }));
 	meta.appendChild(
@@ -668,7 +674,7 @@ function createPanel() {
 			const id = record.metadata.identifier;
 			const row = el("div", "spicetify-store-row");
 			row.appendChild(el("span", "spicetify-store-name", id));
-			row.appendChild(el("span", "spicetify-store-version", record.sidecar?.installed_version ?? ""));
+			row.appendChild(el("span", "spicetify-store-version", displayVersion(record.sidecar?.installed_version ?? "")));
 			const state = states.get(id);
 			const toggle = el("button", undefined, state?.loaded ? "Disable" : "Enable");
 			toggle.addEventListener("click", async () => {
@@ -700,7 +706,7 @@ function createPanel() {
 		for (const mod of catalog.modules.filter((m) => !catalog.revoked[m.id] && searchHaystack(m).includes(q))) {
 			const row = el("div", "spicetify-store-row");
 			row.appendChild(el("span", "spicetify-store-name", mod.id));
-			row.appendChild(el("span", "spicetify-store-version", mod.version));
+			row.appendChild(el("span", "spicetify-store-version", displayVersion(mod.version)));
 			const btn = el("button", undefined, "Install");
 			btn.addEventListener("click", async () => {
 				btn.disabled = true;
@@ -957,7 +963,7 @@ function createStorePage() {
 
 			card.dataset.moduleId = mod.id;
 			const meta = el("div", "spicetify-store-card-meta");
-			meta.appendChild(badge(mod.version));
+			meta.appendChild(badge(displayVersion(mod.version)));
 			const count = installCounts[mod.id];
 			if (count !== undefined) {
 				const countBadge = badge(`${count} installs`);
