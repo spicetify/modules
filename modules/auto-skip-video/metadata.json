@@ -1,0 +1,18 @@
+{
+	"name": "auto-skip-video",
+	"tags": [
+		"extension"
+	],
+	"version": "0.1.0",
+	"authors": [
+		"spicetify"
+	],
+	"description": "Auto-skip music videos. Toggle in the profile menu.",
+	"entries": {
+		"js": "index.js"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^0.3.0"
+	}
+}
