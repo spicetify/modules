@@ -8,6 +8,7 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 16px;
+	flex-wrap: wrap;
 
 	h1 {
 		margin: 0;
@@ -16,8 +17,15 @@
 	}
 }
 
+.new-releases-controls {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
 .new-releases-note {
-	margin: 8px 0 0;
+	margin: 16px 0 0;
 	color: var(--spice-subtext);
 	font-size: 0.875rem;
 }
@@ -31,8 +39,19 @@
 	color: var(--spice-subtext);
 }
 
+/* One dated section: a sticky-feeling date heading over its own grid. */
+.new-releases-group {
+	margin-top: 28px;
+}
+
+.new-releases-date {
+	margin: 0 0 8px;
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--spice-text);
+}
+
 .new-releases-grid {
-	margin-top: 16px;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 	gap: 0;
@@ -48,6 +67,7 @@
 	padding: 12px;
 	border-radius: 8px;
 	background: transparent;
+	cursor: pointer;
 	transition: background-color 0.3s ease;
 
 	&:hover,
@@ -115,6 +135,36 @@
 	outline-offset: 2px;
 }
 
+/* Dismiss control: top-right of the cover, revealed on hover like the play
+   button. */
+.new-releases-dismiss {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: rgba(0, 0, 0, 0.65);
+	color: var(--spice-text, #fff);
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.2s ease, background-color 0.15s ease;
+
+	&:hover {
+		background: rgba(0, 0, 0, 0.85);
+	}
+}
+
+.new-releases-card:hover .new-releases-dismiss,
+.new-releases-dismiss:focus-visible {
+	opacity: 1;
+}
+
 .new-releases-meta {
 	display: flex;
 	flex-direction: column;
@@ -128,10 +178,16 @@
 	text-overflow: ellipsis;
 }
 
+.new-releases-detail,
 .new-releases-artist {
 	color: var(--spice-subtext);
 	font-size: 0.875rem;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.new-releases-artist:hover {
+	color: var(--spice-text, #fff);
+	text-decoration: underline;
 }
