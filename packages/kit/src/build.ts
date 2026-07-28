@@ -19,6 +19,7 @@ import * as sass from "sass-embedded";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { checkModule } from "./check.ts";
 import { generateClassmapDts, loadConfig, resolveClassmap, type ClassmapResolution } from "./classmap.ts";
 
 export interface ModuleMetadata {
@@ -45,7 +46,9 @@ const USAGE = `spicetify-kit build [module...] [--classmap <key|path>] [--out <d
                    spicetify/classmaps repo and cached when not present
                    locally) or a direct path to a classmap json
   --out, -o        output dir (default: ./dist)
-  --modules, -m    modules dir (default: ./modules)`;
+  --modules, -m    modules dir (default: ./modules)
+  --no-check       skip the module-standard check (error-tier findings
+                   otherwise abort the build)`;
 
 export function readMetadata(dir: string): ModuleMetadata {
 	return JSON.parse(readFileSync(path.join(dir, "metadata.json"), "utf8"));
@@ -158,9 +161,29 @@ export async function buildModule(
 	outDir: string,
 	resolved: ClassmapResolution,
 	cwd: string,
+	opts: { check?: "enforce" | "warn" | "off" } = {},
 ): Promise<string> {
 	const metadata = readMetadata(inputDir);
 	const identifier = `${metadata.name}@${metadata.version}`;
+
+	// The standard's error tier is enforced at build (KTD4): error-tier
+	// findings abort before any dist output, warnings print and continue.
+	// "warn" (the dev loop) never blocks; "off" is --no-check.
+	const check = opts.check ?? "enforce";
+	if (check !== "off") {
+		const findings = checkModule(inputDir);
+		for (const f of findings) {
+			const tag = f.severity === "error" ? "error" : "warn ";
+			console.error(`  ${tag} [${f.rule}] ${f.file ?? ""}  ${f.message}`);
+		}
+		const errors = findings.filter((f) => f.severity === "error");
+		if (check === "enforce" && errors.length) {
+			throw new Error(
+				`${metadata.name}: ${errors.length} error-tier finding(s) against the module standard; ` +
+					"fix them, or build with --no-check.",
+			);
+		}
+	}
 	const outputDir = path.join(outDir, identifier);
 	rmSync(outputDir, { recursive: true, force: true });
 	mkdirSync(outputDir, { recursive: true });
@@ -197,14 +220,18 @@ interface ParsedArgs {
 	classmap: string | null;
 	outDir: string | null;
 	modulesDir: string | null;
+	noCheck: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-	const out: ParsedArgs = { targets: [], classmap: null, outDir: null, modulesDir: null };
+	const out: ParsedArgs = { targets: [], classmap: null, outDir: null, modulesDir: null, noCheck: false };
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 		const next = () => argv[++i];
 		switch (a) {
+			case "--no-check":
+				out.noCheck = true;
+				break;
 			case "--classmap":
 			case "-c":
 				out.classmap = next();
@@ -262,6 +289,8 @@ export async function runBuild(argv: string[], cwd = process.cwd()): Promise<voi
 	}
 
 	for (const target of targets) {
-		await buildModule(resolveModuleDir(target, modulesDir, cwd), outDir, resolved, cwd);
+		await buildModule(resolveModuleDir(target, modulesDir, cwd), outDir, resolved, cwd, {
+			check: args.noCheck ? "off" : "enforce",
+		});
 	}
 }

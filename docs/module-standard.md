@@ -32,6 +32,13 @@ after the happy path explain what it bakes in and why.
 If you are doing something the happy path does not cover, that is a signal to
 check the rules below before hand-rolling around them.
 
+`spicetify-kit build` enforces the standard's **error tier**: error-tier
+findings (bad metadata, a missing loader shim) abort the build before any dist
+output; heuristic nudges stay advisory (they print, the build continues), and
+`--no-check` bypasses the check entirely. css-only theme modules declare no js
+entry, so the loader-shim rule does not apply to them. The dev loop prints
+findings but never blocks the hot-push.
+
 ---
 
 ## The reliability contract (non-negotiable)

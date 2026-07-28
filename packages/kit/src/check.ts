@@ -146,7 +146,10 @@ export function checkSource(rel: string, text: string): Finding[] {
 	return out;
 }
 
-function checkEntryShim(dir: string): Finding[] {
+function checkEntryShim(dir: string, meta: { entries?: { js?: string }; tree?: boolean }): Finding[] {
+	// css-only modules (themes) declare no js entry, so there is no loader
+	// shim to require; enforcing it would fail every theme build (R4).
+	if (!meta.entries?.js) return [];
 	const index = path.join(dir, "index.ts");
 	if (!existsSync(index)) {
 		return [
@@ -199,7 +202,7 @@ export function checkModule(dir: string): Finding[] {
 		];
 	}
 	findings.push(...checkMetadata(meta));
-	findings.push(...checkEntryShim(dir));
+	findings.push(...checkEntryShim(dir, meta as { entries?: { js?: string }; tree?: boolean }));
 	for (const { file, text } of readSources(dir)) {
 		findings.push(...checkSource(path.relative(dir, file), text));
 	}

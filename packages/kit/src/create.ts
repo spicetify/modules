@@ -288,7 +288,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 					scripts: {
 						build: "spicetify-kit build .",
 						dev: "spicetify-kit dev .",
-						check: "tsc",
+						check: "tsc && spicetify-kit check .",
 						test: 'node --test "test/*.test.mts"',
 					},
 					devDependencies: {

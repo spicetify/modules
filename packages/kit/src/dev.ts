@@ -150,7 +150,8 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 		const started = Date.now();
 		let distDir: string;
 		try {
-			distDir = await buildModule(moduleDir, outDir, resolved, cwd);
+			// Dev never blocks on standard findings: print them, push anyway.
+			distDir = await buildModule(moduleDir, outDir, resolved, cwd, { check: "warn" });
 		} catch (e) {
 			console.error(`[dev] build failed: ${(e as Error).message}`);
 			return;
