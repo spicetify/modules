@@ -212,7 +212,9 @@ const uriToPath = (uri: string): string => {
 };
 const navigate = (uri: string): void => {
 	const path = uriToPath(uri);
-	if (path) Spicetify?.Platform?.History?.push?.(path);
+	// PlatformAutoGen types history.push with a required state arg; it is
+	// optional at runtime, so a plain path navigation is fine.
+	if (path) (Spicetify?.Platform?.History?.push as (to: string) => void)?.(path);
 };
 
 // ---------- card ----------

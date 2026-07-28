@@ -797,10 +797,19 @@ declare namespace Spicetify {
   function Mousetrap(element?: any): void;
 
   /**
-   * Contains vast array of internal APIs.
-   * Please explore in Devtool Console.
+   * The client's internal platform APIs. Typed from the generated
+   * PlatformAutoGen surface, exposing both the property form the client uses
+   * (`Platform.LibraryAPI`) and the generated `getLibraryAPI()` methods:
+   * every `getFooAPI(): R` yields a `FooAPI: R` property too.
    */
-  const Platform: any;
+  type PlatformAutoGen = import("/hooks/PlatformAutoGen").PlatformAutoGen;
+  type PlatformApiProps = {
+    [K in keyof PlatformAutoGen as K extends `get${infer Name}` ? Name : never]: PlatformAutoGen[K] extends (
+      ...args: never[]
+    ) => infer R ? R
+      : never;
+  };
+  const Platform: PlatformAutoGen & PlatformApiProps;
   /**
    * Queue object contains list of queuing tracks,
    * history of played tracks and current track metadata.
