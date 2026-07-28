@@ -26,8 +26,10 @@ after the happy path explain what it bakes in and why.
    it. Starter tests import `logic.ts` and the local `test/setup.mts` harness,
    never `mod.tsx` — JSX and `/modules/*` runtime URLs do not resolve in Node,
    so client-coupled UI is verified live through the dev loop instead.
-4. `spicetify-kit build` → `pack` → publish the zip to a vault. `vault.ts add`
-   records it with an embedded metadata subset and a sha256 checksum.
+4. `spicetify-kit build` → `pack` → publish the zip to a vault. `spicetify-kit
+   vault add <dist> --artifact <url>` records it with an embedded metadata
+   subset and a sha256 checksum; `spicetify-kit install <zip|dir>` sideloads a
+   packed module straight into a running client.
 
 If you are doing something the happy path does not cover, that is a signal to
 check the rules below before hand-rolling around them.

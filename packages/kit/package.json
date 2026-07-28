@@ -14,7 +14,9 @@
 		"./dev": "./dist/dev.js",
 		"./pack": "./dist/pack.js",
 		"./from-theme": "./dist/from-theme.js",
-		"./check": "./dist/check.js"
+		"./check": "./dist/check.js",
+		"./vault": "./dist/vault.js",
+		"./install": "./dist/install.js"
 	},
 	"files": [
 		"bin",
