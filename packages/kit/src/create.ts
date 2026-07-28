@@ -37,15 +37,15 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 // Extensions add behavior (and optionally small UI via a register). The
 // golden rules: subscribe to client state yourself, and undo everything on
 // unload via ctx.defer — a module that lingers after a reload is a bug.
-const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
+// \`Spicetify\` is a fully typed global here (no import, no cast).
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const onSongChange = () => {
 		// Runs on every track change. Replace with your behavior.
-		console.log("[${name}] now playing:", Spicetify?.Player?.data?.item?.name);
+		console.log("[${name}] now playing:", Spicetify.Player.data?.item?.name);
 	};
-	Spicetify?.Player?.addEventListener("songchange", onSongChange);
-	ctx.defer(() => Spicetify?.Player?.removeEventListener("songchange", onSongChange));
+	Spicetify.Player.addEventListener("songchange", onSongChange);
+	ctx.defer(() => Spicetify.Player.removeEventListener("songchange", onSongChange));
 }
 `;
 	}
@@ -238,6 +238,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 						files: [
 							"./node_modules/@spicetify/kit/vendor/shims/remote-modules.d.ts",
 							"./node_modules/@spicetify/kit/vendor/shims/chunks.d.ts",
+							"./node_modules/@spicetify/kit/vendor/shims/spicetify.d.ts",
 						],
 						exclude: ["node_modules", "dist"],
 					},

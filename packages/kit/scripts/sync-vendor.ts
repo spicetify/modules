@@ -47,5 +47,7 @@ mkdirSync(shims, { recursive: true });
 cpSync(path.join(REPO, "remote-modules.d.ts"), path.join(shims, "remote-modules.d.ts"));
 cpSync(path.join(REPO, "hooks-std-text.d.ts"), path.join(shims, "hooks-std-text.d.ts"));
 cpSync(path.join(REPO, "modules", "stdlib", "src", "chunks.d.ts"), path.join(shims, "chunks.d.ts"));
+// Ambient Spicetify global types, so scaffolded modules are typed by default.
+cpSync(path.join(REPO, "spicetify.d.ts"), path.join(shims, "spicetify.d.ts"));
 
-console.log(`vendored ${stdlib} stdlib files, ${hooks} hooks files, 3 shims -> ${VENDOR}`);
+console.log(`vendored ${stdlib} stdlib files, ${hooks} hooks files, 4 shims -> ${VENDOR}`);
