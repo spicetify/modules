@@ -154,10 +154,16 @@ export function effectiveSupport(
 	state: Pick<ManagerState, "supportedSpotify" | "latestSpotify">,
 	feed: SpotifySupportStatus | null,
 ): SpotifySupportStatus | null {
-	const latestSpotify = feed?.latestSpotify ?? state.latestSpotify;
-	const supportedSpotify = feed?.supportedSpotify ?? state.supportedSpotify;
-	if (!latestSpotify && !supportedSpotify) return feed;
-	return { latestSpotify, supportedSpotify, updatedAt: feed?.updatedAt };
+	// All-or-nothing: never blend a fresh feed field with a stale manifest
+	// field (a partial feed payload could pair a new `latest` with an old
+	// `supported` and flip the advice). Use the live feed whenever it carries
+	// any version; fall back to the manifest snapshot only when the feed is
+	// entirely absent.
+	if (feed?.latestSpotify || feed?.supportedSpotify) return feed;
+	if (state.latestSpotify || state.supportedSpotify) {
+		return { latestSpotify: state.latestSpotify, supportedSpotify: state.supportedSpotify };
+	}
+	return feed;
 }
 
 export type UpdateAdvice =
@@ -171,7 +177,9 @@ export function updateAdvice(installed: string | undefined, support: SpotifySupp
 	// Unsupported takes precedence: running a build newer than the newest
 	// verified one means chrome may already be degraded. Only assert it when
 	// supportedSpotify is actually known, so a failed feed fetch never raises
-	// a false alarm.
+	// a false alarm. Assumes the feed publishes full version strings
+	// (compareSpotifyVersions zero-pads missing segments, so a line-level
+	// "1.2.94" would read every patch on that line as unsupported).
 	if (installed && support?.supportedSpotify && compareSpotifyVersions(installed, support.supportedSpotify) > 0) {
 		return {
 			kind: "unsupported",

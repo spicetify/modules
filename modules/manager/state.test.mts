@@ -69,6 +69,15 @@ describe("effectiveSupport", () => {
 		assert.equal(merged?.supportedSpotify, "1.2.94.583");
 	});
 
+	it("does not blend a partial feed with the manifest snapshot", () => {
+		const merged = effectiveSupport(
+			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.94.583" },
+			{ latestSpotify: "1.2.96.0" },
+		);
+		assert.equal(merged?.latestSpotify, "1.2.96.0");
+		assert.equal(merged?.supportedSpotify, undefined);
+	});
+
 	it("returns the feed unchanged when there is nothing to merge", () => {
 		assert.equal(effectiveSupport({}, null), null);
 	});

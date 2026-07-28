@@ -109,20 +109,25 @@ export const ManagerPage = () => {
 	}, []);
 
 	// Nudge the user once when they are on a version we do not yet support, so
-	// degraded chrome is explained rather than mysterious. Best-effort: if the
-	// client exposes no Snackbar, the persistent panel notice still shows.
+	// degraded chrome is explained rather than mysterious. Driven by the
+	// authoritative live feed only: on first render `support` is null and the
+	// manifest snapshot could be stale, so waiting avoids a false alarm before
+	// the feed resolves. The flag latches only after a real enqueue, so an
+	// early boot with no Snackbar yet retries once it registers. Best-effort:
+	// the persistent panel notice below still shows either way.
 	React.useEffect(() => {
-		const advice = updateAdvice(state.spotifyVersion, effectiveSupport(state, support));
+		if (!support) return;
+		const advice = updateAdvice(state.spotifyVersion, support);
 		if (advice.kind === "unsupported" && !unsupportedNoticeShown) {
-			unsupportedNoticeShown = true;
-			try {
-				(globalThis as never as Record<string, any>).Spicetify?.Snackbar?.enqueueSnackbar?.(
-					advice.message,
-					{ variant: "warning" },
-				);
-			} catch { /* toast is best-effort */ }
+			const enqueue = (globalThis as never as Record<string, any>).Spicetify?.Snackbar?.enqueueSnackbar;
+			if (typeof enqueue === "function") {
+				try {
+					enqueue(advice.message, { variant: "warning" });
+					unsupportedNoticeShown = true;
+				} catch { /* toast is best-effort */ }
+			}
 		}
-	}, [state.spotifyVersion, state.supportedSpotify, support]);
+	}, [state.spotifyVersion, support]);
 
 	// Diagnostics and module state arrive asynchronously; a light poll keeps
 	// the page honest while it is mounted.
