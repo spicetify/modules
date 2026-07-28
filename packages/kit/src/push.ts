@@ -21,6 +21,69 @@ export interface LocalModuleRecord {
 	sidecar: Record<string, unknown>;
 }
 
+// localStorage quota is ~5 MB for the xpui origin, shared with Spotify's own
+// keys and other local modules, so thresholds are conservative. Counted in
+// UTF-16 code units (JSON.stringify(...).length), the unit the quota counts.
+const WARN_BYTES = 4_000_000;
+const ABORT_BYTES = 4_500_000;
+
+export function estimateRecordSize(rec: object): number {
+	return JSON.stringify(rec).length;
+}
+
+function largestFiles(rec: LocalModuleRecord, n = 3): string {
+	return Object.entries(rec.files ?? {})
+		.map(([f, c]) => [f, c.length] as const)
+		.sort((a, b) => b[1] - a[1])
+		.slice(0, n)
+		.map(([f, len]) => `${f} (~${Math.round(len / 1024)}KB)`)
+		.join(", ");
+}
+
+// checkQuota estimates the serialized install size before the socket opens:
+// over the abort threshold it refuses with guidance, over the warn threshold
+// it prints the size and the largest files.
+export function checkQuota(rec: LocalModuleRecord, log: (m: string) => void = console.warn): void {
+	const size = estimateRecordSize(rec);
+	if (size >= ABORT_BYTES) {
+		throw new Error(
+			`install is ~${Math.round(size / 1024)}KB, over the ~${Math.round(ABORT_BYTES / 1024)}KB local-install ` +
+				`limit (localStorage is shared across the whole client). Largest: ${largestFiles(rec)}. ` +
+				"Sourcemaps and assets are already excluded — trim shipped chunks or split the module.",
+		);
+	}
+	if (size >= WARN_BYTES) {
+		log(
+			`[push] warning: install is ~${Math.round(size / 1024)}KB, approaching the local-install limit. ` +
+				`Largest: ${largestFiles(rec)}`,
+		);
+	}
+}
+
+// interpretResult turns a CDP Runtime.evaluate response into a value or a
+// named error. A client-side QuotaExceededError arrives via exceptionDetails
+// (not the resolved value), so it is detected and translated here.
+export function interpretResult(msg: {
+	result?: {
+		result?: { value?: string };
+		exceptionDetails?: { text?: string; exception?: { description?: string } };
+	};
+}): { value: string } | { error: string } {
+	const ex = msg.result?.exceptionDetails;
+	if (ex) {
+		const text = ex.exception?.description ?? ex.text ?? JSON.stringify(ex);
+		if (/quota/i.test(text)) {
+			return {
+				error:
+					"client rejected the install: localStorage quota exceeded (shared across the whole client). " +
+					"Trim shipped chunks or split the module.",
+			};
+		}
+		return { error: `client evaluation error: ${text.slice(0, 200)}` };
+	}
+	return { value: msg.result?.result?.value ?? JSON.stringify(msg) };
+}
+
 // record builds the install payload from a dist dir. Maps and asset dirs stay
 // out of localStorage; metadata rides separately (it is stamped with the id).
 export function record(distDir: string, id: string): LocalModuleRecord {
@@ -49,7 +112,10 @@ export async function wsUrl(port: string): Promise<string> {
 	return target.webSocketDebuggerUrl;
 }
 
-export function push(rec: object, id: string, port: string): Promise<string> {
+export function push(rec: LocalModuleRecord, id: string, port: string): Promise<string> {
+	// Refuse an oversized install before opening the socket (U7), so the failure
+	// is a named cause here rather than an opaque client-side quota error.
+	checkQuota(rec);
 	// The whole exchange runs in the client: disable the old instance, install
 	// the fresh content, and re-enable anything the unload cascade took down.
 	const expr = `(async () => {
@@ -93,7 +159,9 @@ export function push(rec: object, id: string, port: string): Promise<string> {
 				if (msg.id !== 1) return;
 				clearTimeout(timer);
 				ws.close();
-				resolve(msg.result?.result?.value ?? JSON.stringify(msg));
+				const outcome = interpretResult(msg);
+				if ("error" in outcome) reject(new Error(outcome.error));
+				else resolve(outcome.value);
 			});
 		}, reject);
 	});
