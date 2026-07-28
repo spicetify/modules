@@ -31,6 +31,7 @@ export interface ManagerState {
 	updatePolicy?: string;
 	supportedSpotify?: string;
 	latestSpotify?: string;
+	classmapFallback?: boolean;
 	transformsEnabled: boolean;
 	modules: ManagerModuleRow[];
 	loadedCount: number;
@@ -62,6 +63,7 @@ type Manifest = {
 	updatePolicy?: string;
 	supportedSpotify?: string;
 	latestSpotify?: string;
+	classmapFallback?: boolean;
 	modules?: Array<{ identifier: string; version: string; dependencies?: Record<string, string> }>;
 };
 
@@ -92,6 +94,7 @@ export function deriveManagerState(): ManagerState {
 		updatePolicy: manifest?.updatePolicy,
 		supportedSpotify: manifest?.supportedSpotify,
 		latestSpotify: manifest?.latestSpotify,
+		classmapFallback: manifest?.classmapFallback,
 		transformsEnabled: g.__SPICETIFY_APPLY_TRANSFORMS__ === true,
 		modules,
 		loadedCount: modules.filter((m) => m.loaded).length,

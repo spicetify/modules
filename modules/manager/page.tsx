@@ -261,6 +261,12 @@ export const ManagerPage = () => {
 						<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
 							{advice.message}
 						</p>
+						{state.classmapFallback && (
+							<p className="spicetify-manager-update spicetify-manager-update--unsupported">
+								Running on a fallback classmap: this Spotify build has no verified classmap yet, so some chrome
+								may be off. It self-heals once one ships.
+							</p>
+						)}
 						<p className="spicetify-manager-note">
 							Update handling is set from a terminal. Copy a command:
 						</p>
