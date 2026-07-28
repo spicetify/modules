@@ -43,7 +43,3 @@ export const Platform: any = new Proxy({}, {
 		return false;
 	},
 });
-
-declare global {
-	var Spicetify: { _platform?: unknown; Platform?: Record<string, unknown> } | undefined;
-}

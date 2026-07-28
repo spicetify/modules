@@ -12,7 +12,6 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { MenuItem } from "/modules/stdlib/lib/primitives.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
-const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
 const KEY = "spicetify:auto-skip-video";
 // On by default, matching the classic extension's always-on behaviour; the
 // stored flag only records the opt-out.

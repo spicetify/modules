@@ -20,7 +20,7 @@
 			"/hooks/*": ["../hooks/*"]
 		}
 	},
-	"include": ["modules", "scripts", "packages/kit/src", "remote-modules.d.ts", "hooks-std-text.d.ts"],
+	"include": ["modules", "scripts", "packages/kit/src", "remote-modules.d.ts", "hooks-std-text.d.ts", "spicetify.d.ts"],
 	// Every module gets an identical generated MAP declaration for
 	// standalone use; one copy in the program avoids global duplicates.
 	"exclude": [

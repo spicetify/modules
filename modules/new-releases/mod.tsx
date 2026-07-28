@@ -15,7 +15,6 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
 import { Button, Chip, IconButton, Select } from "/modules/stdlib/lib/primitives.js";
 
-const Spicetify = (globalThis as { Spicetify?: any }).Spicetify;
 const ROUTE = "/bespoke/new-releases";
 const ICON = '<path d="M8 1l1.6 4.4L14 7l-4.4 1.6L8 13l-1.6-4.4L2 7l4.4-1.6z" fill="currentColor"/>';
 
