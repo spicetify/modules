@@ -124,8 +124,10 @@ for you on unload.
 
 Themes are a special case: a **css-only module** (a `color.ini` plus `user.css`
 as the css entry). The loader parses `[Section]`s into switchable schemes and
-applies `--spice-*` variables; `spicetify-kit from-theme` migrates a classic
-theme in one shot.
+applies `--spice-*` variables. `spicetify-kit create --template theme` scaffolds
+a fresh css-only theme (starter `color.ini` with two schemes, an `index.css` on
+`--spice-*`, no TypeScript tooling); `spicetify-kit from-theme` migrates a
+classic theme in one shot.
 
 ---
 

@@ -18,9 +18,9 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const USAGE =
-	'spicetify-kit create <name> [--template basic|extension|app] [--description "..."] [--author "..."] [--bare]';
+	'spicetify-kit create <name> [--template basic|extension|app|theme] [--description "..."] [--author "..."] [--bare]';
 
-type Template = "basic" | "extension" | "app";
+type Template = "basic" | "extension" | "app" | "theme";
 
 const ICON_LITERAL = `'<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>'`;
 
@@ -183,6 +183,122 @@ test("nowPlaying returns the track name, or a fallback when idle", () => {
 `;
 }
 
+// Themes are css-only modules (KTD6): no js entry, no TypeScript tooling. The
+// loader applies a scheme from color.ini ([Section] names are switchable
+// schemes), and index.css restyles the client through the --spice-* variables.
+function writeThemeModule(
+	dir: string,
+	name: string,
+	description: string,
+	author: string,
+	bare: boolean,
+	cwd: string,
+): void {
+	writeFileSync(
+		path.join(dir, "metadata.json"),
+		`${JSON.stringify(
+			{
+				name,
+				tags: ["theme"],
+				version: "0.1.0",
+				authors: [author],
+				description,
+				entries: { css: "index.css" },
+				hasMixins: false,
+				dependencies: {},
+			},
+			null,
+			"\t",
+		)}\n`,
+	);
+
+	// Two example schemes; each [Section] becomes a switchable scheme. Keys are
+	// hex (no #); the loader exposes them as --spice-<key>.
+	writeFileSync(
+		path.join(dir, "color.ini"),
+		`[Base]
+text               = FFFFFF
+subtext            = A7A7A7
+main               = 121212
+sidebar            = 000000
+player             = 181818
+card               = 242424
+button             = 1ED760
+button-active      = 1FDF64
+button-disabled    = 3E3E3E
+selected-row       = 1ED760
+notification       = 303030
+
+[Midnight]
+text               = E6E6FA
+subtext            = 9A9AC0
+main               = 0A0A14
+sidebar            = 05050B
+player             = 10101C
+card               = 16162A
+button             = 7B68EE
+button-active      = 9385F0
+button-disabled    = 2A2A3A
+selected-row       = 7B68EE
+notification       = 1C1C30
+`,
+	);
+
+	writeFileSync(
+		path.join(dir, "index.css"),
+		`/*
+ * ${name} — a spicetify theme.
+ *
+ * color.ini defines the palette; the loader exposes each key as a --spice-*
+ * CSS variable and applies your chosen [Section] as the active scheme. Add
+ * rules here that consume those variables to restyle the client.
+ */
+
+.main-view-container__scroll-node {
+	background-color: var(--spice-main);
+}
+
+.main-nowPlayingBar-nowPlayingBar {
+	background-color: var(--spice-player);
+}
+`,
+	);
+
+	if (!bare) {
+		writeFileSync(
+			path.join(dir, "package.json"),
+			`${JSON.stringify(
+				{
+					name,
+					private: true,
+					type: "module",
+					// css-only: no tsc, no TypeScript or React devDeps.
+					scripts: {
+						build: "spicetify-kit build .",
+						dev: "spicetify-kit dev .",
+						check: "spicetify-kit check .",
+					},
+					devDependencies: { "@spicetify/kit": "^0.1.0" },
+				},
+				null,
+				"\t",
+			)}\n`,
+		);
+		writeFileSync(path.join(dir, ".gitignore"), "node_modules/\ndist/\n");
+	}
+
+	const rel = path.relative(cwd, dir) || ".";
+	console.log(`created ${rel}/ (theme)`);
+	console.log("notes:");
+	console.log("  - edit color.ini schemes and index.css; each [Section] is a switchable scheme");
+	console.log("  - add preview images under assets/ and set metadata.preview to the first one");
+	if (!bare) {
+		console.log("next steps:");
+		console.log(`  cd ${rel} && npm install`);
+		console.log("  npm run dev        # hot-push into a running client");
+	}
+}
+
 export async function runCreate(argv: string[], cwd = process.cwd()): Promise<void> {
 	const name = argv.find((a) => !a.startsWith("--"));
 	const flag = (n: string) => {
@@ -191,8 +307,8 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 	};
 	const bare = argv.includes("--bare");
 	const template = (flag("template") ?? "basic") as Template;
-	if (!["basic", "extension", "app"].includes(template)) {
-		throw new Error(`${USAGE}\ntemplate must be basic, extension, or app`);
+	if (!["basic", "extension", "app", "theme"].includes(template)) {
+		throw new Error(`${USAGE}\ntemplate must be basic, extension, app, or theme`);
 	}
 
 	if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
@@ -208,6 +324,11 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 	const header = `/*\n * Copyright (C) ${year} ${author}\n * SPDX-License-Identifier: GPL-3.0-or-later\n */\n`;
 
 	mkdirSync(dir, { recursive: true });
+
+	if (template === "theme") {
+		writeThemeModule(dir, name, description, author, bare, cwd);
+		return;
+	}
 
 	const tag = template === "app" ? "app" : "extension";
 	// Extensions are behavior-only; templates that render a page ship css.

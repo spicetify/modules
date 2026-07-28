@@ -5,7 +5,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, test } from "node:test";
@@ -74,4 +74,39 @@ test("extension scaffold (no css) still ships a testable logic.ts", async () => 
 	await runCreate(["demo-ext", "--template", "extension"], root);
 	const logic = readFileSync(path.join(root, "demo-ext", "logic.ts"), "utf8");
 	assert.match(logic, /export function nowPlaying/);
+});
+
+test("theme template: passes checkModule with zero findings (css-only skip)", async () => {
+	const root = freshRoot();
+	await runCreate(["demo-theme", "--template", "theme"], root);
+	const { checkModule } = await import("../src/check.ts");
+	const findings = checkModule(path.join(root, "demo-theme"));
+	assert.equal(findings.length, 0, JSON.stringify(findings));
+});
+
+test("theme template: check-only scripts, no TypeScript or React devDeps, no test seam", async () => {
+	const root = freshRoot();
+	await runCreate(["demo-theme", "--template", "theme"], root);
+	const project = path.join(root, "demo-theme");
+	const pkg = JSON.parse(readFileSync(path.join(project, "package.json"), "utf8"));
+	assert.equal(pkg.scripts.check, "spicetify-kit check .");
+	assert.equal(pkg.scripts.test, undefined);
+	const dd = Object.keys(pkg.devDependencies ?? {});
+	assert.ok(!dd.includes("typescript") && !dd.some((d) => d.includes("react")), `unexpected devDeps: ${dd}`);
+	assert.equal(existsSync(path.join(project, "tsconfig.json")), false);
+	assert.equal(existsSync(path.join(project, "test")), false);
+});
+
+test("theme template: css-only shape converges with from-theme (tags, entries, dependencies)", async () => {
+	const root = freshRoot();
+	await runCreate(["demo-theme", "--template", "theme"], root);
+	const project = path.join(root, "demo-theme");
+	const meta = JSON.parse(readFileSync(path.join(project, "metadata.json"), "utf8"));
+	assert.deepEqual(meta.tags, ["theme"]);
+	assert.deepEqual(meta.entries, { css: "index.css" });
+	assert.deepEqual(meta.dependencies, {});
+	assert.equal(existsSync(path.join(project, "index.ts")), false);
+	assert.equal(existsSync(path.join(project, "mod.tsx")), false);
+	assert.equal(existsSync(path.join(project, "color.ini")), true);
+	assert.equal(existsSync(path.join(project, "index.css")), true);
 });
