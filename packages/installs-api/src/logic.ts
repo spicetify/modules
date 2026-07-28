@@ -57,9 +57,7 @@ const IP_LIMIT = { limit: 30, windowSeconds: 600 };
 const USER_LIMIT = { limit: 40, windowSeconds: 86_400 };
 const READ_LIMIT = { limit: 120, windowSeconds: 600 };
 
-const CORS_ORIGINS = new Set([
-	"https://xpui.app.spotify.com",
-]);
+const CORS_ORIGINS = new Set(["https://xpui.app.spotify.com"]);
 
 export interface ApiRequest {
 	method: string;
@@ -101,7 +99,14 @@ export async function handle(req: ApiRequest, deps: Deps): Promise<ApiResponse> 
 			return json(429, { error: "rate limited" }, cors);
 		}
 		const raw = req.query.get("modules") ?? "";
-		const modules = [...new Set(raw.split(",").map((m) => m.trim()).filter((m) => MODULE_RE.test(m)))];
+		const modules = [
+			...new Set(
+				raw
+					.split(",")
+					.map((m) => m.trim())
+					.filter((m) => MODULE_RE.test(m)),
+			),
+		];
 		if (!modules.length) return json(400, { error: "modules query required" }, cors);
 		if (modules.length > MAX_COUNT_QUERY) return json(400, { error: `at most ${MAX_COUNT_QUERY} modules` }, cors);
 		const counts = await deps.counts(modules);

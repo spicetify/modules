@@ -15,9 +15,7 @@ export const usePanelAPI: Function = findBy("panelSend", "context")(exportedFunc
 
 export const useContextMenuState: Function = findBy("useContextMenuState")(exportedFunctions);
 
-export const imageAnalysis: Function = findBy(/\![a-zA-Z_\$][\w\$]*\.isFallback|\{extractColor/)(
-	exportedFunctions,
-);
+export const imageAnalysis: Function = findBy(/\![a-zA-Z_\$][\w\$]*\.isFallback|\{extractColor/)(exportedFunctions);
 
 export const fallbackPreset: any = exported.find((m) => m.colorDark && Object.hasOwn(m, "colorDark"));
 
@@ -25,9 +23,8 @@ export const getPlayContext: Function = findBy("referrerIdentifier", "usePlayCon
 
 export const useTrackListColumns: Function = findBy("useTrackListColumns")(exportedFunctions);
 
-export const usePanelStateMachine: () => [state: any, actor: any, machine: any] = findBy(
-	"usePanelStateMachine",
-)(exportedFunctions);
+export const usePanelStateMachine: () => [state: any, actor: any, machine: any] =
+	findBy("usePanelStateMachine")(exportedFunctions);
 
 export const extractColorPreset = async (image: any) => {
 	const analysis = await imageAnalysis(Platform.getGraphQLLoader(), image);

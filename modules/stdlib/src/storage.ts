@@ -16,8 +16,7 @@ export const createStorage = (ctx: ModuleRuntimeContext) => {
 			const func: unknown = Reflect.get(target, p, receiver);
 
 			if (typeof p === "string" && hookedNativeStorageMethods.has(p) && typeof func === "function") {
-				return (key: string, ...data: any[]) =>
-					func.call(target, `module:${ctx.identifier}:${key}`, ...data);
+				return (key: string, ...data: any[]) => func.call(target, `module:${ctx.identifier}:${key}`, ...data);
 			}
 
 			return func;
@@ -36,7 +35,7 @@ export function createSyncedStorage(playlistUri: string) {
 	}
 
 	function assertSmallerSize(encodedKey: string, chunk_size: number, chunk_count: number, message: string) {
-		for (let n = 0, o = 0, l = 0;; l++) {
+		for (let n = 0, o = 0, l = 0; ; l++) {
 			if (chunk_size * n + l + o >= encodedKey.length) {
 				return encodedKey;
 			}
@@ -79,16 +78,14 @@ export function createSyncedStorage(playlistUri: string) {
 	async function removeKey(key: string) {
 		const uris = await getUris(key);
 		if (uris.length > 0) {
-			await PlaylistAPI.remove(playlistUri, uris.map((u) => ({ uri: u.toURI(), uid: "" })));
+			await PlaylistAPI.remove(
+				playlistUri,
+				uris.map((u) => ({ uri: u.toURI(), uid: "" })),
+			);
 		}
 	}
 	async function addKey(key: string, encodedValue: string) {
-		assertSmallerSize(
-			encodeURIComponent(key),
-			CHUNK_SIZE,
-			1,
-			"Can't fit key in a single chunk",
-		);
+		assertSmallerSize(encodeURIComponent(key), CHUNK_SIZE, 1, "Can't fit key in a single chunk");
 		assertSmallerSize(
 			encodedValue,
 			CHUNK_SIZE,
@@ -96,9 +93,9 @@ export function createSyncedStorage(playlistUri: string) {
 			`Can't fit value in ${MAX_DOUBLE_CHUNKS} double chunks`,
 		);
 
-		const uris = Array
-			.from(collectTuples(generateStringChunks(encodedValue, CHUNK_SIZE), 2, ""))
-			.map(([a, b], i) => `spotify:local:${a}:${b}:${key}:${i + 1}`);
+		const uris = Array.from(collectTuples(generateStringChunks(encodedValue, CHUNK_SIZE), 2, "")).map(
+			([a, b], i) => `spotify:local:${a}:${b}:${key}:${i + 1}`,
+		);
 
 		await PlaylistAPI.add(playlistUri, uris, { after: "end" });
 	}
@@ -126,7 +123,7 @@ export function createSyncedStorage(playlistUri: string) {
 }
 
 function* generateStringChunks(string: string, chunk_size: number) {
-	for (let s = "", n = 0, o = 0, l = 0;; l++) {
+	for (let s = "", n = 0, o = 0, l = 0; ; l++) {
 		if (chunk_size * n + l + o >= string.length) {
 			if (l > 0) {
 				yield s;

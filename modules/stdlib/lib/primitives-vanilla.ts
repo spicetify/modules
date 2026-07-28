@@ -45,10 +45,10 @@ type EventHandlers = {
 // Props for h(): className/textContent/style, dataset, aria-* attributes,
 // on<Event> listeners, and any writable property of the element itself
 // (value, disabled, placeholder, type, ...), so consumers never cast.
-export type Props<K extends keyof HTMLElementTagNameMap> =
-	& Partial<Omit<HTMLElementTagNameMap[K], `on${string}` | "style" | "children" | "dataset">>
-	& EventHandlers
-	& {
+export type Props<K extends keyof HTMLElementTagNameMap> = Partial<
+	Omit<HTMLElementTagNameMap[K], `on${string}` | "style" | "children" | "dataset">
+> &
+	EventHandlers & {
 		className?: string;
 		dataset?: Record<string, string>;
 		style?: Partial<CSSStyleDeclaration>;
@@ -98,9 +98,13 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 
 // ---------- buttons ----------
 
-export function Button(
-	props: { label: string; variant?: ButtonVariant; onClick: () => void; disabled?: boolean; icon?: Node },
-): HTMLButtonElement {
+export function Button(props: {
+	label: string;
+	variant?: ButtonVariant;
+	onClick: () => void;
+	disabled?: boolean;
+	icon?: Node;
+}): HTMLButtonElement {
 	return h(
 		"button",
 		{ type: "button", className: buttonClass(props.variant), disabled: props.disabled, onClick: props.onClick },
@@ -110,9 +114,7 @@ export function Button(
 }
 
 // The circular icon button Spotify uses for modal close (Credits, etc).
-export function IconButton(
-	props: { glyph: string; ariaLabel: string; onClick: () => void },
-): HTMLButtonElement {
+export function IconButton(props: { glyph: string; ariaLabel: string; onClick: () => void }): HTMLButtonElement {
 	return h("button", {
 		type: "button",
 		className: ICON_BUTTON_CLASS,
@@ -124,23 +126,30 @@ export function IconButton(
 
 // ---------- inputs ----------
 
-export function Select<T extends string>(
-	props: { options: ReadonlyArray<{ value: T; label: string }>; value: T; onChange: (value: T) => void },
-): HTMLSelectElement {
+export function Select<T extends string>(props: {
+	options: ReadonlyArray<{ value: T; label: string }>;
+	value: T;
+	onChange: (value: T) => void;
+}): HTMLSelectElement {
 	const select = h("select", {
 		className: SELECT_CLASS,
 		onChange: () => props.onChange(select.value as T),
 	});
 	for (const option of props.options) {
-		select.append(h("option", { value: option.value, textContent: option.label, selected: option.value === props.value }));
+		select.append(
+			h("option", { value: option.value, textContent: option.label, selected: option.value === props.value }),
+		);
 	}
 	select.value = props.value;
 	return select;
 }
 
-export function TextInput(
-	props: { placeholder?: string; value?: string; onInput?: (value: string) => void; disabled?: boolean },
-): HTMLInputElement {
+export function TextInput(props: {
+	placeholder?: string;
+	value?: string;
+	onInput?: (value: string) => void;
+	disabled?: boolean;
+}): HTMLInputElement {
 	const input = h("input", {
 		type: "text",
 		className: SEARCHBAR_CLASS,
@@ -152,9 +161,11 @@ export function TextInput(
 	return input;
 }
 
-export function Textarea(
-	props: { placeholder?: string; value?: string; onInput?: (value: string) => void },
-): HTMLTextAreaElement {
+export function Textarea(props: {
+	placeholder?: string;
+	value?: string;
+	onInput?: (value: string) => void;
+}): HTMLTextAreaElement {
 	const textarea = h("textarea", {
 		placeholder: props.placeholder,
 		value: props.value,
@@ -251,12 +262,16 @@ export function openDialog(props: { title: string; children: Child; onClose?: ()
 		IconButton({ glyph: "×", ariaLabel: "Close", onClick: close }),
 	);
 	const dialog = h("div", { className: DIALOG_CLASS }, header, body);
-	const scrim = h("div", {
-		className: SCRIM_CLASS,
-		onClick: (e) => {
-			if (e.target === scrim) close();
+	const scrim = h(
+		"div",
+		{
+			className: SCRIM_CLASS,
+			onClick: (e) => {
+				if (e.target === scrim) close();
+			},
 		},
-	}, dialog);
+		dialog,
+	);
 	document.body.append(scrim);
 	return { body, close };
 }

@@ -1,12 +1,8 @@
 {
 	"name": "auto-skip-explicit",
-	"tags": [
-		"extension"
-	],
+	"tags": ["extension"],
 	"version": "0.1.0",
-	"authors": [
-		"spicetify"
-	],
+	"authors": ["spicetify"],
 	"description": "Auto-skip explicit tracks. Toggle in the profile menu.",
 	"entries": {
 		"js": "index.js"

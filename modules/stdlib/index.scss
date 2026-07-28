@@ -5,16 +5,18 @@
 }
 
 .custom-navlinks-scrollable_container {
-	max-width: calc(var(--navlink-size) * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1));
+	max-width: calc(
+		var(--navlink-size) * var(--max-custom-navlink-count) + 8px * (var(--max-custom-navlink-count) - 1)
+	);
 	-webkit-app-region: no-drag;
 
-	&>* {
+	& > * {
 		overflow-y: hidden;
 		padding: calc(var(--navlink-size) * var(--navlink-hover-scale-boost));
 	}
 
 	div[role="presentation"] {
-		&>* {
+		& > * {
 			z-index: 1;
 
 			&:not(:last-child) {

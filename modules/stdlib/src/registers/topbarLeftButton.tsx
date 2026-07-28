@@ -73,8 +73,7 @@ export const TopbarLeftButton: TopbarLeftButtonFactory = (props) => (
 	<Tooltip label={props.label}>
 		<UI.ButtonTertiary
 			size="medium"
-			iconOnly={() =>
-				props.icon && createIconComponent({ icon: props.icon, iconSize: 16, realIconSize: 24 })}
+			iconOnly={() => props.icon && createIconComponent({ icon: props.icon, iconSize: 16, realIconSize: 24 })}
 			condensed
 			aria-label={props.label}
 			disabled={props.disabled}

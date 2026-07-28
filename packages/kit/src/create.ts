@@ -137,22 +137,20 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 
 	writeFileSync(
 		path.join(dir, "metadata.json"),
-		`${
-			JSON.stringify(
-				{
-					name,
-					tags: [tag],
-					version: "0.1.0",
-					authors: [author],
-					description,
-					entries,
-					hasMixins: false,
-					dependencies: { stdlib: "^0.3.0" },
-				},
-				null,
-				"\t",
-			)
-		}\n`,
+		`${JSON.stringify(
+			{
+				name,
+				tags: [tag],
+				version: "0.1.0",
+				authors: [author],
+				description,
+				entries,
+				hasMixins: false,
+				dependencies: { stdlib: "^0.3.0" },
+			},
+			null,
+			"\t",
+		)}\n`,
 	);
 
 	// The loader imports index.js and calls load(); the shim defers the
@@ -184,68 +182,64 @@ export async function load(ctx: ModuleRuntimeContext) {
 	if (!bare) {
 		writeFileSync(
 			path.join(dir, "package.json"),
-			`${
-				JSON.stringify(
-					{
-						name,
-						private: true,
-						type: "module",
-						scripts: {
-							build: "spicetify-kit build .",
-							dev: "spicetify-kit dev .",
-							check: "tsc",
-						},
-						devDependencies: {
-							"@spicetify/kit": "^0.1.0",
-							"@types/react": "^18",
-							"rxjs": "^7.8.1",
-							"@types/react-dom": "^18",
-							"typescript": "^7",
-						},
+			`${JSON.stringify(
+				{
+					name,
+					private: true,
+					type: "module",
+					scripts: {
+						build: "spicetify-kit build .",
+						dev: "spicetify-kit dev .",
+						check: "tsc",
 					},
-					null,
-					"\t",
-				)
-			}\n`,
+					devDependencies: {
+						"@spicetify/kit": "^0.1.0",
+						"@types/react": "^18",
+						rxjs: "^7.8.1",
+						"@types/react-dom": "^18",
+						typescript: "^7",
+					},
+				},
+				null,
+				"\t",
+			)}\n`,
 		);
 
 		// Editor/typecheck config: runtime URLs map to the kit's vendored
 		// stdlib and hooks sources.
 		writeFileSync(
 			path.join(dir, "tsconfig.json"),
-			`${
-				JSON.stringify(
-					{
-						compilerOptions: {
-							target: "ES2022",
-							module: "ESNext",
-							moduleResolution: "Bundler",
-							allowImportingTsExtensions: true,
-							noEmit: true,
-							jsx: "react-jsx",
-							lib: ["ES2024", "ESNext.Disposable", "DOM", "DOM.Iterable"],
-							strict: false,
-							skipLibCheck: true,
-							resolveJsonModule: true,
-							types: [],
-							paths: {
-								"/hooks/std/text.ts": ["./node_modules/@spicetify/kit/vendor/shims/hooks-std-text.d.ts"],
-								"/modules/*": ["./node_modules/@spicetify/kit/vendor/*"],
-								"/hooks/*": ["./node_modules/@spicetify/kit/vendor/hooks/*"],
-							},
+			`${JSON.stringify(
+				{
+					compilerOptions: {
+						target: "ES2022",
+						module: "ESNext",
+						moduleResolution: "Bundler",
+						allowImportingTsExtensions: true,
+						noEmit: true,
+						jsx: "react-jsx",
+						lib: ["ES2024", "ESNext.Disposable", "DOM", "DOM.Iterable"],
+						strict: false,
+						skipLibCheck: true,
+						resolveJsonModule: true,
+						types: [],
+						paths: {
+							"/hooks/std/text.ts": ["./node_modules/@spicetify/kit/vendor/shims/hooks-std-text.d.ts"],
+							"/modules/*": ["./node_modules/@spicetify/kit/vendor/*"],
+							"/hooks/*": ["./node_modules/@spicetify/kit/vendor/hooks/*"],
 						},
-						include: ["**/*"],
-						files: [
-							"./node_modules/@spicetify/kit/vendor/shims/remote-modules.d.ts",
-							"./node_modules/@spicetify/kit/vendor/shims/chunks.d.ts",
-							"./node_modules/@spicetify/kit/vendor/shims/spicetify.d.ts",
-						],
-						exclude: ["node_modules", "dist"],
 					},
-					null,
-					"\t",
-				)
-			}\n`,
+					include: ["**/*"],
+					files: [
+						"./node_modules/@spicetify/kit/vendor/shims/remote-modules.d.ts",
+						"./node_modules/@spicetify/kit/vendor/shims/chunks.d.ts",
+						"./node_modules/@spicetify/kit/vendor/shims/spicetify.d.ts",
+					],
+					exclude: ["node_modules", "dist"],
+				},
+				null,
+				"\t",
+			)}\n`,
 		);
 
 		// Placeholder MAP declaration; the first build replaces it with the
@@ -266,7 +260,9 @@ export async function load(ctx: ModuleRuntimeContext) {
 		console.log(`  node scripts/dev.ts modules/${name}        # watch + hot-push into a running client`);
 	} else {
 		console.log(`  cd ${rel} && npm install`);
-		console.log("  npm run dev        # watch + hot-push into a running client (Spotify started with --remote-debugging-port=9229)");
+		console.log(
+			"  npm run dev        # watch + hot-push into a running client (Spotify started with --remote-debugging-port=9229)",
+		);
 		console.log("  npm run build      # one-off build into dist/");
 	}
 }

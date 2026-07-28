@@ -1,14 +1,8 @@
 {
 	"name": "manager",
-	"tags": [
-		"manager",
-		"tools"
-	],
+	"tags": ["manager", "tools"],
 	"version": "0.1.0",
-	"authors": [
-		"spicetify",
-		"Afonso Jorge Ramos"
-	],
+	"authors": ["spicetify", "Afonso Jorge Ramos"],
 	"description": "Manage spicetify from inside Spotify",
 	"entries": {
 		"js": "index.js",

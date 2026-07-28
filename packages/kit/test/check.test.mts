@@ -52,14 +52,12 @@ describe("checkSource", () => {
 	});
 
 	it("nudges a hardcoded context-menu row toward the kit's MenuItem, in any form", () => {
-		for (
-			const line of [
-				'<button className="main-contextMenu-menuItemButton" />',
-				'<button className={"main-contextMenu-menuItemButton"} />',
-				"<button className={`main-contextMenu-menuItemButton ${extra}`} />",
-				'const b = el("button", "main-contextMenu-menuItemButton");',
-			]
-		) {
+		for (const line of [
+			'<button className="main-contextMenu-menuItemButton" />',
+			'<button className={"main-contextMenu-menuItemButton"} />',
+			"<button className={`main-contextMenu-menuItemButton ${extra}`} />",
+			'const b = el("button", "main-contextMenu-menuItemButton");',
+		]) {
 			assert.equal(checkSource("mod.tsx", line)[0]?.rule, "use-the-kit", line);
 		}
 	});

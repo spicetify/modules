@@ -22,10 +22,10 @@ await CHUNKS.xpui.promise;
 
 export const QueryClient: typeof QueryClientT = findBy("defaultMutationOptions")(exportedFunctions);
 export const PersistQueryClientProvider = findBy("persistOptions")(exportedFunctions);
-export const QueryClientProvider: typeof QueryClientProviderT = findBy("use QueryClientProvider")(
-	exportedFunctions,
+export const QueryClientProvider: typeof QueryClientProviderT = findBy("use QueryClientProvider")(exportedFunctions);
+export const notifyManager: typeof notifyManagerT = exported.find(
+	(m) => typeof m.setBatchNotifyFunction === "function",
 );
-export const notifyManager: typeof notifyManagerT = exported.find((m) => typeof m.setBatchNotifyFunction === "function");
 export const useMutation: typeof useMutationT = findBy("mutateAsync")(exportedFunctions);
 export const useQuery: typeof useQueryT = findBy(
 	/^function [a-zA-Z_\$][\w\$]*\(([a-zA-Z_\$][\w\$]*),([a-zA-Z_\$][\w\$]*)\)\{return\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\1,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\2\)\}$/,
@@ -41,7 +41,6 @@ export const useSuspenseQuery: typeof useSuspenseQueryT = findBy(
 const [infiniteQueryModuleID] = modules.find(
 	([_, v]) => v.toString().includes("fetchPreviousPage") && v.toString().includes("getOptimisticResult"),
 )!;
-export const useInfiniteQuery: typeof useInfiniteQueryT = Object.values(webpackRequire(infiniteQueryModuleID))
-	.find(
-		(m) => typeof m === "function",
-	);
+export const useInfiniteQuery: typeof useInfiniteQueryT = Object.values(webpackRequire(infiniteQueryModuleID)).find(
+	(m) => typeof m === "function",
+);

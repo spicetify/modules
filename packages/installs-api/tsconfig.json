@@ -5,18 +5,10 @@
 		"moduleResolution": "Bundler",
 		"allowImportingTsExtensions": true,
 		"noEmit": true,
-		"lib": [
-			"ES2024",
-			"WebWorker"
-		],
+		"lib": ["ES2024", "WebWorker"],
 		"strict": true,
 		"skipLibCheck": true,
-		"types": [
-			"node"
-		]
+		"types": ["node"]
 	},
-	"include": [
-		"src",
-		"test"
-	]
+	"include": ["src", "test"]
 }

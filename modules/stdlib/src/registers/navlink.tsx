@@ -4,13 +4,12 @@
  */
 
 import { React } from "../expose/React.ts";
-import { findMatchingPos } from "/hooks/util.ts";
 import { createIconComponent } from "../createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
 import { Platform } from "../expose/Platform.ts";
 import { warn } from "../logger.ts";
 import { classnames } from "../webpack/ClassNames.ts";
-import { Nav, ScrollableContainer, Tooltip } from "../webpack/ReactComponents.ts";
+import { ScrollableContainer, Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";

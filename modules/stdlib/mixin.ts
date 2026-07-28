@@ -7,7 +7,7 @@
 // allows us to patch webpack module exports directly
 const nativeObjectDefineProperty = Object.defineProperty;
 Object.defineProperty = function (obj, prop, descriptor) {
-	prop !== "prototype" && descriptor && (descriptor.configurable ??= true);
+	if (prop !== "prototype" && descriptor) descriptor.configurable ??= true;
 	return nativeObjectDefineProperty(obj, prop, descriptor);
 };
 

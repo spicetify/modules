@@ -18,7 +18,8 @@ let Textarea: typeof UIKit.Textarea;
 let TextInput: typeof UIKit.TextInput;
 
 async function loadKit(): Promise<void> {
-	({ Badge, Button, Chip, openDialog, Select, Textarea, TextInput } = await import("/modules/stdlib/lib/primitives-vanilla.js"));
+	({ Badge, Button, Chip, openDialog, Select, Textarea, TextInput } =
+		await import("/modules/stdlib/lib/primitives-vanilla.js"));
 }
 
 const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/modules/main/community-vaults.json";
@@ -27,7 +28,7 @@ const COMMUNITY_VAULTS_URL = "https://raw.githubusercontent.com/spicetify/module
 // overrides so a change applies on the next load, not the next boot.
 const DEFAULT_VAULT_URL = () =>
 	globalThis.localStorage?.getItem("spicetify:defaultVaultUrl") ??
-		"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
+	"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
 
 // raw.githubusercontent and the vault hosts are CORS-enabled; github.com
 // release downloads are not. Only proxy what needs it, with the raw URL
@@ -79,7 +80,11 @@ type Catalog = { modules: VaultModule[]; revoked: Record<string, string>; ok: bo
 
 // Numeric semver-ish compare; plain string sort breaks at x.10.0.
 function compareVersions(a: string, b: string): number {
-	const parse = (v: string) => v.split(/[+-]/)[0].split(".").map((n) => Number.parseInt(n, 10) || 0);
+	const parse = (v: string) =>
+		v
+			.split(/[+-]/)[0]
+			.split(".")
+			.map((n) => Number.parseInt(n, 10) || 0);
 	const [pa, pb] = [parse(a), parse(b)];
 	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
 		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
@@ -183,7 +188,7 @@ async function fetchInstallCounts(ids: string[]): Promise<void> {
 		try {
 			const res = await fetch(`${base}/v1/installs?modules=${encodeURIComponent(chunk.join(","))}`);
 			if (!res.ok) return;
-			const data = await res.json() as { counts?: Record<string, number> };
+			const data = (await res.json()) as { counts?: Record<string, number> };
 			Object.assign(installCounts, data.counts ?? {});
 		} catch {
 			return;
@@ -205,25 +210,30 @@ function reportInstall(mod: VaultModule, attempt = 0): void {
 			method: "POST",
 			headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
 			body: JSON.stringify({ module: mod.id, version: mod.version.split("+")[0] }),
-		}).then(async (res) => {
-			// Spotify throttles the server's identity check at times; one
-			// deferred retry recovers most of those counts.
-			if (res.status === 503 && attempt === 0) {
-				const wait = Number(res.headers.get("retry-after") ?? 60);
-				const timer = setTimeout(() => {
-					retryTimers.delete(timer);
-					if (!disposed) reportInstall(mod, 1);
-				}, Math.min(wait, 120) * 1000);
-				retryTimers.add(timer);
-				return;
-			}
-			if (!res.ok) return;
-			const data = await res.json() as { counted?: boolean };
-			if (data.counted) {
-				installCounts[mod.id] = (installCounts[mod.id] ?? 0) + 1;
-				onCountsChanged?.();
-			}
-		}).catch(() => {});
+		})
+			.then(async (res) => {
+				// Spotify throttles the server's identity check at times; one
+				// deferred retry recovers most of those counts.
+				if (res.status === 503 && attempt === 0) {
+					const wait = Number(res.headers.get("retry-after") ?? 60);
+					const timer = setTimeout(
+						() => {
+							retryTimers.delete(timer);
+							if (!disposed) reportInstall(mod, 1);
+						},
+						Math.min(wait, 120) * 1000,
+					);
+					retryTimers.add(timer);
+					return;
+				}
+				if (!res.ok) return;
+				const data = (await res.json()) as { counted?: boolean };
+				if (data.counted) {
+					installCounts[mod.id] = (installCounts[mod.id] ?? 0) + 1;
+					onCountsChanged?.();
+				}
+			})
+			.catch(() => {});
 	} catch {}
 }
 
@@ -332,7 +342,12 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	const enabled = await M().installLocal(mod.id, {
 		metadata,
 		files,
-		sidecar: { installed_version: mod.version, classmap_base: "", allow_stale: false, checksum: mod.checksum ?? "" },
+		sidecar: {
+			installed_version: mod.version,
+			classmap_base: "",
+			allow_stale: false,
+			checksum: mod.checksum ?? "",
+		},
 	});
 	if (enabled) {
 		status(`${mod.id} installed and enabled ✓`);
@@ -360,7 +375,9 @@ function searchHaystack(mod: VaultModule): string {
 		mod.meta?.description ?? "",
 		...(mod.meta?.authors ?? []),
 		...(mod.meta?.tags ?? []),
-	].join(" ").toLowerCase();
+	]
+		.join(" ")
+		.toLowerCase();
 }
 
 const displayName = (mod: VaultModule) => mod.meta?.name ?? mod.id;
@@ -401,11 +418,11 @@ function renderMarkdown(md: string): HTMLElement {
 	let fence: HTMLElement | null = null;
 	for (const line of lines) {
 		if (fence) {
-			if (/^```/.test(line)) fence = null;
+			if (line.startsWith("```")) fence = null;
 			else fence.textContent += `${line}\n`;
 			continue;
 		}
-		if (/^```/.test(line)) {
+		if (line.startsWith("```")) {
 			const pre = el("pre");
 			fence = el("code");
 			pre.appendChild(fence);
@@ -456,7 +473,11 @@ function openOverlay(title: string): { body: HTMLElement; close: () => void } {
 // ---------- snippet authoring ----------
 
 const slugify = (name: string) =>
-	name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "snippet";
+	name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 48) || "snippet";
 
 function openSnippetEditor(
 	existing: { id: string; name: string; css: string } | null,
@@ -472,44 +493,47 @@ function openSnippetEditor(
 	css.spellcheck = false;
 
 	const actions = el("div", "spicetify-store-card-actions");
-	const save = Button({ label: existing ? "Save" : "Create", onClick: async () => {
-		const name = nameInput.value.trim();
-		if (!name || !css.value.trim()) return;
-		const id = existing?.id ?? `snippet-user-${slugify(name)}`;
-		// Creating over an existing snippet needs an explicit second click.
-		if (!existing && localRecords().some((r) => r.metadata.identifier === id) && save.dataset.confirm !== "1") {
-			save.dataset.confirm = "1";
-			save.textContent = "Overwrite existing?";
-			return;
-		}
-		save.disabled = true;
-		try {
+	const save = Button({
+		label: existing ? "Save" : "Create",
+		onClick: async () => {
+			const name = nameInput.value.trim();
+			if (!name || !css.value.trim()) return;
+			const id = existing?.id ?? `snippet-user-${slugify(name)}`;
+			// Creating over an existing snippet needs an explicit second click.
+			if (!existing && localRecords().some((r) => r.metadata.identifier === id) && save.dataset.confirm !== "1") {
+				save.dataset.confirm = "1";
+				save.textContent = "Overwrite existing?";
+				return;
+			}
+			save.disabled = true;
 			try {
-				await M().disable(id);
-			} catch {}
-			await M().installLocal(id, {
-				metadata: {
-					identifier: id,
-					name,
-					tags: ["snippet", "custom"],
-					version: "0.0.0",
-					authors: [PLATFORM()?.username ?? "you"],
-					description: "Custom CSS snippet",
-					entries: { css: "index.css" },
-					hasMixins: false,
-					dependencies: {},
-				},
-				files: { "index.css": css.value },
-				sidecar: { installed_version: "0.0.0", classmap_base: "", allow_stale: false, checksum: "" },
-			});
-			status(`${name} applied ✓`);
-			close();
-			onSaved();
-		} catch (e) {
-			status(`snippet failed: ${(e as Error).message}`);
-			save.disabled = false;
-		}
-	} });
+				try {
+					await M().disable(id);
+				} catch {}
+				await M().installLocal(id, {
+					metadata: {
+						identifier: id,
+						name,
+						tags: ["snippet", "custom"],
+						version: "0.0.0",
+						authors: [PLATFORM()?.username ?? "you"],
+						description: "Custom CSS snippet",
+						entries: { css: "index.css" },
+						hasMixins: false,
+						dependencies: {},
+					},
+					files: { "index.css": css.value },
+					sidecar: { installed_version: "0.0.0", classmap_base: "", allow_stale: false, checksum: "" },
+				});
+				status(`${name} applied ✓`);
+				close();
+				onSaved();
+			} catch (e) {
+				status(`snippet failed: ${(e as Error).message}`);
+				save.disabled = false;
+			}
+		},
+	});
 	actions.appendChild(save);
 	body.append(nameInput, css, actions);
 	nameInput.focus();
@@ -517,11 +541,7 @@ function openSnippetEditor(
 
 // ---------- module detail view ----------
 
-function openModuleDetails(
-	mod: VaultModule,
-	installLabel: string,
-	onInstall: (btn: HTMLButtonElement) => void,
-): void {
+function openModuleDetails(mod: VaultModule, installLabel: string, onInstall: (btn: HTMLButtonElement) => void): void {
 	const { body } = openOverlay(displayName(mod));
 
 	if (mod.meta?.preview) {
@@ -581,15 +601,8 @@ const OWNED_PREFIXES = ["spicetify.modules.local.", "spicetify:scheme:"];
 // crafted file must never be able to repoint the vault, the CORS proxy,
 // or the installs API (which receives the session token). Setting those
 // stays a manual, deliberate act.
-const ENDPOINT_KEYS = [
-	"spicetify:defaultVaultUrl",
-	"spicetify:corsProxyTemplate",
-	"spicetify:installsApiUrl",
-];
-const PREF_KEYS = [
-	"spicetify:store:sort",
-	"spicetify:store:tab",
-];
+const ENDPOINT_KEYS = ["spicetify:defaultVaultUrl", "spicetify:corsProxyTemplate", "spicetify:installsApiUrl"];
+const PREF_KEYS = ["spicetify:store:sort", "spicetify:store:tab"];
 
 const isBackupKey = (key: string) => PREF_KEYS.includes(key) || OWNED_PREFIXES.some((p) => key.startsWith(p));
 const isOwnedKey = (key: string) => isBackupKey(key) || ENDPOINT_KEYS.includes(key);
@@ -669,12 +682,18 @@ function createPanel() {
 			installed.appendChild(el("div", "spicetify-store-empty", "Nothing installed yet"));
 			return;
 		}
-		const states = new Map<string, any>(M().list().map((s: any) => [s.identifier, s]));
+		const states = new Map<string, any>(
+			M()
+				.list()
+				.map((s: any) => [s.identifier, s]),
+		);
 		for (const record of local) {
 			const id = record.metadata.identifier;
 			const row = el("div", "spicetify-store-row");
 			row.appendChild(el("span", "spicetify-store-name", id));
-			row.appendChild(el("span", "spicetify-store-version", displayVersion(record.sidecar?.installed_version ?? "")));
+			row.appendChild(
+				el("span", "spicetify-store-version", displayVersion(record.sidecar?.installed_version ?? "")),
+			);
 			const state = states.get(id);
 			const toggle = el("button", undefined, state?.loaded ? "Disable" : "Enable");
 			toggle.addEventListener("click", async () => {
@@ -742,7 +761,9 @@ function createPanel() {
 			try {
 				catalog = await loadCatalog();
 				status.textContent = catalog.ok
-					? (catalog.modules.length ? "" : "no modules found in any vault")
+					? catalog.modules.length
+						? ""
+						: "no modules found in any vault"
 					: "vaults unreachable, will retry";
 			} finally {
 				loading = false;
@@ -842,18 +863,20 @@ function createStorePage() {
 	function renderChips() {
 		chips.replaceChildren();
 		for (const tab of TABS) {
-			chips.appendChild(Chip({
-				label: tab.label,
-				active: tab.key === activeTab,
-				onClick: () => {
-					activeTab = tab.key;
-					try {
-						localStorage.setItem("spicetify:store:tab", activeTab);
-					} catch {}
-					renderChips();
-					renderGrid();
-				},
-			}));
+			chips.appendChild(
+				Chip({
+					label: tab.label,
+					active: tab.key === activeTab,
+					onClick: () => {
+						activeTab = tab.key;
+						try {
+							localStorage.setItem("spicetify:store:tab", activeTab);
+						} catch {}
+						renderChips();
+						renderGrid();
+					},
+				}),
+			);
 		}
 	}
 
@@ -872,7 +895,9 @@ function createStorePage() {
 			case "za":
 				return list.sort((a, b) => name(b).localeCompare(name(a)));
 			case "updated":
-				return list.sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "") || name(a).localeCompare(name(b)));
+				return list.sort(
+					(a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "") || name(a).localeCompare(name(b)),
+				);
 			default:
 				return list.sort(
 					(a, b) => (installCounts[b.id] ?? 0) - (installCounts[a.id] ?? 0) || name(a).localeCompare(name(b)),
@@ -933,7 +958,11 @@ function createStorePage() {
 		const locals = localRecords();
 		const localIds = new Set(locals.map((r) => r.metadata.identifier));
 		const localVersions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
-		const states = new Map<string, any>(M().list().map((s: any) => [s.identifier, s]));
+		const states = new Map<string, any>(
+			M()
+				.list()
+				.map((s: any) => [s.identifier, s]),
+		);
 		for (const mod of visibleModules()) {
 			const card = el("article", "spicetify-store-card");
 
@@ -971,7 +1000,10 @@ function createStorePage() {
 				meta.appendChild(countBadge);
 			}
 			meta.appendChild(
-				badge(mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified", !!(mod.checksum || mod.files)),
+				badge(
+					mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified",
+					!!(mod.checksum || mod.files),
+				),
 			);
 			try {
 				const host = new URL(mod.vault).host;
@@ -988,7 +1020,8 @@ function createStorePage() {
 			const details = Button({
 				label: "Details",
 				variant: "secondary",
-				onClick: () => openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn)),
+				onClick: () =>
+					openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn)),
 			});
 			actions.append(install, details);
 			card.appendChild(actions);
@@ -1009,16 +1042,17 @@ function createStorePage() {
 		installedGrid.replaceChildren();
 		const local = localRecords();
 		installedTitle.style.display = local.length ? "" : "none";
-		const states = new Map<string, any>(M().list().map((s: any) => [s.identifier, s]));
+		const states = new Map<string, any>(
+			M()
+				.list()
+				.map((s: any) => [s.identifier, s]),
+		);
 		for (const record of local) {
 			const id = record.metadata.identifier;
 			const state = states.get(id) as { loaded?: boolean } | undefined;
 			const isProtected = PROTECTED.has(id);
 			const revokedReason = catalog.revoked[id];
-			const card = el(
-				"article",
-				`spicetify-store-card${revokedReason ? " spicetify-store-card--revoked" : ""}`,
-			);
+			const card = el("article", `spicetify-store-card${revokedReason ? " spicetify-store-card--revoked" : ""}`);
 
 			card.appendChild(el("h3", "spicetify-store-card-name", record.metadata.name ?? id));
 
@@ -1035,14 +1069,17 @@ function createStorePage() {
 				card.appendChild(el("p", "spicetify-store-card-desc", `Revoked by the vault: ${revokedReason}`));
 				if (state?.loaded && !autoDisabledRevoked.has(id)) {
 					autoDisabledRevoked.add(id);
-					void M().disable(id).then(() => {
-						setStatus(`${id} disabled: revoked by the vault`);
-						renderAll();
-					}).catch((e: Error) => {
-						// Unlatch so the next render retries.
-						autoDisabledRevoked.delete(id);
-						setStatus(`${id}: failed to disable revoked module: ${e.message}`);
-					});
+					void M()
+						.disable(id)
+						.then(() => {
+							setStatus(`${id} disabled: revoked by the vault`);
+							renderAll();
+						})
+						.catch((e: Error) => {
+							// Unlatch so the next render retries.
+							autoDisabledRevoked.delete(id);
+							setStatus(`${id}: failed to disable revoked module: ${e.message}`);
+						});
 				}
 			}
 
@@ -1208,7 +1245,9 @@ function createStorePage() {
 				loaded = catalog.ok;
 				setStatus(
 					catalog.ok
-						? (catalog.modules.length ? "" : "no modules found in any vault")
+						? catalog.modules.length
+							? ""
+							: "no modules found in any vault"
 						: "vaults unreachable, will retry on the next visit",
 				);
 			} finally {
@@ -1222,9 +1261,7 @@ function createStorePage() {
 	};
 }
 
-async function registerStorePage(
-	page: ReturnType<typeof createStorePage>,
-): Promise<(() => void) | null> {
+async function registerStorePage(page: ReturnType<typeof createStorePage>): Promise<(() => void) | null> {
 	try {
 		const [{ Registrar }, { React }] = await Promise.all([
 			import("/modules/stdlib/src/registers/index.js"),

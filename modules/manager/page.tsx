@@ -37,14 +37,18 @@ const Badge = ({ kind, children }: { kind?: "ok" | "bad"; children: React.ReactN
 	<span className={`spicetify-manager-badge${kind ? ` spicetify-manager-badge--${kind}` : ""}`}>{children}</span>
 );
 
-const ModuleRow = (
-	{ row, busy, onAction }: {
-		row: ManagerModuleRow;
-		busy: boolean;
-		onAction: (label: string, fn: () => Promise<unknown>) => void;
-	},
-) => {
-	const deps = Object.entries(row.dependencies).map(([id, range]) => `${id}@${range}`).join(", ");
+const ModuleRow = ({
+	row,
+	busy,
+	onAction,
+}: {
+	row: ManagerModuleRow;
+	busy: boolean;
+	onAction: (label: string, fn: () => Promise<unknown>) => void;
+}) => {
+	const deps = Object.entries(row.dependencies)
+		.map(([id, range]) => `${id}@${range}`)
+		.join(", ");
 	const isCore = CORE.has(row.id);
 	return (
 		<div className="spicetify-manager-module">
@@ -61,27 +65,37 @@ const ModuleRow = (
 			{deps && <div className="spicetify-manager-module__deps">needs {deps}</div>}
 			{row.failed !== undefined && <div className="spicetify-manager-module__failure">{row.failed}</div>}
 			<div className="spicetify-manager-module__actions">
-				{row.loaded
-					? (
-						<>
-							{!isCore && (
-								<button type="button" disabled={busy} onClick={() => onAction(`disable ${row.id}`, () => M().disable(row.id))}>
-									Disable
-								</button>
-							)}
-							{row.id !== "stdlib" && (
-								<button type="button" disabled={busy} onClick={() => onAction(`reload ${row.id}`, () => M().reload(row.id))}>
-									Reload
-								</button>
-							)}
-							{isCore && <span className="spicetify-manager-module__note">core module</span>}
-						</>
-					)
-					: (
-						<button type="button" disabled={busy} onClick={() => onAction(`enable ${row.id}`, () => M().enable(row.id))}>
-							Enable
-						</button>
-					)}
+				{row.loaded ? (
+					<>
+						{!isCore && (
+							<button
+								type="button"
+								disabled={busy}
+								onClick={() => onAction(`disable ${row.id}`, () => M().disable(row.id))}
+							>
+								Disable
+							</button>
+						)}
+						{row.id !== "stdlib" && (
+							<button
+								type="button"
+								disabled={busy}
+								onClick={() => onAction(`reload ${row.id}`, () => M().reload(row.id))}
+							>
+								Reload
+							</button>
+						)}
+						{isCore && <span className="spicetify-manager-module__note">core module</span>}
+					</>
+				) : (
+					<button
+						type="button"
+						disabled={busy}
+						onClick={() => onAction(`enable ${row.id}`, () => M().enable(row.id))}
+					>
+						Enable
+					</button>
+				)}
 				{row.source === "local" && !isCore && (
 					<button
 						type="button"
@@ -124,7 +138,9 @@ export const ManagerPage = () => {
 				try {
 					enqueue(advice.message, { variant: "warning" });
 					unsupportedNoticeShown = true;
-				} catch { /* toast is best-effort */ }
+				} catch {
+					/* toast is best-effort */
+				}
 			}
 		}
 	}, [state.spotifyVersion, support]);
@@ -181,10 +197,11 @@ export const ManagerPage = () => {
 			`update status: ${advice.message}`,
 			"",
 			"modules:",
-			...state.modules.map((m) =>
-				`  - ${m.id}@${m.version} [${m.source}] ${
-					m.loaded ? "loaded" : m.failed !== undefined ? `failed: ${m.failed}` : "disabled"
-				}`
+			...state.modules.map(
+				(m) =>
+					`  - ${m.id}@${m.version} [${m.source}] ${
+						m.loaded ? "loaded" : m.failed !== undefined ? `failed: ${m.failed}` : "disabled"
+					}`,
 			),
 		];
 		void copyToClipboard(lines.join("\n"), "environment copied");
@@ -205,7 +222,9 @@ export const ManagerPage = () => {
 			<header className="spicetify-manager-header">
 				<div>
 					<h1>Spicetify Manager</h1>
-					<p className="spicetify-manager-subtitle">Runtime control for modules, boot health, and diagnostics</p>
+					<p className="spicetify-manager-subtitle">
+						Runtime control for modules, boot health, and diagnostics
+					</p>
 				</div>
 				<TextInput placeholder="Filter modules…" value={filter} onInput={setFilter} />
 			</header>
@@ -233,8 +252,8 @@ export const ManagerPage = () => {
 					</Badge>
 				</div>
 				<p className="spicetify-manager-note">
-					Installing or staging modules on disk happens outside the client — after changing staged modules, run{" "}
-					<code>spicetify restore backup apply</code>.
+					Installing or staging modules on disk happens outside the client — after changing staged modules,
+					run <code>spicetify restore backup apply</code>.
 				</p>
 			</section>
 
@@ -255,7 +274,9 @@ export const ManagerPage = () => {
 						</div>
 						<div className="spicetify-manager-env">
 							<Badge>installed {show(state.spotifyVersion)}</Badge>
-							<Badge kind={sup?.supportedSpotify ? "ok" : undefined}>supported {show(sup?.supportedSpotify)}</Badge>
+							<Badge kind={sup?.supportedSpotify ? "ok" : undefined}>
+								supported {show(sup?.supportedSpotify)}
+							</Badge>
 							<Badge>available {show(sup?.latestSpotify)}</Badge>
 						</div>
 						<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
@@ -263,8 +284,8 @@ export const ManagerPage = () => {
 						</p>
 						{state.classmapFallback && (
 							<p className="spicetify-manager-update spicetify-manager-update--unsupported">
-								Running on a fallback classmap: this Spotify build has no verified classmap yet, so some chrome
-								may be off. It self-heals once one ships.
+								Running on a fallback classmap: this Spotify build has no verified classmap yet, so some
+								chrome may be off. It self-heals once one ships.
 							</p>
 						)}
 						<p className="spicetify-manager-note">
@@ -283,7 +304,9 @@ export const ManagerPage = () => {
 			<section>
 				<h2>Modules</h2>
 				<div className="spicetify-manager-modules">
-					{visible.map((row) => <ModuleRow key={row.id} row={row} busy={busy} onAction={onAction} />)}
+					{visible.map((row) => (
+						<ModuleRow key={row.id} row={row} busy={busy} onAction={onAction} />
+					))}
 					{!visible.length && (
 						<div className="spicetify-manager-empty">
 							{state.modules.length ? "No modules match the filter" : "No modules installed"}
@@ -302,13 +325,13 @@ export const ManagerPage = () => {
 				<div className="spicetify-manager-diag">
 					{state.diagnostics.map((d, i) => (
 						<div key={i} className={`spicetify-manager-diag__entry ${LEVEL_CLASS[d.level] ?? ""}`}>
-							<span className="spicetify-manager-diag__time">
-								{new Date(d.ts).toLocaleTimeString()}
-							</span>
+							<span className="spicetify-manager-diag__time">{new Date(d.ts).toLocaleTimeString()}</span>
 							<span>{d.message}</span>
 						</div>
 					))}
-					{!state.diagnostics.length && <div className="spicetify-manager-empty">No diagnostics recorded</div>}
+					{!state.diagnostics.length && (
+						<div className="spicetify-manager-empty">No diagnostics recorded</div>
+					)}
 				</div>
 			</section>
 		</div>

@@ -37,7 +37,8 @@ const isHashyClass = (token: string) =>
 // are the one place check emits errors rather than warnings.
 export function checkMetadata(meta: unknown): Finding[] {
 	const out: Finding[] = [];
-	const err = (rule: string, message: string) => out.push({ severity: "error", rule, message, file: "metadata.json" });
+	const err = (rule: string, message: string) =>
+		out.push({ severity: "error", rule, message, file: "metadata.json" });
 	if (typeof meta !== "object" || meta === null) {
 		err("metadata.shape", "metadata.json must be a JSON object");
 		return out;
@@ -90,30 +91,56 @@ export function checkSource(rel: string, text: string): Finding[] {
 		// rule). expose/React.ts is stdlib's sanctioned single source and is
 		// exempt.
 		if (
-			/from\s+['"]https?:\/\/[^'"]*react[^'"]*['"]/.test(line) && !line.includes("jsx-runtime") &&
+			/from\s+['"]https?:\/\/[^'"]*react[^'"]*['"]/.test(line) &&
+			!line.includes("jsx-runtime") &&
 			!/expose\/React/.test(rel)
 		) {
-			out.push({ severity: "warn", rule: "one-react", message: "import React from stdlib's expose or the bare 'react' shim, never a second copy", file: at });
+			out.push({
+				severity: "warn",
+				rule: "one-react",
+				message: "import React from stdlib's expose or the bare 'react' shim, never a second copy",
+				file: at,
+			});
 		}
 		// className string that looks like a raw client hash.
 		if (/class[nN]ame/.test(line)) {
 			for (const q of line.matchAll(/['"]([A-Za-z0-9]+)['"]/g)) {
 				if (isHashyClass(q[1])) {
-					out.push({ severity: "warn", rule: "map-intact", message: `"${q[1]}" looks like a hardcoded client hash; reference it via MAP.* so the CLI remaps it per version`, file: at });
+					out.push({
+						severity: "warn",
+						rule: "map-intact",
+						message: `"${q[1]}" looks like a hardcoded client hash; reference it via MAP.* so the CLI remaps it per version`,
+						file: at,
+					});
 				}
 			}
 		}
 		// Hand-rolled SHARED chrome (a kit primitive exists for it) instead
 		// of the component kit. Store-specific classes are not flagged.
-		if (/\b(createElement|el)\(\s*['"](select|input|button|textarea)['"]\s*,\s*['"](spicetify-select|spicetify-searchbar|spicetify-button)\b/.test(line)) {
-			out.push({ severity: "warn", rule: "use-the-kit", message: "build shared chrome from the kit (Button/Select/TextInput/...) instead of hand-rolling it", file: at });
+		if (
+			/\b(createElement|el)\(\s*['"](select|input|button|textarea)['"]\s*,\s*['"](spicetify-select|spicetify-searchbar|spicetify-button)\b/.test(
+				line,
+			)
+		) {
+			out.push({
+				severity: "warn",
+				rule: "use-the-kit",
+				message: "build shared chrome from the kit (Button/Select/TextInput/...) instead of hand-rolling it",
+				file: at,
+			});
 		}
 		// A hand-rolled context-menu row, in any form (className=, a template
 		// literal, an el() call). The kit's MenuItem owns Spotify's menu-item
 		// class via MENU_ITEM_CLASS, so modules never name it directly; the
 		// kit's own source is the one legitimate home for the literal.
 		if (/main-contextMenu-menuItemButton/.test(line) && !/primitives/.test(rel)) {
-			out.push({ severity: "warn", rule: "use-the-kit", message: "render context-menu rows with the kit's MenuItem instead of hardcoding main-contextMenu-menuItemButton", file: at });
+			out.push({
+				severity: "warn",
+				rule: "use-the-kit",
+				message:
+					"render context-menu rows with the kit's MenuItem instead of hardcoding main-contextMenu-menuItemButton",
+				file: at,
+			});
 		}
 	});
 	return out;
@@ -122,11 +149,25 @@ export function checkSource(rel: string, text: string): Finding[] {
 function checkEntryShim(dir: string): Finding[] {
 	const index = path.join(dir, "index.ts");
 	if (!existsSync(index)) {
-		return [{ severity: "error", rule: "entry-shim", message: "missing index.ts entry (should defer to ./mod.js so module code loads only once deps are up)", file: "index.ts" }];
+		return [
+			{
+				severity: "error",
+				rule: "entry-shim",
+				message: "missing index.ts entry (should defer to ./mod.js so module code loads only once deps are up)",
+				file: "index.ts",
+			},
+		];
 	}
 	const text = readFileSync(index, "utf8");
 	if (!/import\(["']\.\/mod\.js["']\)|export\s+(async\s+)?function\s+(load|preload|mixin)/.test(text)) {
-		return [{ severity: "warn", rule: "entry-shim", message: "index.ts should export load/preload/mixin (typically deferring to ./mod.js)", file: "index.ts" }];
+		return [
+			{
+				severity: "warn",
+				rule: "entry-shim",
+				message: "index.ts should export load/preload/mixin (typically deferring to ./mod.js)",
+				file: "index.ts",
+			},
+		];
 	}
 	return [];
 }
@@ -135,13 +176,27 @@ export function checkModule(dir: string): Finding[] {
 	const findings: Finding[] = [];
 	const metaPath = path.join(dir, "metadata.json");
 	if (!existsSync(metaPath)) {
-		return [{ severity: "error", rule: "metadata.missing", message: "no metadata.json — not a module", file: "metadata.json" }];
+		return [
+			{
+				severity: "error",
+				rule: "metadata.missing",
+				message: "no metadata.json — not a module",
+				file: "metadata.json",
+			},
+		];
 	}
 	let meta: unknown;
 	try {
 		meta = JSON.parse(readFileSync(metaPath, "utf8"));
 	} catch (e) {
-		return [{ severity: "error", rule: "metadata.parse", message: `metadata.json is not valid JSON: ${(e as Error).message}`, file: "metadata.json" }];
+		return [
+			{
+				severity: "error",
+				rule: "metadata.parse",
+				message: `metadata.json is not valid JSON: ${(e as Error).message}`,
+				file: "metadata.json",
+			},
+		];
 	}
 	findings.push(...checkMetadata(meta));
 	findings.push(...checkEntryShim(dir));

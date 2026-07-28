@@ -68,7 +68,10 @@ describe("effectiveSupport", () => {
 	});
 
 	it("falls back to the feed for supported when the manifest lacks it (older CLI)", () => {
-		const merged = effectiveSupport({ latestSpotify: "1.2.90.0" }, { supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" });
+		const merged = effectiveSupport(
+			{ latestSpotify: "1.2.90.0" },
+			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" },
+		);
 		assert.equal(merged?.supportedSpotify, "1.2.94.583");
 		assert.equal(merged?.latestSpotify, "1.2.95.100");
 	});

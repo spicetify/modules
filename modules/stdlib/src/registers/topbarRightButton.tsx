@@ -6,10 +6,8 @@
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../createIconComponent.tsx";
 import { transformer } from "../../mixin.ts";
-import { isGlobalNavBarEnabled } from "../utils/index.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
-import { classnames } from "../webpack/ClassNames.ts";
 import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
 
@@ -42,10 +40,7 @@ transformer(
 	(emit) => (str) => {
 		emit();
 
-		str = str.replace(
-			/("login-button"[^\}]*\}[^\}]*\}[^\}]*\}\))/,
-			"$1,__renderTopbarRightButtons()",
-		);
+		str = str.replace(/("login-button"[^\}]*\}[^\}]*\}[^\}]*\}\))/, "$1,__renderTopbarRightButtons()");
 
 		return str;
 	},

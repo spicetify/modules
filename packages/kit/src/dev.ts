@@ -80,11 +80,13 @@ function push(rec: object, id: string, port: string): Promise<string> {
 				reject(new Error(`websocket error: ${String((e as ErrorEvent).message ?? e)}`));
 			});
 			ws.addEventListener("open", () => {
-				ws.send(JSON.stringify({
-					id: 1,
-					method: "Runtime.evaluate",
-					params: { expression: expr, awaitPromise: true, returnByValue: true },
-				}));
+				ws.send(
+					JSON.stringify({
+						id: 1,
+						method: "Runtime.evaluate",
+						params: { expression: expr, awaitPromise: true, returnByValue: true },
+					}),
+				);
 			});
 			ws.addEventListener("message", (ev) => {
 				const msg = JSON.parse(String(ev.data));

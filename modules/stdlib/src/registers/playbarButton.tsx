@@ -36,10 +36,7 @@ transformer(
 	(emit) => (str) => {
 		emit();
 
-		str = str.replace(
-			/(children:\[)([^\[]*djJumpButtonFactory)/,
-			"$1...__renderPlaybarBarControls(),$2",
-		);
+		str = str.replace(/(children:\[)([^\[]*djJumpButtonFactory)/, "$1...__renderPlaybarBarControls(),$2");
 
 		return str;
 	},

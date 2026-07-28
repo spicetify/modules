@@ -78,7 +78,11 @@ export function Select<T extends string>(props: {
 }): React.ReactElement {
 	return (
 		<select className={SELECT_CLASS} value={props.value} onChange={(e) => props.onChange(e.target.value as T)}>
-			{props.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+			{props.options.map((option) => (
+				<option key={option.value} value={option.value}>
+					{option.label}
+				</option>
+			))}
 		</select>
 	);
 }
@@ -199,7 +203,9 @@ export const Dialog: React.FC<{ title: string; onClose: () => void; children: Re
 			<div className={DIALOG_CLASS}>
 				<div className={DIALOG_HEADER_CLASS}>
 					<h2>{props.title}</h2>
-					<IconButton ariaLabel="Close" onClick={props.onClose}>×</IconButton>
+					<IconButton ariaLabel="Close" onClick={props.onClose}>
+						×
+					</IconButton>
 				</div>
 				<div className={DIALOG_BODY_CLASS}>{props.children}</div>
 			</div>

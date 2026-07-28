@@ -23,9 +23,11 @@ export const warn = (...args: unknown[]): void => {
 	// Same cap the loader enforces; this is a public barrel export, so it
 	// must neither grow the buffer unboundedly nor throw on hostile args.
 	try {
-		const buffer = (globalThis as never as {
-			__SPICETIFY_DIAGNOSTICS__?: Array<{ ts: number; level: string; message: string }>;
-		}).__SPICETIFY_DIAGNOSTICS__;
+		const buffer = (
+			globalThis as never as {
+				__SPICETIFY_DIAGNOSTICS__?: Array<{ ts: number; level: string; message: string }>;
+			}
+		).__SPICETIFY_DIAGNOSTICS__;
 		if (!buffer) return;
 		buffer.push({ ts: Date.now(), level: "warn", message: args.map(safeString).join(" ") });
 		if (buffer.length > DIAGNOSTICS_CAP) buffer.splice(0, buffer.length - DIAGNOSTICS_CAP);

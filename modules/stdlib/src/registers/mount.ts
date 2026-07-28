@@ -53,8 +53,7 @@ const ensureAnchorStyle = () => {
 	if (document.getElementById("spicetify-anchor-style")) return;
 	const style = document.createElement("style");
 	style.id = "spicetify-anchor-style";
-	style.textContent =
-		"[data-spicetify-anchor] > * { -webkit-app-region: no-drag; app-region: no-drag; }";
+	style.textContent = "[data-spicetify-anchor] > * { -webkit-app-region: no-drag; app-region: no-drag; }";
 	document.head.appendChild(style);
 };
 
@@ -123,7 +122,9 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 				return R.createElement(
 					R.Fragment,
 					null,
-					...spec.registry.all().map((item: unknown, i: number) => R.createElement(ItemBoundary, { key: i }, item)),
+					...spec.registry
+						.all()
+						.map((item: unknown, i: number) => R.createElement(ItemBoundary, { key: i }, item)),
 				);
 			};
 			root.render(R.createElement(Wrapper));

@@ -40,7 +40,7 @@ give you all of them for free when you follow the standard — do not opt out.
   whole file down.
 
 - **Ship MAP-intact.** Reference client classes as `MAP.a.b.c`. The CLI remaps
-  them at apply/install time against the *exact* installed classmap, so one
+  them at apply/install time against the _exact_ installed classmap, so one
   build serves every Spotify version. A hardcoded hashed classname silently
   matches nothing on the next client update.
 
@@ -76,10 +76,10 @@ class itself (that is what keeps you MAP-intact by construction). There are two
 tiers over **one shared class contract** (`lib/primitives-classes.ts`), so the look is
 identical; the choice is purely about reliability.
 
-| Your surface is… | Use | Because |
-|---|---|---|
-| A **recovery / infrastructure** tool that must keep working when *other* modules break — a store, a module manager, anything you would reach for to fix a broken client | **Vanilla kit** — `lib/primitives-vanilla.ts` | React-free DOM survives a failed React capture or needle drift after a Spotify update, which is the exact moment you need it |
-| A **leaf feature** — a settings pane, a nice-to-have panel, a route page that is not itself a recovery tool | **React primitives** — `lib/primitives.js` (or real Encore components from `ComponentLibrary`) | Richer and more native; here "goes dark after an update until a needle refresh" is an annoyance, not a trap |
+| Your surface is…                                                                                                                                                        | Use                                                                                            | Because                                                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| A **recovery / infrastructure** tool that must keep working when _other_ modules break — a store, a module manager, anything you would reach for to fix a broken client | **Vanilla kit** — `lib/primitives-vanilla.ts`                                                  | React-free DOM survives a failed React capture or needle drift after a Spotify update, which is the exact moment you need it |
+| A **leaf feature** — a settings pane, a nice-to-have panel, a route page that is not itself a recovery tool                                                             | **React primitives** — `lib/primitives.js` (or real Encore components from `ComponentLibrary`) | Richer and more native; here "goes dark after an update until a needle refresh" is an annoyance, not a trap                  |
 
 The test: **if the client half-breaks after a Spotify update, does this surface
 still need to work?** Yes → vanilla. No → React. When unsure, vanilla costs you
@@ -98,15 +98,15 @@ rescue a client where the enhanced path failed.
 Mount into the client transform-free through `createRegistrar(ctx)`; it disposes
 for you on unload.
 
-| Register | Surface |
-|---|---|
-| `navlink` | Global-nav circular icon (the Home pattern), with active/inactive glyph states |
-| `route` | A full page at `/bespoke/<name>` — `registrar.registerRoute(path, element)` |
-| `menu` | Context-menu items — the kit's `MenuItem` plus `openedFromProfileMenu(ctx)` / `closeMenu()` helpers |
-| `topbarLeftButton` / `topbarRightButton` | Top-bar icon buttons |
-| `playbarButton` / `playbarWidget` | The now-playing bar |
-| `settingsSection` | A section on Spotify's own settings page |
-| `rootChild` | A body-level overlay |
+| Register                                 | Surface                                                                                             |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `navlink`                                | Global-nav circular icon (the Home pattern), with active/inactive glyph states                      |
+| `route`                                  | A full page at `/bespoke/<name>` — `registrar.registerRoute(path, element)`                         |
+| `menu`                                   | Context-menu items — the kit's `MenuItem` plus `openedFromProfileMenu(ctx)` / `closeMenu()` helpers |
+| `topbarLeftButton` / `topbarRightButton` | Top-bar icon buttons                                                                                |
+| `playbarButton` / `playbarWidget`        | The now-playing bar                                                                                 |
+| `settingsSection`                        | A section on Spotify's own settings page                                                            |
+| `rootChild`                              | A body-level overlay                                                                                |
 
 Themes are a special case: a **css-only module** (a `color.ini` plus `user.css`
 as the css entry). The loader parses `[Section]`s into switchable schemes and
@@ -130,12 +130,12 @@ theme in one shot.
 
 The repo ships two ported modules that exercise the whole standard end to end:
 
-- **`auto-skip-explicit`** (an *extension*): behavior plus one UI leaf. It skips
+- **`auto-skip-explicit`** (an _extension_): behavior plus one UI leaf. It skips
   explicit tracks by self-subscribing to the player and undoing that listener on
   unload, and adds a profile-menu toggle through the `menu` register and the
   kit's `MenuItem`. It declares no page and ships js-only.
-- **`new-releases`** (an *app*): a `navlink` + `route` page built from the React
-  kit (`Card`, `Button`, `IconButton`). It shows *degrade, never destroy* in the
+- **`new-releases`** (an _app_): a `navlink` + `route` page built from the React
+  kit (`Card`, `Button`, `IconButton`). It shows _degrade, never destroy_ in the
   large: its faithful primary source (Spotify's `browse/new-releases` Web API)
   is unreliable from a v3 module — `CosmosAsync` does not proxy `api.spotify.com`
   dependably — so an empty or failed result falls back to the native

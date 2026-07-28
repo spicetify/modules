@@ -56,7 +56,9 @@ export class Palette {
 			return value.toCSS(Color.Format.HEX);
 		}
 
-		return Object.entries(this.colors).map(([k, v]) => `${formatKey(k)}: ${formatValue(v)};`).join(" ");
+		return Object.entries(this.colors)
+			.map(([k, v]) => `${formatKey(k)}: ${formatValue(v)};`)
+			.join(" ");
 	}
 
 	toJSON(): PaletteData {

@@ -15,9 +15,8 @@ const [ReactRouterModuleID] = modules.find(([_, v]) => v.toString().includes("Re
 const ReactRouterModule = Object.values(webpackRequire(ReactRouterModuleID));
 
 // https://github.com/remix-run/react-router/blob/main/packages/react-router/lib/hooks.tsx#L131
-export const useMatch: typeof useMatchT = ReactRouterModule.find((f) =>
-	src(f).includes("let{pathname:") &&
-	!src(f).includes(".createElement(")
+export const useMatch: typeof useMatchT = ReactRouterModule.find(
+	(f) => src(f).includes("let{pathname:") && !src(f).includes(".createElement("),
 );
 
 export const useLocation: typeof useLocationT = findBy("location", "useContext")(exportedFunctions);

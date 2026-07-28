@@ -35,7 +35,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 			tab_active: Color.fromHex("#FF4151"),
 			playbar: Color.fromHex("#c0b4b4"),
 			playbar_active: Color.fromHex("#FF4151"),
-		}).register("Nord", {
+		})
+		.register("Nord", {
 			text: Color.fromHex("#eceff4"),
 			subtext: Color.fromHex("#d8dee9"),
 			base: Color.fromHex("#23272f"),

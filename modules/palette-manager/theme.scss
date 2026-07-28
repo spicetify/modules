@@ -26,7 +26,7 @@ a {
 
 	&:hover,
 	&:active,
-	&:active>svg {
+	&:active > svg {
 		color: var(--spice-tab-active);
 	}
 }

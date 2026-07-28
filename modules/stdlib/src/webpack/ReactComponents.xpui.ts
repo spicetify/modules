@@ -9,7 +9,7 @@ import { findBy } from "/hooks/util.ts";
 import { warn } from "../logger.ts";
 
 import { Platform } from "../expose/Platform.ts";
-import { exportedForwardRefs, exportedFunctions, exportedMemos, modules, src } from "./index.ts";
+import { exportedFunctions, exportedMemos, modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 import { React } from "../expose/React.ts";
 
@@ -57,17 +57,14 @@ Menus.Playlist = Object.values(requireExports(playlistMenuModuleID)).find(
 
 export const Cards: any = Object.assign(
 	{
-		Generic: exportedFunctions.find((f) =>
-			src(f).includes("OnMouseDown") &&
-			src(f).match(/^[^;]*headerText/) &&
-			src(f).match(/^[^;]*featureIdentifier/) &&
-			src(f).match(/^[^;]*renderCardImage/)
+		Generic: exportedFunctions.find(
+			(f) =>
+				src(f).includes("OnMouseDown") &&
+				src(f).match(/^[^;]*headerText/) &&
+				src(f).match(/^[^;]*featureIdentifier/) &&
+				src(f).match(/^[^;]*renderCardImage/),
 		),
-		HeroGeneric: findBy(
-			"cardPlayButtonFactory",
-			"featureIdentifier",
-			"getSignifierContent",
-		)(exportedFunctions),
+		HeroGeneric: findBy("cardPlayButtonFactory", "featureIdentifier", "getSignifierContent")(exportedFunctions),
 		CardImage: findBy('"card-image"')(exportedFunctions),
 	},
 	Object.fromEntries(
@@ -101,68 +98,42 @@ export const Cards: any = Object.assign(
 export const RemoteConfigProviderComponent: React.FC<any> = findBy(
 	"resolveSuspense",
 	"configuration",
-)(
-	exportedFunctions,
-);
+)(exportedFunctions);
 
-const exportedMemoFRefs = exportedMemos.filter(
-	(m) => (m as any).type.$$typeof === Symbol.for("react.forward_ref"),
-);
+const exportedMemoFRefs = exportedMemos.filter((m) => (m as any).type.$$typeof === Symbol.for("react.forward_ref"));
 export const Nav: React.NamedExoticComponent<any> = exportedMemoFRefs.find((m) =>
-	src((m as any).type.render).includes("navigationalRoot")
+	src((m as any).type.render).includes("navigationalRoot"),
 )!;
 export const NavTo: React.NamedExoticComponent<any> = exportedMemoFRefs.find((m) =>
-	src((m as any).type.render).includes("pageId")
+	src((m as any).type.render).includes("pageId"),
 )!;
 
-export const InstrumentedRedirect: React.FC<any> = exportedFunctions.find((f) =>
-	src(f).includes("getInteractionId") && /\bto:/.test(src(f))
+export const InstrumentedRedirect: React.FC<any> = exportedFunctions.find(
+	(f) => src(f).includes("getInteractionId") && /\bto:/.test(src(f)),
 );
 
-export const SnackbarProvider: SnackbarProviderT = findBy(
-	"enqueueSnackbar called with invalid argument",
-)(
+export const SnackbarProvider: SnackbarProviderT = findBy("enqueueSnackbar called with invalid argument")(
 	exportedFunctions,
 ) as unknown as SnackbarProviderT;
 
 export const ContextMenu: any = Object.values(requireExports(ContextMenuModuleID))[0];
-export const RightClickMenu: React.FC<any> = findBy(
-	"action",
-	"open",
-	"trigger",
-	"right-click",
-)(
-	exportedFunctions,
-);
+export const RightClickMenu: React.FC<any> = findBy("action", "open", "trigger", "right-click")(exportedFunctions);
 
 // export const ConfirmDialog: React.FC<any> = findBy(
 // 	"isOpen",
 // 	"shouldCloseOnEsc",
 // 	"onClose",
 // )(exportedFunctions);
-export const Tooltip: React.FC<any> = findBy("hover-or-focus", "tooltip")(
-	exportedFunctions,
-);
+export const Tooltip: React.FC<any> = findBy("hover-or-focus", "tooltip")(exportedFunctions);
 
-export const Menu: React.FC<any> = findBy("getInitialFocusElement", "children")(
-	exportedFunctions,
-);
-export const MenuItem: React.FC<any> = findBy("handleMouseEnter", "onClick")(
-	exportedFunctions,
-);
-export const MenuItemSubMenu: React.FC<any> = findBy("subMenuIcon")(
-	exportedFunctions,
-);
+export const Menu: React.FC<any> = findBy("getInitialFocusElement", "children")(exportedFunctions);
+export const MenuItem: React.FC<any> = findBy("handleMouseEnter", "onClick")(exportedFunctions);
+export const MenuItemSubMenu: React.FC<any> = findBy("subMenuIcon")(exportedFunctions);
 
 export const RemoteConfigProvider = ({
 	configuration = Platform.getRemoteConfiguration(),
 	children = undefined as React.ReactNode,
-}) =>
-	React.createElement(
-		RemoteConfigProviderComponent,
-		{ configuration },
-		children,
-	);
+}) => React.createElement(RemoteConfigProviderComponent, { configuration }, children);
 export const Snackbar = {
 	wrapper: findBy("encore-light-theme", "elevated")(exportedFunctions),
 	simpleLayout: findBy("leading", "center", "trailing")(exportedFunctions),
@@ -171,43 +142,24 @@ export const Snackbar = {
 };
 
 export const FilterBox: React.NamedExoticComponent = exportedMemos.find((f) =>
-	src((f as any).type).includes("filterBoxApiRef")
+	src((f as any).type).includes("filterBoxApiRef"),
 )!;
-export const ScrollableContainer: React.FC<any> = findBy(
-	"scrollLeft",
-	"showButtons",
-)(exportedFunctions);
-export const ScrollableText: React.FC<any> = findBy(
-	"scrollLeft",
-	"pauseAtEndEdgeDurationMs",
-)(
-	exportedFunctions,
-);
-export const Router: React.FC<any> = findBy("navigationType", "static")(
-	exportedFunctions,
-);
+export const ScrollableContainer: React.FC<any> = findBy("scrollLeft", "showButtons")(exportedFunctions);
+export const ScrollableText: React.FC<any> = findBy("scrollLeft", "pauseAtEndEdgeDurationMs")(exportedFunctions);
+export const Router: React.FC<any> = findBy("navigationType", "static")(exportedFunctions);
 export const Routes: React.FC<any> = findBy(
 	/\([a-zA-Z_\$][\w\$]*\)\{let\{children:[a-zA-Z_\$][\w\$]*,location:[a-zA-Z_\$][\w\$]*\}=[a-zA-Z_\$][\w\$]*/,
 )(exportedFunctions);
 export const Route: React.FC<any> = findBy(
 	/^function [a-zA-Z_\$][\w\$]*\([a-zA-Z_\$][\w\$]*\)\{\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\!1\)\}$/,
 )(exportedFunctions);
-export const StoreProvider: React.FC<any> = findBy(
-	"notifyNestedSubs",
-	"serverState",
-)(exportedFunctions);
+export const StoreProvider: React.FC<any> = findBy("notifyNestedSubs", "serverState")(exportedFunctions);
 
-export const GenericModal: React.FC<any> = findBy("isOpen", "contentLabel")(
-	exportedFunctions,
-);
+export const GenericModal: React.FC<any> = findBy("isOpen", "contentLabel")(exportedFunctions);
 
-export const Tracklist: React.FC<any> = exportedMemos.find((f) =>
-	src((f as any).type).includes("nrValidItems")
-)!;
+export const Tracklist: React.FC<any> = exportedMemos.find((f) => src((f as any).type).includes("nrValidItems"))!;
 export const TracklistColumnsContextProvider: React.FC<any> = findBy(
 	"columns",
 	"visibleColumns",
 	"toggleVisible",
-)(
-	exportedFunctions,
-);
+)(exportedFunctions);

@@ -64,15 +64,19 @@ const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
 	// Source and readme links only when absolute; the store refuses
 	// anything else anyway.
-	if (typeof meta.repository === "string" && /^https:\/\//.test(meta.repository)) out.repository = meta.repository;
-	if (typeof meta.readme === "string" && /^https:\/\//.test(meta.readme)) out.readme = meta.readme;
+	if (typeof meta.repository === "string" && meta.repository.startsWith("https://")) out.repository = meta.repository;
+	if (typeof meta.readme === "string" && meta.readme.startsWith("https://")) out.readme = meta.readme;
 	return out;
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 const slugify = (name: string) =>
-	name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "snippet";
+	name
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 48) || "snippet";
 
 const sha256 = (bytes: Buffer) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
@@ -213,7 +217,9 @@ async function main(): Promise<void> {
 		if (!file) throw new Error("usage: vault.ts snippets <snippets.json> [--base <raw-url-prefix>]");
 		return importSnippets(
 			file,
-			baseIdx >= 0 ? rest[baseIdx + 1] : "https://raw.githubusercontent.com/spicetify/marketplace/main/resources/",
+			baseIdx >= 0
+				? rest[baseIdx + 1]
+				: "https://raw.githubusercontent.com/spicetify/marketplace/main/resources/",
 		);
 	}
 	if (cmd === "pack") {
@@ -232,7 +238,9 @@ async function main(): Promise<void> {
 		if (!distDir || !artifact) throw new Error("usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>]");
 		return add(distDir, artifact, flag("zip"));
 	}
-	throw new Error("usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>] | snippets <snippets.json>");
+	throw new Error(
+		"usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>] | snippets <snippets.json>",
+	);
 }
 
 main().catch((e) => {

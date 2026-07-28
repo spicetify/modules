@@ -114,18 +114,18 @@ function makeDeps(env: Env): Deps {
 		hashUser: (accountId) => hmacHex(env.HMAC_SECRET, accountId),
 		isKnownModule: async (module) => (await knownModules(env.VAULT_URL)).has(module),
 		recordInstall: async (module, userHash, version, now) => {
-			const result = await env.DB
-				.prepare(
-					"INSERT INTO installs (module, user_hash, first_version, first_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (module, user_hash) DO NOTHING",
-				)
+			const result = await env.DB.prepare(
+				"INSERT INTO installs (module, user_hash, first_version, first_at) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (module, user_hash) DO NOTHING",
+			)
 				.bind(module, userHash, version, now)
 				.run();
 			return (result.meta?.changes ?? 0) > 0;
 		},
 		counts: async (modules) => {
 			const placeholders = modules.map((_, i) => `?${i + 1}`).join(",");
-			const result = await env.DB
-				.prepare(`SELECT module, COUNT(*) AS n FROM installs WHERE module IN (${placeholders}) GROUP BY module`)
+			const result = await env.DB.prepare(
+				`SELECT module, COUNT(*) AS n FROM installs WHERE module IN (${placeholders}) GROUP BY module`,
+			)
 				.bind(...modules)
 				.all();
 			const out: Record<string, number> = {};
@@ -134,14 +134,13 @@ function makeDeps(env: Env): Deps {
 		},
 		allow: async (bucket, limit, windowSeconds, now) => {
 			// One row per bucket; the window resets lazily on expiry.
-			const row = await env.DB
-				.prepare(
-					`INSERT INTO rate_limits (bucket, count, reset_at) VALUES (?1, 1, ?2)
+			const row = await env.DB.prepare(
+				`INSERT INTO rate_limits (bucket, count, reset_at) VALUES (?1, 1, ?2)
 					 ON CONFLICT (bucket) DO UPDATE SET
 					   count = CASE WHEN rate_limits.reset_at <= ?3 THEN 1 ELSE rate_limits.count + 1 END,
 					   reset_at = CASE WHEN rate_limits.reset_at <= ?3 THEN ?2 ELSE rate_limits.reset_at END
 					 RETURNING count`,
-				)
+			)
 				.bind(bucket, now + windowSeconds * 1000, now)
 				.first<{ count: number }>();
 			return (row?.count ?? 1) <= limit;

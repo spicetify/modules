@@ -46,9 +46,7 @@ export const analyzeWebpackRequire = (webpackRequire: WebpackRequire) => {
 	const exportedFunctions = exported.filter(isFunction) as any[];
 
 	const exportedReactObjects = Object.groupBy(exported, (x) => x.$$typeof);
-	const exportedContexts = exportedReactObjects[Symbol.for("react.context") as any]! as Array<
-		React.Context<any>
-	>;
+	const exportedContexts = exportedReactObjects[Symbol.for("react.context") as any]! as Array<React.Context<any>>;
 	const exportedForwardRefs = exportedReactObjects[Symbol.for("react.forward_ref") as any]! as any[];
 	const exportedMemos = exportedReactObjects[Symbol.for("react.memo") as any]! as React.NamedExoticComponent[];
 

@@ -99,10 +99,7 @@ transformer(
 	(emit) => (str) => {
 		emit();
 
-		str = str.replace(
-			/(=\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\{id:"RightPanelState)/,
-			"=__Machine$1",
-		);
+		str = str.replace(/(=\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\{id:"RightPanelState)/, "=__Machine$1");
 		Object.defineProperty(globalThis, "__Machine", {
 			set: ($: StateMachine) => {
 				Machine = $;
@@ -124,7 +121,7 @@ transformer(
 							continue;
 						}
 						v.on = new Proxy(v.on!, {
-							get(target, p, receiver) {
+							get(target, p, _receiver) {
 								// @ts-ignore
 								if (p.startsWith("bespoke_")) {
 									// @ts-ignore
@@ -161,10 +158,7 @@ transformer(
 	(emit) => (str) => {
 		emit();
 
-		str = str.replace(
-			/(\(([a-zA-Z_\$][\w\$]*),"PanelSection".+?children:\[?)/,
-			"$1__renderPanel($2),",
-		);
+		str = str.replace(/(\(([a-zA-Z_\$][\w\$]*),"PanelSection".+?children:\[?)/, "$1__renderPanel($2),");
 
 		return str;
 	},

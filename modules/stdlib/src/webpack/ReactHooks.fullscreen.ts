@@ -11,7 +11,5 @@ await (CHUNKS["/dwp-full-screen-mode-container.js"] ??= Promise.withResolvers())
 const { exportedFunctions } = analyzeWebpackRequire(webpackRequire);
 
 export const useExtractedColor: Function = exportedFunctions.find(
-	(m) =>
-		src(m).includes("extracted-color") ||
-		(src(m).includes("colorRaw") && src(m).includes("useEffect")),
+	(m) => src(m).includes("extracted-color") || (src(m).includes("colorRaw") && src(m).includes("useEffect")),
 )!;

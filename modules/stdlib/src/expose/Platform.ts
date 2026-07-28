@@ -17,29 +17,32 @@ function resolvePlatform(): any {
 	return cached ?? undefined;
 }
 
-export const Platform: any = new Proxy({}, {
-	get: (_, key) => {
-		const p = resolvePlatform();
-		if (!p) return undefined;
-		if (key in p) return p[key];
-		if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
-			const description = key.slice(3);
-			for (const s of p.getRegistry()._map.keys()) {
-				if (s.description === description) return () => p.getRegistry().resolve(s);
+export const Platform: any = new Proxy(
+	{},
+	{
+		get: (_, key) => {
+			const p = resolvePlatform();
+			if (!p) return undefined;
+			if (key in p) return p[key];
+			if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
+				const description = key.slice(3);
+				for (const s of p.getRegistry()._map.keys()) {
+					if (s.description === description) return () => p.getRegistry().resolve(s);
+				}
 			}
-		}
-		return undefined;
-	},
-	has: (_, key) => {
-		const p = resolvePlatform();
-		if (!p) return false;
-		if (key in p) return true;
-		if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
-			const description = key.slice(3);
-			for (const s of p.getRegistry()._map.keys()) {
-				if (s.description === description) return true;
+			return undefined;
+		},
+		has: (_, key) => {
+			const p = resolvePlatform();
+			if (!p) return false;
+			if (key in p) return true;
+			if (typeof key === "string" && key.startsWith("get") && typeof p.getRegistry === "function") {
+				const description = key.slice(3);
+				for (const s of p.getRegistry()._map.keys()) {
+					if (s.description === description) return true;
+				}
 			}
-		}
-		return false;
+			return false;
+		},
 	},
-});
+);

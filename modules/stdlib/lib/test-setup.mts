@@ -36,5 +36,6 @@ const globals = [
 for (const key of globals) {
 	// window itself maps to the Window instance; everything else is a
 	// property on it (document, constructors, event classes).
-	(globalThis as Record<string, unknown>)[key] = key === "window" ? win : (win as unknown as Record<string, unknown>)[key];
+	(globalThis as Record<string, unknown>)[key] =
+		key === "window" ? win : (win as unknown as Record<string, unknown>)[key];
 }

@@ -25,7 +25,7 @@ const CosmosRequestSubject = new Subject<CosmosRequest>();
 export const UpdateTitlebarSubject = new BehaviorSubject<number>(-1);
 
 postWebpackRequireHooks.push(($) => {
-	const globalThisShadow = $.g = createGlobalThisShadow();
+	const globalThisShadow = ($.g = createGlobalThisShadow());
 
 	const $sendCosmosRequest = globalThis.sendCosmosRequest;
 	Object.defineProperty(globalThisShadow, "sendCosmosRequest", {

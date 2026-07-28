@@ -34,10 +34,15 @@ type ReactModule = typeof import("react");
 type ReactDOMModule = typeof import("react-dom") & typeof import("react-dom/client");
 
 export const React: ReactModule = lazyInstance(_React as ReactModule, () =>
-	webpackExports?.find((m) =>
-		m && typeof m.createElement === "function" && typeof m.useReducer === "function" &&
-		typeof m.useEffect === "function"
-	));
+	webpackExports?.find(
+		(m) =>
+			m &&
+			typeof m.createElement === "function" &&
+			typeof m.useReducer === "function" &&
+			typeof m.useEffect === "function",
+	),
+);
 export const ReactDOM: ReactDOMModule = lazyInstance(_ReactDOM as ReactDOMModule, () =>
-	webpackExports?.find((m) => m && typeof m.createRoot === "function" && typeof m.createPortal === "function"));
+	webpackExports?.find((m) => m && typeof m.createRoot === "function" && typeof m.createPortal === "function"),
+);
 export const ReactDOMServer = _ReactDOMServer;

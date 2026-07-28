@@ -32,13 +32,12 @@ interface Release {
 
 // ---------- persisted config (same keys as the classic app) ----------
 
-type ReleaseType = "album" | "single-ep" | "compilation";
-
 const readBool = (key: string, fallback: boolean): boolean => {
 	const raw = globalThis.localStorage?.getItem(`new-releases:${key}`);
 	return raw === null || raw === undefined ? fallback : raw === "true";
 };
-const writeConfig = (key: string, value: string): void => globalThis.localStorage?.setItem(`new-releases:${key}`, value);
+const writeConfig = (key: string, value: string): void =>
+	globalThis.localStorage?.setItem(`new-releases:${key}`, value);
 
 interface Config {
 	range: number;
@@ -78,7 +77,7 @@ const writeDismissed = (list: string[]): void =>
 // spotify:image:HASH is not a browser-loadable URL; map it to the CDN. The
 // GraphQL coverArt sources are already http(s) URLs.
 const artUrl = (raw?: string): string =>
-	raw?.startsWith("spotify:image:") ? `https://i.scdn.co/image/${raw.slice("spotify:image:".length)}` : raw ?? "";
+	raw?.startsWith("spotify:image:") ? `https://i.scdn.co/image/${raw.slice("spotify:image:".length)}` : (raw ?? "");
 
 const largestCover = (sources?: Array<{ url: string; width?: number }>): string => {
 	if (!sources?.length) return "";
@@ -233,7 +232,15 @@ const CloseIcon = () => (
 	</svg>
 );
 
-const ReleaseCard = ({ release, cfg, onDismiss }: { release: Release; cfg: Config; onDismiss: (uri: string) => void }) => {
+const ReleaseCard = ({
+	release,
+	cfg,
+	onDismiss,
+}: {
+	release: Release;
+	cfg: Config;
+	onDismiss: (uri: string) => void;
+}) => {
 	const detail: string[] = [];
 	if (cfg.showType && release.type) detail.push(release.type);
 	if (cfg.showCount && release.trackCount) {
@@ -242,9 +249,11 @@ const ReleaseCard = ({ release, cfg, onDismiss }: { release: Release; cfg: Confi
 	return (
 		<div className="new-releases-card" onClick={() => navigate(release.uri)}>
 			<div className="new-releases-cover-wrap">
-				{release.imageUrl
-					? <img className="new-releases-cover" src={release.imageUrl} alt="" loading="lazy" />
-					: <div className="new-releases-cover new-releases-cover--empty" />}
+				{release.imageUrl ? (
+					<img className="new-releases-cover" src={release.imageUrl} alt="" loading="lazy" />
+				) : (
+					<div className="new-releases-cover new-releases-cover--empty" />
+				)}
 				<button
 					type="button"
 					className="new-releases-play"
@@ -269,7 +278,9 @@ const ReleaseCard = ({ release, cfg, onDismiss }: { release: Release; cfg: Confi
 				</button>
 			</div>
 			<div className="new-releases-meta">
-				<span className="new-releases-name" title={release.title}>{release.title}</span>
+				<span className="new-releases-name" title={release.title}>
+					{release.title}
+				</span>
 				{detail.length > 0 && <span className="new-releases-detail">{detail.join(" • ")}</span>}
 				<span
 					className="new-releases-artist"
@@ -368,50 +379,70 @@ const Page = () => {
 					</Chip>
 					<Chip
 						active={cfg.singleEp}
-						onClick={() => update({ singleEp: !cfg.singleEp }, () => writeConfig("single-ep", String(!cfg.singleEp)))}
+						onClick={() =>
+							update({ singleEp: !cfg.singleEp }, () => writeConfig("single-ep", String(!cfg.singleEp)))
+						}
 					>
 						Singles &amp; EPs
 					</Chip>
 					<Chip
 						active={cfg.compilations}
 						onClick={() =>
-							update({ compilations: !cfg.compilations }, () => writeConfig("compilations", String(!cfg.compilations)))}
+							update({ compilations: !cfg.compilations }, () =>
+								writeConfig("compilations", String(!cfg.compilations)),
+							)
+						}
 					>
 						Compilations
 					</Chip>
 					<Chip
 						active={cfg.relative}
-						onClick={() => update({ relative: !cfg.relative }, () => writeConfig("relative", String(!cfg.relative)))}
+						onClick={() =>
+							update({ relative: !cfg.relative }, () => writeConfig("relative", String(!cfg.relative)))
+						}
 					>
 						Relative dates
 					</Chip>
 					{dismissed.length > 0 && (
-						<Button variant="secondary" onClick={undo}>Undo dismiss</Button>
+						<Button variant="secondary" onClick={undo}>
+							Undo dismiss
+						</Button>
 					)}
-					<IconButton ariaLabel="Refresh" disabled={status === "loading"} onClick={() => void load(cfg)}>⟳</IconButton>
+					<IconButton ariaLabel="Refresh" disabled={status === "loading"} onClick={() => void load(cfg)}>
+						⟳
+					</IconButton>
 				</div>
 			</div>
 
-			{status === "loading" && <p className="new-releases-note">Fetching releases from the artists you follow…</p>}
+			{status === "loading" && (
+				<p className="new-releases-note">Fetching releases from the artists you follow…</p>
+			)}
 			{status === "empty" && (
 				<div className="new-releases-empty">
 					<p>No releases in the last {cfg.range} days from the artists you follow.</p>
-					<Button variant="secondary" onClick={() => void load(cfg)}>Try again</Button>
+					<Button variant="secondary" onClick={() => void load(cfg)}>
+						Try again
+					</Button>
 				</div>
 			)}
 
 			{status === "ready" && groups.length === 0 && (
-				<p className="new-releases-note">Everything here has been dismissed. Use “Undo dismiss” to bring items back.</p>
+				<p className="new-releases-note">
+					Everything here has been dismissed. Use “Undo dismiss” to bring items back.
+				</p>
 			)}
 
-			{status === "ready" && groups.map((group) => (
-				<section className="new-releases-group" key={group.label}>
-					<h2 className="new-releases-date">{group.label}</h2>
-					<div className="new-releases-grid">
-						{group.items.map((r) => <ReleaseCard key={r.uri} release={r} cfg={cfg} onDismiss={dismiss} />)}
-					</div>
-				</section>
-			))}
+			{status === "ready" &&
+				groups.map((group) => (
+					<section className="new-releases-group" key={group.label}>
+						<h2 className="new-releases-date">{group.label}</h2>
+						<div className="new-releases-grid">
+							{group.items.map((r) => (
+								<ReleaseCard key={r.uri} release={r} cfg={cfg} onDismiss={dismiss} />
+							))}
+						</div>
+					</section>
+				))}
 		</div>
 	);
 };

@@ -28,7 +28,9 @@ function cacheDir(): string {
 
 function latestClassmapFile(dir: string): string | null {
 	if (!existsSync(dir)) return null;
-	const files = readdirSync(dir).filter((f) => /^classmap(-.*)?\.json$/.test(f)).sort();
+	const files = readdirSync(dir)
+		.filter((f) => /^classmap(-.*)?\.json$/.test(f))
+		.sort();
 	return files.length ? path.join(dir, files[files.length - 1]) : null;
 }
 
@@ -87,7 +89,9 @@ async function fetchRemoteClassmap(key: string | null): Promise<ClassmapResoluti
 	} catch (e) {
 		// Offline fallback: newest cached key, if any exists.
 		if (existsSync(cache)) {
-			const keys = readdirSync(cache).filter((d) => /^\d{7}$/.test(d)).sort();
+			const keys = readdirSync(cache)
+				.filter((d) => /^\d{7}$/.test(d))
+				.sort();
 			for (let i = keys.length - 1; i >= 0; i--) {
 				if (key && keys[i] !== key) continue;
 				const file = latestClassmapFile(path.join(cache, keys[i]));
@@ -98,9 +102,15 @@ async function fetchRemoteClassmap(key: string | null): Promise<ClassmapResoluti
 	}
 }
 
-export async function resolveClassmap(
-	{ flag, config, cwd }: { flag: string | null; config: KitConfig; cwd: string },
-): Promise<ClassmapResolution> {
+export async function resolveClassmap({
+	flag,
+	config,
+	cwd,
+}: {
+	flag: string | null;
+	config: KitConfig;
+	cwd: string;
+}): Promise<ClassmapResolution> {
 	const candidates: string[] = [];
 	if (flag) candidates.push(flag);
 	if (config.classmap) candidates.push(config.classmap);
@@ -118,7 +128,9 @@ export async function resolveClassmap(
 	// Monorepo mode: newest key folder in a local classmaps checkout.
 	for (const dir of localClassmapsDirs(cwd, config)) {
 		if (!existsSync(dir)) continue;
-		const keys = readdirSync(dir).filter((d) => /^\d{7}$/.test(d)).sort();
+		const keys = readdirSync(dir)
+			.filter((d) => /^\d{7}$/.test(d))
+			.sort();
 		for (let i = keys.length - 1; i >= 0; i--) {
 			const file = latestClassmapFile(path.join(dir, keys[i]));
 			if (file) return { path: file, key: keys[i] };

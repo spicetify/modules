@@ -96,7 +96,7 @@ async function buildJs(inputDir: string, outputDir: string, tree: boolean, cwd: 
 				// module hooks share the client dispatcher. The jsx runtime
 				// stays on esm.sh — element creation is instance-independent.
 				"react/jsx-runtime": ["https://esm.sh/react@18.3.1/jsx-runtime"],
-				"react": ["/modules/stdlib/src/expose/react-shim.js"],
+				react: ["/modules/stdlib/src/expose/react-shim.js"],
 				"react-dom/client": ["/modules/stdlib/src/expose/react-dom-shim.js"],
 				"react-dom/server": ["https://esm.sh/react-dom@18.3.1/server"],
 				"react-dom": ["/modules/stdlib/src/expose/react-dom-shim.js"],
@@ -246,7 +246,8 @@ export async function runBuild(argv: string[], cwd = process.cwd()): Promise<voi
 	if (!resolved.path) throw new Error("no classmap found (pass --classmap <key|path>)");
 	console.log(`classmap: ${resolved.path}${resolved.key ? ` (key ${resolved.key})` : ""}`);
 
-	const modulesDir = args.modulesDir ?? (config.modulesDir ? path.resolve(cwd, config.modulesDir) : path.join(cwd, "modules"));
+	const modulesDir =
+		args.modulesDir ?? (config.modulesDir ? path.resolve(cwd, config.modulesDir) : path.join(cwd, "modules"));
 	const outDir = args.outDir ?? (config.outDir ? path.resolve(cwd, config.outDir) : path.join(cwd, "dist"));
 
 	let targets = args.targets;

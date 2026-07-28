@@ -1,21 +1,16 @@
 {
-  "name": "stdlib",
-  "tags": [
-    "lib"
-  ],
-  "preview": "./assets/PREVIEW.png",
-  "version": "0.3.0",
-  "authors": [
-    "spicetify",
-    "Delusoire"
-  ],
-  "description": "The standard library",
-  "readme": "./assets/README.md",
-  "entries": {
-    "js": "index.js",
-    "css": "index.css"
-  },
-  "hasMixins": true,
-  "dependencies": [],
-  "tree": true
+	"name": "stdlib",
+	"tags": ["lib"],
+	"preview": "./assets/PREVIEW.png",
+	"version": "0.3.0",
+	"authors": ["spicetify", "Delusoire"],
+	"description": "The standard library",
+	"readme": "./assets/README.md",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": true,
+	"dependencies": [],
+	"tree": true
 }

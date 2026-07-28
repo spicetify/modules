@@ -20,10 +20,7 @@ export function matchWebpackModuleSync(moduleMatcher: ModuleMatcher): ModulePair
 	return null;
 }
 
-export function matchWebpackModule(
-	moduleMatcher: ModuleMatcher,
-	callback: (...args: ModulePair) => void,
-) {
+export function matchWebpackModule(moduleMatcher: ModuleMatcher, callback: (...args: ModulePair) => void) {
 	const sync = matchWebpackModuleSync(moduleMatcher);
 	if (sync) {
 		callback(...sync);

@@ -73,7 +73,7 @@ const TypesKeys = Object.keys(Types);
 const isTestFn = (fn: Function) => TypesKeys.some((t) => src(fn).includes(`${t}}`));
 const isCreateFn = (fn: Function) => TypesKeys.some((t) => src(fn).includes(`${t},`));
 
-const fnsByType = Object.groupBy(vs, (fn) => isTestFn(fn) ? "test" : isCreateFn(fn) ? "create" : undefined!);
+const fnsByType = Object.groupBy(vs, (fn) => (isTestFn(fn) ? "test" : isCreateFn(fn) ? "create" : undefined!));
 export const is: Is = Object.fromEntries(
 	(fnsByType.test ?? []).flatMap((fn) => {
 		const name = src(fn).match(/([\w_\d]{2,})\}/)?.[1];
@@ -97,17 +97,15 @@ const findAndExcludeBy = (...strings: string[]) => {
 	return uniqueFns.splice(i, 1)[0];
 };
 
-export const isSameIdentity: (a: ParsableAsURI, b: ParsableAsURI) => boolean = findAndExcludeBy(
-	"PLAYLIST",
-) as any;
+export const isSameIdentity: (a: ParsableAsURI, b: ParsableAsURI) => boolean = findAndExcludeBy("PLAYLIST") as any;
 export const urlEncode: (str: string) => string = findAndExcludeBy(".URI") as any;
 export const idToHex: (str: string) => string = findAndExcludeBy("22===") as any;
 export const hexToId: (str: string) => string = findAndExcludeBy("32===") as any;
 export const from: (uri: ParsableAsURI) => URIClass<any> = findAndExcludeBy("allowedTypes") as any;
-export const fromString: (str: string) => URIClass<any> = findAndExcludeBy(
-	"Argument `uri` must be a string.",
-) as any;
+export const fromString: (str: string) => URIClass<any> = findAndExcludeBy("Argument `uri` must be a string.") as any;
 
-is.PlaylistV1OrV2 = (is.Playlist && is.PlaylistV2
-	? findAndExcludeBy(`${(is.Playlist as Function).name}(e)||${(is.PlaylistV2 as Function).name}(e)`)
-	: undefined) as any;
+is.PlaylistV1OrV2 = (
+	is.Playlist && is.PlaylistV2
+		? findAndExcludeBy(`${(is.Playlist as Function).name}(e)||${(is.PlaylistV2 as Function).name}(e)`)
+		: undefined
+) as any;

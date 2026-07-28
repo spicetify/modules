@@ -8,7 +8,19 @@ import "./test-setup.mts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { Badge, Button, Card, Chip, ConfirmButton, h, IconButton, openDialog, Select, Textarea, TextInput } from "./primitives-vanilla.ts";
+import {
+	Badge,
+	Button,
+	Card,
+	Chip,
+	ConfirmButton,
+	h,
+	IconButton,
+	openDialog,
+	Select,
+	Textarea,
+	TextInput,
+} from "./primitives-vanilla.ts";
 
 describe("h()", () => {
 	it("creates a typed element with class and text", () => {
@@ -56,8 +68,14 @@ describe("Button", () => {
 	});
 
 	it("maps variants to modifier classes", () => {
-		assert.equal(Button({ label: "a", variant: "secondary", onClick() {} }).className, "spicetify-button spicetify-button--secondary");
-		assert.equal(Button({ label: "a", variant: "danger", onClick() {} }).className, "spicetify-button spicetify-button--danger");
+		assert.equal(
+			Button({ label: "a", variant: "secondary", onClick() {} }).className,
+			"spicetify-button spicetify-button--secondary",
+		);
+		assert.equal(
+			Button({ label: "a", variant: "danger", onClick() {} }).className,
+			"spicetify-button spicetify-button--danger",
+		);
 		assert.equal(Button({ label: "a", variant: "primary", onClick() {} }).className, "spicetify-button");
 	});
 
@@ -79,7 +97,10 @@ describe("Select", () => {
 	it("renders options, marks the value selected, and reports the chosen value", () => {
 		let picked = "";
 		const sel = Select({
-			options: [{ value: "a", label: "A" }, { value: "b", label: "B" }],
+			options: [
+				{ value: "a", label: "A" },
+				{ value: "b", label: "B" },
+			],
 			value: "b",
 			onChange: (v) => (picked = v),
 		});
@@ -205,7 +226,9 @@ describe("openDialog", () => {
 		// The × button.
 		let b = 0;
 		openDialog({ title: "B", children: [], onClose: () => b++ });
-		(document.querySelector(".spicetify-scrim .spicetify-button-circle") as HTMLElement).dispatchEvent(new MouseEvent("click"));
+		(document.querySelector(".spicetify-scrim .spicetify-button-circle") as HTMLElement).dispatchEvent(
+			new MouseEvent("click"),
+		);
 		assert.equal(b, 1);
 
 		// Backdrop, and no double-fire if close() is also called afterward.

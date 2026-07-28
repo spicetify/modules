@@ -45,9 +45,14 @@ type LoaderGlobals = {
 			manifest?: Manifest;
 			registry?: { manifest?: Manifest };
 			report?: { loaded: string[]; failed: Record<string, string> };
-			list?: () => Array<
-				{ identifier: string; version: string; loaded: boolean; mixedIn: boolean; local?: boolean; failed?: string }
-			>;
+			list?: () => Array<{
+				identifier: string;
+				version: string;
+				loaded: boolean;
+				mixedIn: boolean;
+				local?: boolean;
+				failed?: string;
+			}>;
 		};
 	};
 	__SPICETIFY_MODULAR_MANIFEST__?: Manifest;
@@ -119,7 +124,7 @@ export interface SpotifySupportStatus {
 
 const SUPPORT_URL = () =>
 	globalThis.localStorage?.getItem("spicetify:supportUrl") ??
-		"https://raw.githubusercontent.com/spicetify/modules/main/spotify-support.json";
+	"https://raw.githubusercontent.com/spicetify/modules/main/spotify-support.json";
 
 let supportCache: SpotifySupportStatus | undefined;
 
@@ -140,7 +145,11 @@ export async function fetchSupportStatus(): Promise<SpotifySupportStatus | null>
 // Numeric dotted-prefix compare ("1.2.95.120" vs "1.2.94.583.g..."): git
 // suffixes and missing segments are ignored.
 export function compareSpotifyVersions(a: string, b: string): number {
-	const parse = (v: string) => v.split(".").map((part) => parseInt(part, 10)).filter((n) => !Number.isNaN(n));
+	const parse = (v: string) =>
+		v
+			.split(".")
+			.map((part) => parseInt(part, 10))
+			.filter((n) => !Number.isNaN(n));
 	const pa = parse(a);
 	const pb = parse(b);
 	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {

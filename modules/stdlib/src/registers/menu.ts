@@ -37,18 +37,16 @@ transformer(
 	(emit) => (str) => {
 		emit();
 
-		str = str.replace(
-			/("Menu".+?children:)([a-zA-Z_\$][\w\$]*)/,
-			"$1[__renderMenuItems(),$2].flat()",
-		);
+		str = str.replace(/("Menu".+?children:)([a-zA-Z_\$][\w\$]*)/, "$1[__renderMenuItems(),$2].flat()");
 
 		const croppedInput = str.match(/.*value:"contextmenu"/)![0];
 		const react = matchLast(croppedInput, /([a-zA-Z_\$][\w\$]*)\.useRef/g)[1];
 
-		const [, menu, trigger, target] = matchLast(
-			croppedInput,
-			/\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)/g,
-		) ?? [];
+		const [, menu, trigger, target] =
+			matchLast(
+				croppedInput,
+				/\(\{[^}]*menu:([a-zA-Z_\$][\w\$]*),[^}]*trigger:([a-zA-Z_\$][\w\$]*),[^}]*triggerRef:([a-zA-Z_\$][\w\$]*)/g,
+			) ?? [];
 
 		let value: string;
 		if (menu && trigger && target) {
@@ -73,14 +71,11 @@ transformer(
 // dropped the user-widget-link testid; the account image inside the
 // trigger button is the durable discriminator, with the old testid kept
 // as a fallback for older clients.
-export const openedFromProfileMenu = (
-	ctx: Pick<MenuContext, "trigger" | "target"> | null,
-): boolean => {
+export const openedFromProfileMenu = (ctx: Pick<MenuContext, "trigger" | "target"> | null): boolean => {
 	if (!ctx || ctx.trigger !== "click") return false;
 	const button = ctx.target?.closest?.("button");
 	if (!button) return false;
-	return !!button.querySelector("img, figure") ||
-		button.getAttribute("data-testid") === "user-widget-link";
+	return !!button.querySelector("img, figure") || button.getAttribute("data-testid") === "user-widget-link";
 };
 
 export const createProfileMenuShouldAdd = () => (ctx: MenuContext) => openedFromProfileMenu(ctx);
@@ -114,12 +109,20 @@ if (
 		}
 
 		let last: Omit<MenuContext, "props"> = { trigger: "", target: document.body } as never;
-		document.addEventListener("contextmenu", (e) => {
-			last = { trigger: "right-click", target: e.target as HTMLElement };
-		}, true);
-		document.addEventListener("mousedown", (e) => {
-			last = { trigger: "click", target: e.target as HTMLElement };
-		}, true);
+		document.addEventListener(
+			"contextmenu",
+			(e) => {
+				last = { trigger: "right-click", target: e.target as HTMLElement };
+			},
+			true,
+		);
+		document.addEventListener(
+			"mousedown",
+			(e) => {
+				last = { trigger: "click", target: e.target as HTMLElement };
+			},
+			true,
+		);
 
 		const ItemBoundary = createItemBoundary(R, "menu");
 		const live: Array<{ menu: Element; root: { unmount: () => void } }> = [];
@@ -142,11 +145,13 @@ if (
 				menu.appendChild(host);
 				const root = createRoot(host);
 				globalThis.__MenuContext ??= R.createContext(null);
-				root.render(R.createElement(
-					globalThis.__MenuContext.Provider,
-					{ value: { props: null, ...last } },
-					...items.all().map((item, i) => R.createElement(ItemBoundary, { key: i }, item)),
-				));
+				root.render(
+					R.createElement(
+						globalThis.__MenuContext.Provider,
+						{ value: { props: null, ...last } },
+						...items.all().map((item, i) => R.createElement(ItemBoundary, { key: i }, item)),
+					),
+				);
 				live.push({ menu, root });
 			}
 		};

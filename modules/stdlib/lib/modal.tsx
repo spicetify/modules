@@ -7,26 +7,18 @@ import { React } from "../src/expose/React.ts";
 import { Locale } from "../src/webpack/misc.ts";
 
 import RootRegistry from "../src/registers/root.ts";
-const [RootChildrenRegistry, RootProvidersRegistry] = RootRegistry;
+const [RootChildrenRegistry] = RootRegistry;
 import { createIconComponent } from "../src/createIconComponent.tsx";
 
 let ref: React.ReactElement | undefined = undefined;
 
-export function display({ title, content, isLarge }: {
-	title: string;
-	content: React.ReactElement;
-	isLarge: boolean;
-}) {
+export function display({ title, content, isLarge }: { title: string; content: React.ReactElement; isLarge: boolean }) {
 	hide();
 
 	RootChildrenRegistry.add(
-		ref = (
-			<PopupModal
-				contentLabel={title}
-				children={content}
-				isEmbedWidgetGeneratorOrTrackCreditsModal={isLarge}
-			/>
-		),
+		(ref = (
+			<PopupModal contentLabel={title} children={content} isEmbedWidgetGeneratorOrTrackCreditsModal={isLarge} />
+		)),
 	);
 }
 

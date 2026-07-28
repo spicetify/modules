@@ -3,10 +3,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Platform } from "../expose/Platform.ts";
-
 export const isGlobalNavBarEnabled = () => {
-	return true
+	return true;
 	// if (!Platform) {
 	// 	return undefined;
 	// }
