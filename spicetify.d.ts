@@ -794,7 +794,16 @@ declare namespace Spicetify {
    * Spicetify.Keyboard is wrapper of this library to be compatible with legacy Spotify,
    * so new extension should use this library instead.
    */
-  function Mousetrap(element?: any): void;
+  const Mousetrap: {
+    (element?: any): any;
+    new (element?: any): any;
+    bind(keys: string | string[], callback: (e: KeyboardEvent, combo: string) => void, action?: string): void;
+    unbind(keys: string | string[], action?: string): void;
+    trigger(keys: string, action?: string): void;
+    handleKey(character: string, modifiers: string[], e: KeyboardEvent): void;
+    reset(): void;
+    [key: string]: any;
+  };
 
   /**
    * The client's internal platform APIs. Typed from the generated
@@ -803,13 +812,15 @@ declare namespace Spicetify {
    * every `getFooAPI(): R` yields a `FooAPI: R` property too.
    */
   type PlatformAutoGen = import("/hooks/PlatformAutoGen").PlatformAutoGen;
-  type PlatformApiProps = {
-    [K in keyof PlatformAutoGen as K extends `get${infer Name}` ? Name : never]: PlatformAutoGen[K] extends (
-      ...args: never[]
-    ) => infer R ? R
-      : never;
-  };
-  const Platform: PlatformAutoGen & PlatformApiProps;
+  // Autocomplete for the ~66 platform API names in both forms: the property
+  // form the client uses (Platform.LibraryAPI) and the generated
+  // getLibraryAPI() form. Values stay permissive: the generated method
+  // signatures are unreliable (their arg counts differ from runtime), so
+  // typing them strictly is friction rather than safety.
+  type PlatformApis =
+    & { [K in keyof PlatformAutoGen]: any }
+    & { [K in keyof PlatformAutoGen as K extends `get${infer Name}` ? Name : never]: any };
+  const Platform: PlatformApis & Record<string, any>;
   /**
    * Queue object contains list of queuing tracks,
    * history of played tracks and current track metadata.
