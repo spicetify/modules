@@ -1,0 +1,22 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"useTabs": true,
+	"tabWidth": 4,
+	"printWidth": 120,
+	"semi": true,
+	"singleQuote": false,
+	"trailingComma": "all",
+	"ignorePatterns": [
+		"dist",
+		"packages/kit/vendor",
+		"spicetify.d.ts",
+		"**/classmap.d.ts",
+		"**/*.gen.ts",
+		"**/CODEGEN.ts",
+		"**/package.json",
+		"pnpm-lock.yaml",
+		".github",
+		"**/*.yml",
+		"**/*.yaml"
+	]
+}
