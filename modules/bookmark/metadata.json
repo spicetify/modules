@@ -1,0 +1,15 @@
+{
+	"name": "bookmark",
+	"tags": ["extension"],
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "Bookmark pages, tracks, and tracks with a playback timestamp to revisit later from a topbar popup.",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^0.3.0"
+	}
+}
