@@ -28,6 +28,9 @@ export interface ManagerState {
 	classmapKey?: string;
 	cliVersion?: string;
 	updatesBlocked?: boolean;
+	updatePolicy?: string;
+	supportedSpotify?: string;
+	latestSpotify?: string;
 	transformsEnabled: boolean;
 	modules: ManagerModuleRow[];
 	loadedCount: number;
@@ -56,6 +59,9 @@ type Manifest = {
 	classmapKey?: string;
 	cliVersion?: string;
 	updatesBlocked?: boolean;
+	updatePolicy?: string;
+	supportedSpotify?: string;
+	latestSpotify?: string;
 	modules?: Array<{ identifier: string; version: string; dependencies?: Record<string, string> }>;
 };
 
@@ -83,6 +89,9 @@ export function deriveManagerState(): ManagerState {
 		classmapKey: manifest?.classmapKey,
 		cliVersion: manifest?.cliVersion,
 		updatesBlocked: manifest?.updatesBlocked,
+		updatePolicy: manifest?.updatePolicy,
+		supportedSpotify: manifest?.supportedSpotify,
+		latestSpotify: manifest?.latestSpotify,
 		transformsEnabled: g.__SPICETIFY_APPLY_TRANSFORMS__ === true,
 		modules,
 		loadedCount: modules.filter((m) => m.loaded).length,
@@ -136,6 +145,19 @@ export function compareSpotifyVersions(a: string, b: string): number {
 		if (d !== 0) return d;
 	}
 	return 0;
+}
+
+// The published feed is the freshest source of truth; the CLI also snapshots
+// the same versions onto the manifest at apply time, so those serve as an
+// offline fallback when the live fetch fails or is still pending.
+export function effectiveSupport(
+	state: Pick<ManagerState, "supportedSpotify" | "latestSpotify">,
+	feed: SpotifySupportStatus | null,
+): SpotifySupportStatus | null {
+	const latestSpotify = feed?.latestSpotify ?? state.latestSpotify;
+	const supportedSpotify = feed?.supportedSpotify ?? state.supportedSpotify;
+	if (!latestSpotify && !supportedSpotify) return feed;
+	return { latestSpotify, supportedSpotify, updatedAt: feed?.updatedAt };
 }
 
 export type UpdateAdvice =
