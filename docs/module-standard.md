@@ -21,6 +21,11 @@ after the happy path explain what it bakes in and why.
    it, start Spotify with `--remote-debugging-port=9229` yourself.
    `Spicetify.Modules.removeLocal` drops the override.
 3. `npm run check` and `npm run test` — typecheck plus happy-dom unit tests.
+   Testable behavior lives in a dependency-free `logic.ts` (no `/modules/*` or
+   client imports); `mod.tsx` injects the client objects (`Spicetify.*`) into
+   it. Starter tests import `logic.ts` and the local `test/setup.mts` harness,
+   never `mod.tsx` — JSX and `/modules/*` runtime URLs do not resolve in Node,
+   so client-coupled UI is verified live through the dev loop instead.
 4. `spicetify-kit build` → `pack` → publish the zip to a vault. `vault.ts add`
    records it with an embedded metadata subset and a sha256 checksum.
 

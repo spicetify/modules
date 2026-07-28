@@ -26,6 +26,7 @@
 	},
 	"scripts": {
 		"build": "../../node_modules/.bin/tsc -p tsconfig.build.json",
+		"test": "node --test \"test/*.test.mts\"",
 		"prepack": "node scripts/sync-vendor.ts && ../../node_modules/.bin/tsc -p tsconfig.build.json"
 	},
 	"dependencies": {

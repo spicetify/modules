@@ -33,16 +33,18 @@ function modTemplate(template: Template, name: string, header: string): string {
 	if (template === "extension") {
 		return `${header}
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { nowPlaying } from "./logic.ts";
 
 // Extensions add behavior (and optionally small UI via a register). The
 // golden rules: subscribe to client state yourself, and undo everything on
 // unload via ctx.defer — a module that lingers after a reload is a bug.
-// \`Spicetify\` is a fully typed global here (no import, no cast).
+// \`Spicetify\` is a fully typed global here (no import, no cast). Testable
+// logic lives in ./logic.ts (mod.tsx injects the client objects into it).
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const onSongChange = () => {
 		// Runs on every track change. Replace with your behavior.
-		console.log("[${name}] now playing:", Spicetify.Player.data?.item?.name);
+		console.log("[${name}]", nowPlaying(Spicetify.Player.data?.item));
 	};
 	Spicetify.Player.addEventListener("songchange", onSongChange);
 	ctx.defer(() => Spicetify.Player.removeEventListener("songchange", onSongChange));
@@ -56,6 +58,7 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
 import { Button } from "/modules/stdlib/lib/primitives.js";
+import { nowPlaying } from "./logic.ts";
 
 const ROUTE = "${route}";
 const ICON = ${ICON_LITERAL};
@@ -64,6 +67,7 @@ const Page = () => (
 	<div className="${name}-page">
 		<h1>${name}</h1>
 		<p>A full page at ${route}. Build it from the React primitives (lib/primitives).</p>
+		<p>Now playing: {nowPlaying(Spicetify.Player.data?.item)}</p>
 		<Button variant="secondary" onClick={() => {}}>A kit button</Button>
 	</div>
 );
@@ -81,6 +85,7 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
 import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
+import { nowPlaying } from "./logic.ts";
 
 const ROUTE = "${route}";
 const ICON = ${ICON_LITERAL};
@@ -89,6 +94,7 @@ const Page = () => (
 	<div className="${name}-page">
 		<h1>${name}</h1>
 		<p>Hello from ${name}. Edit mod.tsx and run the dev command to iterate live.</p>
+		<p>Now playing: {nowPlaying(Spicetify.Player.data?.item)}</p>
 	</div>
 );
 
@@ -101,6 +107,79 @@ export default async function (ctx: ModuleRuntimeContext) {
 	);
 	registrar.registerRoute(ROUTE, <Page />);
 }
+`;
+}
+
+// Pure, client-free logic — unit-testable. mod.tsx injects Spicetify.* into
+// these functions, so a test exercises them without a running client.
+function logicTemplate(header: string): string {
+	return `${header}
+/**
+ * Pure, client-free module logic. Keep functions here dependency-free (no
+ * /modules/* or client imports) so they are unit-testable; mod.tsx passes the
+ * client objects (Spicetify.*) into them. Starter tests import this file,
+ * never mod.tsx.
+ */
+
+export function nowPlaying(item: { name?: string } | undefined): string {
+	return item?.name ?? "nothing playing";
+}
+`;
+}
+
+// The happy-dom harness the standard's test loop needs, written locally so a
+// scaffolded project owns it and needs no cross-package resolution.
+function setupTemplate(header: string): string {
+	return `${header}
+// DOM test harness: installs happy-dom's document/window and the common
+// element/event constructors onto globalThis so DOM-building logic can be
+// unit-tested under \`node --test\` with no browser. Import this FIRST in any
+// *.test.mts that touches the DOM.
+
+import { Window } from "happy-dom";
+
+const win = new Window({ url: "https://xpui.app.spotify.com" });
+
+for (
+	const key of [
+		"document",
+		"window",
+		"Node",
+		"Element",
+		"HTMLElement",
+		"HTMLButtonElement",
+		"HTMLInputElement",
+		"HTMLDivElement",
+		"HTMLSpanElement",
+		"Event",
+		"CustomEvent",
+		"MouseEvent",
+		"KeyboardEvent",
+	] as const
+) {
+	(globalThis as Record<string, unknown>)[key] = key === "window"
+		? win
+		: (win as unknown as Record<string, unknown>)[key];
+}
+`;
+}
+
+// setupImport is the test's harness import; logicImport is derived from where
+// the test file sits relative to logic.ts (co-located for bare, one up for the
+// non-bare test/ dir).
+function testTemplate(header: string, setupImport: string, logicImport: string): string {
+	return `${header}
+import "${setupImport}";
+
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import { nowPlaying } from "${logicImport}";
+
+test("nowPlaying returns the track name, or a fallback when idle", () => {
+	assert.equal(nowPlaying({ name: "A Song" }), "A Song");
+	assert.equal(nowPlaying(undefined), "nothing playing");
+});
 `;
 }
 
@@ -168,6 +247,22 @@ export async function load(ctx: ModuleRuntimeContext) {
 
 	writeFileSync(path.join(dir, "mod.tsx"), modTemplate(template, name, header));
 
+	// Testable seam: pure logic lives in logic.ts, with a starter test that
+	// imports it (never mod.tsx — JSX and /modules/* URLs do not run in Node).
+	writeFileSync(path.join(dir, "logic.ts"), logicTemplate(header));
+	if (bare) {
+		// Monorepo: a co-located test the root test glob picks up, using
+		// stdlib's shared harness.
+		writeFileSync(
+			path.join(dir, `${name}.test.mts`),
+			testTemplate(header, "../stdlib/lib/test-setup.mts", "./logic.ts"),
+		);
+	} else {
+		mkdirSync(path.join(dir, "test"), { recursive: true });
+		writeFileSync(path.join(dir, "test", "setup.mts"), setupTemplate(header));
+		writeFileSync(path.join(dir, "test", `${name}.test.mts`), testTemplate(header, "./setup.mts", "../logic.ts"));
+	}
+
 	if (hasCss) {
 		writeFileSync(
 			path.join(dir, "index.scss"),
@@ -187,16 +282,21 @@ export async function load(ctx: ModuleRuntimeContext) {
 					name,
 					private: true,
 					type: "module",
+					// node --test with a test/-scoped glob; escaped double quotes
+					// (single quotes break cmd.exe, bare ** can match node_modules).
+					engines: { node: ">=22.6" },
 					scripts: {
 						build: "spicetify-kit build .",
 						dev: "spicetify-kit dev .",
 						check: "tsc",
+						test: 'node --test "test/*.test.mts"',
 					},
 					devDependencies: {
 						"@spicetify/kit": "^0.1.0",
 						"@types/react": "^18",
-						rxjs: "^7.8.1",
 						"@types/react-dom": "^18",
+						"happy-dom": "^20",
+						rxjs: "^7.8.1",
 						typescript: "^7",
 					},
 				},
