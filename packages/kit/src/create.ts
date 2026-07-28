@@ -20,6 +20,14 @@ import path from "node:path";
 const USAGE =
 	'spicetify-kit create <name> [--template basic|extension|app|theme] [--description "..."] [--author "..."] [--bare]';
 
+const HELP = `${USAGE}
+
+templates:
+  basic        a topbar button plus a route page (default)
+  extension    behavior-only (a songchange listener) with a testable logic.ts
+  app          a navlink plus a full route page built from the primitives
+  theme        a css-only theme (color.ini + index.css; no TypeScript tooling)`;
+
 type Template = "basic" | "extension" | "app" | "theme";
 
 const ICON_LITERAL = `'<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>'`;
@@ -300,6 +308,10 @@ notification       = 1C1C30
 }
 
 export async function runCreate(argv: string[], cwd = process.cwd()): Promise<void> {
+	if (argv.includes("--help") || argv.includes("-h")) {
+		console.log(HELP);
+		return;
+	}
 	const name = argv.find((a) => !a.startsWith("--"));
 	const flag = (n: string) => {
 		const i = argv.indexOf(`--${n}`);

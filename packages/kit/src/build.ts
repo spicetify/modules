@@ -16,7 +16,17 @@
 
 import { rolldown } from "rolldown";
 import * as sass from "sass-embedded";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+	cpSync,
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	statSync,
+	watch,
+	writeFileSync,
+} from "node:fs";
 import path from "node:path";
 
 import { checkModule } from "./check.ts";
@@ -48,10 +58,18 @@ const USAGE = `spicetify-kit build [module...] [--classmap <key|path>] [--out <d
   --out, -o        output dir (default: ./dist)
   --modules, -m    modules dir (default: ./modules)
   --no-check       skip the module-standard check (error-tier findings
-                   otherwise abort the build)`;
+                   otherwise abort the build)
+  --watch          rebuild a single module on change (no hot-push)
+  --refresh        force a classmap refetch, bypassing vendored/cache`;
 
 export function readMetadata(dir: string): ModuleMetadata {
 	return JSON.parse(readFileSync(path.join(dir, "metadata.json"), "utf8"));
+}
+
+// A watch event should trigger a rebuild unless it is the generated
+// classmap.d.ts (reacting to it loops) or a dotfile.
+export function shouldRebuildOnChange(file: string | null): boolean {
+	return !!file && !file.endsWith(".d.ts") && !file.startsWith(".");
 }
 
 async function buildJs(inputDir: string, outputDir: string, tree: boolean, cwd: string): Promise<void> {
@@ -222,6 +240,7 @@ interface ParsedArgs {
 	modulesDir: string | null;
 	noCheck: boolean;
 	refresh: boolean;
+	watch: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -232,6 +251,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 		modulesDir: null,
 		noCheck: false,
 		refresh: false,
+		watch: false,
 	};
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
@@ -242,6 +262,9 @@ function parseArgs(argv: string[]): ParsedArgs {
 				break;
 			case "--refresh":
 				out.refresh = true;
+				break;
+			case "--watch":
+				out.watch = true;
 				break;
 			case "--classmap":
 			case "-c":
@@ -297,6 +320,41 @@ export async function runBuild(argv: string[], cwd = process.cwd()): Promise<voi
 		} else {
 			throw new Error(`nothing to build: no metadata.json in ${cwd} and no ${modulesDir}`);
 		}
+	}
+
+	// --watch rebuilds a single module on change (no hot-push), for authors who
+	// cannot use the CDP dev loop. It never blocks: a failed build logs and the
+	// watcher keeps running.
+	if (args.watch) {
+		const moduleDir = resolveModuleDir(targets[0], modulesDir, cwd);
+		const rebuild = async () => {
+			try {
+				await buildModule(moduleDir, outDir, resolved, cwd, { check: args.noCheck ? "off" : "warn" });
+			} catch (e) {
+				console.error(`[build] ${(e as Error).message}`);
+			}
+		};
+		await rebuild();
+		console.log(`[build] watching ${moduleDir} (ctrl-c to stop)`);
+		let timer: NodeJS.Timeout | undefined;
+		let loggedDts = false;
+		watch(moduleDir, { recursive: true }, (_e, file) => {
+			if (!file) return;
+			// The build regenerates classmap.d.ts into the source dir; reacting
+			// to it would loop. Note the skip once so it is not a mystery.
+			if (file.endsWith(".d.ts")) {
+				if (!loggedDts) {
+					console.log("[build] ignoring generated classmap.d.ts changes");
+					loggedDts = true;
+				}
+				return;
+			}
+			if (file.startsWith(".")) return;
+			clearTimeout(timer);
+			timer = setTimeout(() => void rebuild(), 200);
+		});
+		await new Promise(() => {});
+		return;
 	}
 
 	for (const target of targets) {

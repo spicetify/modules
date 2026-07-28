@@ -82,10 +82,19 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 
 	console.log(`[dev] watching ${moduleDir} (ctrl-c to stop; removeLocal("${id}") drops the override)`);
 	let timer: NodeJS.Timeout | undefined;
+	let loggedDts = false;
 	watch(moduleDir, { recursive: true }, (_event, file) => {
-		// The build regenerates classmap.d.ts into the source dir on every
-		// run; reacting to it would loop forever.
-		if (!file || file.endsWith(".d.ts") || file.startsWith(".")) return;
+		if (!file) return;
+		// The build regenerates classmap.d.ts into the source dir on every run;
+		// reacting to it would loop. Note the skip once so it is not a mystery.
+		if (file.endsWith(".d.ts")) {
+			if (!loggedDts) {
+				console.log("[dev] ignoring generated classmap.d.ts changes");
+				loggedDts = true;
+			}
+			return;
+		}
+		if (file.startsWith(".")) return;
 		clearTimeout(timer);
 		timer = setTimeout(() => void cycle(), 200);
 	});
