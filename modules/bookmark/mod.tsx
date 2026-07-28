@@ -152,39 +152,72 @@ export default async function (ctx: ModuleRuntimeContext) {
 			uri.type === URI.Type.EPISODE ||
 			uri.type === URI.Type.PLAYLIST;
 
-		card.innerHTML = `
-<div class="bookmark-card">
-    ${
-		info.imageUrl
-			? `<img aria-hidden="false" draggable="false" loading="eager" src="${info.imageUrl}" alt="${info.title}" class="bookmark-card-image">`
-			: ""
-	}
-    <div class="bookmark-card-info">
-        <div class="main-type-balladBold"><span>${info.title}</span></div>
-        <div class="main-type-mesto"><span>${info.description}</span></div>
-        ${
-			info.time
-				? `
-            <div class="bookmark-fixed-height">
-                <div class="bookmark-progress">
-                    <div class="bookmark-progress__bar" style="--progress:${info.progress}"></div>
-                </div>
-                <span class="bookmark-progress__time main-type-mesto">${Player.formatTime(info.time)}</span>
-            </div>
-        `
-				: ""
+		// Built with DOM APIs and textContent: track/album/page titles and
+		// descriptions are attacker-controllable (anyone can name a playlist), so
+		// they must never reach innerHTML. innerHTML is used only for the trusted
+		// static play glyph and the client's own SVGIcons constant.
+		const inner = document.createElement("div");
+		inner.className = "bookmark-card";
+
+		if (info.imageUrl && /^(https:\/\/|data:image\/)/.test(String(info.imageUrl))) {
+			const img = document.createElement("img");
+			img.className = "bookmark-card-image";
+			img.setAttribute("aria-hidden", "false");
+			img.draggable = false;
+			img.loading = "eager";
+			img.src = info.imageUrl;
+			img.alt = info.title ?? "";
+			inner.appendChild(img);
 		}
-    </div>
-    ${
-		isPlayable
-			? `<div class="ButtonInner-md-iconOnly"><button class="main-playButton-PlayButton main-playButton-primary" data-tippy-content="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button></div>`
-			: ""
-	}
-    <button class="bookmark-controls" data-tippy-content="${REMOVE_TEXT}"><svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${
-		Spicetify.SVGIcons.x
-	}</svg></button>
-</div>
-`;
+
+		const infoDiv = document.createElement("div");
+		infoDiv.className = "bookmark-card-info";
+		const titleDiv = document.createElement("div");
+		titleDiv.className = "main-type-balladBold";
+		const titleSpan = document.createElement("span");
+		titleSpan.textContent = info.title ?? "";
+		titleDiv.appendChild(titleSpan);
+		const descDiv = document.createElement("div");
+		descDiv.className = "main-type-mesto";
+		const descSpan = document.createElement("span");
+		descSpan.textContent = info.description ?? "";
+		descDiv.appendChild(descSpan);
+		infoDiv.append(titleDiv, descDiv);
+
+		if (info.time) {
+			const fixed = document.createElement("div");
+			fixed.className = "bookmark-fixed-height";
+			const prog = document.createElement("div");
+			prog.className = "bookmark-progress";
+			const progBar = document.createElement("div");
+			progBar.className = "bookmark-progress__bar";
+			progBar.style.setProperty("--progress", String(info.progress ?? 0));
+			prog.appendChild(progBar);
+			const timeSpan = document.createElement("span");
+			timeSpan.className = "bookmark-progress__time main-type-mesto";
+			timeSpan.textContent = Player.formatTime(info.time);
+			fixed.append(prog, timeSpan);
+			infoDiv.appendChild(fixed);
+		}
+		inner.appendChild(infoDiv);
+
+		if (isPlayable) {
+			const playWrap = document.createElement("div");
+			playWrap.className = "ButtonInner-md-iconOnly";
+			// Static, trusted markup (no user-controlled data).
+			playWrap.innerHTML =
+				'<button class="main-playButton-PlayButton main-playButton-primary" data-tippy-content="Play" style="--size:48px;"><svg role="img" height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg></button>';
+			inner.appendChild(playWrap);
+		}
+
+		const removeBtn = document.createElement("button");
+		removeBtn.className = "bookmark-controls";
+		removeBtn.setAttribute("data-tippy-content", REMOVE_TEXT);
+		// SVGIcons.x is a trusted client constant.
+		removeBtn.innerHTML = `<svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.x}</svg>`;
+		inner.appendChild(removeBtn);
+
+		card.appendChild(inner);
 
 		const instances = Spicetify.Tippy(card.querySelectorAll("[data-tippy-content]"), Spicetify.TippyProps);
 		if (Array.isArray(instances)) tippyInstances.push(...instances);
