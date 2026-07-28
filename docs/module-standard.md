@@ -16,8 +16,10 @@ after the happy path explain what it bakes in and why.
    shim, a hello-world `mod.tsx`, SCSS, and a `tsconfig` wired to stdlib's
    vendored types.
 2. `npm run dev` — watch, rebuild, and hot-push into a running client over CDP
-   in about a second. No restage, no restart. `Spicetify.Modules.removeLocal`
-   drops the override.
+   in about a second. No restage, no restart. Pass `-- --launch` to have the
+   kit start (or reuse) Spotify with the remote-debugging port itself; without
+   it, start Spotify with `--remote-debugging-port=9229` yourself.
+   `Spicetify.Modules.removeLocal` drops the override.
 3. `npm run check` and `npm run test` — typecheck plus happy-dom unit tests.
 4. `spicetify-kit build` → `pack` → publish the zip to a vault. `vault.ts add`
    records it with an embedded metadata subset and a sha256 checksum.

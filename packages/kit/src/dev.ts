@@ -20,8 +20,31 @@ import path from "node:path";
 
 import { buildModule, readMetadata, resolveModuleDir } from "./build.ts";
 import { loadConfig, resolveClassmap, type ClassmapResolution } from "./classmap.ts";
+import { launchSpotify } from "./launch.ts";
 
-const USAGE = "spicetify-kit dev <module> [--port 9229] [--once] [--classmap <key|path>] [--out <dir>]";
+const USAGE =
+	"spicetify-kit dev <module> [--launch] [--port 9229] [--once] [--classmap <key|path>] [--out <dir>]\n" +
+	"  --launch   start (or reuse) Spotify with the remote-debugging port itself";
+
+// Turn the raw client-side push result into an honest, actionable line.
+export function formatPushResult(raw: string): { ok: boolean; message: string } {
+	let parsed: { error?: string; loaded?: boolean; failed?: string | null };
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return { ok: false, message: `unexpected push result (not JSON): ${raw}` };
+	}
+	if (parsed.error === "loader not ready") {
+		return {
+			ok: false,
+			message:
+				"the v3 loader is not staged in this client (Spicetify.Modules is absent). " +
+				"Run `spicetify apply` with v3 modules installed, then retry.",
+		};
+	}
+	if (parsed.failed) return { ok: false, message: `module loaded but failed: ${parsed.failed}` };
+	return { ok: parsed.loaded === true, message: parsed.loaded ? "loaded" : "installed but not loaded" };
+}
 
 function record(distDir: string, id: string) {
 	const metadata = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
@@ -43,7 +66,10 @@ async function wsUrl(port: string): Promise<string> {
 	const targets = (await res.json()) as Array<{ url?: string; webSocketDebuggerUrl?: string }>;
 	const target = targets.find((t) => t.url?.includes("xpui"));
 	if (!target?.webSocketDebuggerUrl) {
-		throw new Error("no xpui target; is Spotify running with --remote-debugging-port?");
+		throw new Error(
+			`no xpui debug target on port ${port}. Start Spotify with --remote-debugging-port=${port} ` +
+				"(or pass --launch), and ensure `spicetify apply` has staged the v3 loader.",
+		);
 	}
 	return target.webSocketDebuggerUrl;
 }
@@ -109,6 +135,8 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 	const port = flag("port") ?? "9229";
 	const once = argv.includes("--once");
 
+	if (argv.includes("--launch")) await launchSpotify(port);
+
 	const config = loadConfig(cwd);
 	const modulesDir = config.modulesDir ? path.resolve(cwd, config.modulesDir) : path.join(cwd, "modules");
 	const outDir = flag("out") ?? (config.outDir ? path.resolve(cwd, config.outDir) : path.join(cwd, "dist"));
@@ -128,8 +156,11 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 			return;
 		}
 		try {
-			const result = await push(record(distDir, id), id, port);
-			console.log(`[dev] ${id} pushed in ${Date.now() - started}ms -> ${result}`);
+			const raw = await push(record(distDir, id), id, port);
+			const result = formatPushResult(raw);
+			const line = `[dev] ${id} ${result.message} (${Date.now() - started}ms)`;
+			if (result.ok) console.log(line);
+			else console.error(line);
 		} catch (e) {
 			console.error(`[dev] push failed: ${(e as Error).message}`);
 		}
