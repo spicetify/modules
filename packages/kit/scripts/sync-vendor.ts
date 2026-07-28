@@ -6,7 +6,7 @@
  * are generated artifacts, never edited.
  */
 
-import { cpSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,4 +50,30 @@ cpSync(path.join(REPO, "modules", "stdlib", "src", "chunks.d.ts"), path.join(shi
 // Ambient Spicetify global types, so scaffolded modules are typed by default.
 cpSync(path.join(REPO, "spicetify.d.ts"), path.join(shims, "spicetify.d.ts"));
 
-console.log(`vendored ${stdlib} stdlib files, ${hooks} hooks files, 4 shims -> ${VENDOR}`);
+// Vendor the newest verified classmap so a standalone author's first build
+// resolves one offline (U5). Copy only the classmap json under <key>/.
+let vendoredClassmap = "none";
+const classmapsSrc = path.join(WORKSPACE, "classmaps");
+if (existsSync(classmapsSrc)) {
+	const keys = readdirSync(classmapsSrc)
+		.filter((d) => /^\d{7}$/.test(d) && statSync(path.join(classmapsSrc, d)).isDirectory())
+		.sort();
+	const key = keys[keys.length - 1];
+	if (key) {
+		const keyDir = path.join(classmapsSrc, key);
+		const maps = readdirSync(keyDir)
+			.filter((f) => /^classmap(-.*)?\.json$/.test(f))
+			.sort();
+		const map = maps[maps.length - 1];
+		if (map) {
+			const dest = path.join(VENDOR, "classmaps", key);
+			mkdirSync(dest, { recursive: true });
+			cpSync(path.join(keyDir, map), path.join(dest, map));
+			vendoredClassmap = `${key}/${map}`;
+		}
+	}
+}
+
+console.log(
+	`vendored ${stdlib} stdlib files, ${hooks} hooks files, 4 shims, classmap ${vendoredClassmap} -> ${VENDOR}`,
+);

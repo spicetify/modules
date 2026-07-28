@@ -143,7 +143,12 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 	const moduleDir = resolveModuleDir(moduleArg, modulesDir, cwd);
 	const id = readMetadata(moduleDir).name;
 
-	const resolved: ClassmapResolution = await resolveClassmap({ flag: flag("classmap") ?? null, config, cwd });
+	const resolved: ClassmapResolution = await resolveClassmap({
+		flag: flag("classmap") ?? null,
+		config,
+		cwd,
+		refresh: argv.includes("--refresh"),
+	});
 	if (!resolved.path) throw new Error("no classmap found (pass --classmap <key|path>)");
 
 	const cycle = async () => {

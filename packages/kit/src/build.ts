@@ -221,16 +221,27 @@ interface ParsedArgs {
 	outDir: string | null;
 	modulesDir: string | null;
 	noCheck: boolean;
+	refresh: boolean;
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
-	const out: ParsedArgs = { targets: [], classmap: null, outDir: null, modulesDir: null, noCheck: false };
+	const out: ParsedArgs = {
+		targets: [],
+		classmap: null,
+		outDir: null,
+		modulesDir: null,
+		noCheck: false,
+		refresh: false,
+	};
 	for (let i = 0; i < argv.length; i++) {
 		const a = argv[i];
 		const next = () => argv[++i];
 		switch (a) {
 			case "--no-check":
 				out.noCheck = true;
+				break;
+			case "--refresh":
+				out.refresh = true;
 				break;
 			case "--classmap":
 			case "-c":
@@ -269,7 +280,7 @@ export function resolveModuleDir(target: string, modulesDir: string, cwd: string
 export async function runBuild(argv: string[], cwd = process.cwd()): Promise<void> {
 	const args = parseArgs(argv);
 	const config = loadConfig(cwd);
-	const resolved = await resolveClassmap({ flag: args.classmap, config, cwd });
+	const resolved = await resolveClassmap({ flag: args.classmap, config, cwd, refresh: args.refresh });
 	if (!resolved.path) throw new Error("no classmap found (pass --classmap <key|path>)");
 	console.log(`classmap: ${resolved.path}${resolved.key ? ` (key ${resolved.key})` : ""}`);
 

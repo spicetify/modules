@@ -6,6 +6,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export interface ClassmapResolution {
 	path: string | null;
@@ -45,6 +46,32 @@ function localClassmapsDirs(cwd: string, config: KitConfig): string[] {
 	return dirs;
 }
 
+// The classmap snapshot vendored into the published kit at prepack time
+// (sync-vendor.ts), so a standalone author's first build works offline.
+function vendoredClassmapsDir(): string {
+	// Env override is a test seam; in production it is the kit's own vendor dir.
+	return (
+		process.env.SPICETIFY_KIT_VENDOR_CLASSMAPS ??
+		path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "vendor", "classmaps")
+	);
+}
+
+// pickFromRoots resolves the newest classmap key across a set of <root>/<key>/
+// dirs (or a specific key when wantKey is given). A higher key wins; on a tie
+// the earlier root wins.
+function pickFromRoots(roots: string[], wantKey: string | null): ClassmapResolution | null {
+	let best: { key: string; file: string } | null = null;
+	for (const root of roots) {
+		if (!existsSync(root)) continue;
+		for (const k of readdirSync(root).filter((d) => /^\d{7}$/.test(d))) {
+			if (wantKey && k !== wantKey) continue;
+			const file = latestClassmapFile(path.join(root, k));
+			if (file && (!best || k > best.key)) best = { key: k, file };
+		}
+	}
+	return best ? { path: best.file, key: best.key } : null;
+}
+
 async function githubJson(url: string): Promise<any> {
 	const res = await fetch(url, { headers: { accept: "application/vnd.github+json" } });
 	if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
@@ -54,7 +81,10 @@ async function githubJson(url: string): Promise<any> {
 // fetchRemoteClassmap downloads a classmap (by key, or the newest key when
 // none is given) from the published classmaps repo, caching it so later
 // builds work offline.
-async function fetchRemoteClassmap(key: string | null): Promise<ClassmapResolution> {
+async function fetchRemoteClassmap(
+	key: string | null,
+	opts: { skipCache?: boolean } = {},
+): Promise<ClassmapResolution> {
 	const cache = cacheDir();
 	try {
 		let resolvedKey = key;
@@ -68,7 +98,9 @@ async function fetchRemoteClassmap(key: string | null): Promise<ClassmapResoluti
 			resolvedKey = keys[keys.length - 1];
 		}
 		const cachedDir = path.join(cache, resolvedKey!);
-		const cached = latestClassmapFile(cachedDir);
+		// --refresh (skipCache) bypasses the cache so a newer published map is
+		// fetched even when an older one is already cached.
+		const cached = opts.skipCache ? null : latestClassmapFile(cachedDir);
 		if (cached) return { path: cached, key: resolvedKey! };
 
 		const files = await githubJson(`https://api.github.com/repos/${CLASSMAPS_REPO}/contents/${resolvedKey}`);
@@ -106,42 +138,49 @@ export async function resolveClassmap({
 	flag,
 	config,
 	cwd,
+	refresh = false,
 }: {
 	flag: string | null;
 	config: KitConfig;
 	cwd: string;
+	refresh?: boolean;
 }): Promise<ClassmapResolution> {
-	const candidates: string[] = [];
-	if (flag) candidates.push(flag);
-	if (config.classmap) candidates.push(config.classmap);
-	for (const candidate of candidates) {
-		const asPath = path.resolve(cwd, candidate);
-		if (existsSync(asPath) && !/^\d{7}$/.test(candidate)) {
-			return { path: asPath, key: classmapKeyFromPath(asPath) };
-		}
-		for (const dir of localClassmapsDirs(cwd, config)) {
-			const file = latestClassmapFile(path.join(dir, candidate));
-			if (file) return { path: file, key: candidate };
-		}
-		if (/^\d{7}$/.test(candidate)) return fetchRemoteClassmap(candidate);
+	const explicit = flag ?? config.classmap ?? null;
+
+	// A direct path (not a bare 7-digit key) wins outright.
+	if (explicit && !/^\d{7}$/.test(explicit)) {
+		const asPath = path.resolve(cwd, explicit);
+		if (existsSync(asPath)) return { path: asPath, key: classmapKeyFromPath(asPath) };
 	}
-	// Monorepo mode: newest key folder in a local classmaps checkout.
-	for (const dir of localClassmapsDirs(cwd, config)) {
-		if (!existsSync(dir)) continue;
-		const keys = readdirSync(dir)
-			.filter((d) => /^\d{7}$/.test(d))
-			.sort();
-		for (let i = keys.length - 1; i >= 0; i--) {
-			const file = latestClassmapFile(path.join(dir, keys[i]));
-			if (file) return { path: file, key: keys[i] };
+	const wantKey = explicit && /^\d{7}$/.test(explicit) ? explicit : null;
+
+	// --refresh forces a network fetch (keyed cache-skip); a failed refresh
+	// warns and falls back to the normal resolution order below (KTD5).
+	if (refresh) {
+		try {
+			return await fetchRemoteClassmap(wantKey, { skipCache: true });
+		} catch (e) {
+			console.warn(`[classmap] --refresh failed (${(e as Error).message}); using local sources`);
 		}
 	}
+
+	// Local classmaps dirs (a monorepo checkout or a configured classmapsDir).
+	const local = pickFromRoots(localClassmapsDirs(cwd, config), wantKey);
+	if (local) return local;
+
+	// Newest key across the vendored snapshot and the cache — offline-first, so
+	// a standalone author's first build needs no network. Cache is not strictly
+	// after vendored: a user who refreshed to a newer map is not shadowed.
+	const offline = pickFromRoots([vendoredClassmapsDir(), cacheDir()], wantKey);
+	if (offline) return offline;
+
 	// Back-compat: a plain classmap.json next to the project.
-	if (existsSync(path.join(cwd, "classmap.json"))) {
+	if (!wantKey && existsSync(path.join(cwd, "classmap.json"))) {
 		return { path: path.join(cwd, "classmap.json"), key: "" };
 	}
-	// Standalone mode: fetch the newest published classmap.
-	return fetchRemoteClassmap(null);
+
+	// Last resort: fetch from the published classmaps repo.
+	return fetchRemoteClassmap(wantKey);
 }
 
 export function loadConfig(cwd: string): KitConfig {
