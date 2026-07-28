@@ -22,6 +22,12 @@ export interface AnchorSpec {
 	// Custom rendering over the registry items (e.g. route matching);
 	// defaults to rendering every item.
 	renderItems?: (items: any[]) => unknown;
+	// The anchor host's display. Defaults to "contents" so the host is
+	// layout-transparent and its items participate directly in the client
+	// slot's layout. Set to a box value (e.g. "flex") when the items need
+	// their own layout context instead of inheriting the slot's — so the
+	// anchor counts as a single item in the slot and spaces its own children.
+	hostDisplay?: string;
 }
 
 // One broken registered node must not take down the others.
@@ -91,7 +97,7 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 
 		const host = document.createElement("span");
 		host.className = spec.className;
-		host.style.display = "contents";
+		host.style.display = spec.hostDisplay ?? "contents";
 		host.dataset.spicetifyAnchor = "";
 		ensureAnchorStyle();
 

@@ -28,6 +28,13 @@
 	-webkit-app-region: unset;
 }
 
+/* The v3 navlink anchor is a flex box (see navlink register): keep its links
+   vertically centred on the bar. Inter-link spacing comes from the client's
+   own navlink margins, so no gap is set here. */
+.spicetify-navlinks-anchor {
+	align-items: center;
+}
+
 /* stdlib search bar (lib/components useSearchBar): sensible everywhere,
    overridable by module stylesheets. */
 .spicetify-searchbar {
