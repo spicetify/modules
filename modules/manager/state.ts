@@ -164,9 +164,20 @@ export type UpdateAdvice =
 	| { kind: "unknown"; message: string }
 	| { kind: "current"; message: string }
 	| { kind: "waiting"; message: string }
-	| { kind: "ready"; message: string };
+	| { kind: "ready"; message: string }
+	| { kind: "unsupported"; message: string };
 
 export function updateAdvice(installed: string | undefined, support: SpotifySupportStatus | null): UpdateAdvice {
+	// Unsupported takes precedence: running a build newer than the newest
+	// verified one means chrome may already be degraded. Only assert it when
+	// supportedSpotify is actually known, so a failed feed fetch never raises
+	// a false alarm.
+	if (installed && support?.supportedSpotify && compareSpotifyVersions(installed, support.supportedSpotify) > 0) {
+		return {
+			kind: "unsupported",
+			message: `Spotify ${installed} isn't fully supported yet — some features may be off until Spicetify catches up`,
+		};
+	}
 	if (!installed || !support?.latestSpotify) {
 		return { kind: "unknown", message: "Spotify update status unknown" };
 	}

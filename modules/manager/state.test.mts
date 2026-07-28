@@ -38,6 +38,17 @@ describe("updateAdvice", () => {
 		assert.equal(a.kind, "waiting");
 		assert.ok(a.message.length > 0);
 	});
+
+	it("is unsupported when installed is newer than the newest supported build", () => {
+		const a = updateAdvice("1.2.95.100", { latestSpotify: "1.2.95.100", supportedSpotify: "1.2.94.583" });
+		assert.equal(a.kind, "unsupported");
+		assert.ok(a.message.includes("1.2.95.100"));
+	});
+
+	it("does not raise a false unsupported alarm when the feed is unavailable", () => {
+		assert.notEqual(updateAdvice("1.2.95.100", null).kind, "unsupported");
+		assert.notEqual(updateAdvice("1.2.95.100", { latestSpotify: "1.2.95.100" }).kind, "unsupported");
+	});
 });
 
 describe("effectiveSupport", () => {
