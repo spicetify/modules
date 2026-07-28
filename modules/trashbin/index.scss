@@ -1,0 +1,63 @@
+/* Settings modal, opened from the profile-menu "Trashbin" item. Scoped so the
+   generic row/switch/button class names cannot leak onto client chrome. */
+.trashbin-settings {
+	.setting-row {
+		display: flex;
+		padding: 10px 0;
+		align-items: center;
+		justify-content: space-between;
+
+		&::after {
+			content: "";
+			display: table;
+			clear: both;
+		}
+
+		.col.description {
+			float: left;
+			padding-right: 15px;
+			width: 100%;
+		}
+
+		.col.action {
+			float: right;
+			text-align: right;
+		}
+	}
+
+	button.switch {
+		align-items: center;
+		border: 0;
+		border-radius: 50%;
+		background-color: rgba(var(--spice-rgb-shadow), 0.7);
+		color: var(--spice-text);
+		cursor: pointer;
+		display: flex;
+		margin-inline-start: 12px;
+		padding: 8px;
+
+		&.disabled,
+		&[disabled] {
+			color: rgba(var(--spice-rgb-text), 0.3);
+		}
+	}
+
+	button.reset {
+		font-weight: 700;
+		font-size: medium;
+		background-color: transparent;
+		border-radius: 500px;
+		transition-duration: 33ms;
+		transition-property: background-color, border-color, color, box-shadow, filter, transform;
+		padding-inline: 15px;
+		border: 1px solid #727272;
+		color: var(--spice-text);
+		min-block-size: 32px;
+		cursor: pointer;
+
+		&:hover {
+			transform: scale(1.04);
+			border-color: var(--spice-text);
+		}
+	}
+}

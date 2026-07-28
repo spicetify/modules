@@ -1,0 +1,19 @@
+{
+	"name": "trashbin",
+	"tags": [
+		"extension"
+	],
+	"version": "0.1.0",
+	"authors": [
+		"spicetify"
+	],
+	"description": "Throw songs and artists in the trashbin and never hear them again.",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^0.3.0"
+	}
+}
