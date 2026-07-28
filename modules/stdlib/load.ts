@@ -5,10 +5,13 @@
  */
 
 import { startEventHandlers } from "./src/events.js";
+import { installPlaybarCompat } from "./src/playbar-compat.js";
 
 export default async function (_ctx: { spotifyVersion: string }) {
 	const cancelEventHandlers = startEventHandlers();
+	const uninstallPlaybarCompat = installPlaybarCompat();
 	return () => {
+		uninstallPlaybarCompat();
 		cancelEventHandlers();
 	};
 }
