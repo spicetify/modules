@@ -1,0 +1,15 @@
+{
+	"name": "loopy-loop",
+	"tags": ["extension"],
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "A-B repeat and section-skip markers on the playback bar; loops and skips persist per song.",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^0.3.0"
+	}
+}

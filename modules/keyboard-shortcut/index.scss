@@ -1,0 +1,21 @@
+/*
+ * Copyright (C) 2026 spicetify
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+// Scoped under #vim-overlay (the module's own overlay node) so the vim-key
+// styling cannot leak onto client chrome.
+#vim-overlay {
+	.vim-key {
+		position: fixed;
+		padding: 3px 6px;
+		background-color: var(--spice-button-disabled);
+		border-radius: 3px;
+		border: solid 2px var(--spice-text);
+		color: var(--spice-text);
+		text-transform: lowercase;
+		line-height: normal;
+		font-size: 14px;
+		font-weight: 500;
+	}
+}

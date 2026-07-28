@@ -1,0 +1,368 @@
+/* Full App Display overlay stylesheet, ported from the runtime <style> tag the
+   classic extension injected. Everything is scoped under #full-app-display (the
+   overlay root) so the generic scrollbar/id rules cannot leak onto client chrome.
+   Layout variants are selected by classes the component puts on the root:
+   .fad-vertical (vertical mode) and .fad-lyrics-plus (Lyrics Plus integration). */
+
+#full-app-display {
+	display: none;
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	cursor: default;
+	left: 0;
+	top: 0;
+
+	&.hide-cursor {
+		cursor: none;
+	}
+
+	#fad-header {
+		position: fixed;
+		width: 100%;
+		height: 80px;
+		-webkit-app-region: drag;
+	}
+
+	#fad-body {
+		height: 100vh;
+	}
+
+	#fad-foreground {
+		position: relative;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transform: scale(var(--fad-scale));
+	}
+
+	#fad-art-image {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		padding-bottom: 100%;
+		border-radius: 15px;
+		background-size: cover;
+	}
+
+	#fad-art-inner {
+		position: absolute;
+		left: 3%;
+		bottom: 0;
+		width: 94%;
+		height: 94%;
+		z-index: -1;
+		backface-visibility: hidden;
+		transform: translateZ(0);
+		filter: blur(6px);
+		backdrop-filter: blur(6px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+	}
+
+	#fad-art-overlay {
+		display: none;
+	}
+
+	#fad-art:hover #fad-art-overlay {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-content: center;
+		align-items: center;
+		justify-content: center;
+		border-radius: 15px;
+		backdrop-filter: brightness(0.75);
+	}
+
+	#fad-heart {
+		background-color: transparent;
+		border: 0;
+		color: #fff;
+		padding: 0 5px;
+		cursor: pointer;
+	}
+
+	#fad-progress-container {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-grow: 1;
+		gap: 10px;
+	}
+
+	#fad-progress {
+		width: 100%;
+		height: 6px;
+		border-radius: 6px;
+		background-color: #ffffff50;
+		flex-grow: 1;
+		min-width: 150px;
+
+		&:hover #fad-progress-inner {
+			background-color: var(--spice-button);
+		}
+
+		&:hover #fad-thumb {
+			visibility: visible;
+		}
+	}
+
+	#fad-progress-inner {
+		width: var(--progress-width);
+		height: 100%;
+		border-radius: 6px;
+		background-color: #ffffff;
+		box-shadow: 4px 0 12px rgba(0, 0, 0, 0.8);
+		position: relative;
+	}
+
+	#fad-thumb {
+		position: absolute;
+		top: -3px;
+		right: -6px;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background-color: #ffffff;
+		cursor: pointer;
+		visibility: hidden;
+	}
+
+	#fad-background {
+		position: absolute;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		z-index: -2;
+	}
+
+	#fad-controls button {
+		background-color: transparent;
+		border: 0;
+		color: currentColor;
+		padding: 0 5px;
+		cursor: pointer;
+
+		svg {
+			vertical-align: middle;
+		}
+	}
+
+	#fad-elapsed,
+	#fad-duration {
+		font-variant-numeric: tabular-nums;
+	}
+
+	#fad-artist svg,
+	#fad-album svg,
+	#fad-release-date svg {
+		display: inline-block;
+	}
+
+	::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	/* ----- horizontal layout (default) ----- */
+	&:not(.fad-vertical) {
+		#fad-foreground {
+			flex-direction: row;
+			text-align: left;
+		}
+
+		#fad-art {
+			width: calc(100vw - 840px);
+			min-width: 200px;
+			max-width: 340px;
+		}
+
+		#fad-details {
+			padding-left: 50px;
+			line-height: initial;
+			max-width: 70%;
+			color: #ffffff;
+		}
+
+		#fad-title {
+			font-size: 87px;
+			font-weight: var(--glue-font-weight-black);
+		}
+
+		#fad-artist,
+		#fad-album,
+		#fad-release-date {
+			font-size: 54px;
+			font-weight: var(--glue-font-weight-medium);
+
+			svg {
+				margin-right: 5px;
+			}
+		}
+
+		#fad-status {
+			display: flex;
+			align-items: center;
+			flex-wrap: wrap;
+			gap: 10px;
+
+			&.active {
+				margin-top: 20px;
+			}
+		}
+
+		#fad-controls {
+			display: flex;
+			margin: 0 auto;
+		}
+	}
+
+	/* ----- vertical layout ----- */
+	&.fad-vertical {
+		#fad-art {
+			width: calc(100vh - 400px);
+			max-width: 340px;
+		}
+
+		#fad-foreground {
+			flex-direction: column;
+			text-align: center;
+		}
+
+		#fad-details {
+			padding-top: 50px;
+			line-height: initial;
+			max-width: 70%;
+			color: #ffffff;
+		}
+
+		#fad-title {
+			font-size: 54px;
+			font-weight: var(--glue-font-weight-black);
+		}
+
+		#fad-artist,
+		#fad-album,
+		#fad-release-date {
+			font-size: 33px;
+			font-weight: var(--glue-font-weight-medium);
+
+			svg {
+				width: 25px;
+				height: 25px;
+				margin-right: 5px;
+			}
+		}
+
+		#fad-status {
+			display: flex;
+			min-width: 400px;
+			max-width: 400px;
+			align-items: center;
+			flex-direction: column;
+
+			&.active {
+				margin: 20px auto 0;
+			}
+		}
+
+		#fad-controls {
+			margin-top: 20px;
+			order: 2;
+		}
+
+		#fad-progress-container {
+			width: 100%;
+		}
+	}
+
+	/* ----- Lyrics Plus integration ----- */
+	&.fad-lyrics-plus {
+		#fad-body {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+		}
+
+		#fad-foreground {
+			padding: 0 50px 0 100px;
+			width: 50vw;
+		}
+
+		#fad-lyrics-plus-container {
+			position: relative;
+			width: 50vw;
+		}
+
+		&:not(.fad-vertical) {
+			#fad-title {
+				font-size: 54px;
+			}
+
+			#fad-art {
+				max-width: 210px;
+			}
+		}
+	}
+}
+
+body.fad-activated #full-app-display {
+	display: block;
+}
+
+.fad-background-fade {
+	transition: background-image 1s linear;
+}
+
+body.video-full-screen.video-full-screen--hide-ui {
+	cursor: auto;
+}
+
+/* Settings modal (right-click the overlay). Scoped so the generic row/switch
+   class names cannot leak onto client chrome. */
+.full-app-display-settings {
+	.setting-row {
+		&::after {
+			content: "";
+			display: table;
+			clear: both;
+		}
+
+		.col {
+			display: flex;
+			padding: 10px 0;
+			align-items: center;
+		}
+
+		.col.description {
+			float: left;
+			padding-right: 15px;
+		}
+
+		.col.action {
+			float: right;
+			text-align: right;
+		}
+	}
+
+	button.switch {
+		align-items: center;
+		border: 0;
+		border-radius: 50%;
+		background-color: rgba(var(--spice-rgb-shadow), 0.7);
+		color: var(--spice-text);
+		cursor: pointer;
+		display: flex;
+		margin-inline-start: 12px;
+		padding: 8px;
+
+		&.disabled,
+		&[disabled] {
+			color: rgba(var(--spice-rgb-text), 0.3);
+		}
+	}
+}

@@ -1,0 +1,35 @@
+/*
+ * Copyright (C) 2026 spicetify
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * Progress-bar markers and menus for Loopy Loop. Selectors are namespaced with
+ * the loopy- prefix so they cannot leak onto client chrome.
+ */
+
+#loopy-loop-start,
+#loopy-loop-end {
+	position: absolute;
+	font-weight: bolder;
+	font-size: 15px;
+	top: -7px;
+	cursor: context-menu;
+	z-index: 10;
+	padding: 2px 4px;
+}
+
+.loopy-skip-marker {
+	position: absolute;
+	font-weight: bolder;
+	font-size: 15px;
+	top: -7px;
+	color: #e74c3c;
+	cursor: context-menu;
+	z-index: 20;
+	padding: 2px 6px;
+}
+
+#loopy-context-menu,
+#loopy-move-submenu {
+	position: fixed;
+	z-index: 2147483647;
+}

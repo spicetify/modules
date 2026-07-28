@@ -1,0 +1,15 @@
+{
+	"name": "shuffle-plus",
+	"tags": ["extension"],
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "True Fisher-Yates shuffle of any context or queue, with context-menu entries to play playlists, albums, artists and more shuffled without bias.",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^0.3.0"
+	}
+}
