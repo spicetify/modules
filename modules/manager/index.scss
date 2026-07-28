@@ -260,4 +260,15 @@
 	&--ready {
 		color: var(--spice-button, #1ed760);
 	}
+
+	&--unsupported {
+		color: #ff6b6b;
+	}
+}
+
+.spicetify-manager-page .spicetify-manager-update-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
 }

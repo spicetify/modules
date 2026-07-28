@@ -7,6 +7,7 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
+	effectiveSupport,
 	fetchSupportStatus,
 	show,
 	showBool,
@@ -27,6 +28,10 @@ const LEVEL_CLASS: Record<string, string> = {
 // (its unload cascades to every dependent, so it also cannot be reloaded);
 // store and manager are the two management surfaces.
 const CORE = new Set(["stdlib", "store", "manager"]);
+
+// The unsupported-version toast fires at most once per session; the panel
+// notice (below) is the persistent surface.
+let unsupportedNoticeShown = false;
 
 const Badge = ({ kind, children }: { kind?: "ok" | "bad"; children: React.ReactNode }) => (
 	<span className={`spicetify-manager-badge${kind ? ` spicetify-manager-badge--${kind}` : ""}`}>{children}</span>
@@ -103,6 +108,22 @@ export const ManagerPage = () => {
 		void fetchSupportStatus().then(setSupport);
 	}, []);
 
+	// Nudge the user once when they are on a version we do not yet support, so
+	// degraded chrome is explained rather than mysterious. Best-effort: if the
+	// client exposes no Snackbar, the persistent panel notice still shows.
+	React.useEffect(() => {
+		const advice = updateAdvice(state.spotifyVersion, effectiveSupport(state, support));
+		if (advice.kind === "unsupported" && !unsupportedNoticeShown) {
+			unsupportedNoticeShown = true;
+			try {
+				(globalThis as never as Record<string, any>).Spicetify?.Snackbar?.enqueueSnackbar?.(
+					advice.message,
+					{ variant: "warning" },
+				);
+			} catch { /* toast is best-effort */ }
+		}
+	}, [state.spotifyVersion, state.supportedSpotify, support]);
+
 	// Diagnostics and module state arrive asynchronously; a light poll keeps
 	// the page honest while it is mounted.
 	React.useEffect(() => {
@@ -142,7 +163,7 @@ export const ManagerPage = () => {
 	// A paste-ready environment summary for bug reports: versions, flags,
 	// update status, and every module's state.
 	const copyEnvironment = () => {
-		const advice = updateAdvice(state.spotifyVersion, support);
+		const advice = updateAdvice(state.spotifyVersion, effectiveSupport(state, support));
 		const lines = [
 			`Spotify: ${show(state.spotifyVersion)}`,
 			`classmap: ${show(state.classmapKey)}`,
@@ -206,19 +227,47 @@ export const ManagerPage = () => {
 						{state.failedCount ? `, ${state.failedCount} failed` : ""}
 					</Badge>
 				</div>
-				{(() => {
-					const advice = updateAdvice(state.spotifyVersion, support);
-					return (
-						<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
-							{advice.message}
-						</p>
-					);
-				})()}
 				<p className="spicetify-manager-note">
 					Installing or staging modules on disk happens outside the client — after changing staged modules, run{" "}
 					<code>spicetify restore backup apply</code>.
 				</p>
 			</section>
+
+			{(() => {
+				const sup = effectiveSupport(state, support);
+				const advice = updateAdvice(state.spotifyVersion, sup);
+				const policy = state.updatePolicy;
+				const cmd = (text: string, label: string) => (
+					<button type="button" onClick={() => void copyToClipboard(text, `${label} copied`)}>
+						{label}
+					</button>
+				);
+				return (
+					<section>
+						<div className="spicetify-manager-section-head">
+							<h2>Updates</h2>
+							<Badge kind={policy === "gate" ? "ok" : undefined}>policy: {show(policy)}</Badge>
+						</div>
+						<div className="spicetify-manager-env">
+							<Badge>installed {show(state.spotifyVersion)}</Badge>
+							<Badge kind={sup?.supportedSpotify ? "ok" : undefined}>supported {show(sup?.supportedSpotify)}</Badge>
+							<Badge>available {show(sup?.latestSpotify)}</Badge>
+						</div>
+						<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
+							{advice.message}
+						</p>
+						<p className="spicetify-manager-note">
+							Update handling is set from a terminal. Copy a command:
+						</p>
+						<div className="spicetify-manager-update-actions">
+							{cmd("spicetify spotify-updates gate", "gate")}
+							{cmd("spicetify spotify-updates block", "block")}
+							{cmd("spicetify spotify-updates unblock", "allow")}
+							{advice.kind === "ready" && cmd("spicetify restore backup apply", "update & apply")}
+						</div>
+					</section>
+				);
+			})()}
 
 			<section>
 				<h2>Modules</h2>
