@@ -66,6 +66,8 @@ type TopbarRightButtonProps = {
 	disabled?: boolean;
 	onClick: () => void;
 	icon?: string;
+	/** Position within the module-button group; lower renders earlier. Read by the mount sorter. */
+	order?: number;
 };
 
 type TopbarRightButtonFactory = React.FC<TopbarRightButtonProps>;

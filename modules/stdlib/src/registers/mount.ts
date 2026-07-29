@@ -10,6 +10,7 @@
 
 import { React, ReactDOM } from "../expose/React.ts";
 import { warn } from "../logger.ts";
+import { byOrder } from "./order.ts";
 import type { Registry } from "./registry.ts";
 
 export interface AnchorSpec {
@@ -122,9 +123,9 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 				return R.createElement(
 					R.Fragment,
 					null,
-					...spec.registry
-						.all()
-						.map((item: unknown, i: number) => R.createElement(ItemBoundary, { key: i }, item)),
+					...byOrder(spec.registry.all()).map((item: unknown, i: number) =>
+						R.createElement(ItemBoundary, { key: i }, item),
+					),
 				);
 			};
 			root.render(R.createElement(Wrapper));

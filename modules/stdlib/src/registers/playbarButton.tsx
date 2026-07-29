@@ -64,6 +64,8 @@ export type PlaybarButtonProps = {
 	disabled?: boolean;
 	icon?: string;
 	onClick: () => void;
+	/** Position within the module-button group; lower renders earlier. Read by the mount sorter. */
+	order?: number;
 };
 export const PlaybarButton = ({
 	label,
