@@ -81,6 +81,10 @@ export class Registrar {
 	constructor(public id: string) {}
 
 	private ledger = new Map<any, keyof Registers>();
+	// Cleanups for things not held in the registry ledger (e.g. near-anchored
+	// buttons, which mount their own host). Run on dispose so nothing leaks
+	// when the module unloads.
+	private disposers = new Set<() => void>();
 
 	/**
 	 * Place a button in a known client location without touching register keys
@@ -118,10 +122,17 @@ export class Registrar {
 				fellBackHandle ??= inGroup();
 			},
 		});
+		// Tracked so module unload (dispose) tears the near button down too; the
+		// near path never touches the registry ledger, so it needs its own hook.
+		const cleanup = () => {
+			adjacent.remove();
+			fellBackHandle?.remove();
+		};
+		this.disposers.add(cleanup);
 		return {
 			remove: () => {
-				adjacent.remove();
-				fellBackHandle?.remove();
+				this.disposers.delete(cleanup);
+				cleanup();
 			},
 		};
 	}
@@ -149,6 +160,8 @@ export class Registrar {
 	dispose() {
 		for (const [item, type] of this.ledger.entries()) this.unregister(type, item);
 		this.ledger.clear();
+		for (const dispose of this.disposers) dispose();
+		this.disposers.clear();
 	}
 }
 
