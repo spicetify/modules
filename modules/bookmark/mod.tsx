@@ -13,7 +13,6 @@
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
-import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
 
 // UI Text
 const BUTTON_NAME_TEXT = "Bookmark";
@@ -244,9 +243,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	// The classic Spicetify.Topbar.Button no longer mounts in v3's restructured
 	// topbar (same reason trashbin abandoned Playbar.Widget), so the entry point
-	// goes through the stdlib topbarRightButton register. The register's onClick
-	// gives no element handle, so the popup is positioned off the mounted button
-	// looked up by its aria-label within the register's anchor.
+	// goes through registrar.placeButton("topbar-right", ...). placeButton gives
+	// no element handle, so the popup is positioned off the mounted button looked
+	// up by its aria-label within the register's anchor.
 	function openBookmarks() {
 		const button = document.querySelector<HTMLElement>(
 			`.spicetify-topbar-right-buttons [aria-label="${BUTTON_NAME_TEXT}"]`,
@@ -257,10 +256,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 		LIST.setScroll();
 	}
 
-	registrar.register(
-		"topbarRightButton",
-		<TopbarRightButton label={BUTTON_NAME_TEXT} icon={BUTTON_ICON_PATH} onClick={openBookmarks} />,
-	);
+	registrar.placeButton("topbar-right", {
+		label: BUTTON_NAME_TEXT,
+		icon: BUTTON_ICON_PATH,
+		onClick: openBookmarks,
+	});
 
 	function createMenuItem(title: string, callback?: () => void) {
 		// Plain DOM styled with the native context-menu-item class. The client's

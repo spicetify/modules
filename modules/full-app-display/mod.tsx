@@ -10,6 +10,7 @@
  * modal is now built as scoped DOM instead of an inline <style> element.
  */
 
+import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 // Spicetify.Mousetrap is a client value whose runtime bind/unbind surface is
@@ -723,12 +724,15 @@ export default async function (ctx: ModuleRuntimeContext) {
 		});
 	}
 
-	// Add activator on top bar
-	const topbarButton = new Spicetify.Topbar.Button(
-		"Full App Display",
-		`<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.projector}</svg>`,
-		activate,
-	);
+	// Add activator on top bar. placeButton mounts through the stdlib
+	// topbar-right register (the classic Spicetify.Topbar.Button no longer
+	// mounts in v3's restructured top bar) and is torn down with the module.
+	const registrar = createRegistrar(ctx);
+	registrar.placeButton("topbar-right", {
+		label: "Full App Display",
+		icon: Spicetify.SVGIcons.projector,
+		onClick: activate,
+	});
 
 	Mousetrap.bind("f11", toggleFad);
 
@@ -740,6 +744,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		Mousetrap.unbind("f11");
 		document.removeEventListener("mousemove", eventListener);
 		clearTimeout(cursorTimeout);
-		topbarButton.element?.remove();
+		// The topbar button is removed by the registrar's own ctx.defer.
 	});
 }
