@@ -37,6 +37,18 @@
 	align-items: center;
 }
 
+/* Playbar button geometry guard. The classmap can resolve the playbar button
+   wrapper (MAP.main.playbar.buttons.button.wrapper) to a container-level class
+   on some clients (e.g. .player-controls__buttons: width:100%; gap:16px;
+   margin-bottom:8px), which stretches every module playbar button to full
+   width and lifts it off the control baseline. Pin our playbar buttons to the
+   native icon-button geometry regardless of what class they inherit. */
+.spicetify-playbar-buttons button {
+	width: auto;
+	gap: 0;
+	margin-bottom: 0;
+}
+
 /* stdlib search bar (lib/components useSearchBar): sensible everywhere,
    overridable by module stylesheets. */
 .spicetify-searchbar {
