@@ -271,4 +271,26 @@
 	flex-wrap: wrap;
 	gap: 8px;
 	margin-top: 8px;
+
+	// Match the pill buttons used elsewhere in the panel; without this the
+	// copy-command buttons fall back to the washed-out browser default.
+	button {
+		padding: 4px 14px;
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		border-radius: 999px;
+		background: transparent;
+		color: var(--spice-text, #fff);
+		font-size: 13px;
+		font-family: inherit;
+		cursor: pointer;
+		transition: border-color 0.1s ease;
+
+		&:hover {
+			border-color: var(--spice-text, #fff);
+		}
+
+		&:active {
+			background: rgba(255, 255, 255, 0.06);
+		}
+	}
 }
