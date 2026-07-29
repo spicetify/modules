@@ -142,3 +142,85 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 		watchAnchor(anchor);
 	});
 }
+
+// Mount a single element next to a specific client element (rather than into a
+// fixed slot). Used by placeButton's `near` anchoring: the host is inserted
+// before/after the resolved target and re-placed on client re-renders. If the
+// target never appears within giveUpMs, onGiveUp() runs so the caller can fall
+// back to ordinary placement — the button is never silently lost.
+export interface AdjacentSpec {
+	className: string;
+	element: React.ReactNode;
+	findTarget: () => Element | null;
+	side: "before" | "after";
+	giveUpMs: number;
+	onGiveUp: () => void;
+}
+
+export function mountAdjacent(spec: AdjacentSpec): { remove: () => void } {
+	let removed = false;
+	let root: { render?: (node: unknown) => void; unmount?: () => void } | undefined;
+	const host = document.createElement("span");
+	host.className = spec.className;
+	host.style.display = "contents";
+	host.dataset.spicetifyAnchor = "";
+
+	const place = (): boolean => {
+		const target = spec.findTarget();
+		if (!target?.parentElement) return false;
+		const before = spec.side === "before" ? target : target.nextSibling;
+		target.parentElement.insertBefore(host, before);
+		return true;
+	};
+
+	const remove = () => {
+		removed = true;
+		root?.unmount?.();
+		host.remove();
+	};
+
+	// Transform experiments render through injected __renderX() calls, and there
+	// is no DOM off the client; in both cases fall back to ordinary placement.
+	if (
+		(globalThis as never as Record<string, unknown>).__SPICETIFY_APPLY_TRANSFORMS__ ||
+		typeof document === "undefined"
+	) {
+		spec.onGiveUp();
+		return { remove: () => {} };
+	}
+
+	void CHUNKS.xpui.promise.then(() => {
+		if (removed) return;
+		const R = React as any;
+		const createRoot = (ReactDOM as any).createRoot;
+		if (typeof createRoot !== "function") {
+			spec.onGiveUp();
+			return;
+		}
+		const start = () => {
+			ensureAnchorStyle();
+			root = createRoot(host);
+			const ItemBoundary = createItemBoundary(R, spec.className);
+			root!.render?.(R.createElement(ItemBoundary, null, spec.element));
+		};
+
+		const deadline = Date.now() + spec.giveUpMs;
+		const attempt = () => {
+			if (removed) return;
+			if (place()) {
+				start();
+				// Reuse the shared observer for re-placement only (already started).
+				watchAnchor({ host, place, started: true, start: () => {} });
+				return;
+			}
+			if (Date.now() > deadline) {
+				spec.onGiveUp();
+				return;
+			}
+			setTimeout(attempt, 150);
+		};
+		attempt();
+	});
+
+	return { remove };
+}

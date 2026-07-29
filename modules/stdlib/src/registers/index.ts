@@ -6,7 +6,10 @@
 import type { ModuleRuntimeContext } from "../../mod.ts";
 
 import { React } from "../expose/React.ts";
+import { warn } from "../logger.ts";
 import menu from "./menu.ts";
+import { mountAdjacent } from "./mount.ts";
+import { isNativeAnchor, type NativeAnchor, resolveNativeAnchor } from "./nativeAnchors.ts";
 import navlink from "./navlink.tsx";
 import panel from "./panel.ts";
 import playbarButton, { PlaybarButton } from "./playbarButton.tsx";
@@ -53,6 +56,14 @@ export interface PlaceButtonOptions {
 	order?: number;
 	/** Playbar only: render the active indicator. Ignored in the top bar. */
 	isActive?: boolean;
+	/**
+	 * Place the button next to one of the client's own buttons instead of in the
+	 * module-button group. `anchor` is a stable stdlib-owned name (e.g.
+	 * "playbar:queue"); if it can't be resolved on this client the button falls
+	 * back to ordinary `order` placement, so it is never hidden. `side` defaults
+	 * to "after".
+	 */
+	near?: { anchor: NativeAnchor; side?: "before" | "after" };
 }
 
 export interface ButtonHandle {
@@ -81,8 +92,38 @@ export class Registrar {
 		if (!slot) throw new Error(`[stdlib] unknown button location: ${location}`);
 		const [key, Component] = slot;
 		const element = React.createElement(Component as React.FC<PlaceButtonOptions>, { order: 0, ...options });
-		this.register(key, element);
-		return { remove: () => this.unregister(key, element) };
+
+		const inGroup = (): ButtonHandle => {
+			this.register(key, element);
+			return { remove: () => this.unregister(key, element) };
+		};
+
+		if (!options.near) return inGroup();
+		const { anchor, side = "after" } = options.near;
+		if (!isNativeAnchor(anchor)) {
+			warn(`[stdlib] unknown native anchor "${anchor}"; placing "${options.label}" with order instead`);
+			return inGroup();
+		}
+
+		// Try to sit next to the named native button; if it never appears, fall
+		// back to the module-button group so the button is never lost.
+		let fellBackHandle: ButtonHandle | undefined;
+		const adjacent = mountAdjacent({
+			className: "spicetify-near-button",
+			element,
+			findTarget: () => resolveNativeAnchor(anchor),
+			side,
+			giveUpMs: 5000,
+			onGiveUp: () => {
+				fellBackHandle ??= inGroup();
+			},
+		});
+		return {
+			remove: () => {
+				adjacent.remove();
+				fellBackHandle?.remove();
+			},
+		};
 	}
 
 	register<R extends keyof Registers>(type: R, ...args: Parameters<Registers[R]["add"]>) {
