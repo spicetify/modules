@@ -27,7 +27,7 @@ after the happy path explain what it bakes in and why.
    never `mod.tsx` — JSX and `/modules/*` runtime URLs do not resolve in Node,
    so client-coupled UI is verified live through the dev loop instead.
 4. `spicetify-kit build` → `pack` → publish the zip to a vault. `spicetify-kit
-   vault add <dist> --artifact <url>` records it with an embedded metadata
+vault add <dist> --artifact <url>` records it with an embedded metadata
    subset and a sha256 checksum; `spicetify-kit install <zip|dir>` sideloads a
    packed module straight into a running client.
 
