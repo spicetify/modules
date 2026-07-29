@@ -12,8 +12,9 @@
  *     branched on navigator.serviceWorker. A bundled module cannot re-load its
  *     own path, so the "keep ticking while the window is hidden" worker is now
  *     an inline Blob worker (CSP-permitted in the client).
- *   - The topbar button uses Spicetify.Topbar.Button (works in v3); teardown
- *     removes its element since the helper exposes no deregister.
+ *   - The topbar button goes through registrar.placeButton("topbar-right"), so
+ *     it sits with the other module topbar buttons; right-click (settings) is
+ *     delegated at the document level since placeButton exposes no element.
  *   - The injected <style> tag moved into index.scss.
  *   - All teardown routes through ctx.defer.
  *   - CosmosAsync still proxies both the authed Spotify color-lyrics endpoint
@@ -21,6 +22,7 @@
  *     is CORS-enabled and keeps using plain fetch.
  */
 
+import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 interface Lyric {
@@ -476,14 +478,27 @@ export default async function (ctx: ModuleRuntimeContext) {
 	lyricCtx.fillRect(0, 0, 1, 1);
 	lyricVideo.play();
 
-	const button = new Spicetify.Topbar.Button("Popup Lyrics", "lyrics", () => {
-		if (!lyricVideoIsOpen) {
-			lyricVideo.requestPictureInPicture();
-		} else {
-			document.exitPictureInPicture();
-		}
+	const registrar = createRegistrar(ctx);
+	registrar.placeButton("topbar-right", {
+		label: "Popup Lyrics",
+		icon: Spicetify.SVGIcons.lyrics,
+		onClick: () => {
+			if (!lyricVideoIsOpen) {
+				lyricVideo.requestPictureInPicture();
+			} else {
+				document.exitPictureInPicture();
+			}
+		},
 	});
-	button.element.oncontextmenu = openConfig;
+	// Right-click the topbar button opens settings. placeButton exposes no
+	// element handle, so delegate at the document level (like loopy-loop).
+	const onButtonContextMenu = (event: MouseEvent) => {
+		const target = event.target as HTMLElement | null;
+		if (target?.closest?.('.spicetify-topbar-right-buttons [aria-label="Popup Lyrics"]')) {
+			openConfig(event);
+		}
+	};
+	document.addEventListener("contextmenu", onButtonContextMenu);
 
 	const coverCanvas = document.createElement("canvas");
 	coverCanvas.width = lyricVideo.width;
@@ -1316,6 +1331,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		if (lyricVideoIsOpen && document.pictureInPictureElement) {
 			document.exitPictureInPicture().catch(() => {});
 		}
-		button.element.remove();
+		document.removeEventListener("contextmenu", onButtonContextMenu);
+		// The topbar button is removed by the registrar's own ctx.defer.
 	});
 }
