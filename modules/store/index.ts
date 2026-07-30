@@ -47,6 +47,20 @@ const INSTALLS_API = () =>
 const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
 const PLATFORM = () => (globalThis as never as Record<string, any>).Spicetify?.Platform;
 
+// Native Spotify toast (Encore Snackbar) for install outcomes, with a
+// showNotification fallback for older clients. Progress still shows inline in
+// the store's own status line; the terminal result is a proper client toast.
+function toast(message: string, variant: "success" | "error" | "default" = "default"): void {
+	const S = (globalThis as never as Record<string, any>).Spicetify;
+	try {
+		if (S?.Snackbar?.enqueueSnackbar) {
+			S.Snackbar.enqueueSnackbar(message, { variant });
+			return;
+		}
+	} catch {}
+	S?.showNotification?.(message, variant === "error");
+}
+
 // Infrastructure modules: stdlib is the foundation every module depends
 // on, and store/manager are the management surfaces themselves. Disabling
 // or removing any of them from inside the client destroys the very UI
@@ -271,6 +285,10 @@ async function installModule(mod: VaultModule, status: (msg: string) => void) {
 	installing.add(mod.id);
 	try {
 		await installModuleInner(mod, status);
+	} catch (e) {
+		// Surface failures as a native toast too (callers still show inline detail).
+		toast(`Failed to install ${mod.id}: ${(e as Error).message}`, "error");
+		throw e;
 	} finally {
 		installing.delete(mod.id);
 	}
@@ -350,12 +368,14 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		},
 	});
 	if (enabled) {
-		status(`${mod.id} installed and enabled ✓`);
+		status("");
+		toast(`${metadata?.name ?? mod.id} installed and enabled`, "success");
 		await enforceSingleTheme(mod.id, status);
 		reportInstall(mod);
 	} else {
 		const reason = M().report?.failed?.[mod.id] ?? "unknown reason";
-		status(`${mod.id} installed but failed to enable: ${reason}`);
+		status("");
+		toast(`${metadata?.name ?? mod.id} installed but failed to enable: ${reason}`, "error");
 	}
 }
 
