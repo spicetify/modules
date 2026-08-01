@@ -812,14 +812,33 @@ declare namespace Spicetify {
    * every `getFooAPI(): R` yields a `FooAPI: R` property too.
    */
   type PlatformAutoGen = import("/hooks/PlatformAutoGen").PlatformAutoGen;
-  // Autocomplete for the ~66 platform API names in both forms: the property
-  // form the client uses (Platform.LibraryAPI) and the generated
-  // getLibraryAPI() form. Values stay permissive: the generated method
-  // signatures are unreliable (their arg counts differ from runtime), so
-  // typing them strictly is friction rather than safety.
+  // One level of member names per API — enough to autocomplete which methods an
+  // API exposes (Platform.LibraryAPI.getContents…), with every value left `any`.
+  // The generated method signatures are unreliable (arg counts and nullability
+  // differ from runtime), so surfacing them strictly turns correct calls into
+  // false errors; `Shape` keeps the discoverable member names and drops the
+  // untrustworthy signatures.
+  type Shape<T> = T extends (...args: any[]) => any
+    ? (...args: any[]) => any
+    : T extends object
+      ? { [M in keyof T]: any }
+      : T;
+  // Both forms the client offers: the getFooAPI() methods (permissive args,
+  // shaped return) and each getFooAPI(): R also as a FooAPI: R property (the
+  // form the client uses). The Record<string, any> tail keeps unknown keys open.
   type PlatformApis =
-    & { [K in keyof PlatformAutoGen]: any }
-    & { [K in keyof PlatformAutoGen as K extends `get${infer Name}` ? Name : never]: any };
+    & {
+        [K in keyof PlatformAutoGen]: PlatformAutoGen[K] extends (...args: any[]) => infer R
+          ? (...args: any[]) => Shape<R>
+          : PlatformAutoGen[K];
+      }
+    & {
+        [K in keyof PlatformAutoGen as K extends `get${infer Name}` ? Name : never]: PlatformAutoGen[K] extends (
+          ...args: any[]
+        ) => infer R
+          ? Shape<R>
+          : never;
+      };
   const Platform: PlatformApis & Record<string, any>;
   /**
    * Queue object contains list of queuing tracks,
