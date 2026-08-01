@@ -77,6 +77,9 @@ type VaultModule = {
 	checksum?: string;
 	vault: string;
 	updatedAt?: string;
+	// Infrastructure entries (stdlib) are installable/updatable but
+	// never render as store cards.
+	hidden?: boolean;
 	meta?: {
 		name?: string;
 		description?: string;
@@ -169,6 +172,7 @@ async function loadCatalog(): Promise<Catalog> {
 					checksum: entry.checksum,
 					vault,
 					updatedAt: entry.updatedAt,
+					hidden: entry.hidden,
 					meta: entry.metadata,
 				});
 			}
@@ -912,9 +916,12 @@ function createStorePage() {
 		const tab = TABS.find((t) => t.key === activeTab);
 		const list = catalog.modules.filter((mod) => {
 			if (catalog.revoked[mod.id]) return false;
+			// Hidden entries (infrastructure like stdlib) never render as
+			// cards; the updates banner still covers them.
+			if (mod.hidden) return false;
 			// Previews are required: the card is artwork-first, so a
 			// preview-less entry (a non-conforming community vault) has no
-			// card to render. The updates banner still covers it.
+			// card to render.
 			if (!mod.meta?.preview) return false;
 			if (tab?.tag && !(mod.meta?.tags ?? []).includes(tab.tag)) return false;
 			return !q || searchHaystack(mod).includes(q);

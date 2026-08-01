@@ -41,6 +41,9 @@ interface VaultVersionEntry {
 	// entry is the artifact.
 	files?: Record<string, string>;
 	updatedAt?: string;
+	// Infrastructure modules (stdlib) are installable/updatable but
+	// never render as store cards.
+	hidden?: boolean;
 }
 
 interface VaultMetadata {
