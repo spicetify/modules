@@ -12,7 +12,8 @@
 						"name": "palette-manager",
 						"description": "Manager for theme color schemes",
 						"authors": ["spicetify", "harbassan", "Delusoire"],
-						"tags": ["extension", "theming", "scheming"]
+						"tags": ["extension", "theming", "scheming"],
+						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png"
 					}
 				}
 			}
@@ -24,6 +25,7 @@
 						"https://github.com/spicetify/modules/releases/download/2024-08-29/stdlib@0.2.2+cm-1020040-ly32efah.zip"
 					],
 					"providers": [],
+					"hidden": true,
 					"checksum": "sha256:98c39a76407eef9ca34b2e4d8dd8f3ddbd476d86ba942ed578f0beee4516877c",
 					"metadata": {
 						"name": "stdlib",
