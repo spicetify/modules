@@ -97,13 +97,10 @@ async function getFollowedArtists(): Promise<Array<{ name: string; uri: string }
 	return res?.items ?? [];
 }
 
-// One artist's discography via the client's own persisted GraphQL query, kept
-// to releases inside the window and to the enabled types.
-async function getArtistReleases(
-	artist: { name: string; uri: string },
-	cfg: Config,
-	cutoff: number,
-): Promise<Release[]> {
+// One artist's discography via the client's own persisted GraphQL query. Keeps
+// every release type inside the widest window; type/range filtering happens in
+// the view over the cached superset, not here.
+async function getArtistReleases(artist: { name: string; uri: string }, cutoff: number): Promise<Release[]> {
 	const def = Spicetify?.GraphQL?.Definitions?.queryArtistDiscographyAll ?? {
 		name: "queryArtistDiscographyAll",
 		operation: "query",
@@ -115,9 +112,9 @@ async function getArtistReleases(
 
 	const raw = data?.artistUnion?.discography?.all?.items?.flatMap((r: any) => r.releases?.items ?? []) ?? [];
 	const typeLabel = (t: string): string | null => {
-		if (t === "ALBUM") return cfg.album ? "Album" : null;
-		if (t === "SINGLE" || t === "EP") return cfg.singleEp ? "Single/EP" : null;
-		if (t === "COMPILATION") return cfg.compilations ? "Compilation" : null;
+		if (t === "ALBUM") return "Album";
+		if (t === "SINGLE" || t === "EP") return "Single/EP";
+		if (t === "COMPILATION") return "Compilation";
 		return null;
 	};
 
@@ -159,15 +156,52 @@ async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise
 	return out;
 }
 
-async function fetchReleases(cfg: Config): Promise<Release[]> {
+// The widest window any range option can request. We fetch and cache this
+// superset once, then filter it per config in the view — so toggling a type
+// chip or the range window is instant and never hits the network.
+const MAX_RANGE_DAYS = 120;
+
+async function fetchAllReleases(): Promise<Release[]> {
 	const artists = await getFollowedArtists();
-	const cutoff = Date.now() - cfg.range * DAY_MS;
-	const releases = await mapPool(artists, 16, (a) => getArtistReleases(a, cfg, cutoff));
+	const cutoff = Date.now() - MAX_RANGE_DAYS * DAY_MS;
+	const releases = await mapPool(artists, 16, (a) => getArtistReleases(a, cutoff));
 	// A release can surface under several followed artists; keep the first.
 	const seen = new Set<string>();
 	const deduped = releases.filter((r) => (seen.has(r.uri) ? false : (seen.add(r.uri), true)));
 	return deduped.sort((a, b) => b.time - a.time);
 }
+
+// ---------- stale-while-revalidate cache ----------
+
+const CACHE_KEY = "new-releases:cache";
+const CACHE_VERSION = 1;
+// Past this age the cached feed is revalidated in the background on next open;
+// the cache is still shown immediately regardless of age. New releases land
+// roughly daily (mostly Fridays), so a few hours of staleness is invisible.
+const TTL_MS = 6 * 3600 * 1000;
+
+interface CacheShape {
+	v: number;
+	fetchedAt: number;
+	releases: Release[];
+}
+
+const readCache = (): CacheShape | null => {
+	try {
+		const parsed = JSON.parse(globalThis.localStorage?.getItem(CACHE_KEY) ?? "null");
+		if (!parsed || parsed.v !== CACHE_VERSION || !Array.isArray(parsed.releases)) return null;
+		return parsed as CacheShape;
+	} catch {
+		return null;
+	}
+};
+const writeCache = (cache: CacheShape): void => {
+	try {
+		globalThis.localStorage?.setItem(CACHE_KEY, JSON.stringify(cache));
+	} catch {
+		/* quota or serialization failure: run without a persisted cache */
+	}
+};
 
 // ---------- date grouping ----------
 
@@ -299,36 +333,46 @@ const ReleaseCard = ({
 
 // ---------- page ----------
 
-type Status = "loading" | "ready" | "empty";
+type Phase = "loading" | "refreshing" | "idle";
 
 const Page = () => {
-	const [status, setStatus] = React.useState<Status>("loading");
-	const [releases, setReleases] = React.useState<Release[]>([]);
+	const [cache, setCache] = React.useState<CacheShape | null>(readCache);
+	const [phase, setPhase] = React.useState<Phase>(cache ? "idle" : "loading");
 	const [dismissed, setDismissed] = React.useState<string[]>(readDismissed);
 	const [cfg, setCfg] = React.useState<Config>(readConfig);
 
-	// Each load claims a sequence number so a newer load (a refresh, a config
-	// change, or a remount) supersedes an in-flight one and only the latest
-	// result lands. A setState after unmount is a harmless no-op in React 18.
+	const releases = cache?.releases ?? [];
+
+	// Each load claims a sequence number so a newer load (background revalidate,
+	// manual refresh, or a remount) supersedes an in-flight one and only the
+	// latest result lands. A setState after unmount is a harmless no-op.
 	const gen = React.useRef(0);
-	const load = React.useCallback(async (config: Config) => {
+	const load = React.useCallback(async (background: boolean) => {
 		const seq = ++gen.current;
-		setStatus("loading");
-		let list: Release[] = [];
+		setPhase(background ? "refreshing" : "loading");
+		let list: Release[] | null = null;
 		try {
-			list = await fetchReleases(config);
+			list = await fetchAllReleases();
 		} catch {
-			list = [];
+			list = null;
 		}
 		if (seq !== gen.current) return;
-		setReleases(list);
-		setStatus(list.length ? "ready" : "empty");
+		if (list) {
+			const next: CacheShape = { v: CACHE_VERSION, fetchedAt: Date.now(), releases: list };
+			setCache(next);
+			writeCache(next);
+		}
+		setPhase("idle");
 	}, []);
 
+	// Stale-while-revalidate: cached releases render immediately (above). Fetch
+	// only when there is no cache (foreground) or the cache has aged past the
+	// TTL (background). Config toggles never refetch — they re-filter the cached
+	// superset in the memo below. Runs once on mount.
 	React.useEffect(() => {
-		void load(cfg);
-		// Reload whenever a fetch-affecting config field changes.
-	}, [load, cfg.range, cfg.album, cfg.singleEp, cfg.compilations]);
+		if (!cache) void load(false);
+		else if (Date.now() - cache.fetchedAt > TTL_MS) void load(true);
+	}, []);
 
 	const update = (patch: Partial<Config>, persist: () => void) => {
 		persist();
@@ -351,7 +395,14 @@ const Page = () => {
 	};
 
 	const dismissedSet = React.useMemo(() => new Set(dismissed), [dismissed]);
-	const visible = React.useMemo(() => releases.filter((r) => !dismissedSet.has(r.uri)), [releases, dismissedSet]);
+	// All type/range filtering happens here over the cached superset, so changing
+	// a chip or the range window is instant and never triggers a network fetch.
+	const visible = React.useMemo(() => {
+		const cutoff = Date.now() - cfg.range * DAY_MS;
+		const typeOn = (label: string): boolean =>
+			label === "Album" ? cfg.album : label === "Single/EP" ? cfg.singleEp : cfg.compilations;
+		return releases.filter((r) => r.time >= cutoff && typeOn(r.type) && !dismissedSet.has(r.uri));
+	}, [releases, dismissedSet, cfg.range, cfg.album, cfg.singleEp, cfg.compilations]);
 	const groups = React.useMemo(() => groupByDay(visible, cfg), [visible, cfg.relative]);
 
 	const rangeOptions = [
@@ -408,31 +459,36 @@ const Page = () => {
 							Undo dismiss
 						</Button>
 					)}
-					<IconButton ariaLabel="Refresh" disabled={status === "loading"} onClick={() => void load(cfg)}>
+					<IconButton
+						ariaLabel="Refresh"
+						disabled={phase !== "idle"}
+						onClick={() => void load(releases.length > 0)}
+					>
 						⟳
 					</IconButton>
+					{phase === "refreshing" && <span className="new-releases-updating">Updating…</span>}
 				</div>
 			</div>
 
-			{status === "loading" && (
-				<p className="new-releases-note">Fetching releases from the artists you follow…</p>
-			)}
-			{status === "empty" && (
+			{phase === "loading" && <p className="new-releases-note">Fetching releases from the artists you follow…</p>}
+			{phase !== "loading" && releases.length === 0 && (
 				<div className="new-releases-empty">
-					<p>No releases in the last {cfg.range} days from the artists you follow.</p>
-					<Button variant="secondary" onClick={() => void load(cfg)}>
+					<p>No releases in the last {MAX_RANGE_DAYS} days from the artists you follow.</p>
+					<Button variant="secondary" onClick={() => void load(false)}>
 						Try again
 					</Button>
 				</div>
 			)}
 
-			{status === "ready" && groups.length === 0 && (
+			{phase !== "loading" && releases.length > 0 && groups.length === 0 && (
 				<p className="new-releases-note">
-					Everything here has been dismissed. Use “Undo dismiss” to bring items back.
+					{visible.length === 0 && dismissed.length > 0
+						? "Everything here has been dismissed. Use “Undo dismiss” to bring items back."
+						: `No releases in the last ${cfg.range} days for the selected filters.`}
 				</p>
 			)}
 
-			{status === "ready" &&
+			{phase !== "loading" &&
 				groups.map((group) => (
 					<section className="new-releases-group" key={group.label}>
 						<h2 className="new-releases-date">{group.label}</h2>

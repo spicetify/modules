@@ -30,6 +30,12 @@
 	font-size: 0.875rem;
 }
 
+.new-releases-updating {
+	color: var(--spice-subtext);
+	font-size: 0.8125rem;
+	opacity: 0.85;
+}
+
 .new-releases-empty {
 	display: flex;
 	flex-direction: column;
