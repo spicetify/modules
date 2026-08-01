@@ -111,6 +111,15 @@ function loadVault(): { modules: Record<string, { v: Record<string, VaultVersion
 
 function saveVault(vault: unknown): void {
 	writeFileSync(VAULT_PATH, `${JSON.stringify(vault, null, "\t")}\n`);
+	// oxfmt owns the repo's JSON style (inline primitive arrays);
+	// JSON.stringify alone rewrites the whole file's formatting and
+	// drowns every data change in whitespace churn. Best-effort: the
+	// file is valid JSON either way.
+	try {
+		execFileSync(path.join(process.cwd(), "node_modules", ".bin", "oxfmt"), [VAULT_PATH], { stdio: "ignore" });
+	} catch {
+		console.warn("warning: oxfmt unavailable; vault.json left in JSON.stringify formatting");
+	}
 }
 
 async function refresh(): Promise<void> {
@@ -143,14 +152,21 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 	const version: string = meta.version;
 	if (!id || !version) throw new Error(`${distDir}/metadata.json must set name and version`);
 
+	const vault = loadVault();
+	const existing = vault.modules[id]?.v?.[version];
+	// Infrastructure modules declare "hidden": true in metadata.json;
+	// they never render as store cards, so no preview is required. A
+	// hidden flag curated straight into the vault also survives a
+	// re-add of the same version.
+	const hidden = meta.hidden === true || existing?.hidden === true || undefined;
+
 	const metadata = metadataSubset(meta);
 	// Store cards are artwork-first; a previewless entry has no card.
-	if (!metadata.preview) {
+	if (!metadata.preview && !hidden) {
 		throw new Error(`${id}@${version}: metadata.preview (an https URL) is required by the store`);
 	}
 
 	const bytes = zipFile ? readFileSync(zipFile) : await download(artifactUrl);
-	const vault = loadVault();
 	vault.modules[id] ??= { v: {} };
 	vault.modules[id].v[version] = {
 		artifacts: [artifactUrl],
@@ -158,9 +174,55 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 		checksum: sha256(bytes),
 		metadata,
 		updatedAt: today(),
+		...(hidden ? { hidden } : {}),
 	};
 	saveVault(vault);
 	console.log(`added ${id}@${version} to ${VAULT_PATH}`);
+}
+
+// Add (or update) a single inline css-only snippet. The bulk importer
+// migrated the legacy marketplace catalog; this is the first-class
+// flow for individual snippets going forward.
+function addSnippet(
+	name: string,
+	cssPath: string,
+	preview: string,
+	opts: { author?: string; github?: string; description?: string },
+): void {
+	if (!/^https?:\/\//.test(preview)) {
+		throw new Error("snippet: --preview must be an https URL (store cards are artwork-first)");
+	}
+	const css = readFileSync(cssPath, "utf8");
+	if (!css.trim()) throw new Error(`snippet: ${cssPath} is empty`);
+
+	let slug = slugify(name);
+	// "snippet-user-*" is reserved for in-client user snippets.
+	if (slug.startsWith("user-")) slug = `catalog-${slug}`;
+	const id = `snippet-${slug}`;
+
+	const vault = loadVault();
+	const existing = vault.modules[id]?.v?.["1.0.0"];
+	const github = opts.github ?? existing?.metadata?.github;
+	const metadata: VaultMetadata = {
+		name,
+		description: opts.description ?? existing?.metadata?.description ?? "",
+		// Curated attribution survives an update without --author, same
+		// rule as the bulk importer.
+		authors: opts.author ? [opts.author] : (existing?.metadata?.authors ?? ["spicetify"]),
+		...(github ? { github } : {}),
+		tags: ["snippet"],
+		preview,
+	};
+	const unchanged = existing?.files?.["index.css"] === css;
+	vault.modules[id] ??= { v: {} };
+	vault.modules[id].v["1.0.0"] = {
+		artifacts: [],
+		files: { "index.css": css },
+		metadata,
+		updatedAt: unchanged ? (existing?.updatedAt ?? today()) : today(),
+	};
+	saveVault(vault);
+	console.log(`${existing ? "updated" : "added"} ${id} -> ${VAULT_PATH}`);
 }
 
 function pack(distDir: string, outDir: string): void {
@@ -263,8 +325,27 @@ async function main(): Promise<void> {
 		if (!distDir || !artifact) throw new Error("usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>]");
 		return add(distDir, artifact, flag("zip"));
 	}
+	if (cmd === "snippet") {
+		const name = rest.find((a) => !a.startsWith("--"));
+		const flag = (n: string) => {
+			const i = rest.indexOf(`--${n}`);
+			return i >= 0 ? rest[i + 1] : undefined;
+		};
+		const css = flag("css");
+		const preview = flag("preview");
+		if (!name || !css || !preview) {
+			throw new Error(
+				"usage: vault.ts snippet <name> --css <file> --preview <url> [--author <name>] [--github <user>] [--description <text>]",
+			);
+		}
+		return addSnippet(name, css, preview, {
+			author: flag("author"),
+			github: flag("github"),
+			description: flag("description"),
+		});
+	}
 	throw new Error(
-		"usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>] | snippets <snippets.json>",
+		"usage: vault.ts refresh | pack <dist-dir> [--out <dir>] | add <dist-dir> --artifact <url> [--zip <file>] | snippets <snippets.json> [--base <raw-url-prefix>] | snippet <name> --css <file> --preview <url> [--author <name>] [--github <user>] [--description <text>]",
 	);
 }
 
