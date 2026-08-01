@@ -12,33 +12,30 @@ runs:
                cp metadata.json "../${DIR}.metadata.json"
                7z a -bb0 "../${DIR}.zip" *
                popd
-               rm -rf "${DIR}"
             done
             popd
 
       -  name: Release
          uses: softprops/action-gh-release@v2
          with:
-            files: dist/*
+            files: |
+               dist/*.zip
+               dist/*.metadata.json
 
+      # vault.ts add does what the raw yq edit did (artifacts, checksum,
+      # providers) plus what it skipped: embedded metadata, updatedAt,
+      # and the preview requirement, so a previewless module fails the
+      # release loudly instead of landing in the vault invisible.
       -  name: Update vault.json
          shell: bash
          run: |
             set -e
-            pushd dist
-            for ARCHIVE in *.zip; do
-               IFS="@" read -r ID VERSION <<< "$ARCHIVE"
-               VERSION="${VERSION%.zip}"
-               URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE}"
-               CHECKSUM="sha256:$(sha256sum "${ARCHIVE}" | cut -d' ' -f1)"
-               S='.modules["'"${ID}"'"].v["'"${VERSION}"'"]'
-               yq -i '
-                  '"${S}"'.artifacts = ["'"${URL}"'"] |
-                  '"${S}"'.checksum = "'"${CHECKSUM}"'" |
-                  '"${S}"'.providers = []
-               ' ../vault.json
+            for DIR in dist/*/; do
+               DIR="${DIR%/}"
+               ARCHIVE="${DIR}.zip"
+               URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE##*/}"
+               node scripts/vault.ts add "${DIR}" --artifact "${URL}" --zip "${ARCHIVE}"
             done
-            popd
             rm -rf dist
 
       -  name: Git commit, rebase onto master

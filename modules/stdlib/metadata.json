@@ -1,6 +1,7 @@
 {
 	"name": "stdlib",
 	"tags": ["lib"],
+	"hidden": true,
 	"preview": "./assets/PREVIEW.png",
 	"version": "0.3.0",
 	"authors": ["spicetify", "Delusoire"],
