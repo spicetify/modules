@@ -402,6 +402,11 @@ function searchHaystack(mod: VaultModule): string {
 
 const displayName = (mod: VaultModule) => mod.meta?.name ?? mod.id;
 
+// A module's single category badge on cards, derived from its tags.
+// The full tag list stays in the details dialog and in search.
+const CATEGORY_TAGS = ["extension", "theme", "snippet", "app"];
+const categoryOf = (tags: string[] | undefined) => CATEGORY_TAGS.find((tag) => (tags ?? []).includes(tag));
+
 // Vault version keys carry a "+cm-<classmap>-<hash>" build-metadata suffix
 // identifying which classmap the artifact was stitched against. That is an
 // internal packaging detail, so strip it for anything a user reads; the full
@@ -575,12 +580,14 @@ function openModuleDetails(mod: VaultModule, installLabel: string, onInstall: (b
 	meta.appendChild(Badge({ text: displayVersion(mod.version) }));
 	const count = installCounts[mod.id];
 	if (count !== undefined) meta.appendChild(Badge({ text: `${count} installs` }));
-	meta.appendChild(
-		Badge({
-			text: mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified",
-			tone: mod.checksum || mod.files ? "ok" : "neutral",
-		}),
-	);
+	// Verification only matters when there is a download to verify;
+	// inline entries ship inside the vault, so there is nothing to
+	// check and the tags below already say what the module is.
+	if (!mod.files) {
+		meta.appendChild(
+			Badge({ text: mod.checksum ? "checksum ✓" : "unverified", tone: mod.checksum ? "ok" : "neutral" }),
+		);
+	}
 	for (const tag of mod.meta?.tags ?? []) meta.appendChild(Badge({ text: tag }));
 	body.appendChild(meta);
 
@@ -905,6 +912,10 @@ function createStorePage() {
 		const tab = TABS.find((t) => t.key === activeTab);
 		const list = catalog.modules.filter((mod) => {
 			if (catalog.revoked[mod.id]) return false;
+			// Previews are required: the card is artwork-first, so a
+			// preview-less entry (a non-conforming community vault) has no
+			// card to render. The updates banner still covers it.
+			if (!mod.meta?.preview) return false;
 			if (tab?.tag && !(mod.meta?.tags ?? []).includes(tab.tag)) return false;
 			return !q || searchHaystack(mod).includes(q);
 		});
@@ -973,10 +984,21 @@ function createStorePage() {
 			});
 	}
 
+	function runRemove(mod: VaultModule, button: HTMLButtonElement) {
+		button.disabled = true;
+		void M()
+			.removeLocal(mod.id)
+			.then(() => setStatus(`${displayName(mod)} removed`))
+			.catch((e: Error) => setStatus(`failed: ${e.message}`))
+			.finally(() => {
+				button.disabled = false;
+				renderAll();
+			});
+	}
+
 	function renderGrid() {
 		grid.replaceChildren();
 		const locals = localRecords();
-		const localIds = new Set(locals.map((r) => r.metadata.identifier));
 		const localVersions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
 		const states = new Map<string, any>(
 			M()
@@ -984,15 +1006,56 @@ function createStorePage() {
 				.map((s: any) => [s.identifier, s]),
 		);
 		for (const mod of visibleModules()) {
-			const card = el("article", "spicetify-store-card");
+			const card = el("article", "spicetify-store-card spicetify-store-card--catalog");
+			card.dataset.moduleId = mod.id;
 
-			if (mod.meta?.preview) {
-				const img = el("img", "spicetify-store-card-preview") as HTMLImageElement;
-				img.src = mod.meta.preview;
-				img.loading = "lazy";
-				img.alt = "";
-				card.appendChild(img);
-			}
+			// The whole card opens the details dialog (album-card pattern);
+			// inner controls (the install FAB, the repo link) stop
+			// propagation so they keep their own behavior.
+			const openDetails = () =>
+				openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn));
+			card.tabIndex = 0;
+			card.setAttribute("role", "button");
+			card.setAttribute("aria-label", `${displayName(mod)} details`);
+			card.addEventListener("click", openDetails);
+			card.addEventListener("keydown", (event) => {
+				if (event.target !== card) return;
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					openDetails();
+				}
+			});
+
+			const img = el("img", "spicetify-store-card-preview") as HTMLImageElement;
+			img.src = mod.meta?.preview ?? "";
+			img.loading = "lazy";
+			img.alt = "";
+			card.appendChild(img);
+
+			// Hover-revealed circular button pinned to the card's
+			// bottom-right corner: the album-card play FAB, white with a
+			// glyph instead of green with a play triangle. The glyph is a
+			// download while there is something to fetch (not installed,
+			// or an update pending); an installed, current module gets a
+			// trash glyph instead, so the corner action is removal.
+			const installedVersion = localVersions.get(mod.id);
+			const canRemove =
+				installedVersion !== undefined && installedVersion === mod.version && !PROTECTED.has(mod.id);
+			const installFab = el(
+				"button",
+				`spicetify-store-card-fab${canRemove ? " spicetify-store-card-fab--remove" : ""}`,
+			);
+			installFab.appendChild(svgIcon(canRemove ? TRASH_PATHS : DOWNLOAD_PATHS));
+			const cta = canRemove ? "Remove" : installCta(mod, installedVersion);
+			installFab.title = cta;
+			installFab.setAttribute("aria-label", `${cta} ${displayName(mod)}`);
+			installFab.addEventListener("click", (event) => {
+				event.stopPropagation();
+				if (canRemove) runRemove(mod, installFab);
+				else runInstall(mod, installFab);
+			});
+			card.appendChild(installFab);
+
 			const title = el("h3", "spicetify-store-card-name");
 			const repo = deriveRepository(mod);
 			if (repo) {
@@ -1000,6 +1063,7 @@ function createStorePage() {
 				link.href = repo;
 				link.target = "_blank";
 				link.rel = "noopener noreferrer";
+				link.addEventListener("click", (event) => event.stopPropagation());
 				title.appendChild(link);
 			} else {
 				title.textContent = displayName(mod);
@@ -1010,7 +1074,6 @@ function createStorePage() {
 				card.appendChild(el("div", "spicetify-store-card-authors", `by ${mod.meta.authors.join(", ")}`));
 			}
 
-			card.dataset.moduleId = mod.id;
 			const meta = el("div", "spicetify-store-card-meta");
 			meta.appendChild(badge(displayVersion(mod.version)));
 			const count = installCounts[mod.id];
@@ -1019,32 +1082,27 @@ function createStorePage() {
 				countBadge.classList.add("spicetify-store-badge--count");
 				meta.appendChild(countBadge);
 			}
-			meta.appendChild(
-				badge(
-					mod.files ? "inline ✓" : mod.checksum ? "checksum ✓" : "unverified",
-					!!(mod.checksum || mod.files),
-				),
-			);
+			// Category badge (snippet/theme/extension/app) says what the
+			// module is; the checksum badge only appears for artifact
+			// modules, where an unverified download is a real risk. Inline
+			// entries ship inside the vault, so there is nothing to verify.
+			const category = categoryOf(mod.meta?.tags);
+			if (category) meta.appendChild(badge(category));
+			if (!mod.files) meta.appendChild(badge(mod.checksum ? "checksum ✓" : "unverified", !!mod.checksum));
 			try {
 				const host = new URL(mod.vault).host;
 				if (host) meta.appendChild(badge(host));
 			} catch {}
-			for (const tag of mod.meta?.tags ?? []) meta.appendChild(badge(tag));
-			const state = states.get(mod.id) as { loaded?: boolean } | undefined;
-			if (localIds.has(mod.id)) meta.appendChild(badge(state?.loaded ? "enabled" : "installed", true));
+			// No tag badges on cards: the toolbar chips already segment the
+			// catalog by tag, so the badge only repeats what the active tab
+			// communicates. Tags stay in the details dialog and in search.
 			card.appendChild(meta);
 
-			const actions = el("div", "spicetify-store-card-actions");
-			const install = el("button", "spicetify-store-cta", installCta(mod, localVersions.get(mod.id)));
-			install.addEventListener("click", () => runInstall(mod, install));
-			const details = Button({
-				label: "Details",
-				variant: "secondary",
-				onClick: () =>
-					openModuleDetails(mod, installCta(mod, localVersions.get(mod.id)), (btn) => runInstall(mod, btn)),
-			});
-			actions.append(install, details);
-			card.appendChild(actions);
+			// Enabled state is a persistent green outline, not a badge:
+			// it must read without hovering (the corner FAB, which would
+			// also tell, is hover-revealed).
+			const state = states.get(mod.id) as { loaded?: boolean } | undefined;
+			if (state?.loaded) card.classList.add("spicetify-store-card--enabled");
 			grid.appendChild(card);
 		}
 		if (!grid.childElementCount) {
@@ -1307,6 +1365,32 @@ async function registerStorePage(page: ReturnType<typeof createStorePage>): Prom
 		return null;
 	}
 }
+
+// Glyphs for the card corner FAB, filled Encore style. Built with
+// createElementNS, never innerHTML (static markup rule).
+function svgIcon(paths: string[]): SVGSVGElement {
+	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	svg.setAttribute("viewBox", "0 0 24 24");
+	svg.setAttribute("aria-hidden", "true");
+	for (const d of paths) {
+		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		path.setAttribute("d", d);
+		svg.appendChild(path);
+	}
+	return svg;
+}
+
+// Download-into-tray: install or update.
+const DOWNLOAD_PATHS = [
+	"M12 3a1 1 0 0 1 1 1v7.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1z",
+	"M5 15a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z",
+];
+
+// Trash can: remove an installed module.
+const TRASH_PATHS = [
+	"M9 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h4a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2h4V4z",
+	"M6.5 8h11l-.8 11.2A2.5 2.5 0 0 1 14.2 21.5H9.8a2.5 2.5 0 0 1-2.5-2.3L6.5 8z",
+];
 
 // Marketplace-style circular icon button in the global nav, registered
 // through stdlib when it is installed. The store stays standalone by

@@ -171,18 +171,103 @@
 	}
 
 	.spicetify-store-card {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 		padding: 12px;
 		border-radius: 8px;
 		background: var(--spice-card, #202020);
+		transition: background-color 0.2s ease;
+
+		// Catalog cards are clickable (the card itself opens details).
+		&.spicetify-store-card--catalog {
+			cursor: pointer;
+
+			&:hover,
+			&:focus-within {
+				background: var(--spice-card-hover, #2a2a2a);
+
+				.spicetify-store-card-fab {
+					opacity: 1;
+					transform: translateY(0);
+				}
+			}
+
+			&:focus-visible {
+				outline: 2px solid var(--spice-text, #fff);
+				outline-offset: 2px;
+			}
+
+			// Align the badge row across a grid row, now that the
+			// actions row is gone. Reserve room on the right so badges
+			// never slide under the corner FAB.
+			.spicetify-store-card-meta {
+				margin-top: auto;
+				padding-right: 48px;
+			}
+		}
 
 		.spicetify-store-card-preview {
+			display: block;
 			width: 100%;
 			aspect-ratio: 16 / 9;
 			object-fit: cover;
 			border-radius: 4px;
+		}
+
+		// Circular install button pinned to the card's bottom-right
+		// corner, revealed on hover: the album-card play FAB, white
+		// with a download glyph instead of green with a play triangle.
+		.spicetify-store-card-fab {
+			position: absolute;
+			right: 12px;
+			bottom: 12px;
+			width: 40px;
+			height: 40px;
+			padding: 0;
+			border: none;
+			border-radius: 50%;
+			display: grid;
+			place-items: center;
+			background: var(--spice-text, #fff);
+			color: #000;
+			cursor: pointer;
+			box-shadow: 0 8px 8px rgba(0, 0, 0, 0.3);
+			opacity: 0;
+			transform: translateY(8px);
+			transition:
+				opacity 0.2s ease,
+				transform 0.2s ease;
+
+			svg {
+				width: 20px;
+				height: 20px;
+				fill: currentColor;
+			}
+
+			// After the reveal rules so the scale wins the specificity tie.
+			&:hover {
+				transform: scale(1.06);
+			}
+
+			&:focus-visible {
+				opacity: 1;
+				transform: translateY(0);
+			}
+
+			// Mid-install the FAB stays visible but inert.
+			&:disabled {
+				cursor: default;
+				opacity: 0.6;
+				transform: translateY(0);
+			}
+
+			// Installed and current: the corner action becomes removal,
+			// so the glyph turns negative-red as the destructive tell.
+			&.spicetify-store-card-fab--remove {
+				color: var(--spice-negative, #e91429);
+			}
 		}
 
 		.spicetify-store-card-name {
@@ -191,6 +276,15 @@
 			overflow: hidden;
 			text-overflow: ellipsis;
 			white-space: nowrap;
+
+			a {
+				color: inherit;
+				text-decoration: none;
+
+				&:hover {
+					text-decoration: underline;
+				}
+			}
 		}
 
 		.spicetify-store-card-desc {
@@ -370,6 +464,12 @@
 
 .spicetify-store-card--revoked {
 	outline: 1px solid rgba(255, 99, 99, 0.6);
+}
+
+// Enabled modules read at a glance without hovering: a green outline
+// instead of an enabled badge (outline, so no layout shift).
+.spicetify-store-card--enabled {
+	outline: 1px solid var(--spice-button-active, #1ed760);
 }
 
 .spicetify-store-data-row {
