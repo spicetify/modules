@@ -84,6 +84,9 @@ type VaultModule = {
 		name?: string;
 		description?: string;
 		authors?: string[];
+		// GitHub username of the (first) author, when known; the
+		// details dialog links the author name to their profile.
+		github?: string;
 		tags?: string[];
 		preview?: string;
 		repository?: string;
@@ -596,7 +599,23 @@ function openModuleDetails(mod: VaultModule, installLabel: string, onInstall: (b
 	body.appendChild(meta);
 
 	if (mod.meta?.authors?.length) {
-		body.appendChild(el("div", "spicetify-store-card-authors", `by ${mod.meta.authors.join(", ")}`));
+		const line = el("div", "spicetify-store-card-authors");
+		line.append("by ");
+		mod.meta.authors.forEach((author, i) => {
+			if (i > 0) line.append(", ");
+			// Link to the author's GitHub profile when the vault knows
+			// their username (recovered from marketplace history).
+			if (i === 0 && mod.meta?.github) {
+				const a = el("a", undefined, author);
+				a.href = `https://github.com/${mod.meta.github}`;
+				a.target = "_blank";
+				a.rel = "noopener noreferrer";
+				line.appendChild(a);
+			} else {
+				line.append(author);
+			}
+		});
+		body.appendChild(line);
 	}
 	if (mod.meta?.description) body.appendChild(el("p", undefined, mod.meta.description));
 

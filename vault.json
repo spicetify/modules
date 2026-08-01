@@ -47,6 +47,7 @@
 						"name": "Hamsters Dancing",
 						"description": "Adds a couple of dancing hamsters on the playback bar",
 						"authors": ["vincenzomy03"],
+						"github": "vincenzomy03",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dancing-hamster.png"
 					},
@@ -65,6 +66,7 @@
 						"name": "Sonic Dancing",
 						"description": "You get sonic dancing on your playback bar!",
 						"authors": ["uhalexz_"],
+						"github": "uhAlexz",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/sonic-dancing.png"
 					},
@@ -83,6 +85,7 @@
 						"name": "Remove Playlist Album Cover",
 						"description": "Remove the album cover from the playlist banner",
 						"authors": ["Duckyz95"],
+						"github": "Duckyz95",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Playlist-Cover.png"
 					},
@@ -101,6 +104,7 @@
 						"name": "Rounded 'Now Playing' Bar",
 						"description": "Adds rounded corners to the 'Now Playing' bar so it matches the rest of the User Interface.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-now-playing.png"
 					},
@@ -119,6 +123,7 @@
 						"name": "Rounded Images",
 						"description": "Adds rounded corners to the cover art, playlist covers, cards and other images",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-images.png"
 					},
@@ -137,6 +142,7 @@
 						"name": "Fix 'Episodes' Icon",
 						"description": "Makes the 'Your Episodes' button icon monochromatic like the rest of the icons.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fixed-episodes-icon.png"
 					},
@@ -155,6 +161,7 @@
 						"name": "Fix 'Liked' Icon",
 						"description": "Fix the colours of the Liked icon in sidebar",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-icon.png"
 					},
@@ -173,6 +180,7 @@
 						"name": "Fix 'DJ' Icon",
 						"description": "Makes the DJ icon match themes better",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-DJ-icon.png"
 					},
@@ -191,6 +199,7 @@
 						"name": "Auto-hide Friends",
 						"description": "Collapse the friends activity sidebar on small screens",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/auto-hide-friends.png"
 					},
@@ -209,6 +218,7 @@
 						"name": "Smooth Reveal Playlist Gradient",
 						"description": "Reveals the playlist gradient header gradient with a fade in effect",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-playlist-reveal-gradient.png"
 					},
@@ -227,6 +237,7 @@
 						"name": "Remove connect bar",
 						"description": "Remove connect bar that causes progress bar displacement when listening on different devices",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-connect-bar.png"
 					},
@@ -245,6 +256,7 @@
 						"name": "Fix main view width",
 						"description": "Makes main view fill up all available space",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-main-view-width.png"
 					},
@@ -263,6 +275,7 @@
 						"name": "Left aligned heart icons",
 						"description": "Moves the heart icon to the left side of the track title in track views",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/left-aligned-heart-icons.png"
 					},
@@ -281,6 +294,7 @@
 						"name": "Hover Panels",
 						"description": "Have your playlist, right sidebar, and controls bar be hoverable.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hover-panels.png"
 					},
@@ -299,6 +313,7 @@
 						"name": "New Hover Panel",
 						"description": "A New Hover Panel that servers the same purpose as the legacy 'Hover Panels', but only for the left sidebar and without modifying any other elements.",
 						"authors": ["Rui Wang"],
+						"github": "Ender-Wang",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/new-hover-panel.gif"
 					},
@@ -317,6 +332,7 @@
 						"name": "Dynamic Left Sidebar",
 						"description": "Make the left sidebar dynamic, so it only shows when you hover over it and pushes the main content to the right.",
 						"authors": ["Rui Wang"],
+						"github": "Ender-Wang",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Dynamic-Left-Sidebar.gif"
 					},
@@ -335,6 +351,7 @@
 						"name": "Hide Made For YOU",
 						"description": "Hide the 'Made For YOU' section on the home page.",
 						"authors": ["Rui Wang"],
+						"github": "Ender-Wang",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Made-For-YOU.png"
 					},
@@ -353,6 +370,7 @@
 						"name": "Dynamic Search Bar",
 						"description": "Make the search bar dynamic, so it only shows when you hover over it.",
 						"authors": ["Ender-Wang"],
+						"github": "Ender-Wang",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dynamic-search-bar.gif"
 					},
@@ -371,6 +389,7 @@
 						"name": "Fix progress bar displacement",
 						"description": "Fixes the progress bar displacement for a few themes. Better version of @CharlieS1103 Snippet",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-progress-bar.png"
 					},
@@ -389,6 +408,7 @@
 						"name": "Fix playlist hover effect",
 						"description": "Fixes the hover effect on the playlist titles in some themes",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-hover.png"
 					},
@@ -407,6 +427,7 @@
 						"name": "Disable Homepage Recommendations",
 						"description": "Removes all recommendations from the homepage",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/disable-recommendations.png"
 					},
@@ -425,6 +446,7 @@
 						"name": "Circular Album Art",
 						"description": "Makes the now playing album art be circular (like a vinyl)",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/circular-album-art.png"
 					},
@@ -443,6 +465,7 @@
 						"name": "Always show forward button",
 						"description": "The navigate forward button hides itself when the window width is smaller. This snipppet makes it so that it is always shown.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/always-show-forward.png"
 					},
@@ -461,6 +484,7 @@
 						"name": "Right Side Cover Art",
 						"description": "Cover art on right side with animation",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/right-cover-art.png"
 					},
@@ -479,6 +503,7 @@
 						"name": "Better lyrics style",
 						"description": "Spotify lyrics are focused and beautified",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/better-lyrics-style.png"
 					},
@@ -497,6 +522,7 @@
 						"name": "Fix now playing icon color",
 						"description": "Fixes the now playing icon color",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-now-playing-icon.png"
 					},
@@ -515,6 +541,7 @@
 						"name": "Hide playing gif",
 						"description": "Hides the gif that shows the music playing",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-playing-gif.png"
 					},
@@ -533,6 +560,7 @@
 						"name": "Pointers",
 						"description": "Clickable elements are now a pointer",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pointer.png"
 					},
@@ -551,6 +579,7 @@
 						"name": "Remove Top gradient",
 						"description": "Removes gradient from home page and playlist page",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-gradient.png"
 					},
@@ -569,6 +598,7 @@
 						"name": "Fix Liked Button",
 						"description": "Fixes Liked Button colors",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-button.png"
 					},
@@ -587,6 +617,7 @@
 						"name": "Hide Sidebar ScrollBar",
 						"description": "Hides Sidebar ScrollBar near playlist section",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png"
 					},
@@ -605,6 +636,7 @@
 						"name": "Modern ScrollBar",
 						"description": "Thin rounded modern scrollbar",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/modern-scrollbar.png"
 					},
@@ -623,6 +655,7 @@
 						"name": "Remove liked and Episodes icon",
 						"description": "Removes the liked and episodes icon from the sidebar",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-ep-likes.png"
 					},
@@ -641,6 +674,7 @@
 						"name": "Rotating Cover Art",
 						"description": "Adds circular mask to cover art and rotation",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rotating-coverart.png"
 					},
@@ -659,6 +693,7 @@
 						"name": "Hide liked songs card",
 						"description": "Hides the sometimes unfitting liked Songs card in the Your Libary tab",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-likedSongs-card.png"
 					},
@@ -677,6 +712,7 @@
 						"name": "Fix playlist and folder position",
 						"description": "Replaces the playlists section in the left side bar to align with all the other category icons for the new UI. Screenshot includes 'Playlist icons' snippet",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-and-folder-position.png"
 					},
@@ -695,6 +731,7 @@
 						"name": "Remove recently played from homepage",
 						"description": "Removes the recently played shelf from the home page",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-recently-played.png"
 					},
@@ -713,6 +750,7 @@
 						"name": "Make custom app icons thicker",
 						"description": "Gives icons from the sticky list a thicker border",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-sticky-list-icons.png"
 					},
@@ -731,6 +769,7 @@
 						"name": "Pretty Lyrics",
 						"description": "Gets rid of the ugly background colour on the lyrics page and makes it consistent with themes. Works best with dark themes.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pretty-lyrics.png"
 					},
@@ -749,6 +788,7 @@
 						"name": "Oneko",
 						"description": "Adds Oneko onto your playback bar!",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/oneko.png"
 					},
@@ -767,6 +807,7 @@
 						"name": "Remove Popular sections from homepage",
 						"description": "Thanks Spotify, but I have a music taste",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png"
 					},
@@ -785,6 +826,7 @@
 						"name": "Dark Lyrics",
 						"description": "Replaces the highly saturated lyrics backgrounds with a very subtle dark gradient",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dark-lyrics.png"
 					},
@@ -803,6 +845,7 @@
 						"name": "Thicker Bars",
 						"description": "Makes the song progress and volume bar thicker",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-bars.png"
 					},
@@ -821,6 +864,7 @@
 						"name": "Fullscreen hide playing from",
 						"description": "Hides the playing from card while in fullscreen view",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-playing-from.png"
 					},
@@ -839,6 +883,7 @@
 						"name": "Fullscreen hide next up",
 						"description": "Hides the next up card while in fullscreen view (appears shortly before switching to the next song)",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-next-up.png"
 					},
@@ -857,6 +902,7 @@
 						"name": "Hide profile username",
 						"description": "Hides your username next to your profile picture",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png"
 					},
@@ -875,6 +921,7 @@
 						"name": "Hide now playing view button",
 						"description": "Hides the now playing view button from the playbar",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-now-playing-view-button.png"
 					},
@@ -893,6 +940,7 @@
 						"name": "Hide play count",
 						"description": "Hides the play count on songs/albums etc so you can give each songs its chance without thinking about numbers",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-play-count.png"
 					},
@@ -911,6 +959,7 @@
 						"name": "Hide recent searches",
 						"description": "Hides the recent searches section on the search page",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-recent-searches.png"
 					},
@@ -929,6 +978,7 @@
 						"name": "Duck",
 						"description": "Adds dancing duck onto your playback bar!",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duck.png"
 					},
@@ -947,6 +997,7 @@
 						"name": "Duotone Album Art",
 						"description": "Changes the album art into a duotone version with two colors of your choice",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png"
 					},
@@ -965,6 +1016,7 @@
 						"name": "Thin Library Sidebar Rows",
 						"description": "Single-line rows in the library sidebar, like the pre-2023 UI",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thin-library-sidebar-rows.png"
 					},
@@ -983,6 +1035,7 @@
 						"name": "Default Progress Bar",
 						"description": "Return progress bar to default size and location on themes that change it",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/default-progress-bar.png"
 					},
@@ -1001,6 +1054,7 @@
 						"name": "Fix Listening On",
 						"description": "Fix listening on for some themes that move it up or make the text not visible",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-listening-on.png"
 					},
@@ -1019,6 +1073,7 @@
 						"name": "Smooth Progress/Volume Bar",
 						"description": "Makes the Progress/Volume bar glide",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-progress-bar.png"
 					},
@@ -1037,6 +1092,7 @@
 						"name": "Centered Lyrics",
 						"description": "Centers the lyrics on the lyrics page",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/centered-lyrics.png"
 					},
@@ -1055,6 +1111,7 @@
 						"name": "Hide lyrics button",
 						"description": "Hides the lyrics button in the playbar",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-lyrics-button.png"
 					},
@@ -1073,6 +1130,7 @@
 						"name": "Hide download button",
 						"description": "Hide download button in EPs and albums",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-download-button.png"
 					},
@@ -1109,6 +1167,7 @@
 						"name": "Remove top spacing",
 						"description": "Remove top spacing where should be the Window action buttons. Useful for tiling window managers.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-top-spacing.png"
 					},
@@ -1127,6 +1186,7 @@
 						"name": "Switch Sidebars",
 						"description": "Move the navigation panel to the right and the information sidebar to the left. Drag to resize works in reverse or pre-switching context (drag off the application window to adjust).",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/switch-sidebars.png"
 					},
@@ -1145,6 +1205,7 @@
 						"name": "Amogus Dancing",
 						"description": "Adds dancing amogus onto your playback bar!",
 						"authors": ["samuel2793"],
+						"github": "samuel2793",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/amogus-dancing.png"
 					},
@@ -1181,6 +1242,7 @@
 						"name": "Hide Friend Activity Button",
 						"description": "Hides the Friend Activity button",
 						"authors": ["Donaldino7712"],
+						"github": "Donaldino7712",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-friend-activity-button.png"
 					},
@@ -1271,6 +1333,7 @@
 						"name": "More Visible Unplayable Tracks",
 						"description": "Changes the background of unplayable tracks to make it easier to spot them in large playlists.",
 						"authors": ["NeoNyaa"],
+						"github": "NeoNyaa",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/More-Visible-Unplayable-Tracks.png"
 					},
@@ -1289,6 +1352,7 @@
 						"name": "Hide Mini Player Button",
 						"description": "Hides the Mini Player button.",
 						"authors": ["Rui Wang"],
+						"github": "Ender-Wang",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Mini-Player-Button.png"
 					},
@@ -1307,6 +1371,7 @@
 						"name": "Hide Full Screen Button",
 						"description": "Hides the Full Screen button.",
 						"authors": ["Rui Wang"],
+						"github": "Ender-Wang",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Full-Screen-Button.png"
 					},
@@ -1325,6 +1390,7 @@
 						"name": "Queue Top Side Panel",
 						"description": "Moves the \"Next in queue\" section to the top of the Now Playing view",
 						"authors": ["blok"],
+						"github": "Theblockbuster1",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png"
 					},
@@ -1343,6 +1409,7 @@
 						"name": "Small Video Button",
 						"description": "Makes the \"Switch to video\" button smaller and less intrusive, for consistency",
 						"authors": ["blok"],
+						"github": "Theblockbuster1",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Small-Video-Button.png"
 					},
@@ -1361,6 +1428,7 @@
 						"name": "Spinning CD Cover Art",
 						"description": "Converts the cover art of the currently playing song to a slowly spinning CD.",
 						"authors": ["uboaaaa"],
+						"github": "uboaaaa",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Spinning-CD-Cover-Art.jpg"
 					},
@@ -1379,6 +1447,7 @@
 						"name": "Nyan Cat Progress Bar",
 						"description": "Changes your playback progress bar to Nyan cat flying through space on a rainbow.",
 						"authors": ["Isaac Maier"],
+						"github": "itsmeow",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/nyan-cat-progress-bar.gif"
 					},
@@ -1397,6 +1466,7 @@
 						"name": "Be Square",
 						"description": "Removes rounded edges on square images and some Spotify UI. Does not affect images with 50% border-radius such as avatars or play buttons.",
 						"authors": ["PasttaTypo"],
+						"github": "PasttaTypo",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/be-square.png"
 					},
@@ -1451,6 +1521,7 @@
 						"name": "Remove Duplicated Fullscreen Button",
 						"description": "Removes the original fullscreen button when the Beautiful Lyrics extension is installed.",
 						"authors": ["MigPro"],
+						"github": "MigProPlayer",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Duplicated-Fullscreen-Button.png"
 					},
@@ -1469,6 +1540,7 @@
 						"name": "Fix Listen Together Button",
 						"description": "Changes the button from the Listen Together extension to match the rest of the UI and theme.",
 						"authors": ["MigPro"],
+						"github": "MigProPlayer",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Fix-Listen-Together-Button.png"
 					},
@@ -1523,6 +1595,7 @@
 						"name": "Remove the Artists and Credits sections from the Sidebar",
 						"description": "It will only show the album cover and the next song",
 						"authors": ["FoxyLoon"],
+						"github": "FoxyLoon",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png"
 					},
@@ -1577,6 +1650,7 @@
 						"name": "Hide 'Scroll through previews'",
 						"description": "Hides the 'Scroll through previews of tracks' button from albums/playlists",
 						"authors": ["Donald"],
+						"github": "Donaldino7712",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-scroll-through-previews.png"
 					},
@@ -1595,6 +1669,7 @@
 						"name": "Jumping ZeroTwo",
 						"description": "Adds ZeroTwo onto your progress bar.",
 						"authors": ["Arteed"],
+						"github": "Arteeed",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/jumping-zerotwo.png"
 					},
@@ -1613,6 +1688,7 @@
 						"name": "BMO Progressbar",
 						"description": "Adds a dancing BMO to the Progress Bar.",
 						"authors": ["JamieeCG"],
+						"github": "JamieeCG",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png"
 					},
@@ -1631,6 +1707,7 @@
 						"name": "Moving Minecraft Bee",
 						"description": "Adds a Minecraft Bee to the Progress Bar which follows throughout the duration of the track.",
 						"authors": ["JamieeCG"],
+						"github": "JamieeCG",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/minecraft-bee-snippet.gif"
 					},
@@ -1685,6 +1762,7 @@
 						"name": "Gigantic Now Playing View & Canvas",
 						"description": "Greatly increases the width of the Now Playing View panel beyond the default limit (feel free to change it to your liking) at the cost of losing the ability to drag-resize it and enhances it with a cleaner look by removing the dark gradient over the canvas loop video and moving a few elements further down.",
 						"authors": ["Mythicsoul"],
+						"github": "Mythicsoul",
 						"tags": ["snippet"],
 						"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/giga_npv_canvas.png"
 					},

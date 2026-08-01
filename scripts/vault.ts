@@ -50,6 +50,10 @@ interface VaultMetadata {
 	name?: string;
 	description?: string;
 	authors?: string[];
+	// GitHub username of the (first) author, when known. Vault-curated
+	// (recovered from marketplace git history); never sourced from the
+	// artifact, so metadataSubset does not carry it.
+	github?: string;
 	tags?: string[];
 	preview?: string;
 	repository?: string;
@@ -210,6 +214,7 @@ function importSnippets(snippetsPath: string, base: string): void {
 			// already curated into the vault (recovered from marketplace
 			// git history) with the fallback.
 			authors: existing?.metadata?.authors ?? ["spicetify"],
+			...(existing?.metadata?.github ? { github: existing.metadata.github } : {}),
 			tags: ["snippet"],
 		};
 		metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;
