@@ -120,6 +120,9 @@ async function refresh(): Promise<void> {
 			}
 			entry.checksum = checksum;
 			entry.metadata = metadataSubset(metadataFromZip(bytes));
+			if (!entry.metadata.preview) {
+				console.warn(`warning: ${id}@${version} has no preview (required by the store)`);
+			}
 			console.log(`ok (${checksum.slice(0, 17)}…)`);
 		}
 	}
@@ -133,6 +136,12 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 	const version: string = meta.version;
 	if (!id || !version) throw new Error(`${distDir}/metadata.json must set name and version`);
 
+	const metadata = metadataSubset(meta);
+	// Store cards are artwork-first; a previewless entry has no card.
+	if (!metadata.preview) {
+		throw new Error(`${id}@${version}: metadata.preview (an https URL) is required by the store`);
+	}
+
 	const bytes = zipFile ? readFileSync(zipFile) : await download(artifactUrl);
 	const vault = loadVault();
 	vault.modules[id] ??= { v: {} };
@@ -140,7 +149,7 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 		artifacts: [artifactUrl],
 		providers: [],
 		checksum: sha256(bytes),
-		metadata: metadataSubset(meta),
+		metadata,
 		updatedAt: today(),
 	};
 	saveVault(vault);
@@ -173,9 +182,16 @@ function importSnippets(snippetsPath: string, base: string): void {
 	const vault = loadVault();
 	let added = 0;
 	let refreshed = 0;
+	let skipped = 0;
 	const seenIds = new Set<string>();
 	for (const snippet of snippets) {
 		if (!snippet.title || !snippet.code) continue;
+		// Previews are required by the store; a snippet without one
+		// would render no card.
+		if (!snippet.preview) {
+			skipped++;
+			continue;
+		}
 		let slug = slugify(snippet.title);
 		// "snippet-user-*" is reserved for in-client user snippets.
 		if (slug.startsWith("user-")) slug = `catalog-${slug}`;
@@ -183,16 +199,17 @@ function importSnippets(snippetsPath: string, base: string): void {
 		// Colliding titles must not silently collapse into one entry.
 		for (let n = 2; seenIds.has(id); n++) id = `snippet-${slug}-${n}`;
 		seenIds.add(id);
+		const existing = vault.modules[id]?.v?.["1.0.0"];
 		const metadata: VaultMetadata = {
 			name: snippet.title,
 			description: snippet.description ?? "",
-			authors: ["spicetify"],
+			// The source catalog carries no authors; never clobber ones
+			// already curated into the vault (recovered from marketplace
+			// git history) with the fallback.
+			authors: existing?.metadata?.authors ?? ["spicetify"],
 			tags: ["snippet"],
 		};
-		if (snippet.preview) {
-			metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;
-		}
-		const existing = vault.modules[id]?.v?.["1.0.0"];
+		metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;
 		const unchanged = existing?.files?.["index.css"] === snippet.code;
 		vault.modules[id] ??= { v: {} };
 		vault.modules[id].v["1.0.0"] = {
@@ -205,7 +222,7 @@ function importSnippets(snippetsPath: string, base: string): void {
 		else added++;
 	}
 	saveVault(vault);
-	console.log(`snippets: ${added} added, ${refreshed} refreshed -> ${VAULT_PATH}`);
+	console.log(`snippets: ${added} added, ${refreshed} refreshed, ${skipped} skipped (no preview) -> ${VAULT_PATH}`);
 }
 
 async function main(): Promise<void> {
