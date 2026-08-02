@@ -11,5 +11,6 @@
 	"hasMixins": false,
 	"dependencies": {
 		"stdlib": "^0.3.0"
-	}
+	},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
 }
