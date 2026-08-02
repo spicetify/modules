@@ -4,9 +4,10 @@
  *
  * Rich card data (name, description, authors, tags) lives in each
  * artifact's metadata.json; the store cannot download every zip just to
- * render a list. This tool embeds a metadata subset (and the sha256
- * checksum) into each vault entry, sourced from the artifact itself so it
- * cannot drift from what actually installs.
+ * render a list. This tool embeds a metadata subset at the module level
+ * (one card identity per module, tracking the newest version's artifact)
+ * and a sha256 checksum per version entry, sourced from the artifact
+ * itself so neither can drift from what actually installs.
  *
  * usage:
  *   node scripts/vault.ts refresh
@@ -36,7 +37,6 @@ interface VaultVersionEntry {
 	artifacts: string[];
 	providers?: string[];
 	checksum?: string;
-	metadata?: VaultMetadata;
 	// Inline content for small css-only modules (snippets); the vault
 	// entry is the artifact.
 	files?: Record<string, string>;
@@ -44,6 +44,15 @@ interface VaultVersionEntry {
 	// Infrastructure modules (stdlib) are installable/updatable but
 	// never render as store cards.
 	hidden?: boolean;
+}
+
+// Card data (metadata) lives at the module level: a module has one
+// identity in the store regardless of how many releases it carries.
+// Writers keep it in sync with the newest version's artifact.
+interface VaultModule {
+	metadata?: VaultMetadata;
+	enabled?: string;
+	v: Record<string, VaultVersionEntry>;
 }
 
 interface VaultMetadata {
@@ -105,9 +114,17 @@ function metadataFromZip(zipBytes: Buffer): Record<string, unknown> {
 	}
 }
 
-function loadVault(): { modules: Record<string, { v: Record<string, VaultVersionEntry>; enabled?: string }> } {
+function loadVault(): { modules: Record<string, VaultModule> } {
 	return JSON.parse(readFileSync(VAULT_PATH, "utf8"));
 }
+
+// Curated fields (github attribution) never come from artifacts; carry
+// them across metadata rewrites so an update cannot drop them.
+const withCurated = (next: VaultMetadata, prev?: VaultMetadata): VaultMetadata =>
+	prev?.github ? { ...next, github: prev.github } : next;
+
+const newestVersion = (versions: string[]): string | undefined =>
+	[...versions].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).at(-1);
 
 function saveVault(vault: unknown): void {
 	writeFileSync(VAULT_PATH, `${JSON.stringify(vault, null, "\t")}\n`);
@@ -125,6 +142,8 @@ function saveVault(vault: unknown): void {
 async function refresh(): Promise<void> {
 	const vault = loadVault();
 	for (const [id, mod] of Object.entries(vault.modules)) {
+		// The module's card metadata tracks its newest version's artifact.
+		const newest = newestVersion(Object.keys(mod.v));
 		for (const [version, entry] of Object.entries(mod.v)) {
 			const url = entry.artifacts?.[0];
 			if (!url) continue;
@@ -135,9 +154,11 @@ async function refresh(): Promise<void> {
 				throw new Error(`${id}@${version}: checksum mismatch (vault ${entry.checksum}, artifact ${checksum})`);
 			}
 			entry.checksum = checksum;
-			entry.metadata = metadataSubset(metadataFromZip(bytes));
-			if (!entry.metadata.preview) {
-				console.warn(`warning: ${id}@${version} has no preview (required by the store)`);
+			if (version === newest) {
+				mod.metadata = withCurated(metadataSubset(metadataFromZip(bytes)), mod.metadata);
+				if (!mod.metadata.preview) {
+					console.warn(`warning: ${id} has no preview (required by the store)`);
+				}
 			}
 			console.log(`ok (${checksum.slice(0, 17)}…)`);
 		}
@@ -172,10 +193,11 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 		artifacts: [artifactUrl],
 		providers: [],
 		checksum: sha256(bytes),
-		metadata,
 		updatedAt: today(),
 		...(hidden ? { hidden } : {}),
 	};
+	// Adds record the newest release, so the module's card follows it.
+	vault.modules[id].metadata = withCurated(metadata, vault.modules[id].metadata);
 	saveVault(vault);
 	console.log(`added ${id}@${version} to ${VAULT_PATH}`);
 }
@@ -202,23 +224,24 @@ function addSnippet(
 
 	const vault = loadVault();
 	const existing = vault.modules[id]?.v?.["1.0.0"];
-	const github = opts.github ?? existing?.metadata?.github;
+	const prevMeta = vault.modules[id]?.metadata;
+	const github = opts.github ?? prevMeta?.github;
 	const metadata: VaultMetadata = {
 		name,
-		description: opts.description ?? existing?.metadata?.description ?? "",
+		description: opts.description ?? prevMeta?.description ?? "",
 		// Curated attribution survives an update without --author, same
 		// rule as the bulk importer.
-		authors: opts.author ? [opts.author] : (existing?.metadata?.authors ?? ["spicetify"]),
+		authors: opts.author ? [opts.author] : (prevMeta?.authors ?? ["spicetify"]),
 		...(github ? { github } : {}),
 		tags: ["snippet"],
 		preview,
 	};
 	const unchanged = existing?.files?.["index.css"] === css;
 	vault.modules[id] ??= { v: {} };
+	vault.modules[id].metadata = metadata;
 	vault.modules[id].v["1.0.0"] = {
 		artifacts: [],
 		files: { "index.css": css },
-		metadata,
 		updatedAt: unchanged ? (existing?.updatedAt ?? today()) : today(),
 	};
 	saveVault(vault);
@@ -269,23 +292,24 @@ function importSnippets(snippetsPath: string, base: string): void {
 		for (let n = 2; seenIds.has(id); n++) id = `snippet-${slug}-${n}`;
 		seenIds.add(id);
 		const existing = vault.modules[id]?.v?.["1.0.0"];
+		const prevMeta = vault.modules[id]?.metadata;
 		const metadata: VaultMetadata = {
 			name: snippet.title,
 			description: snippet.description ?? "",
 			// The source catalog carries no authors; never clobber ones
 			// already curated into the vault (recovered from marketplace
 			// git history) with the fallback.
-			authors: existing?.metadata?.authors ?? ["spicetify"],
-			...(existing?.metadata?.github ? { github: existing.metadata.github } : {}),
+			authors: prevMeta?.authors ?? ["spicetify"],
+			...(prevMeta?.github ? { github: prevMeta.github } : {}),
 			tags: ["snippet"],
 		};
 		metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;
 		const unchanged = existing?.files?.["index.css"] === snippet.code;
 		vault.modules[id] ??= { v: {} };
+		vault.modules[id].metadata = metadata;
 		vault.modules[id].v["1.0.0"] = {
 			artifacts: [],
 			files: { "index.css": snippet.code },
-			metadata,
 			updatedAt: unchanged ? (existing?.updatedAt ?? today()) : today(),
 		};
 		if (existing) refreshed++;

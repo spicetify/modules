@@ -6,9 +6,9 @@
 /**
  * vault - record a built module into a vault file for the module store.
  *
- * Card data (name, description, authors, tags) is embedded from the dist
- * dir's own metadata.json so it cannot drift from what installs, alongside a
- * sha256 checksum of the artifact.
+ * Card data (name, description, authors, tags) is embedded at the module
+ * level from the dist dir's own metadata.json so it cannot drift from what
+ * installs, alongside a per-version sha256 checksum of the artifact.
  */
 
 import { createHash } from "node:crypto";
@@ -73,9 +73,9 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 	const vaultPath = path.resolve(cwd, flag("vault") ?? "vault.json");
 	// KTD3 divergence: initialize an empty vault when the target is absent (the
 	// monorepo script assumes one already exists).
-	const vault: { modules: Record<string, { v: Record<string, unknown>; enabled?: string }> } = existsSync(vaultPath)
-		? JSON.parse(readFileSync(vaultPath, "utf8"))
-		: { modules: {} };
+	const vault: {
+		modules: Record<string, { metadata?: VaultMetadata; v: Record<string, unknown>; enabled?: string }>;
+	} = existsSync(vaultPath) ? JSON.parse(readFileSync(vaultPath, "utf8")) : { modules: {} };
 	vault.modules ??= {};
 	vault.modules[id] ??= { v: {} };
 
@@ -92,8 +92,16 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 		artifacts: [artifact],
 		providers: [],
 		checksum,
-		metadata: metadataSubset(meta),
 		updatedAt: today(),
+	};
+	// Card data lives at the module level (one identity per module); an
+	// add records the newest release, so the card follows it. Curated
+	// fields (github attribution) never come from the artifact and must
+	// survive the rewrite.
+	const curated = vault.modules[id].metadata as (VaultMetadata & { github?: string }) | undefined;
+	vault.modules[id].metadata = {
+		...metadataSubset(meta),
+		...(curated?.github ? { github: curated.github } : {}),
 	};
 	writeFileSync(vaultPath, `${JSON.stringify(vault, null, "\t")}\n`);
 	console.log(`added ${id}@${version} to ${vaultPath}`);

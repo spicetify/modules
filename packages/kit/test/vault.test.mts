@@ -48,9 +48,12 @@ test("vault add: embeds the metadata subset and a sha256 of the zip; re-adds cle
 		["add", dist, "--artifact", "https://example.com/demo.zip", "--zip", zip, "--vault", vaultPath],
 		root,
 	);
-	const entry = JSON.parse(readFileSync(vaultPath, "utf8")).modules.demo.v["1.0.0"];
+	const mod = JSON.parse(readFileSync(vaultPath, "utf8")).modules.demo;
+	const entry = mod.v["1.0.0"];
 	assert.equal(entry.checksum, sha(zipBytes));
-	assert.deepEqual(entry.metadata, { name: "demo", description: "D", authors: ["a"], tags: ["extension"] });
+	// Card metadata lives at the module level, not per version.
+	assert.deepEqual(mod.metadata, { name: "demo", description: "D", authors: ["a"], tags: ["extension"] });
+	assert.equal(entry.metadata, undefined);
 	assert.deepEqual(entry.artifacts, ["https://example.com/demo.zip"]);
 
 	// Re-adding the same version with the same bytes overwrites cleanly.

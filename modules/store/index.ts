@@ -176,7 +176,9 @@ async function loadCatalog(): Promise<Catalog> {
 					vault,
 					updatedAt: entry.updatedAt,
 					hidden: entry.hidden,
-					meta: entry.metadata,
+					// Card data lives at the module level: one identity per
+					// module, not one per release.
+					meta: mod.metadata,
 				});
 			}
 		} catch (e) {
