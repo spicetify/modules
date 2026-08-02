@@ -578,15 +578,13 @@ export default async function (ctx: ModuleRuntimeContext) {
 			return;
 		}
 
-		// Progress bar area
-		const currentProgressContainer = document.querySelector(".playback-progressbar-container");
-		if (!currentProgressContainer?.contains(target)) return;
+		// Progress bar area. Gate on the same getBar() fallback chain the
+		// drawing code uses: .playback-progressbar-container no longer
+		// exists on current clients, so the old gate never opened the menu.
+		const currentBar = getBar();
+		if (!currentBar?.contains(target)) return;
 		event.preventDefault();
 		event.stopPropagation();
-
-		const currentBar = currentProgressContainer.querySelector('input[type="range"]')?.closest("label")
-			?.nextElementSibling as HTMLElement | null;
-		if (!currentBar) return;
 
 		const { x, width } = currentBar.getBoundingClientRect();
 		mouseOnBarPercent = Math.max(0, Math.min(1, (event.clientX - x) / width));
