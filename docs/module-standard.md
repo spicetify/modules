@@ -6,7 +6,9 @@ breaking, and never takes the client down with it) and **easy to build**
 that makes a module easy to write is the tooling that makes it hard to break.
 The rule this standard is built on: **make the reliable path the easy path.**
 The scaffold generates code that already follows everything below; the sections
-after the happy path explain what it bakes in and why.
+after the happy path explain what it bakes in and why. For a hands-on
+walkthrough (scaffold, registrars, `placeButton`, the typed surface), see the
+[authoring guide](./authoring-guide.md).
 
 ---
 
@@ -123,6 +125,10 @@ for you on unload.
 | `playbarButton` / `playbarWidget`        | The now-playing bar                                                                                 |
 | `settingsSection`                        | A section on Spotify's own settings page                                                            |
 | `rootChild`                              | A body-level overlay                                                                                |
+
+For top-bar and playbar buttons, prefer `registrar.placeButton(location, options)`
+over the raw button registers above: it adds ordering and native anchoring in one
+call. See the [authoring guide](./authoring-guide.md#4-buttons-use-placebutton).
 
 Themes are a special case: a **css-only module** (a `color.ini` plus `user.css`
 as the css entry). The loader parses `[Section]`s into switchable schemes and
