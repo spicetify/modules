@@ -461,7 +461,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 		);
 
 		// Editor/typecheck config: runtime URLs map to the kit's vendored
-		// stdlib and hooks sources.
+		// stdlib sources.
 		writeFileSync(
 			path.join(dir, "tsconfig.json"),
 			`${JSON.stringify(
@@ -479,9 +479,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 						resolveJsonModule: true,
 						types: [],
 						paths: {
-							"/hooks/std/text.ts": ["./node_modules/@spicetify/kit/vendor/shims/hooks-std-text.d.ts"],
 							"/modules/*": ["./node_modules/@spicetify/kit/vendor/*"],
-							"/hooks/*": ["./node_modules/@spicetify/kit/vendor/hooks/*"],
 						},
 					},
 					include: ["**/*"],

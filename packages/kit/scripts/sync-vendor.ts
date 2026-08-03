@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * sync-vendor - copy the stdlib and hooks TypeScript sources into
+ * sync-vendor - copy the stdlib TypeScript sources into
  * vendor/ so published kits carry the type surface module authors
  * compile against. Runs from the monorepo at pack time; vendored copies
  * are generated artifacts, never edited.
@@ -28,10 +28,6 @@ function copyTsTree(from: string, to: string): number {
 		} else if (/\.(ts|tsx)$/.test(entry) && !SKIP_FILES.has(entry)) {
 			cpSync(src, path.join(to, entry));
 			count++;
-		} else if (entry.endsWith(".js") && from.endsWith("polyfills")) {
-			// hooks/module.ts imports its polyfills by .js name.
-			cpSync(src, path.join(to, entry));
-			count++;
 		}
 	}
 	return count;
@@ -42,12 +38,10 @@ rmSync(VENDOR, { recursive: true, force: true });
 const stdlib = copyTsTree(path.join(REPO, "modules", "stdlib"), path.join(VENDOR, "stdlib"));
 // The scaffold derives a fresh module's stdlib range from this version.
 cpSync(path.join(REPO, "modules", "stdlib", "metadata.json"), path.join(VENDOR, "stdlib", "metadata.json"));
-const hooks = copyTsTree(path.join(WORKSPACE, "hooks"), path.join(VENDOR, "hooks"));
 
 const shims = path.join(VENDOR, "shims");
 mkdirSync(shims, { recursive: true });
 cpSync(path.join(REPO, "remote-modules.d.ts"), path.join(shims, "remote-modules.d.ts"));
-cpSync(path.join(REPO, "hooks-std-text.d.ts"), path.join(shims, "hooks-std-text.d.ts"));
 cpSync(path.join(REPO, "modules", "stdlib", "src", "chunks.d.ts"), path.join(shims, "chunks.d.ts"));
 // Ambient Spicetify global types, so scaffolded modules are typed by default.
 cpSync(path.join(REPO, "spicetify.d.ts"), path.join(shims, "spicetify.d.ts"));
@@ -76,6 +70,4 @@ if (existsSync(classmapsSrc)) {
 	}
 }
 
-console.log(
-	`vendored ${stdlib} stdlib files, ${hooks} hooks files, 4 shims, classmap ${vendoredClassmap} -> ${VENDOR}`,
-);
+console.log(`vendored ${stdlib} stdlib files, 3 shims, classmap ${vendoredClassmap} -> ${VENDOR}`);

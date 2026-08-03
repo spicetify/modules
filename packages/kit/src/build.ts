@@ -44,7 +44,7 @@ export interface ModuleMetadata {
 	tree?: boolean;
 }
 
-const EXTERNALS = [/^\/hooks\//, /^https?:\/\//];
+const EXTERNALS = [/^https?:\/\//];
 
 // Runtime URLs the react family resolves to (see the resolveId plugin).
 // react-dom/server has no client instance to share, so it stays on esm.sh;
@@ -152,22 +152,20 @@ async function buildJs(inputDir: string, outputDir: string, tree: boolean, cwd: 
 		...(!tree && Object.keys(input).length === 1 ? { codeSplitting: false } : {}),
 	});
 
-	// The hooks compat pack serves .js; Deno-era sources import "/hooks/*.ts".
-	const rewriteHooksTs = (dir: string) => {
+	// Staged modules serve .js; sources import "/modules/*.ts" URLs.
+	const rewriteRuntimeTs = (dir: string) => {
 		for (const entry of readdirSync(dir)) {
 			const full = path.join(dir, entry);
 			if (statSync(full).isDirectory()) {
-				rewriteHooksTs(full);
+				rewriteRuntimeTs(full);
 			} else if (entry.endsWith(".js")) {
 				const content = readFileSync(full, "utf8");
-				const rewritten = content
-					.replace(/"(\/hooks\/[^"]+)\.tsx?"/g, '"$1.js"')
-					.replace(/"(\/modules\/[^"]+)\.tsx?"/g, '"$1.js"');
+				const rewritten = content.replace(/"(\/modules\/[^"]+)\.tsx?"/g, '"$1.js"');
 				if (rewritten !== content) writeFileSync(full, rewritten);
 			}
 		}
 	};
-	rewriteHooksTs(outputDir);
+	rewriteRuntimeTs(outputDir);
 }
 
 function buildCss(inputDir: string, outputDir: string): void {
