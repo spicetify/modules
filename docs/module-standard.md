@@ -32,6 +32,12 @@ walkthrough (scaffold, registrars, `placeButton`, the typed surface), see the
 vault add <dist> --artifact <url>` records it with an embedded metadata
    subset and a sha256 checksum; `spicetify-kit install <zip|dir>` sideloads a
    packed module straight into a running client.
+5. Ship a preview. Store cards are artwork-first, so `metadata.json` must
+   carry an absolute https `preview` or `vault add` refuses the entry. Capture
+   a real screenshot whenever the module has UI (16:9, vendored under
+   `previews/` in this repo); for zero-UI modules (utilities with nothing to
+   screenshot) `node scripts/preview.ts <id>` generates a designed SVG
+   placeholder (glyph + accent + name) and wires the metadata up.
 
 If you are doing something the happy path does not cover, that is a signal to
 check the rules below before hand-rolling around them.
@@ -183,4 +189,5 @@ only source a feature depends on.
 - [ ] Builds its UI from the kit, and picked the tier with the recovery-vs-leaf test.
 - [ ] Self-subscribes to external state; disposes everything on unload.
 - [ ] Cannot take down the client — verified by disabling and removing it live.
-- [ ] `metadata.json` declares dependencies, version, and entries; ships MAP-intact.
+- [ ] `metadata.json` declares dependencies, version, entries, and an absolute
+  https `preview`; ships MAP-intact.
