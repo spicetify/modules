@@ -7,11 +7,15 @@ runs:
          shell: bash
          run: |
             set -e
+            shopt -s nullglob
             pushd dist
-            for DIR in *; do
+            for DIR in */; do
+               DIR="${DIR%/}"
                pushd "${DIR}"
                cp metadata.json "../${DIR}.metadata.json"
-               7z a -bb0 "../${DIR}.zip" *
+               # zip -qr . matches vault.ts pack and includes dotfiles;
+               # a shell glob would silently drop them.
+               zip -qr "../${DIR}.zip" .
                popd
             done
             popd
@@ -23,6 +27,7 @@ runs:
          shell: bash
          run: |
             set -e
+            shopt -s nullglob
             for DIR in dist/*/; do
                DIR="${DIR%/}"
                node scripts/vault.ts add "${DIR}" --zip "${DIR}.zip" --skip-existing --check
@@ -30,15 +35,18 @@ runs:
 
       # Zips are not byte-reproducible and the release action replaces
       # same-named assets, so re-uploading an already-published version
-      # would desync the bytes from the vault's checksum. Drop those
-      # artifacts from the upload; the vault loop below skips them too.
+      # would desync the bytes from the vault's checksum. The vault on
+      # origin/main is ground truth here (it may have moved since the
+      # tag), not the tag's copy.
       -  name: Prune already-published artifacts
          shell: bash
          run: |
             set -e
+            git fetch origin main
+            git show origin/main:vault.json > /tmp/main-vault.json
             node -e '
                const { readFileSync, readdirSync, rmSync } = require("fs");
-               const vault = JSON.parse(readFileSync("vault.json", "utf8"));
+               const vault = JSON.parse(readFileSync("/tmp/main-vault.json", "utf8"));
                for (const dir of readdirSync("dist", { withFileTypes: true })) {
                   if (!dir.isDirectory()) continue;
                   const meta = JSON.parse(readFileSync(`dist/${dir.name}/metadata.json`, "utf8"));
@@ -57,27 +65,13 @@ runs:
                dist/*.zip
                dist/*.metadata.json
 
-      # vault.ts add embeds metadata, updatedAt, and checksums, and
-      # enforces the preview requirement. Versions already recorded are
-      # skipped, never overwritten: a rewrite would change the checksum
-      # (zips are not byte-reproducible) and reset updatedAt.
-      -  name: Update vault.json
-         shell: bash
-         run: |
-            set -e
-            for DIR in dist/*/; do
-               DIR="${DIR%/}"
-               ARCHIVE="${DIR}.zip"
-               URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE##*/}"
-               node scripts/vault.ts add "${DIR}" --artifact "${URL}" --zip "${ARCHIVE}" --skip-existing
-            done
-            rm -rf dist
-
-      # Commit the vault change straight onto origin/main. The old
-      # rebase flow rewrote newer main commits onto the vault commit
-      # and the plain push was then rejected as non-fast-forward,
-      # leaving a published release with no vault update.
-      -  name: Commit vault.json onto main
+      # Record the artifacts on top of origin/main, never by copying
+      # the tag's vault.json over it: vault changes that landed on main
+      # after the tag (curated edits, another publish) must survive,
+      # and --skip-existing makes a re-run idempotent. vault.ts add
+      # embeds metadata, updatedAt, and checksums, and enforces the
+      # preview requirement.
+      -  name: Update vault.json on main
          shell: bash
          env:
             PUSH_BRANCH: main
@@ -85,18 +79,24 @@ runs:
             set -e
             git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
             git config --local user.name "$GITHUB_ACTOR"
-            cp vault.json /tmp/vault.json
-            # The switch refuses when the tag's vault.json differs from
-            # origin/main's and the tree is dirty; the /tmp copy is the
-            # version we want to commit, so discard the local one first.
-            git checkout -- vault.json
             git fetch origin "${PUSH_BRANCH}"
             git checkout -b vault-update "origin/${PUSH_BRANCH}"
-            cp /tmp/vault.json vault.json
+            shopt -s nullglob
+            for DIR in dist/*/; do
+               DIR="${DIR%/}"
+               ARCHIVE="${DIR}.zip"
+               URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE##*/}"
+               node scripts/vault.ts add "${DIR}" --artifact "${URL}" --zip "${ARCHIVE}" --skip-existing
+            done
+            rm -rf dist
             git add vault.json
             if git diff --cached --quiet; then
                echo "vault unchanged"
                exit 0
             fi
             git commit -m 'Updated vault.json'
-            git push origin "HEAD:${PUSH_BRANCH}"
+            git push origin "HEAD:${PUSH_BRANCH}" || {
+               git fetch origin "${PUSH_BRANCH}"
+               git rebase "origin/${PUSH_BRANCH}"
+               git push origin "HEAD:${PUSH_BRANCH}"
+            }

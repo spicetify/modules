@@ -163,8 +163,7 @@ const withCurated = (next: VaultMetadata, prev?: VaultMetadata): VaultMetadata =
 	};
 };
 
-const newestVersion = (versions: string[]): string | undefined =>
-	[...versions].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).at(-1);
+const newestVersion = (versions: string[]): string | undefined => [...versions].sort(compareVersions).at(-1);
 
 function saveVault(vault: unknown): void {
 	writeFileSync(VAULT_PATH, `${JSON.stringify(vault, null, "\t")}\n`);
@@ -261,8 +260,7 @@ async function add(
 	};
 	// Adds record the newest release, so the module's card follows it;
 	// a backport add of an older version must not regress the card.
-	const newest = Object.keys(vault.modules[id].v).sort(compareVersions).at(-1);
-	if (newest === version) {
+	if (newestVersion(Object.keys(vault.modules[id].v)) === version) {
 		vault.modules[id].metadata = withCurated(metadata, vault.modules[id].metadata);
 	}
 	saveVault(vault);

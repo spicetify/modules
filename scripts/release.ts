@@ -16,7 +16,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const git = (args: string[]) => execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -59,10 +59,17 @@ function suggestLevel(id: string, since: string): Level {
 const RELEASE_TAG = "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]";
 function previousTag(): string | null {
 	const headTags = new Set(git(["tag", "--points-at", "HEAD"]).split("\n").filter(Boolean));
-	const tags = git(["tag", "--list", RELEASE_TAG, "--sort=-creatordate", "--merged", "HEAD"])
+	// Tags are dates, so -refname orders them without creatordate quirks.
+	const tags = git(["tag", "--list", RELEASE_TAG, "--sort=-refname", "--merged", "HEAD"])
 		.split("\n")
 		.filter((t) => t && !headTags.has(t));
-	return tags[0] ?? null;
+	// A tag whose run failed before publishing never landed a vault.json
+	// change on our ancestry; it must not become the baseline or the diff
+	// window shrinks past the very changes that failed the gate.
+	for (const tag of tags) {
+		if (git(["log", "--format=%H", "-1", `${tag}..HEAD`, "--", "vault.json"])) return tag;
+	}
+	return null;
 }
 
 function metadataAt(ref: string, id: string): { version?: string } | null {
@@ -78,42 +85,62 @@ function metadataAt(ref: string, id: string): { version?: string } | null {
 	}
 }
 
+function readMetadata(id: string): { name?: string; version?: string } {
+	return JSON.parse(readFileSync(path.join("modules", id, "metadata.json"), "utf8"));
+}
+
 function status(): void {
 	const since = previousTag();
 	// The vault is ground truth, not tags: a tag whose run failed must
 	// not reset the baseline, and a reused or downgraded version must
 	// never overwrite a published entry.
 	const vault = JSON.parse(readFileSync("vault.json", "utf8"));
-	if (!since) {
-		console.log("no previous tag; every module publishes as new");
-		return;
-	}
 	const changed = new Set(
-		git(["diff", "--name-only", `${since}..HEAD`, "--", "modules/"])
-			.split("\n")
-			.map((f) => f.match(/^modules\/([^/]+)\//)?.[1])
-			.filter((id): id is string => !!id && existsSync(path.join("modules", id, "metadata.json"))),
+		since
+			? git(["diff", "--name-only", `${since}..HEAD`, "--", "modules/"])
+					.split("\n")
+					.map((f) => f.match(/^modules\/([^/]+)\//)?.[1])
+					.filter((id): id is string => !!id && existsSync(path.join("modules", id, "metadata.json")))
+			: [],
 	);
+	// Without a previous tag there is no diff window; the vault reuse
+	// check still applies to every module.
+	const ids = since
+		? [...changed].sort()
+		: readdirSync("modules", { withFileTypes: true })
+				.filter((d) => d.isDirectory() && existsSync(path.join("modules", d.name, "metadata.json")))
+				.map((d) => d.name)
+				.sort();
 	const problems: string[] = [];
-	for (const id of [...changed].sort()) {
-		const now = JSON.parse(readFileSync(path.join("modules", id, "metadata.json"), "utf8"));
-		const level = suggestLevel(id, since);
+	for (const id of ids) {
+		const now = readMetadata(id);
+		if (!now.version) {
+			problems.push(`${id}: metadata.json has no version`);
+			continue;
+		}
+		const level = since ? suggestLevel(id, since) : "patch";
 		const hint = `suggest ${level} -> ${bumpVersion(now.version, level)}`;
-		if (vault.modules?.[id]?.v?.[now.version]) {
+		// The vault keys modules by metadata name, not directory name.
+		const vaultId = now.name ?? id;
+		if (vault.modules?.[vaultId]?.v?.[now.version]) {
 			problems.push(`${id}: ${now.version} is already published in the vault (${hint})`);
 			continue;
 		}
-		const then = metadataAt(since, id);
+		const then = since ? metadataAt(since, id) : null;
 		if (then?.version !== undefined && then.version === now.version) {
 			problems.push(`${id}: changed since ${since} but still ${now.version} (${hint})`);
 		}
 	}
 	if (problems.length) {
-		console.error(`modules not safe to publish (changed since ${since}):`);
+		console.error(since ? `modules not safe to publish (changed since ${since}):` : "modules not safe to publish:");
 		for (const p of problems) console.error(`  ${p}`);
 		process.exit(1);
 	}
-	console.log(`ok: every module changed since ${since} carries a new, unpublished version`);
+	console.log(
+		since
+			? `ok: every module changed since ${since} carries a new, unpublished version`
+			: "ok: no previous tag and no version already published",
+	);
 }
 
 function bump(id: string, level: Level): void {
