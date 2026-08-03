@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-
 import { findBy, toPascalCase } from "../util.ts";
 
 import { warn } from "../logger.ts";
