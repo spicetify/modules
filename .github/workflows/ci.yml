@@ -49,6 +49,12 @@ jobs:
          -  name: Format
             run: pnpm fmt:check
 
+         # The full release build: module-standard error tier enforced,
+         # every module must stitch. Runs before Check because the build
+         # generates each module's classmap.d.ts, which tsc needs.
+         -  name: Build modules
+            run: node scripts/stitch.ts
+
          # tsc + oxlint + check-deps (dependency ranges vs versions+compat)
          -  name: Check
             run: pnpm check
@@ -66,8 +72,3 @@ jobs:
          # next release would overwrite a live vault entry.
          -  name: Check version bumps
             run: node scripts/release.ts status
-
-         # The full release build: module-standard error tier enforced,
-         # every module must stitch.
-         -  name: Build modules
-            run: node scripts/stitch.ts
