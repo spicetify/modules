@@ -2285,6 +2285,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png"
 			}
+		},
+		"loopy-loop": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/loopy-loop@0.1.0/loopy-loop@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:9aa37a31c4332c63968b7d1c99cf2bfaf1fcca9b58565633da92e268f8526528",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "loopy-loop",
+				"description": "A-B repeat and section-skip markers on the playback bar; loops and skips persist per song.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png"
+			}
 		}
 	}
 }
