@@ -732,7 +732,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// SVGIcons.projector is a heavier vintage and stands out next to them).
 	registrar.placeButton("topbar-right", {
 		label: "Full App Display",
-		icon: '<rect fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x="2.25" y="4.75" width="11.5" height="6.5" rx="1"/><circle fill="none" stroke="currentColor" stroke-width="1.5" cx="10.25" cy="8" r="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4.75 8h2"/>',
+		icon: '<rect fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x="0.9" y="3.75" width="14.2" height="7.5" rx="1.1"/><circle fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" cx="11.5" cy="7.5" r="1.5"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3.1 11.6v1.9M12.9 11.6v1.9"/>',
 		onClick: activate,
 	});
 

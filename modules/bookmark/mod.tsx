@@ -26,7 +26,7 @@ const STORAGE_KEY = "bookmark_spicetify";
 // Drawn as a 1.5 round stroke: the native encore icons (bell, friends) are
 // 1.5-unit outlines on the 16 grid, so module icons match their weight.
 const BUTTON_ICON_PATH =
-	'<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M4.75 2.25h6.5v11.5L8 11l-3.25 2.75z"></path>';
+	'<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3.1 1.15h9.8v13.4L8 10.2l-4.9 4.35z"></path>';
 const BUTTON_ICON = `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${BUTTON_ICON_PATH}</svg>`;
 
 export default async function (ctx: ModuleRuntimeContext) {

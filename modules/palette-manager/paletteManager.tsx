@@ -12,7 +12,7 @@ export const EditButton = () => {
 		<TopbarRightButton
 			label="Palette Manager"
 			// 1.5 round stroke matches the native encore topbar icon weight.
-			icon='<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M11 2.5l2.5 2.5L6 12.5l-3.5 1 1-3.5L11 2.5z"/>'
+			icon='<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M11.6 1.3l2.9 2.5-8.6 10-3.6 1.3.7-3.8 8.6-10z"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M4.9 10.6l2.6 2.2"/>'
 			onClick={() => {
 				display({
 					title: "Palette Manager",

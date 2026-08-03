@@ -483,7 +483,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// SVGIcons.lyrics is a heavier vintage and stands out next to them).
 	registrar.placeButton("topbar-right", {
 		label: "Popup Lyrics",
-		icon: '<rect fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x="6.25" y="1.75" width="3.5" height="7" rx="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M3.75 7.25a4.25 4.25 0 0 0 8.5 0"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 11.5v2"/>',
+		icon: '<circle fill="none" stroke="currentColor" stroke-width="1.5" cx="8.5" cy="5.5" r="3.9"/><path fill="currentColor" d="M5.1 8.2 L2.45 14.1 A0.62 0.62 0 0 0 3.5 14.85 L7.5 9.55 Z"/>',
 		onClick: () => {
 			if (!lyricVideoIsOpen) {
 				lyricVideo.requestPictureInPicture();
