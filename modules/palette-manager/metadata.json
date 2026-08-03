@@ -11,6 +11,6 @@
 		"css": "index.css"
 	},
 	"dependencies": {
-		"stdlib": "^0.3.0"
+		"stdlib": "^1.0.0"
 	}
 }
