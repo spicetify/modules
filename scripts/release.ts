@@ -2,17 +2,18 @@
 /**
  * release - per-module versioning for the vault publish flow.
  *
- * The vault keeps every released version, so a publish must never
- * overwrite a live one: a module whose code changed since the last
- * tag must carry a NEW metadata.json version. Releases stay batch
- * date tags (one atomic catalog update); this tool enforces the one
- * rule that makes them safe, and derives the bump level from the
- * conventional commits that touched each module (feat -> minor,
- * fix/refactor/etc -> patch, ! or BREAKING -> major).
+ * Releases are per-module tags (`<name>@<version>`): the tag names the
+ * exact unit being published, so tag uniqueness IS the vault's
+ * never-overwrite rule. The vault keeps every released version; a
+ * module whose code changed since its last release must carry a NEW
+ * metadata.json version. Bump levels come from the conventional commits
+ * that touched the module (feat -> minor, ! or BREAKING -> major, else
+ * patch).
  *
  * usage:
- *   node scripts/release.ts status                  # gate for publish.yml
+ *   node scripts/release.ts status              # gate for PR CI
  *   node scripts/release.ts bump <id> [major|minor|patch]
+ *   node scripts/release.ts tag [--push]        # tag every unpublished version
  */
 
 import { execFileSync } from "node:child_process";
@@ -42,7 +43,8 @@ function bumpVersion(version: string, level: Level): string {
 	return parts.join(".") + (build ? `+${build}` : "");
 }
 
-function suggestLevel(id: string, since: string): Level {
+function suggestLevel(id: string, since: string | null): Level {
+	if (!since) return "patch";
 	const subjects = git(["log", `${since}..HEAD`, "--format=%s", "--", `modules/${id}`])
 		.split("\n")
 		.filter(Boolean);
@@ -51,100 +53,66 @@ function suggestLevel(id: string, since: string): Level {
 	return "patch";
 }
 
-// The tag a publish run would compare against: the newest RELEASE tag
-// (date pattern, same as the workflow trigger) that is reachable from
-// HEAD but not on it (in CI, HEAD is the freshly pushed release tag
-// itself). --merged keeps side-branch and backdated tags out.
-//
-// Tags are dates because the repo has no repo-level version to name:
-// modules version independently in their own metadata.json, so the tag
-// identifies the publishing event. The optional suffix is for a
-// same-day re-release (2026-08-03, then 2026-08-03.1).
-const RELEASE_TAG = "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*";
-function previousTag(): string | null {
+// The module's newest release tag reachable from HEAD (excluding tags
+// on HEAD itself: in CI, HEAD is the freshly pushed tag). v:refname,
+// not refname: plain lexicographic puts 0.10 before 0.9.
+function lastModuleTag(id: string): string | null {
 	const headTags = new Set(git(["tag", "--points-at", "HEAD"]).split("\n").filter(Boolean));
-	// v:refname, not refname: plain lexicographic puts .10 before .9.
-	const tags = git(["tag", "--list", RELEASE_TAG, "--sort=-v:refname", "--merged", "HEAD"])
+	const tags = git(["tag", "--list", `${id}@*`, "--sort=-v:refname", "--merged", "HEAD"])
 		.split("\n")
 		.filter((t) => t && !headTags.has(t));
-	// A tag whose run failed before publishing never landed a vault.json
-	// change on our ancestry; it must not become the baseline or the diff
-	// window shrinks past the very changes that failed the gate.
-	for (const tag of tags) {
-		if (git(["log", "--format=%H", "-1", `${tag}..HEAD`, "--", "vault.json"])) return tag;
-	}
-	return null;
+	return tags[0] ?? null;
 }
 
-function metadataAt(ref: string, id: string): { version?: string } | null {
-	try {
-		return JSON.parse(
-			execFileSync("git", ["show", `${ref}:modules/${id}/metadata.json`], {
-				encoding: "utf8",
-				stdio: ["ignore", "pipe", "ignore"],
-			}),
-		);
-	} catch {
-		return null; // module did not exist at that ref
-	}
-}
-
-function readMetadata(id: string): { name?: string; version?: string } {
+function readMetadata(id: string): { name?: string; version?: string; dependencies?: Record<string, string> } {
 	return JSON.parse(readFileSync(path.join("modules", id, "metadata.json"), "utf8"));
 }
 
+function moduleIds(): string[] {
+	return readdirSync("modules", { withFileTypes: true })
+		.filter((d) => d.isDirectory() && existsSync(path.join("modules", d.name, "metadata.json")))
+		.map((d) => d.name)
+		.sort();
+}
+
+function loadVault(): { modules?: Record<string, { v?: Record<string, unknown> }> } {
+	return JSON.parse(readFileSync("vault.json", "utf8"));
+}
+
 function status(): void {
-	const since = previousTag();
-	// The vault is ground truth, not tags: a tag whose run failed must
-	// not reset the baseline, and a reused or downgraded version must
-	// never overwrite a published entry.
-	const vault = JSON.parse(readFileSync("vault.json", "utf8"));
-	const changed = new Set(
-		since
-			? git(["diff", "--name-only", `${since}..HEAD`, "--", "modules/"])
-					.split("\n")
-					.map((f) => f.match(/^modules\/([^/]+)\//)?.[1])
-					.filter((id): id is string => !!id && existsSync(path.join("modules", id, "metadata.json")))
-			: [],
-	);
-	// Without a previous tag there is no diff window; the vault reuse
-	// check still applies to every module.
-	const ids = since
-		? [...changed].sort()
-		: readdirSync("modules", { withFileTypes: true })
-				.filter((d) => d.isDirectory() && existsSync(path.join("modules", d.name, "metadata.json")))
-				.map((d) => d.name)
-				.sort();
+	// The vault is ground truth for what is published; the module's own
+	// release tags provide the diff baseline. Both per-module: no batch
+	// window, no cross-module noise.
+	const vault = loadVault();
 	const problems: string[] = [];
-	for (const id of ids) {
+	for (const id of moduleIds()) {
 		const now = readMetadata(id);
 		if (!now.version) {
 			problems.push(`${id}: metadata.json has no version`);
 			continue;
 		}
-		const level = since ? suggestLevel(id, since) : "patch";
-		const hint = `suggest ${level} -> ${bumpVersion(now.version, level)}`;
-		// The vault keys modules by metadata name, not directory name.
 		const vaultId = now.name ?? id;
-		if (vault.modules?.[vaultId]?.v?.[now.version]) {
-			problems.push(`${id}: ${now.version} is already published in the vault (${hint})`);
-			continue;
-		}
-		const then = since ? metadataAt(since, id) : null;
-		if (then?.version !== undefined && then.version === now.version) {
-			problems.push(`${id}: changed since ${since} but still ${now.version} (${hint})`);
+		const published = !!vault.modules?.[vaultId]?.v?.[now.version];
+		if (!published) continue; // new version: publishable, nothing to check
+		// The current version is already in the vault; any source change
+		// since ITS release tag must come with a bump, or the change can
+		// never ship (the publish flow refuses to overwrite).
+		const releasedTag = `${vaultId}@${now.version}`;
+		const baseline = git(["tag", "--list", releasedTag]) ? releasedTag : lastModuleTag(vaultId);
+		if (!baseline) continue; // published outside tags (legacy/inline); no diff possible
+		if (git(["diff", "--name-only", `${baseline}..HEAD`, "--", `modules/${id}`])) {
+			const level = suggestLevel(id, baseline);
+			problems.push(
+				`${id}: changed since ${baseline} but ${now.version} is already published (suggest ${level} -> ${bumpVersion(now.version, level)})`,
+			);
 		}
 	}
 	if (problems.length) {
-		console.error(since ? `modules not safe to publish (changed since ${since}):` : "modules not safe to publish:");
+		console.error("modules not safe to publish:");
 		for (const p of problems) console.error(`  ${p}`);
 		process.exit(1);
 	}
-	console.log(
-		since
-			? `ok: every module changed since ${since} carries a new, unpublished version`
-			: "ok: no previous tag and no version already published",
-	);
+	console.log("ok: every changed module carries a new, unpublished version");
 }
 
 function bump(id: string, level: Level): void {
@@ -163,6 +131,62 @@ function bump(id: string, level: Level): void {
 	console.log(`${id}: bumped to ${next}`);
 }
 
+// Dependency-first order over module DIRECTORY ids (dependency maps
+// key by metadata name, which may differ), so a batch of pushed tags
+// publishes stdlib before its dependents and the vault never lists a
+// dependent whose dependency is absent.
+function topoOrder(dirIds: string[]): string[] {
+	const dirByName = new Map(dirIds.map((dir) => [readMetadata(dir).name ?? dir, dir]));
+	const seen = new Set<string>();
+	const out: string[] = [];
+	const visit = (dir: string) => {
+		if (seen.has(dir)) return;
+		seen.add(dir);
+		const deps = readMetadata(dir).dependencies ?? {};
+		for (const dep of Object.keys(deps)) {
+			const depDir = dirByName.get(dep);
+			if (depDir) visit(depDir);
+		}
+		out.push(dir);
+	};
+	for (const dir of dirIds) visit(dir);
+	return out;
+}
+
+function tag(push: boolean): void {
+	const vault = loadVault();
+	const pending = new Map<string, string>(); // dir id -> tag
+	for (const id of moduleIds()) {
+		const meta = readMetadata(id);
+		if (!meta.version) throw new Error(`${id}: metadata.json has no version`);
+		const vaultId = meta.name ?? id;
+		if (vault.modules?.[vaultId]?.v?.[meta.version]) continue; // published
+		const t = `${vaultId}@${meta.version}`;
+		if (git(["tag", "--list", t])) {
+			// An existing tag means a publish already started; retry it by
+			// re-running its workflow, never by re-tagging.
+			console.log(`skip ${t}: tag exists (re-run its publish workflow to retry)`);
+			continue;
+		}
+		pending.set(id, t);
+	}
+	const ordered = topoOrder([...pending.keys()]).map((dir) => pending.get(dir)!);
+	if (!ordered.length) {
+		console.log("nothing to tag: every module version is published");
+		return;
+	}
+	for (const t of ordered) {
+		if (push) {
+			git(["tag", "-a", t, "-m", t]);
+			git(["push", "origin", t]);
+			console.log(`pushed ${t}`);
+		} else {
+			console.log(`would tag ${t}`);
+		}
+	}
+	if (!push) console.log(`\ndry run: ${ordered.length} tag(s); re-run with --push to publish`);
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "status") {
 	status();
@@ -170,6 +194,8 @@ if (cmd === "status") {
 	const [id, level = "patch"] = rest;
 	if (!id || !LEVELS.includes(level as Level)) throw new Error("usage: release.ts bump <id> [major|minor|patch]");
 	bump(id, level as Level);
+} else if (cmd === "tag") {
+	tag(rest.includes("--push"));
 } else {
-	throw new Error("usage: release.ts status | bump <id> [major|minor|patch]");
+	throw new Error("usage: release.ts status | bump <id> [major|minor|patch] | tag [--push]");
 }

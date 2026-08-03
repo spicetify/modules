@@ -1,14 +1,14 @@
 name: Publish
 
-# Releases are batch date tags: the repo has no repo-level version to
-# name (modules version independently in their own metadata.json), so
-# the tag identifies the publishing event. The optional suffix allows a
-# same-day re-release: 2026-08-03, then 2026-08-03.1. Any other tag
-# must not trigger a real publish.
+# Releases are per-module tags: <name>@<version> names the exact unit
+# being published, so tag uniqueness is the vault's never-overwrite
+# rule. Push tags with `node scripts/release.ts tag --push` (it orders
+# dependencies first); retry a failed run by re-running it, never by
+# re-tagging.
 on:
    push:
       tags:
-         - "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*"
+         - "*@[0-9]*"
 
 # Two publishes must never interleave: both would build a vault commit
 # on top of origin/main and race the push.
@@ -28,9 +28,8 @@ jobs:
          -  name: Clone repository
             uses: actions/checkout@v4
             with:
-               # release.ts status diffs modules/ against the previous
-               # tag; the default shallow clone has neither tags nor
-               # history to compare with.
+               # The gate and release notes read tags and history; the
+               # default shallow clone has neither.
                fetch-depth: 0
 
          -  name: Clone classmaps
@@ -51,21 +50,11 @@ jobs:
          -  name: Install dependencies
             run: pnpm install --frozen-lockfile
 
-         # Gate: a module changed since the previous tag must carry a new
-         # metadata.json version, or the publish would overwrite a live
-         # vault version and the store's update detection would miss it.
-         -  name: Check version bumps
-            run: node scripts/release.ts status
-
-         # Gate: every workspace dependency range must be satisfied by the
-         # dependency's version or its compat list — an unsatisfied range
-         # ships modules the loader refuses at boot (the stdlib 1.0.0 bump
-         # blacked out all 14 dependents this way).
+         # Gate: workspace ranges must be satisfied by each dependency's
+         # version or compat list, or this module could land in the vault
+         # depending on something the loader refuses at boot.
          -  name: Check dependency ranges
             run: node scripts/check-deps.ts
-
-         -  name: Build modules
-            run: node scripts/stitch.ts
 
          -  name: Publish
             uses: ./.github/actions/release

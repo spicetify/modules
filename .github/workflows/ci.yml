@@ -23,9 +23,9 @@ jobs:
          -  name: Clone repository
             uses: actions/checkout@v4
             with:
-               # release.ts status compares against the previous release
-               # tag; the default shallow clone has neither tags nor
-               # history.
+               # release.ts status diffs each module against its own
+               # release tags; the default shallow clone has neither
+               # tags nor history.
                fetch-depth: 0
 
          -  name: Clone classmaps

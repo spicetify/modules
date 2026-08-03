@@ -1,77 +1,86 @@
 name: Publish
-description: Zip stitched modules, create a GitHub release, and record each artifact in vault.json
+description: Build the tagged module, create its GitHub release, and record the artifact in vault.json
 runs:
    using: 'composite'
    steps:
-      -  name: Build
+      # The tag is the contract: it must name a module directory whose
+      # metadata.json agrees on name and version. A tag for an already
+      # vault-recorded version makes the whole run a no-op (idempotent
+      # re-run after a successful publish); anything else inconsistent
+      # fails before a release exists.
+      -  name: Resolve tag
          shell: bash
          run: |
             set -e
-            shopt -s nullglob
-            pushd dist
-            for DIR in */; do
-               DIR="${DIR%/}"
-               pushd "${DIR}"
-               cp metadata.json "../${DIR}.metadata.json"
-               # zip -qr . matches vault.ts pack and includes dotfiles;
-               # a shell glob would silently drop them.
-               zip -qr "../${DIR}.zip" .
-               popd
-            done
-            popd
-
-      # Validate BEFORE anything is published: a module that would
-      # fail vault.ts add (previewless, or a version already recorded)
-      # must not leave a published release with no vault update.
-      -  name: Validate artifacts against the vault
-         shell: bash
-         run: |
-            set -e
-            shopt -s nullglob
-            for DIR in dist/*/; do
-               DIR="${DIR%/}"
-               node scripts/vault.ts add "${DIR}" --zip "${DIR}.zip" --skip-existing --check
-            done
-
-      # Zips are not byte-reproducible and the release action replaces
-      # same-named assets, so re-uploading an already-published version
-      # would desync the bytes from the vault's checksum. The vault on
-      # origin/main is ground truth here (it may have moved since the
-      # tag), not the tag's copy.
-      -  name: Prune already-published artifacts
-         shell: bash
-         run: |
-            set -e
+            TAG="${{ github.ref_name }}"
+            NAME="${TAG%@*}"
+            VERSION="${TAG##*@}"
             git fetch origin main
             git show origin/main:vault.json > /tmp/main-vault.json
             node -e '
-               const { readFileSync, readdirSync, rmSync } = require("fs");
-               const vault = JSON.parse(readFileSync("/tmp/main-vault.json", "utf8"));
-               for (const dir of readdirSync("dist", { withFileTypes: true })) {
-                  if (!dir.isDirectory()) continue;
-                  const meta = JSON.parse(readFileSync(`dist/${dir.name}/metadata.json`, "utf8"));
-                  if (vault.modules?.[meta.name]?.v?.[meta.version]) {
-                     console.log(`prune ${dir.name}: already in the vault`);
-                     rmSync(`dist/${dir.name}.zip`, { force: true });
-                     rmSync(`dist/${dir.name}.metadata.json`, { force: true });
-                  }
+               const { readFileSync, readdirSync, existsSync } = require("fs");
+               const [name, version] = process.argv.slice(1);
+               const dir = readdirSync("modules", { withFileTypes: true })
+                  .filter((d) => d.isDirectory() && existsSync(`modules/${d.name}/metadata.json`))
+                  .map((d) => d.name)
+                  .find((d) => JSON.parse(readFileSync(`modules/${d}/metadata.json`, "utf8")).name === name);
+               if (!dir) throw new Error(`tag ${name}@${version}: no module with metadata name ${name}`);
+               const meta = JSON.parse(readFileSync(`modules/${dir}/metadata.json`, "utf8"));
+               if (meta.version !== version) {
+                  throw new Error(`tag ${name}@${version}: modules/${dir}/metadata.json declares ${meta.version}`);
                }
-            '
+               const vault = JSON.parse(readFileSync("/tmp/main-vault.json", "utf8"));
+               const published = !!vault.modules?.[name]?.v?.[version];
+               console.log(published ? `${name}@${version} already in the vault: no-op re-run` : `publishing ${name}@${version} from modules/${dir}`);
+               require("fs").appendFileSync(process.env.GITHUB_ENV, `MODULE_DIR=${dir}\nMODULE_TAG=${name}@${version}\nALREADY_PUBLISHED=${published}\n`);
+            ' "$NAME" "$VERSION"
+
+      -  name: Build
+         if: env.ALREADY_PUBLISHED == 'false'
+         shell: bash
+         run: |
+            set -e
+            node scripts/stitch.ts "modules/${MODULE_DIR}"
+            pushd "dist/${MODULE_TAG}"
+            cp metadata.json "../${MODULE_TAG}.metadata.json"
+            # zip -qr . matches vault.ts pack and includes dotfiles;
+            # a shell glob would silently drop them.
+            zip -qr "../${MODULE_TAG}.zip" .
+            popd
+
+      # Validate before the release exists: a module that would fail
+      # vault.ts add (previewless, unhidden without artwork) must not
+      # leave a published release with no vault update.
+      -  name: Validate against the vault
+         if: env.ALREADY_PUBLISHED == 'false'
+         shell: bash
+         run: node scripts/vault.ts add "dist/${MODULE_TAG}" --zip "dist/${MODULE_TAG}.zip" --skip-existing --check
+
+      # The tag names what shipped; the body describes it, with the
+      # checksum in sha256sum format. Bytes uploaded and checksum
+      # recorded both come from this run's zip, so a re-run of a failed
+      # publish stays self-consistent even though zips are not
+      # byte-reproducible.
+      -  name: Compose release notes
+         if: env.ALREADY_PUBLISHED == 'false'
+         shell: bash
+         run: node scripts/release-notes.ts "${MODULE_TAG}" > /tmp/release-notes.md
 
       -  name: Release
+         if: env.ALREADY_PUBLISHED == 'false'
          uses: softprops/action-gh-release@v2
          with:
+            body_path: /tmp/release-notes.md
             files: |
                dist/*.zip
                dist/*.metadata.json
 
-      # Record the artifacts on top of origin/main, never by copying
-      # the tag's vault.json over it: vault changes that landed on main
-      # after the tag (curated edits, another publish) must survive,
-      # and --skip-existing makes a re-run idempotent. vault.ts add
-      # embeds metadata, updatedAt, and checksums, and enforces the
-      # preview requirement.
+      # Record the artifact on top of origin/main, never the tag's
+      # vault.json: vault changes that landed after the tag (curated
+      # edits, another publish) must survive. --skip-existing plus the
+      # rebase retry make re-runs and races converge.
       -  name: Update vault.json on main
+         if: env.ALREADY_PUBLISHED == 'false'
          shell: bash
          env:
             PUSH_BRANCH: main
@@ -81,20 +90,15 @@ runs:
             git config --local user.name "$GITHUB_ACTOR"
             git fetch origin "${PUSH_BRANCH}"
             git checkout -b vault-update "origin/${PUSH_BRANCH}"
-            shopt -s nullglob
-            for DIR in dist/*/; do
-               DIR="${DIR%/}"
-               ARCHIVE="${DIR}.zip"
-               URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE##*/}"
-               node scripts/vault.ts add "${DIR}" --artifact "${URL}" --zip "${ARCHIVE}" --skip-existing
-            done
+            URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${MODULE_TAG}.zip"
+            node scripts/vault.ts add "dist/${MODULE_TAG}" --artifact "${URL}" --zip "dist/${MODULE_TAG}.zip" --skip-existing
             rm -rf dist
             git add vault.json
             if git diff --cached --quiet; then
                echo "vault unchanged"
                exit 0
             fi
-            git commit -m 'Updated vault.json'
+            git commit -m "Publish ${MODULE_TAG}"
             git push origin "HEAD:${PUSH_BRANCH}" || {
                git fetch origin "${PUSH_BRANCH}"
                git rebase "origin/${PUSH_BRANCH}"
