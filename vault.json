@@ -2459,6 +2459,29 @@
 				],
 				"tags": ["ui"]
 			}
+		},
+		"trashbin": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/trashbin@0.1.0/trashbin@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:8f1d5b03c854ab799bbab1c246f788b1be75707920787f508c12ff7ff0ec5901",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "trashbin",
+				"description": "Throw songs and artists in the trashbin and never hear them again.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
+			}
 		}
 	}
 }
