@@ -2392,6 +2392,29 @@
 				"tags": ["app"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png"
 			}
+		},
+		"popup-lyrics": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/popup-lyrics@0.1.0/popup-lyrics@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:9365f30ff6ba48f28447a68092f9bb99c03b66fd032a4fdb29f1b0ec99b803e4",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "popup-lyrics",
+				"description": "Pop synced lyrics up in a picture-in-picture window, sourced from Spotify, Musixmatch, Netease or LRCLIB.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
+			}
 		}
 	}
 }
