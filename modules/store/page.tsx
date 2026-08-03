@@ -1027,6 +1027,26 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 // ---------- page factory (contract shared with index.ts) ----------
 
+const nextMacrotask = () => new Promise((r) => setTimeout(r, 0));
+
+// Drive the root's first commit to completion. The ref that calls this fires
+// inside the client tree's commit phase during boot, where a fresh concurrent
+// root's render can be starved and never flush. Re-rendering nudges a stuck
+// commit; poll between attempts and resolve as soon as the node gets children.
+// Returns false only if nothing commits within the window (a genuine hang),
+// so the caller can release the root and let the next visit retry.
+async function driveCommit(root: ReturnType<typeof ReactDOM.createRoot>, node: HTMLElement, tree: ReactElement) {
+	const start = Date.now();
+	for (let attempt = 0; Date.now() - start < 4000; attempt++) {
+		if (attempt > 0) root.render(tree);
+		for (let f = 0; f < 8; f++) {
+			await new Promise((r) => requestAnimationFrame(r));
+			if (node.childElementCount > 0) return true;
+		}
+	}
+	return node.childElementCount > 0;
+}
+
 export function createStorePage(): { node: HTMLElement; ensureLoaded: () => Promise<void> } {
 	// The node exists before any React so index.ts can hold and mount it
 	// through the route host ref; the React root renders into it lazily.
@@ -1037,15 +1057,11 @@ export function createStorePage(): { node: HTMLElement; ensureLoaded: () => Prom
 		node,
 		async ensureLoaded() {
 			if (!root) {
-				// ensureLoaded fires from the route host's ref, i.e. inside the
-				// client tree's commit phase. During boot that is a bad moment
-				// to start a second concurrent root: the scheduled render can
-				// silently never flush (observed on clean staged boots; fine on
-				// every later visit). Defer the first render past the client's
-				// commit, and never keep a root whose commit did not land —
-				// a latched dead root would leave the page blank until module
-				// reload, and the next visit retrying is the honest degrade.
-				await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+				// The ref that calls this fires inside the client tree's commit
+				// phase; yield to a macrotask so the client finishes painting
+				// before a second root starts, then drive the first commit to
+				// completion (see driveCommit).
+				await nextMacrotask();
 				if (root) {
 					// A concurrent ensureLoaded won the race while we waited.
 					api.onRevisit?.();
@@ -1059,9 +1075,9 @@ export function createStorePage(): { node: HTMLElement; ensureLoaded: () => Prom
 				// (and any portal) down through the existing registry.
 				const closer = () => mounted.unmount();
 				openDialogClosers.add(closer);
-				mounted.render(<StorePage api={api} />);
-				await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-				if (node.childElementCount === 0) {
+				const tree = <StorePage api={api} />;
+				mounted.render(tree);
+				if (!(await driveCommit(mounted, node, tree))) {
 					console.warn("[store] page render did not commit; releasing the root to retry on next visit");
 					mounted.unmount();
 					openDialogClosers.delete(closer);
