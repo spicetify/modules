@@ -83,10 +83,9 @@ type VaultModule = {
 	meta?: {
 		name?: string;
 		description?: string;
-		authors?: string[];
-		// GitHub username of the (first) author, when known; the
-		// details dialog links the author name to their profile.
-		github?: string;
+		// Each author may carry their own GitHub username; the details
+		// dialog links those names to their profiles.
+		authors?: Array<{ name: string; github?: string }>;
 		tags?: string[];
 		preview?: string;
 		repository?: string;
@@ -350,7 +349,9 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		name: mod.meta?.name ?? mod.id,
 		tags: mod.meta?.tags ?? [],
 		version: mod.version,
-		authors: mod.meta?.authors ?? [],
+		// The installed record mirrors metadata.json, where authors are
+		// plain names.
+		authors: (mod.meta?.authors ?? []).map((a) => a.name),
 		description: mod.meta?.description ?? "",
 		entries: {
 			...(files["index.js"] ? { js: "index.js" } : {}),
@@ -402,7 +403,7 @@ function searchHaystack(mod: VaultModule): string {
 		mod.id,
 		mod.meta?.name ?? "",
 		mod.meta?.description ?? "",
-		...(mod.meta?.authors ?? []),
+		...(mod.meta?.authors ?? []).map((a) => a.name),
 		...(mod.meta?.tags ?? []),
 	]
 		.join(" ")
@@ -605,16 +606,16 @@ function openModuleDetails(mod: VaultModule, installLabel: string, onInstall: (b
 		line.append("by ");
 		mod.meta.authors.forEach((author, i) => {
 			if (i > 0) line.append(", ");
-			// Link to the author's GitHub profile when the vault knows
-			// their username (recovered from marketplace history).
-			if (i === 0 && mod.meta?.github) {
-				const a = el("a", undefined, author);
-				a.href = `https://github.com/${mod.meta.github}`;
+			// Link any author to their GitHub profile when the vault
+			// knows their username (recovered from marketplace history).
+			if (author.github) {
+				const a = el("a", undefined, author.name);
+				a.href = `https://github.com/${author.github}`;
 				a.target = "_blank";
 				a.rel = "noopener noreferrer";
 				line.appendChild(a);
 			} else {
-				line.append(author);
+				line.append(author.name);
 			}
 		});
 		body.appendChild(line);
@@ -1099,7 +1100,9 @@ function createStorePage() {
 			card.appendChild(title);
 			if (mod.meta?.description) card.appendChild(el("p", "spicetify-store-card-desc", mod.meta.description));
 			if (mod.meta?.authors?.length) {
-				card.appendChild(el("div", "spicetify-store-card-authors", `by ${mod.meta.authors.join(", ")}`));
+				card.appendChild(
+					el("div", "spicetify-store-card-authors", `by ${mod.meta.authors.map((a) => a.name).join(", ")}`),
+				);
 			}
 
 			const meta = el("div", "spicetify-store-card-meta");

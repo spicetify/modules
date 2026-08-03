@@ -51,8 +51,9 @@ test("vault add: embeds the metadata subset and a sha256 of the zip; re-adds cle
 	const mod = JSON.parse(readFileSync(vaultPath, "utf8")).modules.demo;
 	const entry = mod.v["1.0.0"];
 	assert.equal(entry.checksum, sha(zipBytes));
-	// Card metadata lives at the module level, not per version.
-	assert.deepEqual(mod.metadata, { name: "demo", description: "D", authors: ["a"], tags: ["extension"] });
+	// Card metadata lives at the module level, not per version; plain
+	// author names normalize to objects so each can carry a github.
+	assert.deepEqual(mod.metadata, { name: "demo", description: "D", authors: [{ name: "a" }], tags: ["extension"] });
 	assert.equal(entry.metadata, undefined);
 	assert.deepEqual(entry.artifacts, ["https://example.com/demo.zip"]);
 

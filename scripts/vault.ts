@@ -55,25 +55,41 @@ interface VaultModule {
 	v: Record<string, VaultVersionEntry>;
 }
 
+// Every author may carry their own GitHub username. `github` is
+// vault-curated (recovered from marketplace git history) unless the
+// artifact's metadata.json already declares author objects.
+interface VaultAuthor {
+	name: string;
+	github?: string;
+}
+
 interface VaultMetadata {
 	name?: string;
 	description?: string;
-	authors?: string[];
-	// GitHub username of the (first) author, when known. Vault-curated
-	// (recovered from marketplace git history); never sourced from the
-	// artifact, so metadataSubset does not carry it.
-	github?: string;
+	authors?: VaultAuthor[];
 	tags?: string[];
 	preview?: string;
 	repository?: string;
 	readme?: string;
 }
 
+// metadata.json authors are plain names; author objects (with a github)
+// pass through, so an artifact may declare either.
+const normalizeAuthors = (authors: unknown[]): VaultAuthor[] =>
+	authors.flatMap((a) => {
+		if (typeof a === "string") return [{ name: a }];
+		if (a && typeof a === "object" && typeof (a as VaultAuthor).name === "string") {
+			const { name, github } = a as VaultAuthor;
+			return [{ name, ...(typeof github === "string" ? { github } : {}) }];
+		}
+		return [];
+	});
+
 const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	const out: VaultMetadata = {};
 	if (typeof meta.name === "string") out.name = meta.name;
 	if (typeof meta.description === "string") out.description = meta.description;
-	if (Array.isArray(meta.authors)) out.authors = meta.authors as string[];
+	if (Array.isArray(meta.authors)) out.authors = normalizeAuthors(meta.authors);
 	if (Array.isArray(meta.tags)) out.tags = meta.tags as string[];
 	// Previews inside the zip are not hotlinkable; only absolute URLs are
 	// useful to the store.
@@ -118,10 +134,19 @@ function loadVault(): { modules: Record<string, VaultModule> } {
 	return JSON.parse(readFileSync(VAULT_PATH, "utf8"));
 }
 
-// Curated fields (github attribution) never come from artifacts; carry
-// them across metadata rewrites so an update cannot drop them.
-const withCurated = (next: VaultMetadata, prev?: VaultMetadata): VaultMetadata =>
-	prev?.github ? { ...next, github: prev.github } : next;
+// Curated fields (per-author github attribution) usually don't come from
+// artifacts; carry them across metadata rewrites, matched by author name,
+// so an update cannot drop them. An artifact-declared github wins.
+const withCurated = (next: VaultMetadata, prev?: VaultMetadata): VaultMetadata => {
+	if (!prev?.authors?.length || !next.authors?.length) return next;
+	const curated = new Map(prev.authors.filter((a) => a.github).map((a) => [a.name, a.github as string]));
+	return {
+		...next,
+		authors: next.authors.map((a) =>
+			!a.github && curated.has(a.name) ? { ...a, github: curated.get(a.name) } : a,
+		),
+	};
+};
 
 const newestVersion = (versions: string[]): string | undefined =>
 	[...versions].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).at(-1);
@@ -225,14 +250,17 @@ function addSnippet(
 	const vault = loadVault();
 	const existing = vault.modules[id]?.v?.["1.0.0"];
 	const prevMeta = vault.modules[id]?.metadata;
-	const github = opts.github ?? prevMeta?.github;
+	// Curated attribution survives an update without --author, same rule
+	// as the bulk importer. --github attaches to the named author (or to
+	// the first existing one when --author is absent).
+	const authors: VaultAuthor[] = opts.author
+		? [{ name: opts.author }]
+		: (prevMeta?.authors ?? [{ name: "spicetify" }]).map((a) => ({ ...a }));
+	if (opts.github && authors[0]) authors[0].github = opts.github;
 	const metadata: VaultMetadata = {
 		name,
 		description: opts.description ?? prevMeta?.description ?? "",
-		// Curated attribution survives an update without --author, same
-		// rule as the bulk importer.
-		authors: opts.author ? [opts.author] : (prevMeta?.authors ?? ["spicetify"]),
-		...(github ? { github } : {}),
+		authors: withCurated({ authors }, prevMeta).authors,
 		tags: ["snippet"],
 		preview,
 	};
@@ -298,9 +326,9 @@ function importSnippets(snippetsPath: string, base: string): void {
 			description: snippet.description ?? "",
 			// The source catalog carries no authors; never clobber ones
 			// already curated into the vault (recovered from marketplace
-			// git history) with the fallback.
-			authors: prevMeta?.authors ?? ["spicetify"],
-			...(prevMeta?.github ? { github: prevMeta.github } : {}),
+			// git history, github attribution riding on each author) with
+			// the fallback.
+			authors: prevMeta?.authors ?? [{ name: "spicetify" }],
 			tags: ["snippet"],
 		};
 		metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;

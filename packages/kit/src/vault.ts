@@ -17,21 +17,38 @@ import path from "node:path";
 
 const USAGE = "spicetify-kit vault add <dist-dir> --artifact <url> [--zip <file>] [--vault <path>]";
 
+// Every author may carry their own GitHub username; plain names in
+// metadata.json normalize to { name }.
+interface VaultAuthor {
+	name: string;
+	github?: string;
+}
+
 interface VaultMetadata {
 	name?: string;
 	description?: string;
-	authors?: string[];
+	authors?: VaultAuthor[];
 	tags?: string[];
 	preview?: string;
 	repository?: string;
 	readme?: string;
 }
 
+const normalizeAuthors = (authors: unknown[]): VaultAuthor[] =>
+	authors.flatMap((a) => {
+		if (typeof a === "string") return [{ name: a }];
+		if (a && typeof a === "object" && typeof (a as VaultAuthor).name === "string") {
+			const { name, github } = a as VaultAuthor;
+			return [{ name, ...(typeof github === "string" ? { github } : {}) }];
+		}
+		return [];
+	});
+
 const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	const out: VaultMetadata = {};
 	if (typeof meta.name === "string") out.name = meta.name;
 	if (typeof meta.description === "string") out.description = meta.description;
-	if (Array.isArray(meta.authors)) out.authors = meta.authors as string[];
+	if (Array.isArray(meta.authors)) out.authors = normalizeAuthors(meta.authors);
 	if (Array.isArray(meta.tags)) out.tags = meta.tags as string[];
 	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
 	if (typeof meta.repository === "string" && meta.repository.startsWith("https://")) out.repository = meta.repository;
@@ -96,13 +113,17 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 	};
 	// Card data lives at the module level (one identity per module); an
 	// add records the newest release, so the card follows it. Curated
-	// fields (github attribution) never come from the artifact and must
-	// survive the rewrite.
-	const curated = vault.modules[id].metadata as (VaultMetadata & { github?: string }) | undefined;
-	vault.modules[id].metadata = {
-		...metadataSubset(meta),
-		...(curated?.github ? { github: curated.github } : {}),
-	};
+	// per-author github attribution usually doesn't come from the
+	// artifact and must survive the rewrite (artifact-declared wins).
+	const prev = vault.modules[id].metadata;
+	const next = metadataSubset(meta);
+	if (prev?.authors?.length && next.authors?.length) {
+		const curated = new Map(prev.authors.filter((a) => a.github).map((a) => [a.name, a.github as string]));
+		next.authors = next.authors.map((a) =>
+			!a.github && curated.has(a.name) ? { ...a, github: curated.get(a.name) } : a,
+		);
+	}
+	vault.modules[id].metadata = next;
 	writeFileSync(vaultPath, `${JSON.stringify(vault, null, "\t")}\n`);
 	console.log(`added ${id}@${version} to ${vaultPath}`);
 }
