@@ -1037,14 +1037,36 @@ export function createStorePage(): { node: HTMLElement; ensureLoaded: () => Prom
 		node,
 		async ensureLoaded() {
 			if (!root) {
-				root = ReactDOM.createRoot(node);
+				// ensureLoaded fires from the route host's ref, i.e. inside the
+				// client tree's commit phase. During boot that is a bad moment
+				// to start a second concurrent root: the scheduled render can
+				// silently never flush (observed on clean staged boots; fine on
+				// every later visit). Defer the first render past the client's
+				// commit, and never keep a root whose commit did not land —
+				// a latched dead root would leave the page blank until module
+				// reload, and the next visit retrying is the honest degrade.
+				await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+				if (root) {
+					// A concurrent ensureLoaded won the race while we waited.
+					api.onRevisit?.();
+					return;
+				}
+				const mounted = ReactDOM.createRoot(node);
+				root = mounted;
 				// Dialogs portal into document.body, so removing the node on
 				// unload would strand an open one. Registering the unmount as
 				// a dialog closer lets index.ts's dispose tear the whole tree
 				// (and any portal) down through the existing registry.
-				const mounted = root;
-				openDialogClosers.add(() => mounted.unmount());
-				root.render(<StorePage api={api} />);
+				const closer = () => mounted.unmount();
+				openDialogClosers.add(closer);
+				mounted.render(<StorePage api={api} />);
+				await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+				if (node.childElementCount === 0) {
+					console.warn("[store] page render did not commit; releasing the root to retry on next visit");
+					mounted.unmount();
+					openDialogClosers.delete(closer);
+					root = null;
+				}
 				return;
 			}
 			api.onRevisit?.();
