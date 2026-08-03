@@ -2160,6 +2160,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg"
 			}
+		},
+		"webnowplaying": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/webnowplaying@0.1.0/webnowplaying@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2639f78fdb2316a79082868b605944a27aff94fc9e98157d398257e38de6d7c2",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "webnowplaying",
+				"description": "Bridges now-playing info and controls to WebNowPlaying-Redux (Rainmeter, OBS, etc.) over a local WebSocket. Requires the companion adapter running on ws://localhost:8974.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg"
+			}
 		}
 	}
 }
