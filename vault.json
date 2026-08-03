@@ -2331,6 +2331,32 @@
 				"tags": ["app"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
 			}
+		},
+		"manager": {
+			"v": {
+				"1.0.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/manager@1.0.0/manager@1.0.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2fc6ed8180a4911be8f9ca6e66631461546f8708f25a7fb7fc83584ef2aa897c",
+					"updatedAt": "2026-08-03",
+					"hidden": true
+				}
+			},
+			"metadata": {
+				"name": "manager",
+				"description": "Manage spicetify from inside Spotify",
+				"authors": [
+					{
+						"name": "spicetify"
+					},
+					{
+						"name": "Afonso Jorge Ramos"
+					}
+				],
+				"tags": ["manager", "tools"]
+			}
 		}
 	}
 }
