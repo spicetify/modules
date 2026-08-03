@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// npm-style `import ... from "react"` in module code resolves here (stitch
-// aliases it), so every module shares the client's React instance — hooks,
-// context, and Component identity all match the renderer. The jsx runtime
-// stays on the esm.sh copy: element creation is instance-independent.
+// npm-style `import ... from "react"` in module code resolves here (the kit
+// build externalizes it to this runtime URL), so every module shares the
+// client's React instance — hooks, context, and Component identity all match
+// the renderer. The jsx runtime is stdlib-local too (./jsx-runtime.ts), so a
+// built module's boot never depends on the network.
 
 import { React } from "./React.ts";
 

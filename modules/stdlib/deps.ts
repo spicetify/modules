@@ -1,29 +1,24 @@
 /*
  * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-export { default as clamp } from "https://esm.sh/lodash@4.17.21/clamp";
-export { default as capitalize } from "https://esm.sh/lodash@4.17.21/fp/capitalize";
-export { default as shuffle } from "https://esm.sh/lodash@4.17.21/fp/shuffle";
-export { default as get } from "https://esm.sh/lodash@4.17.21/get";
-export { default as range } from "https://esm.sh/lodash@4.17.21/range";
-export { default as sortedLastIndex } from "https://esm.sh/lodash@4.17.21/sortedLastIndex";
-export { default as sortedLastIndexBy } from "https://esm.sh/lodash@4.17.21/sortedLastIndexBy";
-export { default as startCase } from "https://esm.sh/lodash@4.17.21/startCase";
-export { default as uniq } from "https://esm.sh/lodash@4.17.21/uniq";
+// Prebundled vendor copy (one self-contained file; vendor/rxjs.d.ts carries
+// the types), so stdlib boots without the network. The esm.sh imports this
+// replaces were static, which put esm.sh in every client's boot path and
+// made an offline boot fail the whole module graph. A bare "rxjs" import is
+// no good either: the tree build preserves modules, so it splats the package
+// into dist as dozens of files under the resolver's store path.
+export { BehaviorSubject, Subject, Subscription } from "./vendor/rxjs.js";
 
-import { default as mean } from "https://esm.sh/lodash@4.17.21/fp/mean";
-export const fp = { mean };
-
-import {
-	BehaviorSubject as _BehaviorSubject,
-	Subject as _Subject,
-	Subscription as _Subscription,
-} from "https://esm.sh/rxjs@7.8.1?exports=BehaviorSubject,Subscription,Subject";
-import type * as rxjsTypes from "rxjs";
-
-// The esm.sh URL carries no types; the rxjs dev dependency provides them.
-export const BehaviorSubject: typeof rxjsTypes.BehaviorSubject = _BehaviorSubject;
-export const Subject: typeof rxjsTypes.Subject = _Subject;
-export const Subscription: typeof rxjsTypes.Subscription = _Subscription;
+// The one remaining lodash consumer is startCase; a local implementation
+// beats shipping lodash for it. Splits camelCase and non-alphanumeric
+// boundaries, capitalizes each word ("miserly-magenta" -> "Miserly Magenta").
+export const startCase = (value: string): string =>
+	value
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+		.split(/[^a-zA-Z0-9]+/)
+		.filter(Boolean)
+		.map((word) => word[0].toUpperCase() + word.slice(1))
+		.join(" ");

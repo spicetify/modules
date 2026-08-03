@@ -46,6 +46,17 @@ export interface ModuleMetadata {
 
 const EXTERNALS = [/^\/hooks\//, /^https?:\/\//];
 
+// Runtime URLs the react family resolves to (see the resolveId plugin).
+// react-dom/server has no client instance to share, so it stays on esm.sh;
+// nothing imports it at boot.
+const REACT_RUNTIME_URLS: Record<string, string> = {
+	react: "/modules/stdlib/src/expose/react-shim.js",
+	"react/jsx-runtime": "/modules/stdlib/src/expose/jsx-runtime.js",
+	"react-dom": "/modules/stdlib/src/expose/react-dom-shim.js",
+	"react-dom/client": "/modules/stdlib/src/expose/react-dom-shim.js",
+	"react-dom/server": "https://esm.sh/react-dom@18.3.1/server",
+};
+
 const USAGE = `spicetify-kit build [module...] [--classmap <key|path>] [--out <dir>]
 
   module...        module folders to build; a folder containing
@@ -105,26 +116,29 @@ async function buildJs(inputDir: string, outputDir: string, tree: boolean, cwd: 
 		external: [...EXTERNALS, /^\/modules\//],
 		transform: {
 			jsx: {
-				// Emit "react/jsx-runtime" so the alias below resolves it to the
-				// stdlib-local runtime (a full URL here would bypass the alias).
+				// Emit "react/jsx-runtime" so the plugin below externalizes it
+				// to the stdlib-local runtime.
 				importSource: "react",
 			},
 		},
+		// One React rule, enforced at resolution: npm-style react specifiers
+		// become external runtime URLs into stdlib's client-instance shims,
+		// never bundled copies. This must be a resolveId plugin, not a
+		// resolve.alias entry — externals are tested on the raw specifier, so
+		// an aliased runtime URL is followed on to the local source file and
+		// inlined into every module (which is how the jsx runtime briefly
+		// dragged stdlib's React capture into each built .tsx module).
+		plugins: [
+			{
+				name: "react-runtime-urls",
+				resolveId: (source: string) =>
+					REACT_RUNTIME_URLS[source] ? { id: REACT_RUNTIME_URLS[source], external: true as const } : null,
+			},
+		],
 		resolve: {
 			extensions: [".ts", ".tsx", ".js", ".jsx", ".mjs", ".json"],
 			alias: {
 				"/modules": [path.join(cwd, "modules")],
-				// One React rule: npm-style react imports resolve to stdlib's
-				// client-instance shims (runtime URLs, always external), so
-				// module hooks share the client dispatcher. The jsx runtime is
-				// stdlib-local too: the esm.sh runtime it replaced was a static
-				// import in every built .tsx module, making module boot depend
-				// on the network.
-				"react/jsx-runtime": ["/modules/stdlib/src/expose/jsx-runtime.js"],
-				react: ["/modules/stdlib/src/expose/react-shim.js"],
-				"react-dom/client": ["/modules/stdlib/src/expose/react-dom-shim.js"],
-				"react-dom/server": ["https://esm.sh/react-dom@18.3.1/server"],
-				"react-dom": ["/modules/stdlib/src/expose/react-dom-shim.js"],
 			},
 		},
 	});
