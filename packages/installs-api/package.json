@@ -6,7 +6,7 @@
 	"license": "GPL-3.0-or-later",
 	"type": "module",
 	"scripts": {
-		"test": "node --test test/",
+		"test": "node --test \"test/*.test.mts\"",
 		"check": "../../node_modules/.bin/tsc -p tsconfig.json"
 	}
 }
