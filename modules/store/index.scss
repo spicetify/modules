@@ -142,7 +142,9 @@
 
 	.spicetify-store-page-header {
 		display: flex;
-		align-items: flex-end;
+		// flex-start: the search sits at the very top right, level with
+		// the title, not bottomed out against the subtitle.
+		align-items: flex-start;
 		justify-content: space-between;
 		gap: 16px;
 		margin-bottom: 8px;
