@@ -148,7 +148,47 @@ Icons: `Spicetify.SVGIcons.<name>` returns inner SVG markup, ready to drop into
 
 ---
 
-## 6. State, teardown, and shipping
+## 6. Recovery-tier modules: React without the dependency
+
+Most modules should skip this section: a leaf feature imports React from
+stdlib at the top of the file, and if stdlib is broken the loader contains the
+failure to that module. That is the intended trade.
+
+A recovery surface (a store, a manager, anything you would reach for to fix a
+broken client) must not make that trade: its bundle may not touch stdlib or
+the network at the top level, or the exact failure it exists to fix takes it
+down too. The store's page is the worked example of having both — a React UI
+and standalone survival:
+
+- **Type-only imports at the top.** `import type` from stdlib is erased at
+  build time; runtime imports of `/modules/stdlib/*` stay inside functions.
+- **Acquire React lazily.** A module-level `let React` assigned by an exported
+  async loader (dynamic `import("/modules/stdlib/src/expose/React.js")`),
+  awaited inside the enhanced path's try block. `ReactDOM` (with `createRoot`)
+  is a named export of the same module.
+- **Classic JSX pragma.** `/* @jsxRuntime classic */` with
+  `/** @jsx React.createElement */` as the file's first lines compiles the
+  file's JSX against that lazy binding instead of emitting a jsx-runtime
+  import. (Ordinary modules don't need this: the build serves the automatic
+  runtime from stdlib, but that is itself a stdlib import.)
+- **Keep a React-free fallback.** The vanilla kit
+  (`lib/primitives-vanilla.ts`) covers the surface that must survive; the
+  React tree is the enhancement, mounted only when stdlib loaded.
+- **Prove the bundle.** After building, the dist must contain zero top-level
+  `import` statements of stdlib or any network host. `grep -cE "^import "
+dist/<name>@<ver>/index.js` should say 0 for a route-registered recovery
+  module.
+
+One boot gotcha when rendering a separate React root from a route host's ref:
+the ref fires inside the client tree's commit phase, and during boot a second
+concurrent root's render can silently never commit. Defer the first render
+(two `requestAnimationFrame`s) and verify the node has children afterwards;
+release the root and retry on the next visit if not. The store's
+`ensureLoaded` implements this.
+
+---
+
+## 7. State, teardown, and shipping
 
 These are the contract; [the standard](./module-standard.md) carries the detail.
 
