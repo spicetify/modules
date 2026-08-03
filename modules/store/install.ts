@@ -120,7 +120,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	try {
 		await M().disable(mod.id);
 	} catch {}
-	const enabled = await M().installLocal(mod.id, {
+	const result = await M().installLocal(mod.id, {
 		metadata,
 		files,
 		sidecar: {
@@ -130,7 +130,15 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			checksum: mod.checksum ?? "",
 		},
 	});
-	if (enabled) {
+	// Tree modules (stdlib-style) apply on the next boot; the loader keeps
+	// the running code and says so instead of pretending a live swap.
+	if (result && typeof result === "object" && (result as { requiresRestart?: boolean }).requiresRestart) {
+		status("");
+		toast(`${metadata?.name ?? mod.id} installed; restart Spotify to apply it`, "success");
+		reportInstall(mod);
+		return;
+	}
+	if (result) {
 		status("");
 		toast(`${metadata?.name ?? mod.id} installed and enabled`, "success");
 		await enforceSingleTheme(mod.id, status);
