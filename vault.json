@@ -26,7 +26,7 @@
 				"description": "The standard library",
 				"authors": [
 					{
-						"name": "afonsojramos"
+						"name": "spicetify"
 					},
 					{
 						"name": "Delusoire"
@@ -34,7 +34,17 @@
 				],
 				"tags": ["lib"]
 			},
-			"v": {}
+			"v": {
+				"1.0.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.0.0/stdlib@1.0.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:fb473d1602876c8f23c3227dfd1b5eb3816eb30cd78180bb5b16dae14b3beef8",
+					"updatedAt": "2026-08-03",
+					"hidden": true
+				}
+			}
 		},
 		"snippet-hamsters-dancing": {
 			"metadata": {
