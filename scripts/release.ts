@@ -51,13 +51,15 @@ function suggestLevel(id: string, since: string): Level {
 	return "patch";
 }
 
-// The tag a publish run would compare against: the newest tag that is
-// reachable from HEAD but not on it (in CI, HEAD is the freshly pushed
-// release tag itself). --merged keeps side-branch and backdated tags
-// from corrupting the baseline.
+// The tag a publish run would compare against: the newest RELEASE tag
+// (date pattern, same as the workflow trigger) that is reachable from
+// HEAD but not on it (in CI, HEAD is the freshly pushed release tag
+// itself). --merged keeps side-branch and backdated tags out, and the
+// pattern keeps stray tags from silently shrinking the baseline.
+const RELEASE_TAG = "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]";
 function previousTag(): string | null {
 	const headTags = new Set(git(["tag", "--points-at", "HEAD"]).split("\n").filter(Boolean));
-	const tags = git(["tag", "--sort=-creatordate", "--merged", "HEAD"])
+	const tags = git(["tag", "--list", RELEASE_TAG, "--sort=-creatordate", "--merged", "HEAD"])
 		.split("\n")
 		.filter((t) => t && !headTags.has(t));
 	return tags[0] ?? null;

@@ -103,6 +103,21 @@ const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// Numeric semver-ish compare; plain string sort breaks at x.10.0.
+function compareVersions(a: string, b: string): number {
+	const parse = (v: string) =>
+		v
+			.split(/[+-]/)[0]
+			.split(".")
+			.map((n) => Number.parseInt(n, 10) || 0);
+	const [pa, pb] = [parse(a), parse(b)];
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+		if (d) return d;
+	}
+	return a.localeCompare(b);
+}
+
 const slugify = (name: string) =>
 	name
 		.toLowerCase()
@@ -244,8 +259,12 @@ async function add(
 		updatedAt: today(),
 		...(hidden ? { hidden } : {}),
 	};
-	// Adds record the newest release, so the module's card follows it.
-	vault.modules[id].metadata = withCurated(metadata, vault.modules[id].metadata);
+	// Adds record the newest release, so the module's card follows it;
+	// a backport add of an older version must not regress the card.
+	const newest = Object.keys(vault.modules[id].v).sort(compareVersions).at(-1);
+	if (newest === version) {
+		vault.modules[id].metadata = withCurated(metadata, vault.modules[id].metadata);
+	}
 	saveVault(vault);
 	console.log(`added ${id}@${version} to ${VAULT_PATH}`);
 }
