@@ -2308,6 +2308,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png"
 			}
+		},
+		"lyrics-plus": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/lyrics-plus@0.1.0/lyrics-plus@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:621364c56494beaaf328a4eba52c7da3799c6688e98a1ab80add59a513466f7e",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "lyrics-plus",
+				"description": "Full-featured lyrics: synced, karaoke, unsynced and translated, from Musixmatch, Spotify, LRCLIB, Netease and Genius.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["app"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
+			}
 		}
 	}
 }
