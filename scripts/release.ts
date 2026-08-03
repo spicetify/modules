@@ -180,11 +180,60 @@ function tag(push: boolean): void {
 			git(["tag", "-a", t, "-m", t]);
 			git(["push", "origin", t]);
 			console.log(`pushed ${t}`);
+			// The publish concurrency group holds only ONE pending run:
+			// pushing the next tag while one is queued CANCELS the queued
+			// run (learned the hard way at launch). Wait for this tag's
+			// run to finish before pushing the next; abort the batch on
+			// failure so dependents never publish over a broken dependency.
+			awaitPublish(t);
 		} else {
 			console.log(`would tag ${t}`);
 		}
 	}
 	if (!push) console.log(`\ndry run: ${ordered.length} tag(s); re-run with --push to publish`);
+}
+
+function awaitPublish(tag: string): void {
+	const deadline = Date.now() + 15 * 60 * 1000;
+	process.stdout.write(`  waiting for publish run`);
+	while (Date.now() < deadline) {
+		let runs: Array<{ status: string; conclusion: string | null }> = [];
+		try {
+			runs = JSON.parse(
+				execFileSync(
+					"gh",
+					[
+						"run",
+						"list",
+						"--workflow",
+						"publish.yml",
+						"--branch",
+						tag,
+						"--limit",
+						"1",
+						"--json",
+						"status,conclusion",
+					],
+					{ encoding: "utf8" },
+				),
+			);
+		} catch {
+			throw new Error("gh CLI unavailable: tags must be pushed one at a time, waiting for each publish run");
+		}
+		if (runs[0]?.status === "completed") {
+			const conclusion = runs[0].conclusion ?? "unknown";
+			console.log(` ${conclusion}`);
+			if (conclusion !== "success") {
+				throw new Error(
+					`${tag}: publish run ${conclusion}; fix and re-run it, then re-run tag --push for the rest`,
+				);
+			}
+			return;
+		}
+		process.stdout.write(".");
+		execFileSync("sleep", ["10"]);
+	}
+	throw new Error(`${tag}: publish run did not finish within 15m`);
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
