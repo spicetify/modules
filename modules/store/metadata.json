@@ -9,5 +9,6 @@
 		"css": "index.css"
 	},
 	"hasMixins": false,
-	"dependencies": {}
+	"dependencies": {},
+	"hidden": true
 }
