@@ -479,11 +479,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 	lyricVideo.play();
 
 	const registrar = createRegistrar(ctx);
-	// 1.5 round stroke matches the native encore topbar icons (the classic
-	// SVGIcons.lyrics is a heavier vintage and stands out next to them).
+	// The client's own encore lyrics glyph (playbar lyrics button), so the
+	// topbar entry matches the icon users already associate with lyrics.
 	registrar.placeButton("topbar-right", {
 		label: "Popup Lyrics",
-		icon: '<circle fill="none" stroke="currentColor" stroke-width="1.5" cx="8.5" cy="5.5" r="3.9"/><path fill="currentColor" d="M5.1 8.2 L2.45 14.1 A0.62 0.62 0 0 0 3.5 14.85 L7.5 9.55 Z"/>',
+		icon: '<path fill="currentColor" d="M13.426 2.574a2.831 2.831 0 0 0-4.797 1.55l3.247 3.247a2.831 2.831 0 0 0 1.55-4.797M10.5 8.118l-2.619-2.62L4.74 9.075 2.065 12.12a1.287 1.287 0 0 0 1.816 1.816l3.06-2.688 3.56-3.129zM7.12 4.094a4.331 4.331 0 1 1 4.786 4.786l-3.974 3.493-3.06 2.689a2.787 2.787 0 0 1-3.933-3.933l2.676-3.045z"/>',
 		onClick: () => {
 			if (!lyricVideoIsOpen) {
 				lyricVideo.requestPictureInPicture();
