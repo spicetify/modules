@@ -5,7 +5,7 @@
 
 import { Platform } from "../expose/Platform.ts";
 import { exported, exportedFunctions } from "./index.ts";
-import { findBy } from "/hooks/util.ts";
+import { findBy } from "../util.ts";
 
 await CHUNKS.xpui.promise;
 

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { toPascalCase } from "/hooks/std/text.ts";
-import { findBy } from "/hooks/util.ts";
+
+import { findBy, toPascalCase } from "../util.ts";
 
 import { warn } from "../logger.ts";
 

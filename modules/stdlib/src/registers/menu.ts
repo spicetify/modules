@@ -5,7 +5,7 @@
 
 import { React } from "../expose/React.ts";
 
-import { matchLast } from "/hooks/util.ts";
+import { matchLast } from "../util.ts";
 
 import { warn } from "../logger.ts";
 import { transformer } from "../../mixin.ts";

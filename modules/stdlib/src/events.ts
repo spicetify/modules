@@ -3,11 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { ModuleInstance } from "/hooks/module.ts";
-
 import { Platform } from "./expose/Platform.ts";
 
-import { BehaviorSubject, Subscription } from "../deps.ts";
+import { BehaviorSubject } from "../deps.ts";
 import { UpdateTitlebarSubject } from "./events.mix.ts";
 
 const newEventBus = () => {
@@ -32,24 +30,6 @@ const newEventBus = () => {
 
 const EventBus = newEventBus();
 export type EventBus = typeof EventBus;
-
-export const createEventBus = (mod: ModuleInstance) => {
-	const eventBus = newEventBus();
-
-	// TODO: come up with a nicer solution
-	const s = new Subscription();
-	s.add(EventBus.Player.song_changed.subscribe(eventBus.Player.song_changed));
-	s.add(EventBus.Player.state_updated.subscribe(eventBus.Player.state_updated));
-	s.add(EventBus.Player.status_changed.subscribe(eventBus.Player.status_changed));
-	s.add(EventBus.History.updated.subscribe(eventBus.History.updated));
-	s.add(EventBus.ControlMessage.titlebar_updated.subscribe(eventBus.ControlMessage.titlebar_updated));
-
-	mod._jsIndex!.disposableStack.defer(() => {
-		s.unsubscribe();
-	});
-
-	return eventBus;
-};
 
 let cachedState: any = {};
 const playerListener = ({ data: state }: any) => {

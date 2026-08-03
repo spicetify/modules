@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { toPascalCase } from "/hooks/std/text.ts";
+import { toPascalCase } from "../util.ts";
 import { warn } from "../logger.ts";
 import { modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";

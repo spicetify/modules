@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { findBy } from "/hooks/util.ts";
+import { findBy } from "../util.ts";
 import { exportedFunctions, modules, src } from "./index.ts";
 
 import type { useLocation as useLocationT, useMatch as useMatchT } from "npm:react-router";

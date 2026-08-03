@@ -4,7 +4,7 @@
  */
 
 import { exportedFunctions } from "./index.ts";
-import { findBy } from "/hooks/util.ts";
+import { findBy } from "../util.ts";
 
 // notistack ships inside the client bundle; these aliases stand in
 // for its types, which cannot be resolved from the npm: URL.

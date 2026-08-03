@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { ModuleInstance } from "/hooks/module.ts";
-
 // warn logs to the console and, when the loader's diagnostics buffer exists,
 // records the entry so management UIs can surface drift without the
 // devtools console. stdlib never creates the buffer — the loader owns it.
@@ -34,21 +32,4 @@ export const warn = (...args: unknown[]): void => {
 	} catch {
 		// Never break the caller for a diagnostics write.
 	}
-};
-
-export const createLogger = (mod: ModuleInstance) => {
-	const hookedMethods = new Set(["debug", "error", "info", "log", "warn"]);
-
-	return new Proxy(globalThis.console, {
-		get(target, p, receiver) {
-			const func: unknown = Reflect.get(target, p, receiver);
-
-			if (typeof p === "string" && hookedMethods.has(p) && typeof func === "function") {
-				// @ts-ignore
-				return (...data: any[]) => func.call(target, `[${mod.getModuleIdentifier()}]:`, ...data);
-			}
-
-			return func;
-		},
-	});
 };

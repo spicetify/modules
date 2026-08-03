@@ -15,19 +15,13 @@
 		"types": ["node"],
 		"paths": {
 			// Runtime URL imports, mapped to their sources for the editor.
-			"/modules/*": ["./modules/*"],
-			"/hooks/std/text.ts": ["./hooks-std-text.d.ts"],
-			"/hooks/*": ["../hooks/*"]
+			// (/hooks/* mappings are gone: stdlib inlined its last hooks
+			// imports; hooks-std-text.d.ts stays on disk only for the kit's
+			// vendored migration surface.)
+			"/modules/*": ["./modules/*"]
 		}
 	},
-	"include": [
-		"modules",
-		"scripts",
-		"packages/kit/src",
-		"remote-modules.d.ts",
-		"hooks-std-text.d.ts",
-		"spicetify.d.ts"
-	],
+	"include": ["modules", "scripts", "packages/kit/src", "remote-modules.d.ts", "spicetify.d.ts"],
 	// Every module gets an identical generated MAP declaration for
 	// standalone use; one copy in the program avoids global duplicates.
 	"exclude": [

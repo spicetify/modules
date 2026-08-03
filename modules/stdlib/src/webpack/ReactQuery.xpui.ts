@@ -15,7 +15,7 @@ import type {
 	useQueryClient as useQueryClientT,
 	useSuspenseQuery as useSuspenseQueryT,
 } from "npm:@tanstack/react-query";
-import { findBy } from "/hooks/util.ts";
+import { findBy } from "../util.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 
 await CHUNKS.xpui.promise;
