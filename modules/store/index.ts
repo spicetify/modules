@@ -4,7 +4,7 @@
  */
 
 import { loadKit } from "./kit.ts";
-import { createStorePage, STORE_ROUTE } from "./page.ts";
+import { createStorePage, loadPageDeps, STORE_ROUTE } from "./page.tsx";
 import { createPanel, createTopbarButton } from "./panel.ts";
 import { markDisposed, openDialogClosers, retryTimers, setOnCountsChanged } from "./runtime.ts";
 import { announceUpdates } from "./updates.ts";
@@ -80,6 +80,7 @@ export async function load() {
 	let disposeNavlink: (() => void) | null = null;
 	try {
 		await loadKit();
+		await loadPageDeps();
 		page = createStorePage();
 		disposePage = await registerStorePage(page);
 		disposeNavlink = await createStdlibNavlink();
