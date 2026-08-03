@@ -2357,6 +2357,29 @@
 				],
 				"tags": ["manager", "tools"]
 			}
+		},
+		"new-releases": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/new-releases@0.1.0/new-releases@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2d178c50cb3ea490f3231b5eb1cbe88d589a174e0aa8844353b142bf8439bf55",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "new-releases",
+				"description": "New album releases, with a graceful fallback to what you have recently added.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["app"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png"
+			}
 		}
 	}
 }
