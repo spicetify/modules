@@ -2193,6 +2193,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg"
 			}
+		},
+		"auto-skip-video": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-video@0.1.0/auto-skip-video@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:8c6fdfc84145dfdb424d6b069482e7676cda04cadd7b68f76ed5ae8ff02d8bc9",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "auto-skip-video",
+				"description": "Auto-skip music videos. Toggle in the profile menu.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg"
+			}
 		}
 	}
 }
