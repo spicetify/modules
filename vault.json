@@ -2216,6 +2216,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg"
 			}
+		},
+		"bookmark": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/bookmark@0.1.0/bookmark@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:a864f9aecff11cdfd2f1aff672e70996716b11fcbea6a52b0667decee1a27fed",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "bookmark",
+				"description": "Bookmark pages, tracks, and tracks with a playback timestamp to revisit later from a topbar popup.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
+			}
 		}
 	}
 }
