@@ -2526,6 +2526,13 @@
 					"checksum": "sha256:66c422fb526e250cb28ba405ece615fa801bdaba7da5a190c6aacdef7e3c888a",
 					"updatedAt": "2026-08-03",
 					"hidden": true
+				},
+				"1.0.2": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.0.2/store@1.0.2.zip"],
+					"providers": [],
+					"checksum": "sha256:0a03dcbdf6f4389712b1f24c1c386fb010da16320620267bada2292915503ace",
+					"updatedAt": "2026-08-03",
+					"hidden": true
 				}
 			},
 			"metadata": {
