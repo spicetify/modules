@@ -1,4 +1,5 @@
 name: Publish
+description: Zip stitched modules, create a GitHub release, and record each artifact in vault.json
 runs:
    using: 'composite'
    steps:

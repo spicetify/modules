@@ -16,6 +16,11 @@ jobs:
       steps:
          -  name: Clone repository
             uses: actions/checkout@v4
+            with:
+               # release.ts status diffs modules/ against the previous
+               # tag; the default shallow clone has neither tags nor
+               # history to compare with.
+               fetch-depth: 0
 
          -  name: Clone classmaps
             uses: actions/checkout@v4
@@ -34,6 +39,12 @@ jobs:
 
          -  name: Install dependencies
             run: pnpm install --frozen-lockfile
+
+         # Gate: a module changed since the previous tag must carry a new
+         # metadata.json version, or the publish would overwrite a live
+         # vault version and the store's update detection would miss it.
+         -  name: Check version bumps
+            run: node scripts/release.ts status
 
          -  name: Build modules
             run: node scripts/stitch.ts
