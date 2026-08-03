@@ -190,4 +190,4 @@ only source a feature depends on.
 - [ ] Self-subscribes to external state; disposes everything on unload.
 - [ ] Cannot take down the client — verified by disabling and removing it live.
 - [ ] `metadata.json` declares dependencies, version, entries, and an absolute
-  https `preview`; ships MAP-intact.
+      https `preview`; ships MAP-intact.
