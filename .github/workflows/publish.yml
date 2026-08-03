@@ -7,6 +7,12 @@ on:
       tags:
          - "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
 
+# Two publishes must never interleave: both would build a vault commit
+# on top of origin/main and race the push.
+concurrency:
+   group: publish
+   cancel-in-progress: false
+
 jobs:
    publish:
       name: Publish
@@ -47,6 +53,13 @@ jobs:
          # vault version and the store's update detection would miss it.
          -  name: Check version bumps
             run: node scripts/release.ts status
+
+         # Gate: every workspace dependency range must be satisfied by the
+         # dependency's version or its compat list — an unsatisfied range
+         # ships modules the loader refuses at boot (the stdlib 1.0.0 bump
+         # blacked out all 14 dependents this way).
+         -  name: Check dependency ranges
+            run: node scripts/check-deps.ts
 
          -  name: Build modules
             run: node scripts/stitch.ts
