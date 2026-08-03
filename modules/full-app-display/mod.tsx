@@ -728,9 +728,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// topbar-right register (the classic Spicetify.Topbar.Button no longer
 	// mounts in v3's restructured top bar) and is torn down with the module.
 	const registrar = createRegistrar(ctx);
+	// 1.5 round stroke matches the native encore topbar icons (the classic
+	// SVGIcons.projector is a heavier vintage and stands out next to them).
 	registrar.placeButton("topbar-right", {
 		label: "Full App Display",
-		icon: Spicetify.SVGIcons.projector,
+		icon: '<rect fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x="2.25" y="4.75" width="11.5" height="6.5" rx="1"/><circle fill="none" stroke="currentColor" stroke-width="1.5" cx="10.25" cy="8" r="1.6"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M4.75 8h2"/>',
 		onClick: activate,
 	});
 

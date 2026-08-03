@@ -479,9 +479,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 	lyricVideo.play();
 
 	const registrar = createRegistrar(ctx);
+	// 1.5 round stroke matches the native encore topbar icons (the classic
+	// SVGIcons.lyrics is a heavier vintage and stands out next to them).
 	registrar.placeButton("topbar-right", {
 		label: "Popup Lyrics",
-		icon: Spicetify.SVGIcons.lyrics,
+		icon: '<rect fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" x="6.25" y="1.75" width="3.5" height="7" rx="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M3.75 7.25a4.25 4.25 0 0 0 8.5 0"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8 11.5v2"/>',
 		onClick: () => {
 			if (!lyricVideoIsOpen) {
 				lyricVideo.requestPictureInPicture();
