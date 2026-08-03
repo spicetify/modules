@@ -2262,6 +2262,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png"
 			}
+		},
+		"keyboard-shortcut": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/keyboard-shortcut@0.1.0/keyboard-shortcut@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:851a62180a18cea06142efa1a0189dab415214866683f7dcf2d2acf7492ca902",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "keyboard-shortcut",
+				"description": "Vim-like keyboard navigation and shortcuts for the Spotify client.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png"
+			}
 		}
 	}
 }
