@@ -41,11 +41,11 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 export default async function (ctx: ModuleRuntimeContext) {
-  const registrar = createRegistrar(ctx);
-  // register UI here
-  ctx.defer(() => {
-    // clear the timers, overlays, and listeners you own
-  });
+	const registrar = createRegistrar(ctx);
+	// register UI here
+	ctx.defer(() => {
+		// clear the timers, overlays, and listeners you own
+	});
 }
 ```
 
@@ -81,9 +81,9 @@ component, and it gives you ordering and native anchoring for free.
 
 ```ts
 registrar.placeButton("topbar-right", {
-  label: "Popup Lyrics",
-  icon: Spicetify.SVGIcons.lyrics,
-  onClick: () => togglePip(),
+	label: "Popup Lyrics",
+	icon: Spicetify.SVGIcons.lyrics,
+	onClick: () => togglePip(),
 });
 ```
 
@@ -106,10 +106,10 @@ buttons instead of in the module-button group:
 
 ```ts
 registrar.placeButton("playbar", {
-  label: "Loop section",
-  icon: LOOP_ICON,
-  onClick: toggleLoop,
-  near: { anchor: "playbar:queue", side: "before" },
+	label: "Loop section",
+	icon: LOOP_ICON,
+	onClick: toggleLoop,
+	near: { anchor: "playbar:queue", side: "before" },
 });
 ```
 
