@@ -40,6 +40,8 @@ function copyTsTree(from: string, to: string): number {
 rmSync(VENDOR, { recursive: true, force: true });
 
 const stdlib = copyTsTree(path.join(REPO, "modules", "stdlib"), path.join(VENDOR, "stdlib"));
+// The scaffold derives a fresh module's stdlib range from this version.
+cpSync(path.join(REPO, "modules", "stdlib", "metadata.json"), path.join(VENDOR, "stdlib", "metadata.json"));
 const hooks = copyTsTree(path.join(WORKSPACE, "hooks"), path.join(VENDOR, "hooks"));
 
 const shims = path.join(VENDOR, "shims");

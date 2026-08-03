@@ -14,8 +14,30 @@
  * inside the spicetify modules monorepo.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// The stdlib range a fresh module declares tracks the stdlib it will compile
+// against: the vendored copy in a published kit, the workspace copy in the
+// monorepo. A hardcoded literal here went stale once (^0.3.0 outlived the
+// 1.0.0 bump) and only the loader's compat vouch saved the scaffolds.
+function stdlibRange(): string {
+	const here = path.dirname(fileURLToPath(import.meta.url));
+	const candidates = [
+		path.join(here, "..", "vendor", "stdlib", "metadata.json"),
+		path.join(here, "..", "..", "..", "modules", "stdlib", "metadata.json"),
+	];
+	for (const p of candidates) {
+		try {
+			const version = JSON.parse(readFileSync(p, "utf8")).version;
+			if (typeof version === "string" && version) return `^${version}`;
+		} catch {
+			/* try the next source */
+		}
+	}
+	return "^1.0.0";
+}
 
 const USAGE =
 	'spicetify-kit create <name> [--template basic|extension|app|theme] [--description "..."] [--author "..."] [--bare]';
@@ -358,7 +380,7 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 				description,
 				entries,
 				hasMixins: false,
-				dependencies: { stdlib: "^0.3.0" },
+				dependencies: { stdlib: stdlibRange() },
 			},
 			null,
 			"\t",
