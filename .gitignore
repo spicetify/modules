@@ -2,6 +2,9 @@
 
 /dist/
 /classmap.json
+# CI clones spicetify/classmaps into the workspace for stitch (no
+# trailing slash: a local symlink must match too)
+/classmaps
 
 /modules/*/**/*.js
 /modules/*/**/*.css

@@ -8,6 +8,7 @@
 	"trailingComma": "all",
 	"ignorePatterns": [
 		"dist",
+		"classmaps",
 		"packages/kit/vendor",
 		"spicetify.d.ts",
 		"**/classmap.d.ts",

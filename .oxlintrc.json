@@ -11,6 +11,7 @@
 	},
 	"ignorePatterns": [
 		"dist",
+		"classmaps",
 		"packages/kit/vendor",
 		"spicetify.d.ts",
 		"**/*.gen.ts",
