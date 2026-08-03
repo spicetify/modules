@@ -2438,6 +2438,27 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png"
 			}
+		},
+		"store": {
+			"v": {
+				"1.0.0": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.0.0/store@1.0.0.zip"],
+					"providers": [],
+					"checksum": "sha256:4d6dae7f0b88be502f44157c62383f1554e181787c0368f8f687c2145b10dd5d",
+					"updatedAt": "2026-08-03",
+					"hidden": true
+				}
+			},
+			"metadata": {
+				"name": "store",
+				"description": "Browse, install, and manage v3 modules from vaults",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["ui"]
+			}
 		}
 	}
 }
