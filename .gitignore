@@ -8,6 +8,9 @@
 
 /modules/*/**/*.js
 /modules/*/**/*.css
+# Prebundled vendor files are source, not build output
+!/modules/*/vendor/*.js
+!/modules/*/vendor/*.css
 /modules/*/timestamp
 /modules/*/classmap.d.ts
 
