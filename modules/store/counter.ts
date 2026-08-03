@@ -4,7 +4,7 @@
  */
 
 import { INSTALLS_API, type VaultModule } from "./catalog.ts";
-import { disposed, onCountsChanged, PLATFORM, retryTimers } from "./runtime.ts";
+import { disposed, onCountsChanged, PLATFORM } from "./runtime.ts";
 
 // ---------- install counting (ranking signal) ----------
 
@@ -26,42 +26,28 @@ export async function fetchInstallCounts(ids: string[]): Promise<void> {
 }
 
 // Fire-and-forget: an install must never fail or slow down because the
-// counter is down. The server verifies the token against Spotify and
-// stores only a keyed hash of the account id, so repeat installs by the
-// same account are not double counted.
-export function reportInstall(mod: VaultModule, attempt = 0): void {
+// counter is down. The account id is read client-side (no token authenticates
+// against Spotify's Web API in v3) and the server stores only a keyed hash, so
+// repeat installs by the same account are not double counted.
+export function reportInstall(mod: VaultModule): void {
 	if (disposed) return;
-	try {
-		const session = PLATFORM()?.Session;
-		const token = session?.accessToken;
-		if (!token || session?.isAnonymous) return;
-		void fetch(`${INSTALLS_API()}/v1/installs`, {
-			method: "POST",
-			headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-			body: JSON.stringify({ module: mod.id, version: mod.version.split("+")[0] }),
-		})
-			.then(async (res) => {
-				// Spotify throttles the server's identity check at times; one
-				// deferred retry recovers most of those counts.
-				if (res.status === 503 && attempt === 0) {
-					const wait = Number(res.headers.get("retry-after") ?? 60);
-					const timer = setTimeout(
-						() => {
-							retryTimers.delete(timer);
-							if (!disposed) reportInstall(mod, 1);
-						},
-						Math.min(wait, 120) * 1000,
-					);
-					retryTimers.add(timer);
-					return;
-				}
-				if (!res.ok) return;
-				const data = (await res.json()) as { counted?: boolean };
-				if (data.counted) {
-					installCounts[mod.id] = (installCounts[mod.id] ?? 0) + 1;
-					onCountsChanged?.();
-				}
-			})
-			.catch(() => {});
-	} catch {}
+	void (async () => {
+		try {
+			const session = PLATFORM()?.Session;
+			if (session?.isAnonymous) return;
+			const account = (await PLATFORM()?.UserAPI?.getUser?.())?.username;
+			if (!account) return;
+			const res = await fetch(`${INSTALLS_API()}/v1/installs`, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ module: mod.id, version: mod.version.split("+")[0], account }),
+			});
+			if (!res.ok) return;
+			const data = (await res.json()) as { counted?: boolean };
+			if (data.counted) {
+				installCounts[mod.id] = (installCounts[mod.id] ?? 0) + 1;
+				onCountsChanged?.();
+			}
+		} catch {}
+	})();
 }
