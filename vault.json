@@ -2137,6 +2137,29 @@
 					"updatedAt": "2026-07-24"
 				}
 			}
+		},
+		"auto-skip-explicit": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-explicit@0.1.0/auto-skip-explicit@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:e40154bd5ce2bc867a5925c9dd7ce5b4ac905c80ff6ecd6ae5852409ebc2fff3",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "auto-skip-explicit",
+				"description": "Auto-skip explicit tracks. Toggle in the profile menu.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg"
+			}
 		}
 	}
 }
