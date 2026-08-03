@@ -2239,6 +2239,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
 			}
+		},
+		"full-app-display": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/full-app-display@0.1.0/full-app-display@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:11ab2b85e7c8c8e6f216eff9cdb6e981dcaaab15cbaa098652d6ba26e1c8d0e0",
+					"updatedAt": "2026-08-03"
+				}
+			},
+			"metadata": {
+				"name": "full-app-display",
+				"description": "Fullscreen now-playing overlay with big artwork, track info, progress and controls.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png"
+			}
 		}
 	}
 }
