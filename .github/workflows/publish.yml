@@ -1,9 +1,11 @@
 name: Publish
 
+# Releases are batch date tags; any other tag must not trigger a real
+# publish (and become the next run's baseline).
 on:
    push:
       tags:
-         - "*"
+         - "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
 
 jobs:
    publish:

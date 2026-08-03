@@ -25,7 +25,8 @@ const LEVELS = ["patch", "minor", "major"] as const;
 type Level = (typeof LEVELS)[number];
 
 function bumpVersion(version: string, level: Level): string {
-	const [core, build] = version.split("+");
+	const [coreAndPre, build] = version.split("+");
+	const [core] = coreAndPre.split("-");
 	const parts = core.split(".").map((n) => Number.parseInt(n, 10) || 0);
 	while (parts.length < 3) parts.push(0);
 	if (level === "major") {
@@ -46,15 +47,17 @@ function suggestLevel(id: string, since: string): Level {
 		.split("\n")
 		.filter(Boolean);
 	if (subjects.some((s) => /^[a-z]+(\([^)]*\))?!:/.test(s) || /BREAKING[ -]CHANGE/.test(s))) return "major";
-	if (subjects.some((s) => s.startsWith("feat"))) return "minor";
+	if (subjects.some((s) => /^feat(\([^)]*\))?:/.test(s))) return "minor";
 	return "patch";
 }
 
 // The tag a publish run would compare against: the newest tag that is
-// NOT on HEAD (in CI, HEAD is the freshly pushed release tag itself).
+// reachable from HEAD but not on it (in CI, HEAD is the freshly pushed
+// release tag itself). --merged keeps side-branch and backdated tags
+// from corrupting the baseline.
 function previousTag(): string | null {
 	const headTags = new Set(git(["tag", "--points-at", "HEAD"]).split("\n").filter(Boolean));
-	const tags = git(["tag", "--sort=-creatordate"])
+	const tags = git(["tag", "--sort=-creatordate", "--merged", "HEAD"])
 		.split("\n")
 		.filter((t) => t && !headTags.has(t));
 	return tags[0] ?? null;
@@ -75,6 +78,10 @@ function metadataAt(ref: string, id: string): { version?: string } | null {
 
 function status(): void {
 	const since = previousTag();
+	// The vault is ground truth, not tags: a tag whose run failed must
+	// not reset the baseline, and a reused or downgraded version must
+	// never overwrite a published entry.
+	const vault = JSON.parse(readFileSync("vault.json", "utf8"));
 	if (!since) {
 		console.log("no previous tag; every module publishes as new");
 		return;
@@ -88,19 +95,23 @@ function status(): void {
 	const problems: string[] = [];
 	for (const id of [...changed].sort()) {
 		const now = JSON.parse(readFileSync(path.join("modules", id, "metadata.json"), "utf8"));
-		const then = metadataAt(since, id);
-		if (then?.version === undefined || then.version !== now.version) continue;
 		const level = suggestLevel(id, since);
-		problems.push(
-			`${id}: changed since ${since} but still ${now.version} (suggest ${level} -> ${bumpVersion(now.version, level)})`,
-		);
+		const hint = `suggest ${level} -> ${bumpVersion(now.version, level)}`;
+		if (vault.modules?.[id]?.v?.[now.version]) {
+			problems.push(`${id}: ${now.version} is already published in the vault (${hint})`);
+			continue;
+		}
+		const then = metadataAt(since, id);
+		if (then?.version !== undefined && then.version === now.version) {
+			problems.push(`${id}: changed since ${since} but still ${now.version} (${hint})`);
+		}
 	}
 	if (problems.length) {
-		console.error(`modules changed since ${since} without a version bump:`);
+		console.error(`modules not safe to publish (changed since ${since}):`);
 		for (const p of problems) console.error(`  ${p}`);
 		process.exit(1);
 	}
-	console.log(`ok: every module changed since ${since} carries a new version`);
+	console.log(`ok: every module changed since ${since} carries a new, unpublished version`);
 }
 
 function bump(id: string, level: Level): void {

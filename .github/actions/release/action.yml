@@ -16,6 +16,18 @@ runs:
             done
             popd
 
+      # Validate BEFORE anything is published: a module that would
+      # fail vault.ts add (previewless, or a version already recorded)
+      # must not leave a published release with no vault update.
+      -  name: Validate artifacts against the vault
+         shell: bash
+         run: |
+            set -e
+            for DIR in dist/*/; do
+               DIR="${DIR%/}"
+               node scripts/vault.ts add "${DIR}" --zip "${DIR}.zip" --skip-existing --check
+            done
+
       -  name: Release
          uses: softprops/action-gh-release@v2
          with:
@@ -23,10 +35,10 @@ runs:
                dist/*.zip
                dist/*.metadata.json
 
-      # vault.ts add does what the raw yq edit did (artifacts, checksum,
-      # providers) plus what it skipped: embedded metadata, updatedAt,
-      # and the preview requirement, so a previewless module fails the
-      # release loudly instead of landing in the vault invisible.
+      # vault.ts add embeds metadata, updatedAt, and checksums, and
+      # enforces the preview requirement. Versions already recorded are
+      # skipped, never overwritten: a rewrite would change the checksum
+      # (zips are not byte-reproducible) and reset updatedAt.
       -  name: Update vault.json
          shell: bash
          run: |
@@ -35,22 +47,30 @@ runs:
                DIR="${DIR%/}"
                ARCHIVE="${DIR}.zip"
                URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${ARCHIVE##*/}"
-               node scripts/vault.ts add "${DIR}" --artifact "${URL}" --zip "${ARCHIVE}"
+               node scripts/vault.ts add "${DIR}" --artifact "${URL}" --zip "${ARCHIVE}" --skip-existing
             done
             rm -rf dist
 
-      -  name: Git commit, rebase onto master
+      # Commit the vault change straight onto origin/main. The old
+      # rebase flow rewrote newer main commits onto the vault commit
+      # and the plain push was then rejected as non-fast-forward,
+      # leaving a published release with no vault update.
+      -  name: Commit vault.json onto main
          shell: bash
          env:
             PUSH_BRANCH: main
-            TMP_BRANCH: ${{ github.repository }}${{ github.run_id}}
          run: |
+            set -e
             git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
             git config --local user.name "$GITHUB_ACTOR"
-            git checkout -b $TMP_BRANCH
+            cp vault.json /tmp/vault.json
+            git fetch origin "${PUSH_BRANCH}"
+            git checkout -b vault-update "origin/${PUSH_BRANCH}"
+            cp /tmp/vault.json vault.json
             git add vault.json
+            if git diff --cached --quiet; then
+               echo "vault unchanged"
+               exit 0
+            fi
             git commit -m 'Updated vault.json'
-            git fetch
-            git checkout -b $PUSH_BRANCH --track origin/${PUSH_BRANCH}
-            git rebase $TMP_BRANCH $PUSH_BRANCH
-            git push
+            git push origin "HEAD:${PUSH_BRANCH}"

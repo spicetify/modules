@@ -192,7 +192,12 @@ async function refresh(): Promise<void> {
 	console.log(`updated ${VAULT_PATH}`);
 }
 
-async function add(distDir: string, artifactUrl: string, zipFile?: string): Promise<void> {
+async function add(
+	distDir: string,
+	artifactUrl: string,
+	zipFile?: string,
+	opts: { skipExisting?: boolean; force?: boolean; check?: boolean } = {},
+): Promise<void> {
 	const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
 	const id: string = meta.name;
 	const version: string = meta.version;
@@ -210,6 +215,24 @@ async function add(distDir: string, artifactUrl: string, zipFile?: string): Prom
 	// Store cards are artwork-first; a previewless entry has no card.
 	if (!metadata.preview && !hidden) {
 		throw new Error(`${id}@${version}: metadata.preview (an https URL) is required by the store`);
+	}
+
+	// The vault keeps every released version; never overwrite one. A
+	// rewritten entry would change the checksum (zips are not
+	// byte-reproducible) and reset updatedAt, breaking verification
+	// and update detection for everyone who already installed it.
+	if (existing && !opts.force) {
+		if (opts.skipExisting) {
+			console.log(`skip ${id}@${version}: already in the vault`);
+			return;
+		}
+		throw new Error(
+			`${id}@${version} is already in the vault (use --force to overwrite or --skip-existing to skip)`,
+		);
+	}
+	if (opts.check) {
+		console.log(`check ok: ${id}@${version}`);
+		return;
 	}
 
 	const bytes = zipFile ? readFileSync(zipFile) : await download(artifactUrl);
@@ -373,9 +396,19 @@ async function main(): Promise<void> {
 			const i = rest.indexOf(`--${name}`);
 			return i >= 0 ? rest[i + 1] : undefined;
 		};
+		const has = (name: string) => rest.includes(`--${name}`);
 		const artifact = flag("artifact");
-		if (!distDir || !artifact) throw new Error("usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>]");
-		return add(distDir, artifact, flag("zip"));
+		const check = has("check");
+		if (!distDir || (!artifact && !check)) {
+			throw new Error(
+				"usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>] [--skip-existing] [--force] [--check]",
+			);
+		}
+		return add(distDir, artifact ?? "", flag("zip"), {
+			skipExisting: has("skip-existing"),
+			force: has("force"),
+			check,
+		});
 	}
 	if (cmd === "snippet") {
 		const name = rest.find((a) => !a.startsWith("--"));
