@@ -54,13 +54,17 @@ function suggestLevel(id: string, since: string): Level {
 // The tag a publish run would compare against: the newest RELEASE tag
 // (date pattern, same as the workflow trigger) that is reachable from
 // HEAD but not on it (in CI, HEAD is the freshly pushed release tag
-// itself). --merged keeps side-branch and backdated tags out, and the
-// pattern keeps stray tags from silently shrinking the baseline.
-const RELEASE_TAG = "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]";
+// itself). --merged keeps side-branch and backdated tags out.
+//
+// Tags are dates because the repo has no repo-level version to name:
+// modules version independently in their own metadata.json, so the tag
+// identifies the publishing event. The optional suffix is for a
+// same-day re-release (2026-08-03, then 2026-08-03.1).
+const RELEASE_TAG = "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*";
 function previousTag(): string | null {
 	const headTags = new Set(git(["tag", "--points-at", "HEAD"]).split("\n").filter(Boolean));
-	// Tags are dates, so -refname orders them without creatordate quirks.
-	const tags = git(["tag", "--list", RELEASE_TAG, "--sort=-refname", "--merged", "HEAD"])
+	// v:refname, not refname: plain lexicographic puts .10 before .9.
+	const tags = git(["tag", "--list", RELEASE_TAG, "--sort=-v:refname", "--merged", "HEAD"])
 		.split("\n")
 		.filter((t) => t && !headTags.has(t));
 	// A tag whose run failed before publishing never landed a vault.json

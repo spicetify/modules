@@ -1,11 +1,14 @@
 name: Publish
 
-# Releases are batch date tags; any other tag must not trigger a real
-# publish (and become the next run's baseline).
+# Releases are batch date tags: the repo has no repo-level version to
+# name (modules version independently in their own metadata.json), so
+# the tag identifies the publishing event. The optional suffix allows a
+# same-day re-release: 2026-08-03, then 2026-08-03.1. Any other tag
+# must not trigger a real publish.
 on:
    push:
       tags:
-         - "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
+         - "20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*"
 
 # Two publishes must never interleave: both would build a vault commit
 # on top of origin/main and race the push.
