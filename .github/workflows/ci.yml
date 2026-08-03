@@ -34,12 +34,6 @@ jobs:
                repository: spicetify/classmaps
                path: classmaps
 
-         # tsconfig maps the /hooks/* runtime URLs to ../hooks (the
-         # sibling checkout in the dev workspace); tsc needs it here
-         # too. Plain clone: actions/checkout cannot write outside the
-         # workspace.
-         -  name: Clone hooks
-            run: git clone --depth 1 https://github.com/spicetify/hooks ../hooks
 
          -  name: Setup pnpm
             uses: pnpm/action-setup@v6
