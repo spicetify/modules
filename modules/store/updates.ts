@@ -7,16 +7,21 @@ import { type Catalog, loadCatalog, type VaultModule } from "./catalog.ts";
 import { localRecords } from "./install.ts";
 import { disposed, toast } from "./runtime.ts";
 
-// Installed modules the catalog has a different version for.
-// User-authored (custom) modules are never vault-managed, even if a
-// vault entry happens to share their id.
+// Installed modules the catalog has a different version for, dependencies
+// before dependents: "Update all" installs sequentially, and a dependent
+// re-enabling against a not-yet-updated dependency mid-batch would hit the
+// loader's range check. User-authored (custom) modules are never
+// vault-managed, even if a vault entry happens to share their id.
 export function pendingUpdates(catalog: Catalog): VaultModule[] {
 	const locals = localRecords().filter((r) => !(r.metadata.tags ?? []).includes("custom"));
 	const versions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
-	return catalog.modules.filter((mod) => {
-		const installed = versions.get(mod.id);
-		return installed !== undefined && installed !== mod.version && !catalog.revoked[mod.id];
-	});
+	const dependedUpon = new Set(locals.flatMap((r) => Object.keys(r.metadata.dependencies ?? {})));
+	return catalog.modules
+		.filter((mod) => {
+			const installed = versions.get(mod.id);
+			return installed !== undefined && installed !== mod.version && !catalog.revoked[mod.id];
+		})
+		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
 
 // Boot-time nudge: check the vault once and toast when installed modules

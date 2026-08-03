@@ -4,6 +4,7 @@
 	"hidden": true,
 	"preview": "./assets/PREVIEW.png",
 	"version": "1.0.0",
+	"compat": ["0.3.0"],
 	"authors": ["spicetify", "Delusoire"],
 	"description": "The standard library",
 	"readme": "./assets/README.md",

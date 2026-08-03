@@ -145,6 +145,33 @@ classic theme in one shot.
 
 ---
 
+## Versioning and compatibility
+
+Modules declare dependency ranges (`"stdlib": "^1.0.0"`) and the loader
+refuses a module whose range the installed dependency cannot satisfy — with
+one deliberate asymmetry. A module needing a **newer** dependency than
+installed genuinely cannot work, so it refuses with an actionable message.
+The reverse is the dependency's call, not the dependent's: a dependency may
+declare versions it still answers for in its own metadata:
+
+```json
+"version": "1.0.0",
+"compat": ["0.3.0"]
+```
+
+The loader then loads any dependent whose range admits a vouched version, so
+bumping stdlib does not black out every module that has not re-declared its
+range yet (community vaults and localStorage installs update on their own
+schedules). Omit the entry on a truly breaking release and the strict refusal
+returns — the safe default.
+
+Two guards back this up: `scripts/check-deps.ts` (part of `check`) fails a
+batch whose workspace ranges are not satisfied by current versions plus
+compat, and the store's "Update all" installs dependencies before dependents
+so a mid-batch re-enable never races the range check.
+
+---
+
 ## Test like the project tests
 
 - **Pure logic and DOM** → `node --test` with happy-dom (the harness ships with

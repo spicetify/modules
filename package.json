@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "stitch": "node scripts/stitch.ts",
-    "check": "tsc && oxlint",
+    "check": "tsc && oxlint && node scripts/check-deps.ts",
     "test": "node --test 'modules/**/*.test.mts'",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
