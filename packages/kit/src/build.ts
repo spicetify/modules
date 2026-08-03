@@ -105,7 +105,9 @@ async function buildJs(inputDir: string, outputDir: string, tree: boolean, cwd: 
 		external: [...EXTERNALS, /^\/modules\//],
 		transform: {
 			jsx: {
-				importSource: "https://esm.sh/react@18.3.1",
+				// Emit "react/jsx-runtime" so the alias below resolves it to the
+				// stdlib-local runtime (a full URL here would bypass the alias).
+				importSource: "react",
 			},
 		},
 		resolve: {
@@ -114,9 +116,11 @@ async function buildJs(inputDir: string, outputDir: string, tree: boolean, cwd: 
 				"/modules": [path.join(cwd, "modules")],
 				// One React rule: npm-style react imports resolve to stdlib's
 				// client-instance shims (runtime URLs, always external), so
-				// module hooks share the client dispatcher. The jsx runtime
-				// stays on esm.sh — element creation is instance-independent.
-				"react/jsx-runtime": ["https://esm.sh/react@18.3.1/jsx-runtime"],
+				// module hooks share the client dispatcher. The jsx runtime is
+				// stdlib-local too: the esm.sh runtime it replaced was a static
+				// import in every built .tsx module, making module boot depend
+				// on the network.
+				"react/jsx-runtime": ["/modules/stdlib/src/expose/jsx-runtime.js"],
 				react: ["/modules/stdlib/src/expose/react-shim.js"],
 				"react-dom/client": ["/modules/stdlib/src/expose/react-dom-shim.js"],
 				"react-dom/server": ["https://esm.sh/react-dom@18.3.1/server"],
