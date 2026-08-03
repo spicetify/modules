@@ -6,19 +6,31 @@
 				"description": "Manager for theme color schemes",
 				"authors": [
 					{
-						"name": "afonsojramos"
+						"name": "spicetify"
 					},
 					{
 						"name": "harbassan"
 					},
 					{
 						"name": "Delusoire"
+					},
+					{
+						"name": "Afonso Jorge Ramos"
 					}
 				],
 				"tags": ["extension", "theming", "scheming"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png"
 			},
-			"v": {}
+			"v": {
+				"0.3.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.0/palette-manager@0.3.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:5479257f25751cf1e1b0518da18c6875bdc12c1191c319d3c246c8885792e21e",
+					"updatedAt": "2026-08-03"
+				}
+			}
 		},
 		"stdlib": {
 			"metadata": {
