@@ -68,15 +68,11 @@
 .main-topBar-background,
 .main-topBar-overlay,
 .x-entityHeader-overlay,
-.x-actionBarBackground-background,
-._UFTK833WfTNGb4agRTd,
-.Ic3iDUCnC09k55peZBfC {
+.x-actionBarBackground-background {
 	background-color: var(--spice-main) !important;
 }
 .x-actionBarBackground-background,
-.x-entityHeader-overlay,
-.Ic3iDUCnC09k55peZBfC,
-._UFTK833WfTNGb4agRTd {
+.x-entityHeader-overlay {
 	background-image: none !important;
 }
 .main-entityHeader-backgroundColor {

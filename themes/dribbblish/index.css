@@ -366,15 +366,6 @@ li div:has(> .main-yourLibraryX-rowCover) {
 	height: 40px;
 }
 
-.fRZRXRIV2YBCFLYgwDAr {
-	border-radius: 50% !important;
-}
-
-.fRZRXRIV2YBCFLYgwDAr > svg {
-	width: 15px;
-	height: 15px;
-}
-
 /* remove hover effect */
 li > div > div::after {
 	background-color: transparent !important;
@@ -757,8 +748,6 @@ input {
 .buddyFeed-hide-text .Root__top-container:not(:has(> .Root__top-container--right-sidebar-hidden)) .Root__right-sidebar {
 	width: 72px !important;
 }
-
-.buddyFeed-hide-text .NdQkQZhcYIEcJnRdAYcQ,
 .buddyFeed-hide-text .main-buddyFeed-header {
 	display: none;
 }
@@ -892,23 +881,12 @@ img.playlist-picture[src$=".svg"] {
 	color: var(--spice-text);
 }
 
-/* sidebar speaker icon */
-.CCeu9OfWSwIAJqA49n84 {
-	color: var(--spice-sidebar-text);
-}
-
 .legacy .Root__right-sidebar .os-content {
 	overflow-x: hidden;
 }
 
 .Root__right-sidebar .os-scrollbar-horizontal {
 	display: none;
-}
-
-.UyzJidwrGk3awngSGIwv,
-.poz9gZKE7xqFwgk231J4,
-.xWm_uA0Co4SXVxaO7wlB {
-	color: var(--spice-text);
 }
 
 .main-navBar-navBarLink {

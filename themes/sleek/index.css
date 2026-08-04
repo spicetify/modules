@@ -167,9 +167,7 @@ NAVBAR
 }
 
 /* traclists and playlists loading placeholder */
-.main-trackList-placeholder,
-.Pns6F5g4OEwEpdmOWTLg,
-.eldivguzYznZgQoShJbe {
+.main-trackList-placeholder {
 	background-color: var(--background-base);
 	background-blend-mode: color-dodge;
 }
@@ -321,10 +319,6 @@ p.main-buddyFeed-timestamp.main-type-finale,
 .main-buddyFeed-scrollableArea > .os-scrollbar {
 	display: none;
 }
-
-.main-avatar-avatar.BzunmwrVMyWGpopPJRt2:after {
-	background: var(--spice-button);
-}
 /*
 ---------------
 MAIN VIEW
@@ -332,10 +326,6 @@ MAIN VIEW
 */
 /* hide banner ads */
 .main-leaderboardComponent-container {
-	display: none;
-}
-
-.WiPggcPDzbwGxoxwLWFf.contentSpacing {
 	display: none;
 }
 

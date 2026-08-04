@@ -29,10 +29,6 @@
 * {
 	box-shadow: none !important;
 }
-/* dividers */
-.Y_WW1akjiQKXSzCBalCD {
-	display: none;
-}
 /* navbar */
 .main-rootlist-rootlist {
 	--left-sidebar-padding-left: 24px !important;
@@ -113,16 +109,11 @@
 .playback-bar .progress-bar {
 	--progress-bar-radius: 0;
 }
-.playback-bar:hover .progress-bar,
-.playback-bar .DuvrswZugGajIFNXObAr {
+.playback-bar:hover .progress-bar {
 	--progress-bar-height: 8px;
 }
 .x-progressBar-progressBarBg {
 	background-color: var(--spice-button-disabled);
-}
-.DuvrswZugGajIFNXObAr .progress-bar__slider,
-.epWhU7hHGktzlO_dop6z {
-	background-color: var(--bar) !important;
 }
 .progress-bar__slider {
 	display: block;
@@ -194,30 +185,15 @@
 .main-buddyFeed-timestamp {
 	color: var(--spice-subtext) !important;
 }
-.main-avatar-avatar.vreGJrlRqoFkzlSQwvsJ:after {
-	background: var(--spice-text);
-	box-shadow: none;
-}
 /* cards */
 .main-card-card,
-.Z35BWOA10YGn5uc9YgAp,
 .main-heroCard-card,
-.a2ruVaZt_DdrdHz3GqgU,
 .x-categoryCard-CategoryCard {
 	background-color: var(--spice-card);
 	border-radius: var(--br-1);
 }
-.Z35BWOA10YGn5uc9YgAp:hover {
-	background: var(--spice-button-disabled);
-}
 .main-cardImage-imageWrapper:not(.main-cardImage-circular) {
 	border-radius: var(--br-2);
-}
-.Z35BWOA10YGn5uc9YgAp .main-image-image {
-	border-radius: var(--br-2) 0 0 var(--br-2);
-}
-.zXwER4Lsqq_e7fVVaPkZ {
-	background-color: transparent !important;
 }
 .cSeieV {
 	background-color: var(--spice-button-active);
@@ -245,9 +221,7 @@
 /* input */
 .x-searchInput-searchInputInput,
 .x-proxySettings-proxyInput,
-.main-dropDown-dropDown,
-.QZhV0hWVKlExlKr266jo,
-.amTaUy6eMlbKh0wzrOnb {
+.main-dropDown-dropDown {
 	background: var(--spice-card);
 	border-radius: var(--br-2);
 }
@@ -256,32 +230,14 @@
 .x-searchInput-searchInputClearButton {
 	color: var(--spice-text) !important;
 }
-/* buttons */
-.wCl7pMTEE68v1xuZeZiB:hover,
-.w6j_vX6SF5IxSXrrkYw5:hover,
-.w6j_vX6SF5IxSXrrkYw5[data-context-menu-open="true"],
-.fLS8v3_EfBadEerbGVoR:hover,
-.aAr9nYtPsG7P2LRzciXc {
-	background: var(--spice-button-disabled);
-	border-radius: var(--br-2);
-}
-.w6j_vX6SF5IxSXrrkYw5 {
-	background-color: transparent;
-}
 .main-actionBar-ActionBarRow button:not(.bqeOGM),
-.QhF9ZR7YOiJeFiEnfkOr button,
-.CpQBQL6M4D3bquNOpKd9,
 .player-controls__buttons button,
-.DbMYFmOEEz9PH1h1zK9n button,
-.main-moreButton-button,
-.w6j_vX6SF5IxSXrrkYw5,
-.gIobRDHAxkAvUaF4_OOL button {
+.main-moreButton-button {
 	color: var(--spice-button);
 }
 .bqeOGM:hover .ButtonInner-sc-14ud5tc-0,
 .dkGAhA:hover .ButtonInner-sc-14ud5tc-0,
 .jEaMNl:hover .ButtonInner-sc-14ud5tc-0,
-.fBTYgGyvIbHizHIj7AAX,
 .main-playPauseButton-button {
 	background-color: var(--spice-button);
 }
@@ -289,18 +245,11 @@
 	color: var(--spice-subtext);
 }
 .main-button-primary,
-.fBTYgGyvIbHizHIj7AAX,
 .main-playPauseButton-button {
 	color: var(--spice-shadow) !important;
 }
-.aAr9nYtPsG7P2LRzciXc {
-	border: none;
-}
 .main-button-outlined {
 	border-color: var(--spice-button);
-}
-.rEx3EYgBzS8SoY7dmC6x rect {
-	fill: var(--spice-button);
 }
 /* scrollbar */
 .os-scrollbar {
@@ -310,20 +259,16 @@
 	border-radius: var(--br-2);
 	background: var(--spice-button-disabled) !important;
 }
-/* tab bar */
-.oaNVBli46GtVjaQKB15g,
 .marketplace-tabBar-active,
 .lyrics-tabBar-active,
 .queue-tabBar-active {
 	color: var(--spice-shadow) !important;
 	background: var(--spice-tab-active) !important;
 }
-.JdlKTdpMquftpMwwegZo,
 .marketplace-tabBar-headerItemLink,
 .lyrics-tabBar-headerItemLink {
 	border-radius: var(--br-2);
 }
-.JdlKTdpMquftpMwwegZo:hover,
 .marketplace-tabBar-headerItemLink:hover {
 	background: var(--spice-button-disabled);
 }
@@ -365,13 +310,8 @@
 .marketplace-card--installed {
 	border: none;
 }
-/* headers */
-.CmkY1Ag0tJDfnFXbGgju:not(.hNTPwmaxPotdJ14dx2W9 *) {
-	border-radius: var(--br-1);
-}
 .main-entityHeader-gray,
 .main-entityHeader-metaData,
-.UyzJidwrGk3awngSGIwv,
 .main-entityHeader-divider {
 	color: var(--spice-text) !important;
 }
@@ -405,12 +345,10 @@
 .main-trackList-trackListHeaderRow {
 	border: none;
 }
-.main-trackList-trackListRow:hover,
-.jtZMR8Hj94od6BQce98P:hover {
+.main-trackList-trackListRow:hover {
 	background-color: var(--spice-button-disabled);
 }
-.main-trackList-trackListRow.main-trackList-selected,
-.jtZMR8Hj94od6BQce98P:active {
+.main-trackList-trackListRow.main-trackList-selected {
 	background-color: var(--spice-tab-active) !important;
 }
 .main-trackList-selected * {
@@ -421,8 +359,7 @@
 	background-color: var(--spice-shadow);
 	color: var(--spice-text) !important;
 }
-.main-trackList-trackListRow,
-.jtZMR8Hj94od6BQce98P {
+.main-trackList-trackListRow {
 	border-radius: var(--br-2);
 }
 .main-trackList-trackList {
@@ -445,44 +382,14 @@
 	color: var(--spice-shadow);
 }
 /* podcasts */
-.main-yourEpisodes-coverContainer,
-.SpVoh9vvBN0kIwzfCiBh,
-.ltjunXlP2FwPEVF992n9 {
-	border-radius: var(--br-1);
-}
-.TT1tIewS2iI8Uz8kLuQB {
-	border-radius: var(--br-2);
-	margin: 0 8px;
-}
-.TT1tIewS2iI8Uz8kLuQB:hover {
-	background-color: var(--spice-button-disabled);
-}
-.Ng3dPPA2_1CFYkzPukjM {
-	background: var(--spice-text);
-}
-.Q3wDjXPNY4lACLUxARrd + div {
-	background-color: var(--spice-card);
-	padding: 8px 0;
+.main-yourEpisodes-coverContainer {
 	border-radius: var(--br-1);
 }
 .knWBkA {
 	color: var(--spice-subtext);
 }
-.qfYkuLpETFW3axnfMntO,
-.poz9gZKE7xqFwgk231J4,
-.UyzJidwrGk3awngSGIwv,
-.xWm_uA0Co4SXVxaO7wlB {
-	color: var(--spice-text) !important;
-}
 path[fill="#1ed760"] {
 	fill: var(--spice-button) !important;
-}
-.E4I5I7G2CfW32hLWZaqE,
-.SpVoh9vvBN0kIwzfCiBh {
-	background-color: var(--spice-card);
-}
-.rFwxt8s8DYY8p1O7tYZW {
-	background: none;
 }
 /* settings */
 .x-toggle-indicator {
@@ -541,9 +448,6 @@ input:checked ~ .x-toggle-indicatorWrapper .x-toggle-indicator {
 .euRuBv {
 	color: var(--spice-text);
 }
-.XmR5VFpqXOcxRvhuf6OB {
-	border-radius: var(--br-1);
-}
 .main-rootlist-rootlistDividerContainer {
 	display: none;
 }
@@ -579,27 +483,6 @@ label.Type__TypeElement-goli3j-0.gCwing.main-playlistEditDetailsModal-textElemen
 .main-navBar-navBarItem .main-navBar-navBarLinkActive .make-music-icon,
 .main-navBar-navBarItem .main-navBar-navBarLinkActive .search-icon,
 .main-navBar-navBarItem .search-active-icon {
-	color: var(--spice-main);
-}
-/*playing status icon - Playlist*/
-.CCeu9OfWSwIAJqA49n84.ZcKzjCkYGeMizcSAP8UX {
-	color: var(--spice-subtext);
-	top: 10px;
-}
-.main-rootlist-rootlistItemLinkActive + .main-rootlist-statusIcons .CCeu9OfWSwIAJqA49n84.ZcKzjCkYGeMizcSAP8UX {
-	color: var(--spice-main);
-	top: 10px;
-}
-/* download icon - Playlist */
-.hcxPtZcvjM07S6ydT685 {
-	top: 10px;
-	position: relative;
-}
-/*playing status icon - Liked Songs*/
-.CCeu9OfWSwIAJqA49n84.Frn4juLXf6zInWBEFFzr {
-	color: var(--spice-text);
-}
-.main-collectionLinkButton-selected .main-rootlist-statusIcons .CCeu9OfWSwIAJqA49n84.Frn4juLXf6zInWBEFFzr {
 	color: var(--spice-main);
 }
 /*about artist card text*/

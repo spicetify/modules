@@ -156,9 +156,6 @@ form .main-topBar-searchBar:focus {
 	top: -1px !important;
 	height: auto;
 }
-.LVMjmN2CaPruPAo62RAY {
-	height: unset !important;
-}
 .marketplace-header,
 .main-home-filterChipsContainer,
 .search-searchCategory-SearchCategory {
@@ -349,16 +346,6 @@ form .main-topBar-searchBar:focus {
 .main-contextMenu-tippy {
 	/* position below the element */
 	transform: translate(0, 65px);
-}
-
-/*  placeholder
-    -------------------------------- */
-.T7WHRub8pynnWPXERh8e,
-.rOgsguaurlHVlgCTY0P7,
-.eC25_w41L83mXDCqdm_A {
-	/* playlists loading placeholder */
-	opacity: 0.05;
-	filter: contrast(0.1);
 }
 
 /*  color reassignment
