@@ -2568,6 +2568,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
 			}
+		},
+		"burnt-sienna": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/burnt-sienna@0.1.0/burnt-sienna@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:b9c26d6b4251c06c9f16d30020e974d5a8d61f515e5a49f71885908049913b7f",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "burnt-sienna",
+				"description": "BurntSienna theme, migrated from the classic format",
+				"authors": [
+					{
+						"name": "Paweł Jaśpiński"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png"
+			}
 		}
 	}
 }
