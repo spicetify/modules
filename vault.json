@@ -2843,6 +2843,27 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
 			}
+		},
+		"ziro": {
+			"v": {
+				"0.1.0": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/ziro@0.1.0/ziro@0.1.0.zip"],
+					"providers": [],
+					"checksum": "sha256:691605c3927efb4f07cb8976acc7bae677b1de21e2555928ba12319fe1671852",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "ziro",
+				"description": "Soft rounded design inspired by the Zorin GTK themes",
+				"authors": [
+					{
+						"name": "schnensch0"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg"
+			}
 		}
 	}
 }
