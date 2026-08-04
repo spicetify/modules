@@ -11,6 +11,7 @@
 import { React as react } from "/modules/stdlib/src/expose/React.ts";
 import { APP_NAME, CONFIG, fontSizeLimit, GENIUS, KARAOKE, SYNCED, UNSYNCED } from "./config.ts";
 import { ConfigAdjust, ConfigSelection, ConfigSlider, OptionList } from "./settings.tsx";
+import { ProviderMusixmatch } from "./providers/musixmatch.ts";
 import * as sharedCallbacks from "./shared-callbacks.ts";
 
 const { useEffect, useMemo } = react;

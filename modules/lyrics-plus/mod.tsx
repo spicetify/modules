@@ -32,6 +32,7 @@ import {
 	UNSYNCED,
 } from "./config.ts";
 import * as UtilsPure from "./utils.ts";
+import { ProviderGenius } from "./providers/genius.ts";
 import { createProviders } from "./providers/index.ts";
 import { AdjustmentsMenu, TranslationMenu } from "./options-menu.tsx";
 import { TopBarContent } from "./tab-bar.tsx";
