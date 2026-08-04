@@ -2578,6 +2578,14 @@
 					"providers": [],
 					"checksum": "sha256:b9c26d6b4251c06c9f16d30020e974d5a8d61f515e5a49f71885908049913b7f",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/burnt-sienna@0.1.1/burnt-sienna@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:fb04aba3f1b2926b2a7ef8476669b2ca5e09d2d66fa1da0f23e404f61077783e",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
