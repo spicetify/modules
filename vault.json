@@ -2614,6 +2614,27 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png"
 			}
+		},
+		"sleek": {
+			"v": {
+				"0.1.0": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.0/sleek@0.1.0.zip"],
+					"providers": [],
+					"checksum": "sha256:3a679941694be6a837b9bc19bdff33ff830e57012733aab69379aa5a1937bb5d",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "sleek",
+				"description": "Sleek theme, migrated from the classic format",
+				"authors": [
+					{
+						"name": "harbassan"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png"
+			}
 		}
 	}
 }
