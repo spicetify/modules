@@ -5,6 +5,8 @@
 import { createStorage, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
 
+import { deserializeColors, paletteCSS, serializePalette, type PaletteData } from "./palette-logic.ts";
+
 let storage: Storage;
 export default function (ctx: ModuleRuntimeContext) {
 	storage = createStorage(ctx);
@@ -30,7 +32,6 @@ const def_fields = {
 	playbar_active: Color.fromHex("#1ed760"),
 };
 
-type PaletteData = { id: string; name: string; colors: Record<string, string> };
 export class Palette {
 	constructor(
 		public id: string,
@@ -48,33 +49,15 @@ export class Palette {
 	}
 
 	toCSS() {
-		function formatKey(key: string) {
-			return `--spice-${key.replaceAll("_", "-")}`;
-		}
-
-		function formatValue(value: Color) {
-			return value.toCSS(Color.Format.HEX);
-		}
-
-		return Object.entries(this.colors)
-			.map(([k, v]) => `${formatKey(k)}: ${formatValue(v)};`)
-			.join(" ");
+		return paletteCSS(this.colors, Color.Format.HEX);
 	}
 
 	toJSON(): PaletteData {
-		const colors: Record<string, string> = {};
-		for (const [k, v] of Object.entries(this.colors)) {
-			colors[k] = JSON.stringify(v);
-		}
-		return { id: this.id, name: this.name, colors };
+		return serializePalette(this.id, this.name, this.colors);
 	}
 
 	static fromJSON(json: PaletteData) {
-		const colors: Record<string, Color> = {};
-		for (const [k, v] of Object.entries(json.colors)) {
-			colors[k] = Color.parse(v);
-		}
-		return new Palette(json.id, json.name, colors, false);
+		return new Palette(json.id, json.name, deserializeColors(json, Color.parse), false);
 	}
 }
 
