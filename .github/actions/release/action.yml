@@ -44,7 +44,7 @@ runs:
                // ordering exists for - the vault must never list a dependent
                // whose dependency is absent. A dependency published earlier in
                // this run is visible here because this step reads origin/main
-               // fresh, after that leg's vault commit.
+               // fresh, after the vault commit of that leg.
                const missing = Object.keys(meta.dependencies ?? {}).filter((d) => !vault.modules?.[d]);
                if (!published && missing.length) {
                   throw new Error(`refusing to publish ${name}@${version}: dependencies not in the vault: ${missing.join(", ")} (dependency legs must publish first)`);
