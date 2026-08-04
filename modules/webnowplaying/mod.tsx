@@ -24,6 +24,14 @@
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
+import {
+	nextRepeatState,
+	parsePositionPercentage,
+	ratingShouldToggleHeart,
+	timeInSecondsToString,
+	togglePlayingState,
+} from "./logic.ts";
+
 type Revision = "legacy" | "1" | null;
 
 interface SpicetifyInfo {
@@ -43,15 +51,6 @@ interface SpicetifyInfo {
 }
 
 // Convert seconds to a time string acceptable to Rainmeter
-function pad(num: number, size: number): string {
-	return num.toString().padStart(size, "0");
-}
-function timeInSecondsToString(timeInSeconds: number): string {
-	const timeInMinutes = Math.floor(timeInSeconds / 60);
-	if (timeInMinutes < 60) return `${timeInMinutes}:${pad(Math.floor(timeInSeconds % 60), 2)}`;
-
-	return `${Math.floor(timeInMinutes / 60)}:${pad(Math.floor(timeInMinutes % 60), 2)}:${pad(Math.floor(timeInSeconds % 60), 2)}`;
-}
 
 class WNPReduxWebSocket {
 	_ws: WebSocket | null = null;
@@ -227,7 +226,7 @@ function OnMessageLegacy(self: WNPReduxWebSocket, message: string) {
 		switch (type) {
 			case "PLAYPAUSE": {
 				Spicetify.Player.togglePlay();
-				self.spicetifyInfo.state = self.spicetifyInfo.state === "PLAYING" ? "PAUSED" : "PLAYING";
+				self.spicetifyInfo.state = togglePlayingState(self.spicetifyInfo.state);
 				break;
 			}
 			case "NEXT":
@@ -247,8 +246,7 @@ function OnMessageLegacy(self: WNPReduxWebSocket, message: string) {
 				break;
 			case "REPEAT": {
 				Spicetify.Player.toggleRepeat();
-				self.spicetifyInfo.repeat =
-					self.spicetifyInfo.repeat === "NONE" ? "ALL" : self.spicetifyInfo.repeat === "ALL" ? "ONE" : "NONE";
+				self.spicetifyInfo.repeat = nextRepeatState(self.spicetifyInfo.repeat);
 				break;
 			}
 			case "SHUFFLE": {
@@ -319,7 +317,7 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 		switch (type) {
 			case "TOGGLE_PLAYING": {
 				Spicetify.Player.togglePlay();
-				self.spicetifyInfo.state = self.spicetifyInfo.state === "PLAYING" ? "PAUSED" : "PLAYING";
+				self.spicetifyInfo.state = togglePlayingState(self.spicetifyInfo.state);
 				break;
 			}
 			case "NEXT":
@@ -329,8 +327,7 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 				Spicetify.Player.back();
 				break;
 			case "SET_POSITION": {
-				const [, positionPercentage] = data.split(":");
-				Spicetify.Player.seek(Number.parseFloat(positionPercentage.replace(",", ".")));
+				Spicetify.Player.seek(parsePositionPercentage(data));
 				break;
 			}
 			case "SET_VOLUME":
@@ -338,8 +335,7 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 				break;
 			case "TOGGLE_REPEAT": {
 				Spicetify.Player.toggleRepeat();
-				self.spicetifyInfo.repeat =
-					self.spicetifyInfo.repeat === "NONE" ? "ALL" : self.spicetifyInfo.repeat === "ALL" ? "ONE" : "NONE";
+				self.spicetifyInfo.repeat = nextRepeatState(self.spicetifyInfo.repeat);
 				break;
 			}
 			case "TOGGLE_SHUFFLE": {
@@ -356,9 +352,7 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 			// case 'TOGGLE_THUMBS_DOWN': break
 			case "SET_RATING": {
 				const rating = Number.parseInt(data);
-				const isLiked = self.spicetifyInfo.rating > 3;
-				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
-				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
+				if (ratingShouldToggleHeart(rating, self.spicetifyInfo.rating)) Spicetify.Player.toggleHeart();
 				self.spicetifyInfo.rating = rating;
 				break;
 			}
