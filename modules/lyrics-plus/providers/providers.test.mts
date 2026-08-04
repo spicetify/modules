@@ -23,6 +23,7 @@ import {
 	musixmatchTokenListeners,
 	setMusixmatchTokenValid,
 } from "./musixmatch.ts";
+import { createProviders } from "./index.ts";
 import { ProviderNetease } from "./netease.ts";
 
 describe("import contract", () => {
@@ -165,5 +166,38 @@ describe("ProviderMusixmatch", () => {
 		setMusixmatchTokenValid(!initial);
 		setMusixmatchTokenValid(initial); // restore
 		assert.deepEqual(seen, [!initial, initial]);
+	});
+});
+
+describe("createProviders registry", () => {
+	const providers = createProviders({ trackDurationMs: () => 0, simplifyChinese: async (s) => s });
+
+	it("exposes exactly the six entries, all callable", () => {
+		assert.deepEqual(Object.keys(providers).sort(), [
+			"genius",
+			"local",
+			"lrclib",
+			"musixmatch",
+			"netease",
+			"spotify",
+		]);
+		for (const v of Object.values(providers)) assert.equal(typeof v, "function");
+	});
+
+	it("local resolves stored lyrics and reports 'No lyrics' otherwise", () => {
+		localStorage.setItem(
+			"lyrics-plus:local-lyrics",
+			JSON.stringify({ "spotify:track:x": { synced: [{ text: "hi" }] } }),
+		);
+		const hit = providers.local({ uri: "spotify:track:x" });
+		assert.deepEqual(hit.synced, [{ text: "hi" }]);
+		assert.equal(hit.provider, "local");
+		const miss = providers.local({ uri: "spotify:track:absent" });
+		assert.equal(miss.error, "No lyrics");
+		localStorage.removeItem("lyrics-plus:local-lyrics");
+	});
+
+	it("imports clean with stub deps - client policy is injected, not read", () => {
+		assert.equal(typeof (globalThis as never as Record<string, unknown>).Spicetify, "undefined");
 	});
 });
