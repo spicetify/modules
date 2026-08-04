@@ -25,19 +25,15 @@
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
-interface Lyric {
-	startTime: number | null;
-	text: string;
-}
-type LyricResult = { lyrics: Lyric[]; error?: undefined } | { error: string; lyrics?: undefined };
-
-interface TrackInfo {
-	duration: number;
-	album: string;
-	artist: string;
-	title: string;
-	uri: string;
-}
+import {
+	LyricUtils,
+	parseLrclibBody,
+	parseMusixmatchMacro,
+	parseNeteaseLyrics,
+	parseSpotifyLyrics,
+	pickNeteaseTrack,
+} from "./logic.ts";
+import type { Lyric, LyricResult, TrackInfo } from "./logic.ts";
 
 interface ParagraphOptions {
 	left: number;
@@ -99,44 +95,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 	document.addEventListener("visibilitychange", onVisibility);
 
-	const LyricUtils = {
-		normalize(s: string, emptySymbol = true): string {
-			const result = s
-				.replace(/（/g, "(")
-				.replace(/）/g, ")")
-				.replace(/【/g, "[")
-				.replace(/】/g, "]")
-				.replace(/。/g, ". ")
-				.replace(/；/g, "; ")
-				.replace(/：/g, ": ")
-				.replace(/？/g, "? ")
-				.replace(/！/g, "! ")
-				.replace(/、|，/g, ", ")
-				.replace(/‘|’|′|＇/g, "'")
-				.replace(/“|”/g, '"')
-				.replace(/〜/g, "~")
-				.replace(/·|・/g, "•");
-			if (emptySymbol) {
-				result.replace(/-/g, " ").replace(/\//g, " ");
-			}
-			return result.replace(/\s+/g, " ").trim();
-		},
-
-		removeExtraInfo(s: string): string {
-			return (
-				s
-					.replace(/-\s+(feat|with|prod).*/i, "")
-					.replace(/(\(|\[)(feat|with|prod)\.?\s+.*(\)|\])$/i, "")
-					.replace(/\s-\s.*/, "")
-					.trim() || s
-			);
-		},
-
-		capitalize(s: string): string {
-			return s.replace(/^(\w)/, ($1) => $1.toUpperCase());
-		},
-	};
-
 	// The bundled Musixmatch usertoken expires; when a request comes back 401 we
 	// mint a fresh web-desktop token once and retry, so lyrics keep working without
 	// the user opening settings to refresh it.
@@ -172,19 +130,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
 			const id = info.uri.split(":")[2];
 			const body = await CosmosAsync.get(`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`);
-
-			const lyricsData = body.lyrics;
-			if (!lyricsData || lyricsData.syncType !== "LINE_SYNCED") {
-				return { error: "No lyrics" };
-			}
-
-			const lines = lyricsData.lines;
-			const lyrics = lines.map((a: { startTimeMs: string; words: string }) => ({
-				startTime: Number(a.startTimeMs) / 1000,
-				text: a.words,
-			}));
-
-			return { lyrics };
+			return parseSpotifyLyrics(body);
 		},
 
 		async fetchMusixmatch(info: TrackInfo): Promise<LyricResult> {
@@ -222,38 +168,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				}
 
 				body = body.message.body.macro_calls;
-
-				if (body?.["matcher.track.get"]?.message?.header?.status_code !== 200) {
-					const head = body?.["matcher.track.get"]?.message?.header;
-					return {
-						error: head
-							? `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`
-							: "Musixmatch request failed",
-					};
-				}
-
-				const meta = body["matcher.track.get"].message.body;
-				const hasSynced = meta.track.has_subtitles;
-				const isRestricted =
-					body["track.lyrics.get"].message.header.status_code === 200 &&
-					body["track.lyrics.get"].message.body.lyrics.restricted;
-				const isInstrumental = meta.track.instrumental;
-
-				if (isRestricted) return { error: "Unfortunately we're not authorized to show these lyrics." };
-				if (isInstrumental) return { error: "Instrumental" };
-				if (hasSynced) {
-					const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
-
-					const lyrics = JSON.parse(subtitle.subtitle_body).map(
-						(line: { text: string; time: { total: number } }) => ({
-							text: line.text || "♪",
-							startTime: line.time.total,
-						}),
-					);
-					return { lyrics };
-				}
-
-				return { error: "No lyrics" };
+				return parseMusixmatchMacro(body);
 			} catch (err) {
 				return { error: (err as Error).message };
 			}
@@ -275,11 +190,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				return { error: "Cannot find track" };
 			}
 
-			const album = LyricUtils.capitalize(info.album);
-			const itemId = items.findIndex(
-				(val: { album: { name: string }; duration: number }) =>
-					LyricUtils.capitalize(val.album.name) === album || Math.abs(info.duration - val.duration) < 1000,
-			);
+			const itemId = pickNeteaseTrack(items, info);
 			if (itemId === -1) return { error: "Cannot find track" };
 
 			const meta = await CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
@@ -289,62 +200,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				return { error: "No lyrics" };
 			}
 			lyricStr = lyricStr.lyric;
-
-			const otherInfoKeys = [
-				"\\s?作?\\s*词|\\s?作?\\s*曲|\\s?编\\s*曲?|\\s?监\\s*制?",
-				".*编写|.*和音|.*和声|.*合声|.*提琴|.*录|.*工程|.*工作室|.*设计|.*剪辑|.*制作|.*发行|.*出品|.*后期|.*混音|.*缩混",
-				"原唱|翻唱|题字|文案|海报|古筝|二胡|钢琴|吉他|贝斯|笛子|鼓|弦乐",
-				"lrc|publish|vocal|guitar|program|produce|write|mix",
-			];
-			const otherInfoRegexp = new RegExp(`^(${otherInfoKeys.join("|")}).*(:|：)`, "i");
-
-			const lines = lyricStr.split(/\r?\n/).map((line: string) => line.trim());
-			let noLyrics = false;
-			const lyrics = lines
-				.flatMap((line: string) => {
-					const matchResult = line.match(/(\[.*?\])|([^[\]]+)/g) || [line];
-					if (!matchResult.length || matchResult.length === 1) {
-						return;
-					}
-					const textIndex = matchResult.findIndex((slice) => !slice.endsWith("]"));
-					let text = "";
-					if (textIndex > -1) {
-						text = matchResult.splice(textIndex, 1)[0];
-						text = LyricUtils.capitalize(LyricUtils.normalize(text, false));
-					}
-					if (text === "纯音乐, 请欣赏") noLyrics = true;
-					return matchResult.map((slice) => {
-						const result: Partial<Lyric> = {};
-						const innerMatch = slice.match(/[^[\]]+/g);
-						const [key, value] = innerMatch![0].split(":") || [];
-						const [min, sec] = [Number.parseFloat(key), Number.parseFloat(value)];
-						if (!Number.isNaN(min) && !Number.isNaN(sec) && !otherInfoRegexp.test(text)) {
-							result.startTime = min * 60 + sec;
-							result.text = text || "♪";
-							return result;
-						}
-						return;
-					});
-				})
-				.sort((a: Lyric, b: Lyric) => {
-					if (a.startTime === null) {
-						return 0;
-					}
-					if (b.startTime === null) {
-						return 1;
-					}
-					return a.startTime - b.startTime;
-				})
-				.filter(Boolean);
-
-			if (noLyrics) {
-				return { error: "No lyrics" };
-			}
-			if (!lyrics.length) {
-				return { error: "No synced lyrics" };
-			}
-
-			return { lyrics };
+			return parseNeteaseLyrics(lyricStr);
 		},
 
 		async fetchLrclib(info: TrackInfo): Promise<LyricResult> {
@@ -372,34 +228,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 
 			const meta = await body.json();
-			if (meta?.instrumental) {
-				return { error: "Instrumental" };
-			}
-			if (!meta?.syncedLyrics) {
-				return { error: "No synced lyrics" };
-			}
-
-			const lines = meta.syncedLyrics
-				.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
-				.trim()
-				.split("\n");
-
-			const syncedTimestamp = /\[([0-9:.]+)\]/;
-			const isSynced = lines[0].match(syncedTimestamp);
-
-			const lyrics = lines.map((line: string) => {
-				const time = line.match(syncedTimestamp)?.[1];
-				const lyricContent = line.replace(syncedTimestamp, "").trim();
-				const lyric = lyricContent.replaceAll(/<([0-9:.]+)>/g, "").trim();
-				const [min, sec] = (time ?? "").replace(/\[\]<>/, "").split(":");
-
-				if (line.trim() !== "" && isSynced && time) {
-					return { text: lyric || "♪", startTime: Number(min) * 60 + Number(sec) };
-				}
-				return;
-			});
-
-			return { lyrics };
+			return parseLrclibBody(meta);
 		},
 	};
 
