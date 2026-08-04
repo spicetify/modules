@@ -19,6 +19,27 @@ import { exports as webpackExports } from "../webpack/index.ts";
 // on an actual pre-capture miss: a static import here would put esm.sh in
 // every client's boot path and make an offline boot fail the whole module
 // graph.
+// Fires when any lazy fallback module lands, so the named live bindings in
+// the react shims can run a second populate pass. Without it, a capture miss
+// (needle drift after a client update) leaves the named bindings frozen
+// undefined even though the default-export proxy path recovers.
+const recoverySubscribers = new Set<() => void>();
+let anyFallbackLanded = false;
+export function onFallbackRecovery(cb: () => void): void {
+	recoverySubscribers.add(cb);
+	if (anyFallbackLanded) cb();
+}
+const notifyRecovery = () => {
+	anyFallbackLanded = true;
+	for (const cb of recoverySubscribers) {
+		try {
+			cb();
+		} catch {
+			/* a subscriber must not break the others */
+		}
+	}
+};
+
 const lazyFallback = (url: string, pick: (m: Record<string, unknown>) => object | undefined) => {
 	let mod: object | undefined;
 	let requested = false;
@@ -28,6 +49,7 @@ const lazyFallback = (url: string, pick: (m: Record<string, unknown>) => object 
 			void import(url)
 				.then((m) => {
 					mod = pick(m);
+					notifyRecovery();
 				})
 				.catch(() => {
 					/* offline: the client instance is the real path anyway */

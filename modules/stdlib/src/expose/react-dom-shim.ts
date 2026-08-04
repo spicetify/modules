@@ -8,8 +8,9 @@
 // init-time snapshots — see react-shim.ts for why a snapshot here freezes
 // undefined for the whole session.
 
+import { warn } from "../logger.ts";
 import { onWebpackCaptured } from "../webpack/index.ts";
-import { ReactDOM } from "./React.ts";
+import { onFallbackRecovery, ReactDOM } from "./React.ts";
 
 const RD = ReactDOM as any;
 
@@ -25,7 +26,7 @@ export let render: any;
 export let unmountComponentAtNode: any;
 export let version: any;
 
-onWebpackCaptured(() => {
+function populate() {
 	createPortal = RD.createPortal;
 	createRoot = RD.createRoot;
 	findDOMNode = RD.findDOMNode;
@@ -35,4 +36,15 @@ onWebpackCaptured(() => {
 	render = RD.render;
 	unmountComponentAtNode = RD.unmountComponentAtNode;
 	version = RD.version;
+}
+
+onWebpackCaptured(() => {
+	populate();
+	if (typeof createRoot !== "function") {
+		warn(
+			"[stdlib] capture health: the client ReactDOM was not found in the webpack capture — " +
+				"named `react-dom` imports are degraded until the fallback loads",
+		);
+		onFallbackRecovery(populate);
+	}
 });

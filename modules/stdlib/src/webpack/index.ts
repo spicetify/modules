@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { warn } from "../logger.ts";
 import { postWebpackRequireHooks, WebpackModule, WebpackRequire, webpackRequire } from "../wpunpk.mix.ts";
 
 export let modules: Array<[PropertyKey, WebpackModule]>;
@@ -143,7 +144,9 @@ CHUNKS.xpui.promise.then(() => {
 	try {
 		analysis = analyzeWebpackRequire(webpackRequire);
 	} catch (e) {
-		console.error("[stdlib] webpack capture analysis failed; module surfaces will be degraded:", e);
+		// warn() also lands in the diagnostics buffer the manager renders, so
+		// this failure is visible without the devtools console.
+		warn("[stdlib] capture health: webpack capture analysis failed; module surfaces will be degraded:", e);
 		return;
 	}
 	modules = analysis.modules;
@@ -155,6 +158,11 @@ CHUNKS.xpui.promise.then(() => {
 	exportedForwardRefs = analysis.exportedForwardRefs;
 	exportedMemos = analysis.exportedMemos;
 	captured = true;
+	if (!analysis.exported.length) {
+		warn(
+			"[stdlib] capture health: the webpack capture yielded no exports — every needle-backed surface is degraded",
+		);
+	}
 	for (const cb of captureSubscribers.splice(0)) {
 		try {
 			cb();

@@ -16,8 +16,9 @@
 // capture callback keeps the bindings live: consumers evaluate post-capture
 // (the loader gates module loads on webpackLoaded) and read real values.
 
+import { warn } from "../logger.ts";
 import { onWebpackCaptured } from "../webpack/index.ts";
-import { React } from "./React.ts";
+import { onFallbackRecovery, React } from "./React.ts";
 
 const R = React as any;
 
@@ -57,7 +58,12 @@ export let useSyncExternalStore: any;
 export let useTransition: any;
 export let version: any;
 
-onWebpackCaptured(() => {
+// Capture health (D3): a populate that comes up empty means the React
+// needle missed the capture — the silent needle-drift failure after a client
+// update. Say so where the manager can show it, and re-populate when the
+// esm.sh fallback lands (L2) so named imports degrade to the fallback copy
+// instead of staying frozen undefined.
+function populate() {
 	Children = R.Children;
 	Component = R.Component;
 	Fragment = R.Fragment;
@@ -91,4 +97,20 @@ onWebpackCaptured(() => {
 	useSyncExternalStore = R.useSyncExternalStore;
 	useTransition = R.useTransition;
 	version = R.version;
+}
+
+onWebpackCaptured(() => {
+	populate();
+	if (typeof createElement !== "function") {
+		warn(
+			"[stdlib] capture health: the client React was not found in the webpack capture — " +
+				"named `react` imports are degraded until the fallback loads (needle drift after a Spotify update?)",
+		);
+		onFallbackRecovery(() => {
+			populate();
+			if (typeof createElement === "function") {
+				warn("[stdlib] capture health: named `react` imports recovered via the fallback copy");
+			}
+		});
+	}
 });
