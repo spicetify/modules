@@ -126,7 +126,12 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 		const before = M.list().filter((m) => m.loaded).map((m) => m.identifier);
 		await M.disable(id).catch(() => {});
 		await M.installLocal(id, rec);
+		// Re-enabling a theme the loader just unloaded would fight the
+		// single-active-theme invariant and knock the pushed theme back off.
+		const pushedIsTheme = (rec.metadata.tags ?? []).includes("theme");
+		const isTheme = (mid) => ((M.manifest?.modules?.find((m) => m.identifier === mid)?.tags) ?? []).includes("theme");
 		for (const other of before) {
+			if (pushedIsTheme && isTheme(other)) continue;
 			const s = M.list().find((m) => m.identifier === other);
 			if (s && !s.loaded) await M.enable(other).catch(() => {});
 		}
