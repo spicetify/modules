@@ -2266,6 +2266,14 @@
 					"providers": [],
 					"checksum": "sha256:8c6fdfc84145dfdb424d6b069482e7676cda04cadd7b68f76ed5ae8ff02d8bc9",
 					"updatedAt": "2026-08-03"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-video@0.1.1/auto-skip-video@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:6d6808281b437b649c5988b9c33ccf20ba36260c9c7615e10f895eb28cd6fa7b",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
