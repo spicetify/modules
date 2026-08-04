@@ -1,12 +1,8 @@
 {
 	"name": "nightlight",
-	"tags": [
-		"theme"
-	],
+	"tags": ["theme"],
 	"version": "0.1.0",
-	"authors": [
-		"iTenerai"
-	],
+	"authors": ["iTenerai"],
 	"description": "Nightlight theme, migrated from the classic format",
 	"entries": {
 		"css": "index.css"

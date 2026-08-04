@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 * {
 	font-family: Montserrat;
 }
@@ -195,7 +195,7 @@ highlights selected song contains multi-digit song numbers */
 .encore-dark-theme .encore-bright-accent-set:hover {
 	--background-base: var(--spice-button-active);
 	--background-highlight: var(--spice-player);
-	--background-press: var(--spice-player);	
+	--background-press: var(--spice-player);
 }
 
 /* Volume bar margins */
@@ -206,7 +206,6 @@ highlights selected song contains multi-digit song numbers */
 .volume-bar .playback-progressbar {
 	width: 70%;
 }
-
 
 .volume-bar {
 	flex: 0 150px;
