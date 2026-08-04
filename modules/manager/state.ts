@@ -177,6 +177,66 @@ export function effectiveSupport(
 	return { supportedSpotify, latestSpotify, updatedAt: feed?.updatedAt };
 }
 
+// "Is the staged set behind the vault?" — a stale staged module keeps
+// running an old build forever, silently: published fixes reach the vault
+// but never an already-applied client. (The capture-freeze incident ran on a
+// staged stdlib several releases behind the vault, and nothing said so.)
+
+// Extracts { id -> newest published version } from a vault document
+// (shape: { modules: { [id]: { v: { "1.0.0": {...}, ... } } } }). Pure and
+// defensive: malformed entries are skipped, never thrown on.
+export function latestPublishedVersions(vault: unknown): Record<string, string> {
+	const out: Record<string, string> = {};
+	const mods = (vault as { modules?: Record<string, { v?: Record<string, unknown> }> })?.modules;
+	if (!mods || typeof mods !== "object") return out;
+	for (const [id, entry] of Object.entries(mods)) {
+		const versions = Object.keys(entry?.v ?? {});
+		if (!versions.length) continue;
+		out[id] = versions.reduce((best, v) => (compareSpotifyVersions(v, best) > 0 ? v : best));
+	}
+	return out;
+}
+
+export interface StaleStagedRow {
+	id: string;
+	staged: string;
+	published: string;
+}
+
+// Staged modules whose vault entry is strictly newer. Local installs are
+// excluded on purpose: the store's own update flow owns those, while a stale
+// staged copy has no surface at all except this one.
+export function deriveStaleStaged(modules: ManagerModuleRow[], published: Record<string, string>): StaleStagedRow[] {
+	return modules
+		.filter((m) => m.source === "staged")
+		.flatMap((m) => {
+			const latest = published[m.id];
+			return latest && compareSpotifyVersions(latest, m.version) > 0
+				? [{ id: m.id, staged: m.version, published: latest }]
+				: [];
+		});
+}
+
+const VAULT_URL = () =>
+	globalThis.localStorage?.getItem("spicetify:defaultVaultUrl") ??
+	"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
+
+let publishedCache: Record<string, string> | undefined;
+
+// Same contract as fetchSupportStatus: successes cache for the session,
+// failures do not, so a transient 404 or offline boot retries next mount.
+export async function fetchPublishedVersions(): Promise<Record<string, string> | null> {
+	if (publishedCache !== undefined) return publishedCache;
+	try {
+		const res = await fetch(VAULT_URL());
+		if (!res.ok) return null;
+		publishedCache = latestPublishedVersions(await res.json());
+		return publishedCache;
+	} catch {
+		return null;
+	}
+}
+
 export type UpdateAdvice =
 	| { kind: "unknown"; message: string }
 	| { kind: "current"; message: string }

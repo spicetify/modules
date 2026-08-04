@@ -7,7 +7,9 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
+	deriveStaleStaged,
 	effectiveSupport,
+	fetchPublishedVersions,
 	fetchSupportStatus,
 	show,
 	showBool,
@@ -122,6 +124,15 @@ export const ManagerPage = () => {
 		void fetchSupportStatus().then(setSupport);
 	}, []);
 
+	const [published, setPublished] = React.useState<Record<string, string> | null>(null);
+	React.useEffect(() => {
+		void fetchPublishedVersions().then(setPublished);
+	}, []);
+	const staleStaged = React.useMemo(
+		() => (published ? deriveStaleStaged(state.modules, published) : []),
+		[state.modules, published],
+	);
+
 	// Nudge the user once when they are on a version we do not yet support, so
 	// degraded chrome is explained rather than mysterious. Driven by the
 	// authoritative live feed only: on first render `support` is null and the
@@ -195,6 +206,7 @@ export const ManagerPage = () => {
 				state.failedCount ? `, ${state.failedCount} failed` : ""
 			}`,
 			`update status: ${advice.message}`,
+			...staleStaged.map((r) => `stale staged: ${r.id}@${r.staged} (${r.published} published)`),
 			"",
 			"modules:",
 			...state.modules.map(
@@ -255,6 +267,23 @@ export const ManagerPage = () => {
 					Installing or staging modules on disk happens outside the client — after changing staged modules,
 					run <code>spicetify restore backup apply</code>.
 				</p>
+				{staleStaged.length > 0 && (
+					<>
+						<div className="spicetify-manager-env">
+							{staleStaged.map((row) => (
+								<Badge key={row.id} kind="bad">
+									staged {row.id}@{row.staged} — {row.published} published
+								</Badge>
+							))}
+						</div>
+						<p className="spicetify-manager-note">
+							These staged modules are behind the vault and never update on their own — a stale stdlib is
+							how fixes silently fail to arrive. Refresh the copies under{" "}
+							<code>~/.config/spicetify/Modules</code>, then run{" "}
+							<code>spicetify restore backup apply</code>.
+						</p>
+					</>
+				)}
 			</section>
 
 			{(() => {

@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { compareSpotifyVersions, effectiveSupport, updateAdvice } from "./state.ts";
+import {
+	compareSpotifyVersions,
+	deriveStaleStaged,
+	effectiveSupport,
+	latestPublishedVersions,
+	updateAdvice,
+	type ManagerModuleRow,
+} from "./state.ts";
 
 describe("compareSpotifyVersions", () => {
 	it("orders numeric dotted versions", () => {
@@ -78,5 +85,60 @@ describe("effectiveSupport", () => {
 
 	it("returns the feed unchanged when there is nothing to merge", () => {
 		assert.equal(effectiveSupport({}, null), null);
+	});
+});
+
+describe("latestPublishedVersions", () => {
+	it("picks the newest version key per module", () => {
+		const vault = {
+			modules: {
+				stdlib: { v: { "1.0.0": {}, "1.1.2": {}, "1.1.0": {} } },
+				solo: { v: { "0.1.0": {} } },
+			},
+		};
+		assert.deepEqual(latestPublishedVersions(vault), { stdlib: "1.1.2", solo: "0.1.0" });
+	});
+
+	it("orders numerically, not lexically", () => {
+		assert.deepEqual(latestPublishedVersions({ modules: { m: { v: { "0.9.0": {}, "0.10.0": {} } } } }), {
+			m: "0.10.0",
+		});
+	});
+
+	it("skips malformed entries instead of throwing", () => {
+		const vault = { modules: { ok: { v: { "1.0.0": {} } }, noV: {}, weird: { v: null } } };
+		assert.deepEqual(latestPublishedVersions(vault), { ok: "1.0.0" });
+		assert.deepEqual(latestPublishedVersions(null), {});
+		assert.deepEqual(latestPublishedVersions({ modules: "nope" }), {});
+	});
+});
+
+describe("deriveStaleStaged", () => {
+	const row = (id: string, version: string, source: "staged" | "local"): ManagerModuleRow => ({
+		id,
+		version,
+		source,
+		loaded: true,
+		mixedIn: false,
+		dependencies: {},
+	});
+
+	it("flags a staged module strictly behind the vault", () => {
+		const out = deriveStaleStaged([row("stdlib", "1.0.0", "staged")], { stdlib: "1.1.2" });
+		assert.deepEqual(out, [{ id: "stdlib", staged: "1.0.0", published: "1.1.2" }]);
+	});
+
+	it("leaves current and ahead-of-vault staged modules alone", () => {
+		const published = { stdlib: "1.1.2" };
+		assert.deepEqual(deriveStaleStaged([row("stdlib", "1.1.2", "staged")], published), []);
+		// A dev running an unpublished build is ahead, not stale.
+		assert.deepEqual(deriveStaleStaged([row("stdlib", "1.2.0", "staged")], published), []);
+	});
+
+	it("ignores local installs and modules absent from the vault", () => {
+		const out = deriveStaleStaged([row("store", "1.0.0", "local"), row("private-thing", "0.0.1", "staged")], {
+			store: "1.1.0",
+		});
+		assert.deepEqual(out, []);
 	});
 });
