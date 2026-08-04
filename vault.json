@@ -2287,6 +2287,14 @@
 					"providers": [],
 					"checksum": "sha256:b4b52c46187b3352f6afc38f0f3161287232c9b92bf68e78e9b0ce0df5510025",
 					"updatedAt": "2026-08-04"
+				},
+				"0.3.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/bookmark@0.3.0/bookmark@0.3.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:3e3f3a66b2eb5f90d5c4a03ce102a3b3991c49239c91d4b2735da460b2d0a9c2",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
