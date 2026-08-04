@@ -701,23 +701,28 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const [, bumpCounts] = React.useReducer((n: number) => n + 1, 0);
 	const loadedRef = React.useRef(false);
 	const loadingRef = React.useRef(false);
+	const loadedAtRef = React.useRef(0);
 	const autoDisabledRevoked = React.useRef(new Set<string>());
 	const resetTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 	const importInput = React.useRef<HTMLInputElement>(null);
 
 	const refreshRegistry = () => setRegistryEpoch((n) => n + 1);
 
-	const load = React.useCallback(async () => {
+	const load = React.useCallback(async (background = false) => {
 		// A failed load must retry on the next visit, not latch.
 		if (loadingRef.current) return;
 		loadingRef.current = true;
-		setStatus("loading vaults…");
+		// A background refresh keeps the current grid on screen instead
+		// of flashing a loading state over it.
+		if (!background) setStatus("loading vaults…");
 		let next: Catalog = { modules: [], revoked: {}, ok: false };
 		try {
 			next = await loadCatalog();
+			if (background && !next.ok) return; // keep the last good catalog
 			// Only a load where some vault answered may latch; an offline
 			// page keeps retrying on later visits.
 			loadedRef.current = next.ok;
+			if (next.ok) loadedAtRef.current = Date.now();
 			setCatalog(next);
 			setStatus(
 				next.ok
@@ -738,12 +743,20 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		void load();
 	}, [load]);
 
-	// A revisit re-renders from live registry state, or retries the
-	// catalog when no vault has answered yet.
+	// A revisit re-renders from live registry state, retries the catalog
+	// when no vault has answered yet, and refreshes a stale catalog in
+	// the background: modules publish continuously, so a latched catalog
+	// must not outlive the session (that hid freshly published themes
+	// until a client restart).
+	const CATALOG_TTL_MS = 5 * 60 * 1000;
 	React.useEffect(() => {
 		props.api.onRevisit = () => {
-			if (loadedRef.current) refreshRegistry();
-			else void load();
+			if (!loadedRef.current) {
+				void load();
+				return;
+			}
+			refreshRegistry();
+			if (Date.now() - loadedAtRef.current > CATALOG_TTL_MS) void load(true);
 		};
 		return () => {
 			props.api.onRevisit = null;
