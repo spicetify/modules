@@ -1,0 +1,13 @@
+{
+	"name": "flow",
+	"tags": ["theme"],
+	"version": "0.1.0",
+	"authors": ["Victoria"],
+	"description": "Smooth rounded look with five pastel schemes",
+	"entries": {
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png"
+}

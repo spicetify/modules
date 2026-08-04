@@ -1,0 +1,13 @@
+{
+	"name": "matte",
+	"tags": ["theme"],
+	"version": "0.1.0",
+	"authors": ["darkthemer"],
+	"description": "Distinct top bar, quick-to-edit variables, and ten color schemes",
+	"entries": {
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/matte.png"
+}

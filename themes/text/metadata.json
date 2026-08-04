@@ -1,0 +1,13 @@
+{
+	"name": "text",
+	"tags": ["theme"],
+	"version": "0.1.0",
+	"authors": ["darkthemer"],
+	"description": "Mimics the terminal look of spotify-tui, with 21 schemes",
+	"entries": {
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
+}

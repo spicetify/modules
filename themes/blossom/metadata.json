@@ -1,0 +1,13 @@
+{
+	"name": "blossom",
+	"tags": ["theme"],
+	"version": "0.1.0",
+	"authors": ["Robatortas"],
+	"description": "A little pink-accented theme for your Spotify client",
+	"entries": {
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png"
+}
