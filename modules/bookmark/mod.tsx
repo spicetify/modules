@@ -55,17 +55,49 @@ export default async function (ctx: ModuleRuntimeContext) {
 		lastScroll: number;
 		filter: number;
 
+		// Dismiss handlers are only attached while the menu is open, so they
+		// close over `this` and can be removed on close.
+		private onOutside?: (e: MouseEvent) => void;
+		private onKey?: (e: KeyboardEvent) => void;
+
 		constructor() {
 			const menu = createMenu();
 			this.container = menu.container;
 			this.items = menu.menu;
 			this.lastScroll = 0;
-			this.container.onclick = () => {
-				this.storeScroll();
-				this.container.remove();
-			};
 			this.filter = 0;
 			this.apply();
+		}
+
+		// Called by openBookmarks after the menu is in the DOM.
+		open() {
+			// A press that starts outside the menu closes it — more reliable
+			// than a transparent full-viewport overlay, which client chrome
+			// with a higher z-index can intercept. Capture-phase so the menu's
+			// own stopPropagation does not hide an inside press from us.
+			this.onOutside = (e) => {
+				if (!this.items.contains(e.target as Node)) this.close();
+			};
+			this.onKey = (e) => {
+				if (e.key === "Escape") {
+					e.preventDefault();
+					this.close();
+				}
+			};
+			// Deferred to the next task so the click that opened the menu does
+			// not immediately count as an outside press.
+			setTimeout(() => {
+				document.addEventListener("mousedown", this.onOutside!, true);
+				document.addEventListener("keydown", this.onKey!, true);
+			}, 0);
+		}
+
+		close() {
+			this.storeScroll();
+			if (this.onOutside) document.removeEventListener("mousedown", this.onOutside, true);
+			if (this.onKey) document.removeEventListener("keydown", this.onKey, true);
+			this.onOutside = this.onKey = undefined;
+			this.container.remove();
 		}
 
 		apply() {
@@ -237,7 +269,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 			event.stopPropagation();
 		};
 
-		card.onclick = () => onLinkClick(info);
+		card.onclick = () => {
+			onLinkClick(info);
+			LIST.close();
+		};
 		return card;
 	}
 
@@ -256,6 +291,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		if (bound) LIST.changePosition(bound.left, bound.top);
 		document.body.append(LIST.container);
 		LIST.setScroll();
+		LIST.open();
 	}
 
 	registrar.placeButton("topbar-right", {
@@ -589,6 +625,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		contextMenuItem.deregister();
 		destroyTippies();
 		disposeMenuItems();
-		LIST.container.remove();
+		// close() also detaches the document dismiss listeners.
+		LIST.close();
 	});
 }
