@@ -60,7 +60,10 @@ exported beyond the default, so no unit can be imported or tested), and
 `pure-core` (no client-free source file at all). They are advisory by design: a
 ratchet, not a flag day. The scaffold satisfies all three from the first
 commit, so they fire mainly on classic ports that predate the standard — treat
-them as the migration worklist, not noise.
+them as the migration worklist, not noise. Modules whose combined source
+(excluding `index.ts`) is under 200 lines are exempt from all three: the rules
+exist to break up monoliths, and a 30-line theme toggle has no core worth
+extracting — live verification covers it.
 
 The dev loop's hot-push is **verified by execution, not by claim**: the push
 appends a per-push stamp to the js entry and asserts, inside the client, that

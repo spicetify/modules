@@ -115,7 +115,7 @@ describe("checkStructure", () => {
 		const { dir, meta } = make(
 			{
 				"index.ts": "export async function load() {}",
-				"mod.tsx": "export default async function (ctx) { const f = () => Spicetify.Player.next(); f(); }",
+				"mod.tsx": `export default async function (ctx) { const f = () => Spicetify.Player.next(); f(); }${"\n// pad".repeat(220)}`,
 			},
 			{ entries: { js: "index.js" } },
 		);
@@ -125,11 +125,22 @@ describe("checkStructure", () => {
 		assert.deepEqual(rules, ["exportable-logic", "pure-core", "tests"]);
 	});
 
+	it("stays silent below the small-module floor - DOM-glue ports are not taxed", () => {
+		const { dir, meta } = make(
+			{
+				"index.ts": "export async function load() {}",
+				"mod.tsx": "export default async function (ctx) { const f = () => Spicetify.Player.next(); f(); }",
+			},
+			{ entries: { js: "index.js" } },
+		);
+		assert.deepEqual(checkStructure(dir, meta), []);
+	});
+
 	it("credits a pure exported core even without full coverage", () => {
 		const { dir, meta } = make(
 			{
 				"index.ts": "export async function load() {}",
-				"mod.tsx": "export default async function (ctx) { Spicetify.Player; }",
+				"mod.tsx": `export default async function (ctx) { Spicetify.Player; }${"\n// pad".repeat(220)}`,
 				"logic.ts": "export function parse(x) { return x; }",
 			},
 			{ entries: { js: "index.js" } },

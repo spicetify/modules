@@ -209,6 +209,14 @@ export function checkStructure(dir: string, meta: { entries?: { js?: string } })
 	const sources = readSources(dir).filter(({ file }) => path.basename(file) !== "index.ts");
 	if (!sources.length) return out;
 
+	// Structural rules exist to break up monoliths, not to tax small DOM-glue
+	// ports: a 30-line theme toggle has no core worth extracting, and live
+	// verification covers it. Below the floor all three rules stay silent.
+	const totalLines = sources.reduce((n, { text }) => n + text.split("\n").length, 0);
+	if (totalLines < 200) {
+		return out.filter((f) => f.rule !== "tests");
+	}
+
 	const hasNamedExport = sources.some(({ text }) => /^export (const|let|function|class|async function) /m.test(text));
 	if (!hasNamedExport) {
 		out.push({
