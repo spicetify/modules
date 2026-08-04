@@ -2822,6 +2822,27 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png"
 			}
+		},
+		"text": {
+			"v": {
+				"0.1.0": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/text@0.1.0/text@0.1.0.zip"],
+					"providers": [],
+					"checksum": "sha256:bafaebdd2f3f3c941ffe2ab0ddce5b4e1c2477899dc13bf332622b06fc81320d",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "text",
+				"description": "Mimics the terminal look of spotify-tui, with 21 schemes",
+				"authors": [
+					{
+						"name": "darkthemer"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
+			}
 		}
 	}
 }
