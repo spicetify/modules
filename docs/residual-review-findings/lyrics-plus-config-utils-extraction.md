@@ -51,7 +51,7 @@ rather than fixed.
   "staged X@a — Y@b published" row with refresh guidance. Deliberately not
   rushed: the manager is the recovery surface, and changes there deserve
   their own verified slice.
-- **D5 — a truly capture-independent recovery surface.** The manager mounts
+- ~~**D5 — a truly capture-independent recovery surface.**~~ **Done (manager@1.0.2):** `modules/manager/fallback.ts` mounts a plain-DOM recovery panel (no React, no route overlay, no navigation dependency) when `captureHealthy(React)` fails at manager mount; covered under happy-dom in `fallback.test.mts`. Original note: The manager mounts
   through the React route overlay, so it died with everything else during the
   Fragment freeze despite the standard designating it the tool that must
   survive exactly that. With D1 the known trigger is gone and D4 makes any
