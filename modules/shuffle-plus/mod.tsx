@@ -11,6 +11,8 @@
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
+import { buildNextTracks, matchesArtistFilter, parseStoredConfig, searchFolder, shuffle } from "./logic.ts";
+
 export default async function (ctx: ModuleRuntimeContext) {
 	const { React } = Spicetify;
 	const { useState } = React;
@@ -19,20 +21,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 	let playbarButton: any = null;
 
 	function getConfig(): any {
-		try {
-			const parsed = JSON.parse(Spicetify.LocalStorage.get("shufflePlus:settings") as string);
-			if (parsed && typeof parsed === "object") {
-				return parsed;
-			}
-			throw "";
-		} catch {
-			Spicetify.LocalStorage.set("shufflePlus:settings", "{}");
-			return {
-				artistMode: "all",
-				artistNameMust: false,
-				enableQueueButton: false,
-			};
-		}
+		const parsed = parseStoredConfig(Spicetify.LocalStorage.get("shufflePlus:settings"));
+		if (parsed) return parsed;
+		Spicetify.LocalStorage.set("shufflePlus:settings", "{}");
+		return {
+			artistMode: "all",
+			artistNameMust: false,
+			enableQueueButton: false,
+		};
 	}
 
 	const CONFIG = getConfig();
@@ -279,17 +275,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		return res.items.filter((track: any) => track.isPlayable).map((track: any) => track.uri);
 	}
 
-	function searchFolder(rows: any[], uri: string): any {
-		for (const r of rows) {
-			if (r.type !== "folder" || !r.items) continue;
-
-			if (r.uri === uri) return r;
-
-			const found = searchFolder(r.items, uri);
-			if (found) return found;
-		}
-	}
-
 	async function fetchFolderTracks(uri: string) {
 		const res = await Spicetify.Platform.RootlistAPI.getContents();
 
@@ -349,11 +334,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
 			for (const track of albumRes) {
-				if (
-					!CONFIG.artistNameMust ||
-					track.artists.items.some((artist: any) => artist.profile.name === artistName)
-				)
-					allTracks.push(track.uri);
+				if (matchesArtistFilter(track, artistName, CONFIG.artistNameMust)) allTracks.push(track.uri);
 			}
 		}
 
@@ -485,26 +466,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 			.map((track: any) => track.episodeMetadata.link);
 	}
 
-	function shuffle(array: string[]) {
-		let counter = array.length;
-		if (counter <= 1) return array;
-
-		// While there are elements in the array
-		while (counter > 0) {
-			// Pick a random index
-			const index = Math.floor(Math.random() * counter);
-
-			// Decrease counter by 1
-			counter--;
-
-			// And swap the last element with it
-			const temp = array[counter];
-			array[counter] = array[index];
-			array[index] = temp;
-		}
-		return array.filter(Boolean);
-	}
-
 	async function Queue(list: string[], context: string | null, type: string | null) {
 		const count = list.length;
 
@@ -515,18 +476,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const { prevTracks, queueRevision } = _queue;
 
 		// Format tracks with default values
-		const nextTracks = list.map((uri) => ({
-			contextTrack: {
-				uri,
-				uid: "",
-				metadata: {
-					is_queued: "false",
-				},
-			},
-			removed: [],
-			blocked: [],
-			provider: "context",
-		}));
+		const nextTracks = buildNextTracks(list);
 
 		// Lowest level setQueue method from vendor~xpui.js
 		_client.setQueue({
