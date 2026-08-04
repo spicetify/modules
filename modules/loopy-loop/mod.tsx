@@ -11,8 +11,9 @@
  */
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { findActiveZone, moveEnd, moveStart, moveZoneEdge, parseStoredState, restartThresholds } from "./logic.ts";
 
-type SkipZone = { start: number; end: number };
+import type { SkipZone } from "./logic.ts";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	let disposed = false;
@@ -145,15 +146,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 		skipZones = [];
 		pendingSkipStart = null;
 		if (!uri) return;
-		try {
-			const saved = Spicetify.LocalStorage.get(`loopyLoop:${uri}`);
-			if (saved) {
-				const data = JSON.parse(saved);
-				start = data.start ?? null;
-				end = data.end ?? null;
-				skipZones = Array.isArray(data.skipZones) ? data.skipZones : [];
-			}
-		} catch (_) {}
+		const parsed = parseStoredState(Spicetify.LocalStorage.get(`loopyLoop:${uri}`));
+		start = parsed.start;
+		end = parsed.end;
+		skipZones = parsed.skipZones;
 	}
 
 	// Position menu within viewport using fixed positioning
@@ -231,24 +227,15 @@ export default async function (ctx: ModuleRuntimeContext) {
 		if (!durationMs) return;
 		const delta = (deltaSeconds * 1000) / durationMs;
 		if (activeMarkerType === "start" && start !== null) {
-			start = Math.max(0, Math.min(end !== null ? end - 1e-6 : 1, start + delta));
+			start = moveStart(start, end, delta);
 			drawOnBar();
 		} else if (activeMarkerType === "end" && end !== null) {
-			end = Math.max(start !== null ? start + 1e-6 : 0, Math.min(1, end + delta));
+			end = moveEnd(end, start, delta);
 			drawOnBar();
-		} else if (activeMarkerType === "zoneStart") {
+		} else if (activeMarkerType === "zoneStart" || activeMarkerType === "zoneEnd") {
 			if (activeZoneIndex < 0 || activeZoneIndex >= skipZones.length) return;
-			skipZones[activeZoneIndex].start = Math.max(
-				0,
-				Math.min(skipZones[activeZoneIndex].end - 1e-6, skipZones[activeZoneIndex].start + delta),
-			);
-			drawSkipMarkers();
-		} else if (activeMarkerType === "zoneEnd") {
-			if (activeZoneIndex < 0 || activeZoneIndex >= skipZones.length) return;
-			skipZones[activeZoneIndex].end = Math.max(
-				skipZones[activeZoneIndex].start + 1e-6,
-				Math.min(1, skipZones[activeZoneIndex].end + delta),
-			);
+			const side = activeMarkerType === "zoneStart" ? "start" : "end";
+			skipZones[activeZoneIndex] = moveZoneEdge(skipZones[activeZoneIndex], side, delta);
 			drawSkipMarkers();
 		}
 		saveState();
@@ -286,8 +273,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		// Detect prev button press: jump to ~0 from past Spotify's 3-second restart threshold
 		const durationMs = Spicetify.Player.getDuration() || 0;
-		const threeSecFrac = durationMs > 0 ? 3000 / durationMs : 0.02;
-		const nearZeroFrac = durationMs > 0 ? 1500 / durationMs : 0.01;
+		const { threeSecFrac, nearZeroFrac } = restartThresholds(durationMs);
 		if (prevProgressPercent > threeSecFrac && percent < nearZeroFrac) {
 			if (prevPressedAt > 0 && ts - prevPressedAt < 1500) {
 				// Second press within 1.5s — go to previous song
@@ -336,20 +322,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		// Skip zone seeking
 		if (skipZones.length > 0) {
-			let inZone = false;
-			for (let i = 0; i < skipZones.length; i++) {
-				const zone = skipZones[i];
-				if (percent >= zone.start && percent < zone.end) {
-					inZone = true;
-					if (i !== lastSkippedZoneIdx || ts - lastSkipSeek > 500) {
-						lastSkipSeek = ts;
-						lastSkippedZoneIdx = i;
-						Spicetify.Player.seek(zone.end);
-					}
-					break;
-				}
+			const i = findActiveZone(skipZones, percent);
+			if (i === -1) {
+				lastSkippedZoneIdx = -1;
+			} else if (i !== lastSkippedZoneIdx || ts - lastSkipSeek > 500) {
+				lastSkipSeek = ts;
+				lastSkippedZoneIdx = i;
+				Spicetify.Player.seek(skipZones[i].end);
 			}
-			if (!inZone) lastSkippedZoneIdx = -1;
 		}
 	};
 	Spicetify.Player.addEventListener("onprogress", onProgress);
