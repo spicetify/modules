@@ -55,9 +55,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		lastScroll: number;
 		filter: number;
 
-		// Dismiss handlers are only attached while the menu is open, so they
-		// close over `this` and can be removed on close.
-		private onOutside?: (e: MouseEvent) => void;
+		// ESC listener is only attached while the menu is open.
 		private onKey?: (e: KeyboardEvent) => void;
 
 		constructor() {
@@ -66,37 +64,31 @@ export default async function (ctx: ModuleRuntimeContext) {
 			this.items = menu.menu;
 			this.lastScroll = 0;
 			this.filter = 0;
+			// Outside-dismiss goes through the backdrop container on the click
+			// event: the client swallows mousedown in the window capture phase
+			// (keydown still reaches document, which is why Escape worked but the
+			// old mousedown-based dismiss did not), but click is unaffected — the
+			// same event the store's dialog scrim closes on. The child menu stops
+			// clicks from bubbling here, so only a click outside the menu closes.
+			this.container.addEventListener("click", () => this.close());
 			this.apply();
 		}
 
 		// Called by openBookmarks after the menu is in the DOM.
 		open() {
-			// A press that starts outside the menu closes it — more reliable
-			// than a transparent full-viewport overlay, which client chrome
-			// with a higher z-index can intercept. Capture-phase so the menu's
-			// own stopPropagation does not hide an inside press from us.
-			this.onOutside = (e) => {
-				if (!this.items.contains(e.target as Node)) this.close();
-			};
 			this.onKey = (e) => {
 				if (e.key === "Escape") {
 					e.preventDefault();
 					this.close();
 				}
 			};
-			// Deferred to the next task so the click that opened the menu does
-			// not immediately count as an outside press.
-			setTimeout(() => {
-				document.addEventListener("mousedown", this.onOutside!, true);
-				document.addEventListener("keydown", this.onKey!, true);
-			}, 0);
+			document.addEventListener("keydown", this.onKey, true);
 		}
 
 		close() {
 			this.storeScroll();
-			if (this.onOutside) document.removeEventListener("mousedown", this.onOutside, true);
 			if (this.onKey) document.removeEventListener("keydown", this.onKey, true);
-			this.onOutside = this.onKey = undefined;
+			this.onKey = undefined;
 			this.container.remove();
 		}
 
@@ -162,8 +154,16 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		changePosition(x: number, y: number) {
-			this.items.style.left = `${x}px`;
-			this.items.style.top = `${y + 40}px`;
+			// The trigger is a right-side topbar button, so a left-aligned menu
+			// runs off the right edge. Clamp both axes into the viewport (the
+			// menu is in the DOM by now, so its measured size is available).
+			const margin = 8;
+			const width = this.items.offsetWidth || 360;
+			const height = this.items.offsetHeight || 0;
+			const left = Math.max(margin, Math.min(x, window.innerWidth - width - margin));
+			const top = Math.max(margin, Math.min(y + 40, window.innerHeight - height - margin));
+			this.items.style.left = `${left}px`;
+			this.items.style.top = `${top}px`;
 		}
 
 		storeScroll() {
@@ -288,8 +288,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 			`.spicetify-topbar-right-buttons [aria-label="${BUTTON_NAME_TEXT}"]`,
 		);
 		const bound = button?.getBoundingClientRect();
-		if (bound) LIST.changePosition(bound.left, bound.top);
+		// Append first so changePosition can measure the rendered menu.
 		document.body.append(LIST.container);
+		if (bound) LIST.changePosition(bound.left, bound.top);
 		LIST.setScroll();
 		LIST.open();
 	}
@@ -441,11 +442,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const container = document.createElement("div");
 		container.id = "bookmark-spicetify";
 		container.className = "context-menu-container";
-		container.style.zIndex = "1029";
 
 		const menu = document.createElement("ul");
 		menu.id = "bookmark-menu";
 		menu.className = "main-contextMenu-menu";
+		// Keep clicks inside the menu from reaching the backdrop container,
+		// whose click handler closes the menu.
 		menu.onclick = (e) => e.stopPropagation();
 
 		container.append(menu);
