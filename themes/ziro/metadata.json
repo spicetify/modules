@@ -1,7 +1,7 @@
 {
 	"name": "ziro",
 	"tags": ["theme"],
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"authors": ["schnensch0"],
 	"description": "Soft rounded design inspired by the Zorin GTK themes",
 	"entries": {
