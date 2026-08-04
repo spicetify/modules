@@ -2,13 +2,14 @@
    selectors are namespaced under the module's own ids / .bookmark-* classes so
    they cannot leak onto client chrome. */
 
-/* The container is only a positioning layer: it must not swallow clicks meant
-   for the client (a document mousedown listener handles outside-dismiss). */
+/* Full-viewport backdrop: it receives the outside press directly (its
+   mousedown handler closes the menu), so it must sit above client chrome and
+   be clickable. Transparent — it dismisses, it does not dim. */
 #bookmark-spicetify {
-	position: absolute;
+	position: fixed;
 	inset: 0;
-	z-index: 5000;
-	pointer-events: none;
+	z-index: 2000;
+	pointer-events: auto;
 }
 
 /* An elevated menu surface matching Spotify's own context menus: solid card
