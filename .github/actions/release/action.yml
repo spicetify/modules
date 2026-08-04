@@ -39,6 +39,16 @@ runs:
                }
                const vault = JSON.parse(readFileSync("/tmp/main-vault.json", "utf8"));
                const published = !!vault.modules?.[name]?.v?.[version];
+               // Ordering tripwire: legs run dependency-first only by observed
+               // matrix behavior (release.yml), so enforce the invariant the
+               // ordering exists for - the vault must never list a dependent
+               // whose dependency is absent. A dependency published earlier in
+               // this run is visible here because this step reads origin/main
+               // fresh, after that leg's vault commit.
+               const missing = Object.keys(meta.dependencies ?? {}).filter((d) => !vault.modules?.[d]);
+               if (!published && missing.length) {
+                  throw new Error(`refusing to publish ${name}@${version}: dependencies not in the vault: ${missing.join(", ")} (dependency legs must publish first)`);
+               }
                console.log(published ? `${name}@${version} already in the vault: no-op re-run` : `publishing ${name}@${version} from ${dir}`);
                require("fs").appendFileSync(process.env.GITHUB_ENV, `MODULE_DIR=${dir}\nMODULE_TAG=${name}@${version}\nALREADY_PUBLISHED=${published}\n`);
             ' "$NAME" "$VERSION"

@@ -15,6 +15,11 @@ on:
    # replaced/cancelled run's pending bumps wait for the next push unless
    # re-triggered here.
    workflow_dispatch:
+   # Sweep: a queued release run displaced from the publish queue by a
+   # newer manual publish drops its bumps until the next push; this
+   # publishes anything left behind within a day (no-op when clean).
+   schedule:
+      -  cron: "23 4 * * *"
 
 # Shares the publish group with publish.yml so automatic and manual
 # publishes serialize. The queue holds one pending run and replaces it

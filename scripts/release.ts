@@ -19,6 +19,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -199,12 +200,27 @@ function summary(soft: boolean): void {
 }
 
 // Topo-ordered bumped-but-unpublished modules, for release.yml.
+// A module whose tag already exists at another commit is QUARANTINED
+// (warned and excluded) instead of entering the matrix: the release
+// action would refuse it as a racing tag, and under fail-fast that
+// single wedged module used to cancel every queued sibling. Recovery
+// stays the documented human path (docs/pr-flow.md).
 function pendingJson(): void {
-	const pending = new Map(
-		analyze()
-			.states.filter((s) => s.kind === "awaiting-release")
-			.map((s) => [s.id, s.tag]),
-	);
+	const pending = new Map<string, string>();
+	for (const s of analyze().states.filter((s) => s.kind === "awaiting-release")) {
+		if (git(["tag", "--list", s.tag])) {
+			const tagSha = git(["rev-parse", `${s.tag}^{commit}`]);
+			const headSha = git(["rev-parse", "HEAD"]);
+			if (tagSha !== headSha) {
+				console.error(
+					`quarantined ${s.tag}: tag exists at ${tagSha.slice(0, 7)}, not HEAD ${headSha.slice(0, 7)} ` +
+						"(racing or stale tag); siblings continue. Recovery: docs/pr-flow.md",
+				);
+				continue;
+			}
+		}
+		pending.set(s.id, s.tag);
+	}
 	const ordered = topoOrder([...pending.keys()]).map((id) => ({ id, tag: pending.get(id)! }));
 	console.log(JSON.stringify(ordered));
 }
@@ -346,20 +362,29 @@ function awaitPublish(tag: string, prevRun: number | null): void {
 	throw new Error(`${tag}: publish run did not finish within 15m`);
 }
 
-const [cmd, ...rest] = process.argv.slice(2);
-if (cmd === "status") {
-	if (rest.includes("--summary")) summary(rest.includes("--soft"));
-	else status(rest.includes("--soft"));
-} else if (cmd === "pending") {
-	pendingJson();
-} else if (cmd === "bump") {
-	const [id, level = "patch"] = rest;
-	if (!id || !LEVELS.includes(level as Level)) throw new Error("usage: release.ts bump <id> [major|minor|patch]");
-	bump(id, level as Level);
-} else if (cmd === "tag") {
-	tag(rest.includes("--push"));
-} else {
-	throw new Error(
-		"usage: release.ts status [--summary] [--soft] | pending | bump <id> [major|minor|patch] | tag [--push]",
-	);
+export { bumpVersion, suggestLevel, topoOrder };
+
+// CLI dispatch only when invoked directly; importable under node --test.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	dispatch();
+}
+
+function dispatch(): void {
+	const [cmd, ...rest] = process.argv.slice(2);
+	if (cmd === "status") {
+		if (rest.includes("--summary")) summary(rest.includes("--soft"));
+		else status(rest.includes("--soft"));
+	} else if (cmd === "pending") {
+		pendingJson();
+	} else if (cmd === "bump") {
+		const [id, level = "patch"] = rest;
+		if (!id || !LEVELS.includes(level as Level)) throw new Error("usage: release.ts bump <id> [major|minor|patch]");
+		bump(id, level as Level);
+	} else if (cmd === "tag") {
+		tag(rest.includes("--push"));
+	} else {
+		throw new Error(
+			"usage: release.ts status [--summary] [--soft] | pending | bump <id> [major|minor|patch] | tag [--push]",
+		);
+	}
 }

@@ -69,7 +69,11 @@ function changesSincePreviousRelease(): string[] | null {
 	const idx = tags.indexOf(tag);
 	const prev = idx >= 0 ? tags[idx + 1] : tags[0];
 	if (!prev) return []; // first release
-	const shas = git("log", "--format=%H", `${prev}..HEAD`, "--", dir).split("\n").filter(Boolean);
+	// --no-merges: a clean merge commit lists no files under git show, so
+	// the metadata-only filter below cannot catch it and its "Merge ..."
+	// subject would leak into the notes. The merged branch's own commits
+	// are already in the range.
+	const shas = git("log", "--format=%H", "--no-merges", `${prev}..HEAD`, "--", dir).split("\n").filter(Boolean);
 	const subjects: string[] = [];
 	for (const sha of shas) {
 		const files = git("show", "--name-only", "--format=", sha, "--", dir).split("\n").filter(Boolean);
