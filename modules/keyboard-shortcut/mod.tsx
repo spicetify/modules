@@ -11,6 +11,7 @@
  */
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { KEY_LIST, isOutOfView, keyLabelAt, labelPosition, rotateIndex, stepLabel } from "./logic.ts";
 
 const SCROLL_STEP = 25;
 
@@ -29,8 +30,6 @@ interface VimBind {
 
 function createVimBind(): VimBind {
 	const elementQuery = ["[href]", "button", ".main-trackList-trackListRow", "[role='button']"].join(",");
-	const keyList = "qwertasdfgzxcvyuiophjklbnm".split("");
-	const lastKeyIndex = keyList.length - 1;
 
 	let isActive = false;
 
@@ -51,7 +50,7 @@ function createVimBind(): VimBind {
 	document.body.append(vimOverlay);
 
 	const mousetrap = new Spicetify.Mousetrap(document);
-	mousetrap.bind(keyList, listenToKeys, "keypress");
+	mousetrap.bind(KEY_LIST, listenToKeys, "keypress");
 	// Pause mousetrap event emitter until the overlay is activated.
 	const orgStopCallback = mousetrap.stopCallback;
 	mousetrap.stopCallback = () => true;
@@ -71,8 +70,7 @@ function createVimBind(): VimBind {
 			e.remove();
 		}
 
-		let firstKey = 0;
-		let secondKey = 0;
+		let labelIndex = 0;
 
 		for (const e of getLinks()) {
 			const computed = window.getComputedStyle(e);
@@ -81,40 +79,15 @@ function createVimBind(): VimBind {
 			}
 
 			const bound = e.getBoundingClientRect();
-			const owner = document.body;
-
-			let top = bound.top;
-			let left = bound.left;
-
-			if (
-				bound.bottom > owner.clientHeight ||
-				bound.left > owner.clientWidth ||
-				bound.right < 0 ||
-				bound.top < 0 ||
-				bound.width === 0 ||
-				bound.height === 0
-			) {
+			if (isOutOfView(bound, document.body)) {
 				continue;
 			}
 
-			// Exclude certain elements from the centering calculation
-			if ((e.parentNode as any)?.role !== "row") {
-				top = top + bound.height / 2 - 15;
-				left = left + bound.width / 2 - 15;
-			}
-
-			// Append the key to the correct overlay
-			if (e.tagName === "BUTTON" && (e.parentNode as any)?.tagName === "LI") {
-				tippyOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
-			} else {
-				baseOverlay.append(createKey(e, keyList[firstKey] + keyList[secondKey], top, left));
-			}
-
-			secondKey++;
-			if (secondKey > lastKeyIndex) {
-				secondKey = 0;
-				firstKey++;
-			}
+			const { top, left } = labelPosition(bound, (e.parentNode as any)?.role === "row");
+			const overlay =
+				e.tagName === "BUTTON" && (e.parentNode as any)?.tagName === "LI" ? tippyOverlay : baseOverlay;
+			overlay.append(createKey(e, keyLabelAt(labelIndex), top, left));
+			labelIndex++;
 		}
 
 		isActive = true;
@@ -145,20 +118,17 @@ function createVimBind(): VimBind {
 		}
 
 		for (const div of vimkey) {
-			const text = div.innerText.toLowerCase();
-			if (text[0] !== event.key) {
+			const step = stepLabel(div.innerText.toLowerCase(), event.key);
+			if (step.action === "drop") {
 				div.remove();
 				continue;
 			}
-
-			const newText = text.slice(1);
-			if (newText.length === 0) {
+			if (step.action === "interact") {
 				interact((div as any).target);
 				deactivate();
 				return;
 			}
-
-			div.innerText = newText;
+			div.innerText = step.rest;
 		}
 
 		if (baseOverlay.childNodes.length === 0 && tippyOverlay.childNodes.length === 0) {
@@ -289,12 +259,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const allItems = document.querySelectorAll<HTMLElement>(
 			"#spicetify-sticky-list .main-yourLibraryX-navLink, .main-yourLibraryX-listItem > div:not(:has([data-skip-in-keyboard-nav])) > div:first-child",
 		);
-		const maxIndex = allItems.length - 1;
-
-		let index = findActiveIndex(allItems) + direction;
-		if (index < 0) index = maxIndex;
-		else if (index > maxIndex) index = 0;
-
+		const index = rotateIndex(findActiveIndex(allItems), direction, allItems.length - 1);
 		allItems[index]?.click();
 	}
 
