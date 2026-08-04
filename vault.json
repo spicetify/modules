@@ -2802,6 +2802,12 @@
 					"providers": [],
 					"checksum": "sha256:212d1ded72db0728f63215e822e8d2e44d73bd2cb933e1b1cf45037b55030223",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.1": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/matte@0.1.1/matte@0.1.1.zip"],
+					"providers": [],
+					"checksum": "sha256:3cb800bf2a09719c65719aca2ee6dc46faf80f24960fe58368c8179795446602",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
