@@ -99,6 +99,23 @@ export function record(distDir: string, id: string): LocalModuleRecord {
 	return { metadata, files, sidecar };
 }
 
+// stampRecord appends an execution stamp to the record's js entry. The push
+// asserts the stamp after enable, turning "the client says loaded" into "the
+// pushed code demonstrably ran". A loaded flag alone can be a stale instance:
+// the dev loop once reported a build live whose code had never executed.
+// Returns false when the record has no js entry to stamp (css-only themes).
+export function stampRecord(rec: LocalModuleRecord, id: string, nonce: string): boolean {
+	const entry = (rec.metadata as { entries?: { js?: string } }).entries?.js;
+	if (!entry || typeof rec.files[entry] !== "string") return false;
+	rec.files[entry] +=
+		`\nglobalThis.__spicetifyPushStamps = Object.assign(globalThis.__spicetifyPushStamps ?? {}, ${JSON.stringify({ [id]: nonce })});\n`;
+	return true;
+}
+
+export function newNonce(): string {
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export async function wsUrl(port: string): Promise<string> {
 	const res = await fetch(`http://localhost:${port}/json/list`);
 	const targets = (await res.json()) as Array<{ url?: string; webSocketDebuggerUrl?: string }>;
@@ -113,6 +130,9 @@ export async function wsUrl(port: string): Promise<string> {
 }
 
 export function push(rec: LocalModuleRecord, id: string, port: string): Promise<string> {
+	// Stamp before the quota check so the stamp's own bytes are counted.
+	const nonce = newNonce();
+	const stamped = stampRecord(rec, id, nonce);
 	// Refuse an oversized install before opening the socket (U7), so the failure
 	// is a named cause here rather than an opaque client-side quota error.
 	checkQuota(rec);
@@ -124,6 +144,7 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 		const rec = ${JSON.stringify(rec)};
 		const id = ${JSON.stringify(id)};
 		const before = M.list().filter((m) => m.loaded).map((m) => m.identifier);
+		const hadPrevious = before.includes(id);
 		await M.disable(id).catch(() => {});
 		await M.installLocal(id, rec);
 		// Re-enabling a theme the loader just unloaded would fight the
@@ -136,7 +157,13 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 			if (s && !s.loaded) await M.enable(other).catch(() => {});
 		}
 		const s = M.list().find((m) => m.identifier === id);
-		return JSON.stringify({ loaded: s?.loaded ?? false, failed: M.report?.failed?.[id] ?? null });
+		const stampLive = ${stamped ? `globalThis.__spicetifyPushStamps?.[id] === ${JSON.stringify(nonce)}` : "null"};
+		return JSON.stringify({
+			loaded: s?.loaded ?? false,
+			failed: M.report?.failed?.[id] ?? null,
+			stamp: ${stamped ? '(stampLive ? "live" : "stale")' : '"unstamped"'},
+			hadPrevious,
+		});
 	})()`;
 
 	return new Promise((resolve, reject) => {
@@ -174,7 +201,13 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 
 // Turn the raw client-side push result into an honest, actionable line.
 export function formatPushResult(raw: string): { ok: boolean; message: string } {
-	let parsed: { error?: string; loaded?: boolean; failed?: string | null };
+	let parsed: {
+		error?: string;
+		loaded?: boolean;
+		failed?: string | null;
+		stamp?: "live" | "stale" | "unstamped";
+		hadPrevious?: boolean;
+	};
 	try {
 		parsed = JSON.parse(raw);
 	} catch {
@@ -189,5 +222,21 @@ export function formatPushResult(raw: string): { ok: boolean; message: string } 
 		};
 	}
 	if (parsed.failed) return { ok: false, message: `module loaded but failed: ${parsed.failed}` };
-	return { ok: parsed.loaded === true, message: parsed.loaded ? "loaded" : "installed but not loaded" };
+	if (parsed.loaded !== true) return { ok: false, message: "installed but not loaded" };
+	// The loaded flag alone is not proof the pushed code runs; the stamp is.
+	if (parsed.stamp === "stale") {
+		return {
+			ok: false,
+			message:
+				"installed, but the pushed code did NOT execute — a stale instance is still live. " +
+				"Restart the client (or removeLocal, then push again) before trusting any verification.",
+		};
+	}
+	const remount = parsed.hadPrevious
+		? " — UI mounted before the push may still be the old build; re-navigate to its surface to remount"
+		: "";
+	if (parsed.stamp === "live") return { ok: true, message: `loaded, pushed build verified executing${remount}` };
+	// css-only records carry no executable entry to stamp.
+	if (parsed.stamp === "unstamped") return { ok: true, message: `loaded (css-only, no execution stamp)${remount}` };
+	return { ok: true, message: "loaded" };
 }

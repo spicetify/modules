@@ -175,6 +175,63 @@ function checkEntryShim(dir: string, meta: { entries?: { js?: string }; tree?: b
 	return [];
 }
 
+// checkStructure runs the modularity rules the standard implies but the
+// original ports predate: importable exports, a client-free logic core, and
+// tests. Warnings only — a ratchet, not a flag day: `create` scaffolds all
+// three, so new modules start clean while ports surface their drift.
+export function checkStructure(dir: string, meta: { entries?: { js?: string } }): Finding[] {
+	// css-only themes have no logic to structure or test.
+	if (!meta.entries?.js) return [];
+	const out: Finding[] = [];
+	const skip = new Set(["node_modules", "dist", "assets", "public"]);
+
+	let hasTests = false;
+	const walk = (d: string) => {
+		for (const entry of readdirSync(d)) {
+			const full = path.join(d, entry);
+			if (statSync(full).isDirectory()) {
+				if (!skip.has(entry)) walk(full);
+			} else if (entry.endsWith(".test.mts")) {
+				hasTests = true;
+			}
+		}
+	};
+	walk(dir);
+	if (!hasTests) {
+		out.push({
+			severity: "warn",
+			rule: "tests",
+			message:
+				"no *.test.mts anywhere in the module; the standard expects testable logic in a client-free file with colocated node --test coverage",
+		});
+	}
+
+	const sources = readSources(dir).filter(({ file }) => path.basename(file) !== "index.ts");
+	if (!sources.length) return out;
+
+	const hasNamedExport = sources.some(({ text }) => /^export (const|let|function|class|async function) /m.test(text));
+	if (!hasNamedExport) {
+		out.push({
+			severity: "warn",
+			rule: "exportable-logic",
+			message:
+				"nothing importable: every declaration sits behind the default export, so no unit can be imported or tested. Hoist logic to top-level named exports",
+		});
+	}
+
+	const clientRef = /\bSpicetify\.|\bMAP\./;
+	const hasPureFile = sources.some(({ text }) => !clientRef.test(text));
+	if (!hasPureFile) {
+		out.push({
+			severity: "warn",
+			rule: "pure-core",
+			message:
+				"no client-free source file: every file references Spicetify or MAP. Move parsers/decisions into a dependency-free file (see store/catalog.ts) so they can run under node --test",
+		});
+	}
+	return out;
+}
+
 export function checkModule(dir: string): Finding[] {
 	const findings: Finding[] = [];
 	const metaPath = path.join(dir, "metadata.json");
@@ -203,6 +260,7 @@ export function checkModule(dir: string): Finding[] {
 	}
 	findings.push(...checkMetadata(meta));
 	findings.push(...checkEntryShim(dir, meta as { entries?: { js?: string }; tree?: boolean }));
+	findings.push(...checkStructure(dir, meta as { entries?: { js?: string } }));
 	for (const { file, text } of readSources(dir)) {
 		findings.push(...checkSource(path.relative(dir, file), text));
 	}

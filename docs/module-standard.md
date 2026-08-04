@@ -54,6 +54,23 @@ output; heuristic nudges stay advisory (they print, the build continues), and
 entry, so the loader-shim rule does not apply to them. The dev loop prints
 findings but never blocks the hot-push.
 
+Three **structural warnings** back the modularity rules for js modules —
+`tests` (no `*.test.mts` anywhere in the module), `exportable-logic` (nothing
+exported beyond the default, so no unit can be imported or tested), and
+`pure-core` (no client-free source file at all). They are advisory by design: a
+ratchet, not a flag day. The scaffold satisfies all three from the first
+commit, so they fire mainly on classic ports that predate the standard — treat
+them as the migration worklist, not noise.
+
+The dev loop's hot-push is **verified by execution, not by claim**: the push
+appends a per-push stamp to the js entry and asserts, inside the client, that
+the stamp actually ran before reporting success. A stale instance that still
+answers "loaded" now fails the push loudly instead of silently passing. Two
+caveats it prints when relevant: css-only themes carry no executable entry to
+stamp, and UI that was already mounted before the push may still be the old
+build until you re-navigate to its surface — never claim a UI change verified
+without remounting it.
+
 ---
 
 ## The reliability contract (non-negotiable)
