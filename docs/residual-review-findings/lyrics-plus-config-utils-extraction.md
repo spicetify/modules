@@ -39,3 +39,22 @@ rather than fixed.
   the _next_ track via `tryServices(nextInfo, …)`, so the registry would feed
   the wrong duration to the karaoke end-time fallback. This supersedes the
   registry-threading half of KTD5 and would very likely escape U5's live check.
+
+## Deferred from the capture-safety work (2026-08-05)
+
+- **D6 — staged-source freshness.** The manager compares nothing against the
+  vault: a stale staged module (the incident's `stdlib 1.0.0`) is invisible
+  until something breaks, and published fixes never reach an applied client
+  without a manual refresh of `~/.config/spicetify/Modules`. Design sketch:
+  the manager already loads the manifest of staged versions; fetch the vault
+  (as the store's `catalog.ts` does), compare per module, and render a
+  "staged X@a — Y@b published" row with refresh guidance. Deliberately not
+  rushed: the manager is the recovery surface, and changes there deserve
+  their own verified slice.
+- **D5 — a truly capture-independent recovery surface.** The manager mounts
+  through the React route overlay, so it died with everything else during the
+  Fragment freeze despite the standard designating it the tool that must
+  survive exactly that. With D1 the known trigger is gone and D4 makes any
+  recurrence visible, so this dropped in urgency — but a vanilla-DOM fallback
+  mount for the manager remains the correct completion of its reliability
+  tier.
