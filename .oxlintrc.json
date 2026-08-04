@@ -29,6 +29,20 @@
 			}
 		],
 		"no-this-alias": "warn",
-		"no-useless-escape": "warn"
-	}
+		"no-useless-escape": "warn",
+		"no-undef": "error"
+	},
+	"globals": {
+		"Spicetify": "readonly",
+		"MAP": "readonly",
+		"CHUNKS": "readonly"
+	},
+	"overrides": [
+		{
+			"files": ["scripts/**", "packages/**", "**/*.mts", "**/*.mjs", "modules/*/lib/**"],
+			"env": {
+				"node": true
+			}
+		}
+	]
 }
