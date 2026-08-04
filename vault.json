@@ -2243,6 +2243,14 @@
 					"providers": [],
 					"checksum": "sha256:2639f78fdb2316a79082868b605944a27aff94fc9e98157d398257e38de6d7c2",
 					"updatedAt": "2026-08-03"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/webnowplaying@0.1.1/webnowplaying@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:ec9ae9099bde777035a3c9f96286a3e28c3d80f84a80a8c165dc7168b0ca5991",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
