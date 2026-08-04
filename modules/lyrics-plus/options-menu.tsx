@@ -122,22 +122,19 @@ export const TranslationMenu = react.memo(
 		react.useEffect(() => {
 			let cancelled = false;
 
-			if (
-				typeof ProviderMusixmatch !== "undefined" &&
-				ProviderMusixmatch &&
-				typeof ProviderMusixmatch.getLanguages === "function"
-			) {
-				(async () => {
-					try {
-						const languages = await ProviderMusixmatch.getLanguages();
-						if (!cancelled) {
-							setLanguageMap(languages);
-						}
-					} catch (error) {
-						console.error("Failed to fetch Musixmatch languages:", error);
+			// The classic build's typeof guard protected concatenated-scope
+			// load order; the import makes the provider unconditionally
+			// present (its surface is pinned by providers.test.mts).
+			(async () => {
+				try {
+					const languages = await ProviderMusixmatch.getLanguages();
+					if (!cancelled) {
+						setLanguageMap(languages);
 					}
-				})();
-			}
+				} catch (error) {
+					console.error("Failed to fetch Musixmatch languages:", error);
+				}
+			})();
 
 			return () => {
 				cancelled = true;
