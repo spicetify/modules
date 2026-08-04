@@ -2212,6 +2212,14 @@
 					"providers": [],
 					"checksum": "sha256:e40154bd5ce2bc867a5925c9dd7ce5b4ac905c80ff6ecd6ae5852409ebc2fff3",
 					"updatedAt": "2026-08-03"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-explicit@0.1.1/auto-skip-explicit@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:e3d84c98c2f99db57f2eb694a50f606941215fca25e78be51f7d542b2bd8244b",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
