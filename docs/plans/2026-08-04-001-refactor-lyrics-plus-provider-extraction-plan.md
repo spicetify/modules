@@ -82,13 +82,15 @@ None blocking.
 
 ### Key Technical Decisions
 
-- **KTD1. First slice is the lyrics-plus provider layer, not the closure-nested modules.** *(session-settled: user-approved — chosen over starting with `shuffle-plus` to prove the hoisting pattern: it is the largest clean win, needs no closure hoisting, and covers the code most likely to break when an external lyrics API shifts.)*
+- **KTD1. First slice is the lyrics-plus provider layer, not the closure-nested modules.** _(session-settled: user-approved — chosen over starting with `shuffle-plus` to prove the hoisting pattern: it is the largest clean win, needs no closure hoisting, and covers the code most likely to break when an external lyrics API shifts.)_
 
-- **KTD2. Tests land in the same change as the extraction, not a follow-up.** *(session-settled: user-approved — chosen over splitting files now and testing later: `store` already demonstrates that structure alone does not produce tests — 9 files, 0 tests.)*
+- **KTD2. Tests land in the same change as the extraction, not a follow-up.** _(session-settled: user-approved — chosen over splitting files now and testing later: `store` already demonstrates that structure alone does not produce tests — 9 files, 0 tests.)_
 
-- **KTD3. Hoisting the seven closure-nested modules is deferred to a later phase.** *(session-settled: user-approved — chosen over hoisting everything now: it is invasive and there are no tests yet to catch a regression.)*
+- **KTD3. Hoisting the seven closure-nested modules is deferred to a later phase.** _(session-settled: user-approved — chosen over hoisting everything now: it is invasive and there are no tests yet to catch a regression.)_
 
 - **KTD4. `CONFIG` moves to `config.ts` and is imported as a shared mutable singleton, but its client-dependent gate does not move.** CONFIG is referenced 134 times and is mutated at runtime (`CONFIG.providers.musixmatch.token = token`), so one imported module-level object preserves identity and mutation exactly. The `genius.on` entry, however, is computed from `spotifyVersion` (`Spicetify.Platform.version`, `mod.tsx:24`, applied at `:127`). That version override **stays in `mod.tsx`**, which already re-applies it at `:2509`, `:3017` and `:4734`. Without this split, importing `config.ts` under `node --test` throws before any assertion runs.
+
+- **KTD5a. LRCLIB keeps the _playing_ track's duration, not `info.duration`.** Found during U1/U2 review. `componentDidMount` prefetches the **next** track through `tryServices(nextInfo, …)` (`mod.tsx:4877`), so having the registry pass `info.duration` into LRCLIB would hand it the next track's duration where the original used the playing track's. U4 must therefore pass the same `currentTrackDurationMs()` helper `mod.tsx` already uses, not `info.duration`. This supersedes the registry-threading half of KTD5. The blast radius is only the karaoke end-time fallback, and U5 would very likely not catch it.
 
 - **KTD5. Pure logic receives client values as parameters, threaded through every call site.** `parseLocalLyrics` reads `Spicetify.Player.data.item.metadata.duration` as a karaoke end-time fallback (`mod.tsx:533`). It gains an explicit duration parameter. It has **three** call sites, not one: `mod.tsx:5202`, plus `ProviderLRCLIB.getUnsynced` (`:1283`) and `getSynced` (`:1293`), which receive only `body`. LRCLIB's two methods therefore also gain the parameter, and the registry passes `info.duration` (U4).
 
@@ -130,12 +132,12 @@ graph TD
 
 Provider export surfaces are **not** uniform. Only LRCLIB matches the three-method shape:
 
-| Provider | Exported members |
-| --- | --- |
-| LRCLIB | `findLyrics`, `getSynced`, `getUnsynced` |
-| Netease | `findLyrics`, `getKaraoke`, `getSynced`, `getUnsynced`, `getTranslation` |
+| Provider   | Exported members                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| LRCLIB     | `findLyrics`, `getSynced`, `getUnsynced`                                                 |
+| Netease    | `findLyrics`, `getKaraoke`, `getSynced`, `getUnsynced`, `getTranslation`                 |
 | Musixmatch | `findLyrics`, `getKaraoke`, `getSynced`, `getUnsynced`, `getTranslation`, `getLanguages` |
-| Genius | `fetchLyrics`, `getNote`, `fetchLyricsVersion` |
+| Genius     | `fetchLyrics`, `getNote`, `fetchLyricsVersion`                                           |
 
 ### Assumptions
 

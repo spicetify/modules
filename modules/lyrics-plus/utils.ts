@@ -259,8 +259,7 @@ export function parseLocalLyrics(lyrics, trackDurationMs = 0) {
 			if (isKaraoke) {
 				if (!lyricContent.endsWith(">")) {
 					// For some reason there are a variety of formats for karaoke lyrics, Wikipedia is also inconsisent in their examples
-					const endTime =
-						lines[i + 1]?.match(syncedTimestamp)?.[1] || formatTime(Number(trackDurationMs));
+					const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || formatTime(Number(trackDurationMs));
 					lyricContent += `<${endTime}>`;
 				}
 				const karaokeLine = parseKaraokeLine(lyricContent, time);

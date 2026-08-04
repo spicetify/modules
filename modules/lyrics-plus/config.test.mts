@@ -27,12 +27,12 @@ describe("test harness storage", () => {
 });
 
 describe("getConfig", () => {
-	it("returns true for a stored \"true\"", () => {
+	it('returns true for a stored "true"', () => {
 		localStorage.setItem("k", "true");
 		assert.equal(getConfig("k"), true);
 	});
 
-	it("returns false for a stored \"false\"", () => {
+	it('returns false for a stored "false"', () => {
 		localStorage.setItem("k", "false");
 		assert.equal(getConfig("k"), false);
 	});
@@ -76,10 +76,7 @@ describe("CONFIG", () => {
 		const { CONFIG } = await import(`./config.ts?malformed=${Date.now()}`);
 		assert.deepEqual(CONFIG.providersOrder, Object.keys(CONFIG.providers));
 		// The repaired order is written back so the next load is clean.
-		assert.deepEqual(
-			JSON.parse(localStorage.getItem("lyrics-plus:services-order")),
-			Object.keys(CONFIG.providers),
-		);
+		assert.deepEqual(JSON.parse(localStorage.getItem("lyrics-plus:services-order")), Object.keys(CONFIG.providers));
 	});
 
 	it("falls back when services-order length does not match the provider set", async () => {
@@ -93,6 +90,40 @@ describe("CONFIG", () => {
 		// config.ts must stay loadable without a client, so it reads only the
 		// stored flag; mod.tsx applies the >= 1.2.31 override on import.
 		assert.equal(CONFIG.providers.genius.on, true);
+	});
+
+	// The most intricate part of the moved block: three chained conditionals
+	// with two storage write-backs and a force-off.
+	it("upgrades a legacy musixmatchTranslation source to the prefixed form", async () => {
+		localStorage.setItem("lyrics-plus:visual:translate:translated-lyrics-source", "musixmatchTranslation");
+		localStorage.setItem("lyrics-plus:visual:musixmatch-translation-language", "es");
+		const { CONFIG } = await import(`./config.ts?upgrade=${Date.now()}`);
+		assert.equal(CONFIG.visual["translate:translated-lyrics-source"], "musixmatchTranslation:es");
+		assert.equal(
+			localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source"),
+			"musixmatchTranslation:es",
+		);
+	});
+
+	it("downgrades a legacy source to none when no language is selected", async () => {
+		localStorage.setItem("lyrics-plus:visual:translate:translated-lyrics-source", "musixmatchTranslation");
+		const { CONFIG } = await import(`./config.ts?nolang=${Date.now()}`);
+		assert.equal(CONFIG.visual["translate:translated-lyrics-source"], "none");
+	});
+
+	it("back-fills the language from a prefixed source", async () => {
+		localStorage.setItem("lyrics-plus:visual:translate:translated-lyrics-source", "musixmatchTranslation:fr");
+		const { CONFIG } = await import(`./config.ts?backfill=${Date.now()}`);
+		assert.equal(CONFIG.visual["musixmatch-translation-language"], "fr");
+		assert.equal(localStorage.getItem("lyrics-plus:visual:musixmatch-translation-language"), "fr");
+	});
+
+	it("forces the translate toggle off when a translation source is active", async () => {
+		localStorage.setItem("lyrics-plus:visual:translate", "true");
+		localStorage.setItem("lyrics-plus:visual:translate:translated-lyrics-source", "musixmatchTranslation:fr");
+		const { CONFIG } = await import(`./config.ts?forceoff=${Date.now()}`);
+		assert.equal(CONFIG.visual.translate, false);
+		assert.equal(localStorage.getItem("lyrics-plus:visual:translate"), "false");
 	});
 
 	it("exposes all six providers", async () => {
