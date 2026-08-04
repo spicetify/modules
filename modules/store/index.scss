@@ -210,12 +210,43 @@
 			}
 		}
 
+		// Wraps the preview so the install-count badge can pin to the artwork.
+		.spicetify-store-card-art {
+			position: relative;
+		}
+
 		.spicetify-store-card-preview {
 			display: block;
 			width: 100%;
 			aspect-ratio: 16 / 9;
 			object-fit: cover;
 			border-radius: 4px;
+		}
+
+		// Icon + count pinned to the artwork's bottom-left, over a soft
+		// scrim so it stays legible on any preview.
+		.spicetify-store-installs {
+			position: absolute;
+			left: 8px;
+			bottom: 8px;
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			padding: 3px 8px 3px 6px;
+			border-radius: 999px;
+			background: rgba(0, 0, 0, 0.6);
+			color: #fff;
+			font-size: 11px;
+			font-weight: 600;
+			line-height: 1;
+			backdrop-filter: blur(2px);
+			pointer-events: none;
+
+			svg {
+				width: 13px;
+				height: 13px;
+				fill: currentColor;
+			}
 		}
 
 		// Circular install button pinned to the card's bottom-right
@@ -410,7 +441,44 @@
 .spicetify-store-repo-link {
 	color: var(--spice-subtext, #a7a7a7);
 	font-size: 13px;
-	text-decoration: underline;
+	text-decoration: none;
+
+	&:hover {
+		color: var(--spice-text, #fff);
+		text-decoration: underline;
+	}
+}
+
+// Install count inline in the details meta row: icon + count, muted.
+.spicetify-store-installs-inline {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 12px;
+	font-weight: 600;
+
+	svg {
+		width: 13px;
+		height: 13px;
+		fill: currentColor;
+	}
+}
+
+// The details description reads as body copy, not a cramped caption.
+.spicetify-store-detail-desc {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--spice-text, #fff);
+}
+
+// Primary action first, the repo link a quiet trailing footnote.
+.spicetify-store-card-actions {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+	margin: 4px 0;
 }
 
 .spicetify-store-snippet-css {

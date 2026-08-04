@@ -45,7 +45,6 @@ let Button: typeof UIKit.Button;
 let Chip: typeof UIKit.Chip;
 let Dialog: typeof UIKit.Dialog;
 let Select: typeof UIKit.Select;
-let badgeClass: typeof KitClasses.badgeClass;
 let SEARCHBAR_CLASS: typeof KitClasses.SEARCHBAR_CLASS;
 
 // Mirrors kit.ts: the enhanced page requires stdlib, so its dependencies
@@ -60,7 +59,7 @@ export async function loadPageDeps(): Promise<void> {
 	]);
 	({ React, ReactDOM } = expose);
 	({ Badge, Button, Chip, Dialog, Select } = primitives);
-	({ badgeClass, SEARCHBAR_CLASS } = classes);
+	({ SEARCHBAR_CLASS } = classes);
 }
 
 // Infrastructure modules: stdlib is the foundation every module depends
@@ -302,12 +301,8 @@ function ModuleDetails(props: {
 			{mod.meta?.preview && <img className="spicetify-store-detail-preview" src={mod.meta.preview} alt="" />}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
-				{count !== undefined && <Badge>{`${count} installs`}</Badge>}
-				{/* Verification only matters when there is a download to verify;
-				    inline entries ship inside the vault, so there is nothing to
-				    check and the tags below already say what the module is. */}
-				{!mod.files && (
-					<Badge tone={mod.checksum ? "ok" : "neutral"}>{mod.checksum ? "checksum ✓" : "unverified"}</Badge>
+				{count !== undefined && count > 0 && (
+					<InstallsBadge count={count} className="spicetify-store-installs-inline" />
 				)}
 				{(mod.meta?.tags ?? []).map((tag) => (
 					<Badge key={tag}>{tag}</Badge>
@@ -336,12 +331,7 @@ function ModuleDetails(props: {
 					))}
 				</div>
 			) : null}
-			{mod.meta?.description && <p>{mod.meta.description}</p>}
-			{repo && (
-				<a className="spicetify-store-repo-link" href={repo} target="_blank" rel="noopener noreferrer">
-					{repo.replace("https://", "")}
-				</a>
-			)}
+			{mod.meta?.description && <p className="spicetify-store-detail-desc">{mod.meta.description}</p>}
 			<div className="spicetify-store-card-actions">
 				<Button
 					disabled={busy}
@@ -352,6 +342,11 @@ function ModuleDetails(props: {
 				>
 					{props.installLabel}
 				</Button>
+				{repo && (
+					<a className="spicetify-store-repo-link" href={repo} target="_blank" rel="noopener noreferrer">
+						{repo.replace("https://", "")}
+					</a>
+				)}
 			</div>
 			{readme.kind === "loading" && <div className="spicetify-store-empty">loading readme…</div>}
 			{readme.kind === "loaded" && <Markdown md={readme.text} />}
@@ -485,15 +480,9 @@ function CatalogCard(props: {
 	const cta = canRemove ? "Remove" : installCta(mod, props.installedVersion);
 	const repo = deriveRepository(mod);
 	const count = installCounts[mod.id];
-	// Category badge (snippet/theme/extension/app) says what the module
-	// is; the checksum badge only appears for artifact modules, where an
-	// unverified download is a real risk. Inline entries ship inside the
-	// vault, so there is nothing to verify.
+	// The category (snippet/theme/extension/app) is the one badge worth
+	// carrying on the card; installs read as an icon+count over the artwork.
 	const category = categoryOf(mod.meta?.tags);
-	let host: string | null = null;
-	try {
-		host = new URL(mod.vault).host || null;
-	} catch {}
 
 	return (
 		// The whole card opens the details dialog (album-card pattern);
@@ -519,7 +508,12 @@ function CatalogCard(props: {
 				}
 			}}
 		>
-			<img className="spicetify-store-card-preview" src={mod.meta?.preview ?? ""} loading="lazy" alt="" />
+			<div className="spicetify-store-card-art">
+				<img className="spicetify-store-card-preview" src={mod.meta?.preview ?? ""} loading="lazy" alt="" />
+				{count !== undefined && count > 0 && (
+					<InstallsBadge count={count} className="spicetify-store-installs" />
+				)}
+			</div>
 			<button
 				type="button"
 				className={`spicetify-store-card-fab${canRemove ? " spicetify-store-card-fab--remove" : ""}`}
@@ -554,17 +548,12 @@ function CatalogCard(props: {
 			) : null}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
-				{count !== undefined && (
-					<span className={`${badgeClass()} spicetify-store-badge--count`}>{`${count} installs`}</span>
-				)}
 				{category && <Badge>{category}</Badge>}
-				{!mod.files && (
-					<Badge tone={mod.checksum ? "ok" : "neutral"}>{mod.checksum ? "checksum ✓" : "unverified"}</Badge>
-				)}
-				{host && <Badge>{host}</Badge>}
-				{/* No tag badges on cards: the toolbar chips already segment the
-				    catalog by tag, so the badge only repeats what the active tab
-				    communicates. Tags stay in the details dialog and in search. */}
+				{/* Installs live on the artwork; the vault host and checksum are
+				    not user-facing (a mismatched download fails the install
+				    loudly, so a "checksum" badge only ever states the normal
+				    case). Tag badges stay in the details dialog and in search,
+				    since the toolbar chips already segment the catalog by tag. */}
 			</div>
 		</article>
 	);
@@ -1125,3 +1114,25 @@ const TRASH_PATHS = [
 	"M9 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1h4a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2h4V4z",
 	"M6.5 8h11l-.8 11.2A2.5 2.5 0 0 1 14.2 21.5H9.8a2.5 2.5 0 0 1-2.5-2.3L6.5 8z",
 ];
+
+// Downward tray: the install-count glyph.
+const INSTALLS_PATHS = [
+	"M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1z",
+	"M5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z",
+];
+
+// Compact, human install count: 1200 -> 1.2k.
+function formatCount(n: number): string {
+	if (n < 1000) return String(n);
+	const k = n / 1000;
+	return `${k >= 10 ? Math.round(k) : k.toFixed(1).replace(/\.0$/, "")}k`;
+}
+
+function InstallsBadge(props: { count: number; className: string }): ReactElement {
+	return (
+		<span className={props.className} title={`${props.count} install${props.count === 1 ? "" : "s"}`}>
+			<GlyphIcon paths={INSTALLS_PATHS} />
+			{formatCount(props.count)}
+		</span>
+	);
+}

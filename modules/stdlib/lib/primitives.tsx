@@ -192,18 +192,34 @@ export const ConfirmButton: React.FC<{
 // transformed ancestor (the norm for Spotify's scroll containers) would
 // otherwise be clipped/offset to that ancestor. The backdrop and the ×
 // button both call onClose.
-export const Dialog: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = (props) =>
-	ReactDOM.createPortal(
+export const Dialog: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = (props) => {
+	const { onClose } = props;
+	// Escape closes the dialog, matching every native modal. A capturing
+	// document listener catches the key wherever focus sits (the client's own
+	// components steal focus), and the client's shortcut handlers do not see it.
+	React.useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				onClose();
+			}
+		};
+		document.addEventListener("keydown", onKey, true);
+		return () => document.removeEventListener("keydown", onKey, true);
+	}, [onClose]);
+
+	return ReactDOM.createPortal(
 		<div
 			className={SCRIM_CLASS}
 			onClick={(e) => {
-				if (e.target === e.currentTarget) props.onClose();
+				if (e.target === e.currentTarget) onClose();
 			}}
 		>
-			<div className={DIALOG_CLASS}>
+			<div className={DIALOG_CLASS} role="dialog" aria-modal="true" aria-label={props.title}>
 				<div className={DIALOG_HEADER_CLASS}>
 					<h2>{props.title}</h2>
-					<IconButton ariaLabel="Close" onClick={props.onClose}>
+					<IconButton ariaLabel="Close" onClick={onClose}>
 						×
 					</IconButton>
 				</div>
@@ -212,3 +228,4 @@ export const Dialog: React.FC<{ title: string; onClose: () => void; children: Re
 		</div>,
 		document.body,
 	);
+};
