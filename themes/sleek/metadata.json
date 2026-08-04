@@ -1,0 +1,17 @@
+{
+	"name": "sleek",
+	"tags": [
+		"theme"
+	],
+	"version": "0.1.0",
+	"authors": [
+		"harbassan"
+	],
+	"description": "Sleek theme, migrated from the classic format",
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png",
+	"entries": {
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {}
+}
