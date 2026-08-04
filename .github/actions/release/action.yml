@@ -1,5 +1,10 @@
 name: Publish
-description: Build the tagged module, create its GitHub release, and record the artifact in vault.json
+description: Build one module, create its GitHub release, and record the artifact in vault.json
+inputs:
+   tag:
+      description: The <name>@<version> to publish. Defaults to the triggering tag ref (publish.yml); release.yml passes each pending module explicitly.
+      required: false
+      default: ${{ github.ref_name }}
 runs:
    using: 'composite'
    steps:
@@ -12,7 +17,7 @@ runs:
          shell: bash
          run: |
             set -e
-            TAG="${{ github.ref_name }}"
+            TAG="${{ inputs.tag }}"
             NAME="${TAG%@*}"
             VERSION="${TAG##*@}"
             git fetch origin main
@@ -37,6 +42,28 @@ runs:
                console.log(published ? `${name}@${version} already in the vault: no-op re-run` : `publishing ${name}@${version} from ${dir}`);
                require("fs").appendFileSync(process.env.GITHUB_ENV, `MODULE_DIR=${dir}\nMODULE_TAG=${name}@${version}\nALREADY_PUBLISHED=${published}\n`);
             ' "$NAME" "$VERSION"
+
+      # release.yml runs from a branch commit, so the tag ref may not
+      # exist yet: create it here (with the default token, which by
+      # design does NOT trigger publish.yml — the publish happens in
+      # this run). A pre-existing tag must point at this commit or at a
+      # published state; anything else is a racing manual tag.
+      -  name: Ensure tag ref
+         if: env.ALREADY_PUBLISHED == 'false'
+         shell: bash
+         run: |
+            set -e
+            if git rev-parse -q --verify "refs/tags/${MODULE_TAG}" >/dev/null; then
+               TAG_SHA=$(git rev-parse "${MODULE_TAG}^{commit}")
+               HEAD_SHA=$(git rev-parse HEAD)
+               if [ "$TAG_SHA" != "$HEAD_SHA" ]; then
+                  echo "tag ${MODULE_TAG} exists at ${TAG_SHA}, not HEAD ${HEAD_SHA}: refusing to publish over a racing tag" >&2
+                  exit 1
+               fi
+            else
+               git tag -a "${MODULE_TAG}" -m "${MODULE_TAG}"
+               git push origin "refs/tags/${MODULE_TAG}"
+            fi
 
       -  name: Build
          if: env.ALREADY_PUBLISHED == 'false'
@@ -73,6 +100,7 @@ runs:
          if: env.ALREADY_PUBLISHED == 'false'
          uses: softprops/action-gh-release@v2
          with:
+            tag_name: ${{ inputs.tag }}
             body_path: /tmp/release-notes.md
             files: |
                dist/*.zip
@@ -93,7 +121,7 @@ runs:
             git config --local user.name "$GITHUB_ACTOR"
             git fetch origin "${PUSH_BRANCH}"
             git checkout -b vault-update "origin/${PUSH_BRANCH}"
-            URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${MODULE_TAG}.zip"
+            URL="https://github.com/${{ github.repository }}/releases/download/${MODULE_TAG}/${MODULE_TAG}.zip"
             node scripts/vault.ts add "dist/${MODULE_TAG}" --artifact "${URL}" --zip "dist/${MODULE_TAG}.zip" --skip-existing
             rm -rf dist
             git add vault.json

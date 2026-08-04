@@ -1,0 +1,104 @@
+name: Release
+
+# Bump-to-release: a version bump landing on main publishes that module
+# in-run (tag, GitHub release, vault entry). Ordinary pushes detect
+# nothing pending and end after the check. Publishing happens HERE, not
+# via tag-push triggers: tags created with the default token deliberately
+# do not trigger publish.yml, which prevents double publishes while
+# keeping publish.yml's tag trigger for the manual release.ts tag --push
+# path (human-pushed tags trigger it normally).
+on:
+   push:
+      branches:
+         - main
+   # Recovery lever: the shared publish queue holds one pending run, so a
+   # replaced/cancelled run's pending bumps wait for the next push unless
+   # re-triggered here.
+   workflow_dispatch:
+
+# Shares the publish group with publish.yml so automatic and manual
+# publishes serialize. The queue holds one pending run and replaces it
+# with the newest — correct here, because any single run publishes
+# everything pending at its HEAD.
+concurrency:
+   group: publish
+   cancel-in-progress: false
+
+jobs:
+   detect:
+      name: Detect pending releases
+      runs-on: ubuntu-latest
+      outputs:
+         pending: ${{ steps.pending.outputs.pending }}
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v4
+            with:
+               # pending-state detection needs tags and history.
+               fetch-depth: 0
+
+         -  name: Setup pnpm
+            uses: pnpm/action-setup@v6
+
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               cache: pnpm
+
+         -  name: Install dependencies
+            run: pnpm install --frozen-lockfile
+
+         -  name: Compute pending releases
+            id: pending
+            run: |
+               pending=$(node scripts/release.ts pending)
+               echo "pending=${pending}" >> "$GITHUB_OUTPUT"
+
+   publish:
+      name: Publish ${{ matrix.tag }}
+      needs: detect
+      if: needs.detect.outputs.pending != '[]'
+      runs-on: ubuntu-latest
+      permissions:
+         contents: write
+      strategy:
+         # Serial, in the detect job's dependency-first order; fail-fast
+         # stops dependents from publishing over a broken dependency.
+         # Ordering rides on matrix legs starting in include order under
+         # max-parallel 1 — observed GitHub behavior, not contractual.
+         max-parallel: 1
+         fail-fast: true
+         matrix:
+            include: ${{ fromJSON(needs.detect.outputs.pending) }}
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v4
+            with:
+               fetch-depth: 0
+
+         -  name: Clone classmaps
+            uses: actions/checkout@v4
+            with:
+               repository: spicetify/classmaps
+               path: classmaps
+
+         -  name: Setup pnpm
+            uses: pnpm/action-setup@v6
+
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               cache: pnpm
+
+         -  name: Install dependencies
+            run: pnpm install --frozen-lockfile
+
+         -  name: Check dependency ranges
+            run: node scripts/check-deps.ts
+
+         -  name: Publish
+            uses: ./.github/actions/release
+            with:
+               tag: ${{ matrix.tag }}

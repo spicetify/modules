@@ -28,10 +28,15 @@ walkthrough (scaffold, registrars, `placeButton`, the typed surface), see the
    it. Starter tests import `logic.ts` and the local `test/setup.mts` harness,
    never `mod.tsx` — JSX and `/modules/*` runtime URLs do not resolve in Node,
    so client-coupled UI is verified live through the dev loop instead.
-4. `spicetify-kit build` → `pack` → publish the zip to a vault. `spicetify-kit
-vault add <dist> --artifact <url>` records it with an embedded metadata
-   subset and a sha256 checksum; `spicetify-kit install <zip|dir>` sideloads a
-   packed module straight into a running client.
+4. Release by landing a version bump on `main`. The release workflow
+   publishes any bumped-but-unpublished module automatically — tag, GitHub
+   release with commit history, vault entry — dependency-ordered and
+   serialized. Every CI run on `main` lists unreleased work in its job
+   summary, so pending state is always one Actions tab away. The manual
+   path (`node scripts/release.ts tag --push`) remains as a fallback, and
+   third-party authors outside this repo still publish with `spicetify-kit
+build` → `pack` → `vault add <dist> --artifact <url>` into their own
+   vaults.
 5. Ship a preview. Store cards are artwork-first, so `metadata.json` must
    carry an absolute https `preview` or `vault add` refuses the entry. Capture
    a real screenshot whenever the module has UI (16:9, vendored under

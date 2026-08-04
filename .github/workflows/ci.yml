@@ -70,6 +70,14 @@ jobs:
             run: npm test --prefix packages/installs-api
 
          # A changed module must carry a new, unpublished version or the
-         # next release would overwrite a live vault entry.
+         # next release would overwrite a live vault entry. Hard in PR
+         # and merge-queue contexts (pre-merge enforcement works there);
+         # on direct pushes it degrades to a job-summary warning, and the
+         # release workflow only ever publishes bumped versions anyway.
          -  name: Check version bumps
+            if: github.event_name != 'push'
             run: node scripts/release.ts status
+
+         -  name: Unreleased work summary
+            if: github.event_name == 'push'
+            run: node scripts/release.ts status --summary --soft >> "$GITHUB_STEP_SUMMARY"

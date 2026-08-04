@@ -11,7 +11,9 @@
  * patch).
  *
  * usage:
- *   node scripts/release.ts status              # gate for PR CI
+ *   node scripts/release.ts status [--soft]     # gate (soft = warn only)
+ *   node scripts/release.ts status --summary [--soft]  # job-summary markdown
+ *   node scripts/release.ts pending             # topo-ordered unpublished, JSON
  *   node scripts/release.ts bump <id> [major|minor|patch]
  *   node scripts/release.ts tag [--push]        # tag every unpublished version
  */
@@ -94,40 +96,117 @@ function loadVault(): { modules?: Record<string, { v?: Record<string, unknown> }
 	return JSON.parse(readFileSync("vault.json", "utf8"));
 }
 
-function status(): void {
-	// The vault is ground truth for what is published; the module's own
-	// release tags provide the diff baseline. Both per-module: no batch
-	// window, no cross-module noise.
+type ModuleState = {
+	id: string;
+	tag: string;
+	version: string;
+	// needs-bump: published version with unreleased source changes.
+	// awaiting-release: bumped version not yet in the vault.
+	kind: "needs-bump" | "awaiting-release";
+	commits: string[];
+	hint?: string;
+};
+
+// The vault is ground truth for what is published; the module's own
+// release tags provide the diff baseline. Both per-module: no batch
+// window, no cross-module noise.
+function analyze(): { states: ModuleState[]; malformed: string[] } {
 	const vault = loadVault();
-	const problems: string[] = [];
+	const states: ModuleState[] = [];
+	const malformed: string[] = [];
 	for (const id of moduleIds()) {
 		const now = readMetadata(id);
 		if (!now.version) {
-			problems.push(`${id}: metadata.json has no version`);
+			malformed.push(`${id}: metadata.json has no version`);
 			continue;
 		}
 		const vaultId = now.name ?? id;
 		const published = !!vault.modules?.[vaultId]?.v?.[now.version];
-		if (!published) continue; // new version: publishable, nothing to check
+		const subjectsSince = (baseline: string) =>
+			git(["log", `${baseline}..HEAD`, "--format=%s", "--", moduleDir(id)])
+				.split("\n")
+				.filter(Boolean);
+		if (!published) {
+			const baseline = lastModuleTag(vaultId);
+			states.push({
+				id,
+				tag: `${vaultId}@${now.version}`,
+				version: now.version,
+				kind: "awaiting-release",
+				commits: baseline ? subjectsSince(baseline) : [],
+			});
+			continue;
+		}
 		// The current version is already in the vault; any source change
 		// since ITS release tag must come with a bump, or the change can
 		// never ship (the publish flow refuses to overwrite).
 		const releasedTag = `${vaultId}@${now.version}`;
 		const baseline = git(["tag", "--list", releasedTag]) ? releasedTag : lastModuleTag(vaultId);
 		if (!baseline) continue; // published outside tags (legacy/inline); no diff possible
+		const commits = subjectsSince(baseline);
 		if (git(["diff", "--name-only", `${baseline}..HEAD`, "--", moduleDir(id)])) {
 			const level = suggestLevel(id, baseline);
-			problems.push(
-				`${id}: changed since ${baseline} but ${now.version} is already published (suggest ${level} -> ${bumpVersion(now.version, level)})`,
-			);
+			states.push({
+				id,
+				tag: releasedTag,
+				version: now.version,
+				kind: "needs-bump",
+				commits,
+				hint: `suggest ${level} -> ${bumpVersion(now.version, level)}`,
+			});
 		}
 	}
+	return { states, malformed };
+}
+
+function status(soft: boolean): void {
+	const { states, malformed } = analyze();
+	const problems = [
+		...malformed,
+		...states
+			.filter((s) => s.kind === "needs-bump")
+			.map((s) => `${s.id}: changed since ${s.tag} but ${s.version} is already published (${s.hint})`),
+	];
 	if (problems.length) {
 		console.error("modules not safe to publish:");
 		for (const p of problems) console.error(`  ${p}`);
-		process.exit(1);
+		process.exit(soft ? 0 : 1);
 	}
 	console.log("ok: every changed module carries a new, unpublished version");
+}
+
+// Markdown for $GITHUB_STEP_SUMMARY: the per-module unreleased state,
+// computed fresh from git — the "which modules need a release" surface.
+function summary(soft: boolean): void {
+	const { states, malformed } = analyze();
+	const lines: string[] = ["## Unreleased work", ""];
+	if (!states.length && !malformed.length) {
+		lines.push("All module changes are released.");
+	}
+	for (const s of states) {
+		if (s.kind === "needs-bump") {
+			lines.push(`- **${s.id}** — ${s.version} is published but has unreleased changes (${s.hint}):`);
+		} else {
+			lines.push(`- **${s.id}** — ${s.version} bumped, awaiting the release workflow:`);
+		}
+		for (const c of s.commits.slice(0, 15)) lines.push(`  - ${c}`);
+		if (s.commits.length > 15) lines.push(`  - …and ${s.commits.length - 15} more`);
+	}
+	for (const m of malformed) lines.push(`- ⚠ ${m}`);
+	console.log(lines.join("\n"));
+	const violating = malformed.length > 0 || states.some((s) => s.kind === "needs-bump");
+	if (violating && !soft) process.exit(1);
+}
+
+// Topo-ordered bumped-but-unpublished modules, for release.yml.
+function pendingJson(): void {
+	const pending = new Map(
+		analyze()
+			.states.filter((s) => s.kind === "awaiting-release")
+			.map((s) => [s.id, s.tag]),
+	);
+	const ordered = topoOrder([...pending.keys()]).map((id) => ({ id, tag: pending.get(id)! }));
+	console.log(JSON.stringify(ordered));
 }
 
 function bump(id: string, level: Level): void {
@@ -269,7 +348,10 @@ function awaitPublish(tag: string, prevRun: number | null): void {
 
 const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "status") {
-	status();
+	if (rest.includes("--summary")) summary(rest.includes("--soft"));
+	else status(rest.includes("--soft"));
+} else if (cmd === "pending") {
+	pendingJson();
 } else if (cmd === "bump") {
 	const [id, level = "patch"] = rest;
 	if (!id || !LEVELS.includes(level as Level)) throw new Error("usage: release.ts bump <id> [major|minor|patch]");
@@ -277,5 +359,7 @@ if (cmd === "status") {
 } else if (cmd === "tag") {
 	tag(rest.includes("--push"));
 } else {
-	throw new Error("usage: release.ts status | bump <id> [major|minor|patch] | tag [--push]");
+	throw new Error(
+		"usage: release.ts status [--summary] [--soft] | pending | bump <id> [major|minor|patch] | tag [--push]",
+	);
 }
