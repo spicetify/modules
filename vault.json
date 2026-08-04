@@ -2687,6 +2687,29 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png"
 			}
+		},
+		"dreary": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/dreary@0.1.0/dreary@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:9727e8d1803f142aa830e0a407ba4b6a2d723e29bb12f12a187b2a32b34fd0a3",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "dreary",
+				"description": "Muted, moody palettes with six schemes",
+				"authors": [
+					{
+						"name": "SaltNuggets"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dreary.png"
+			}
 		}
 	}
 }
