@@ -2,9 +2,8 @@
    selectors are namespaced under the module's own ids / .bookmark-* classes so
    they cannot leak onto client chrome. */
 
-/* Full-viewport backdrop: it receives the outside press directly (its
-   mousedown handler closes the menu), so it must sit above client chrome and
-   be clickable. Transparent — it dismisses, it does not dim. */
+/* Clickable full-viewport backdrop above client chrome; dismisses on click,
+   does not dim. */
 #bookmark-spicetify {
 	position: fixed;
 	inset: 0;
@@ -51,19 +50,9 @@
 	}
 }
 
-/* Filter select sits below the add-actions, above the saved list, with a hair
-   line separating the two groups. */
 .bookmark-filter {
-	margin: 8px;
-	padding: 4px 8px;
-	height: 32px;
+	margin: 4px 8px 8px;
 	align-self: flex-start;
-	border-radius: 4px;
-	background-color: var(--spice-highlight, #1a1a1a);
-	border: 0;
-	color: var(--spice-text);
-	font-size: 13px;
-	cursor: pointer;
 }
 
 .bookmark-card {
@@ -79,8 +68,32 @@
 		background: rgba(255, 255, 255, 0.08);
 	}
 
-	.ButtonInner-md-iconOnly:hover {
-		transform: scale(1.06);
+	.main-playButton-PlayButton {
+		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		padding: 0;
+		border: none;
+		border-radius: 50%;
+		background: var(--spice-button, #1ed760);
+		color: #000;
+		cursor: pointer;
+		transition:
+			transform 0.1s ease,
+			background-color 0.1s ease;
+
+		svg {
+			width: 20px;
+			height: 20px;
+		}
+
+		&:hover {
+			transform: scale(1.06);
+			background: var(--spice-button-active, #1fdf64);
+		}
 	}
 }
 

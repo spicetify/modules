@@ -64,12 +64,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 			this.items = menu.menu;
 			this.lastScroll = 0;
 			this.filter = 0;
-			// Outside-dismiss goes through the backdrop container on the click
-			// event: the client swallows mousedown in the window capture phase
-			// (keydown still reaches document, which is why Escape worked but the
-			// old mousedown-based dismiss did not), but click is unaffected — the
-			// same event the store's dialog scrim closes on. The child menu stops
-			// clicks from bubbling here, so only a click outside the menu closes.
+			// Dismiss on the backdrop's click, not mousedown: the client
+			// swallows mousedown in the window capture phase (keydown is
+			// unaffected, which is why Escape worked but a mousedown dismiss
+			// did not). The menu stops its own clicks from bubbling here.
 			this.container.addEventListener("click", () => this.close());
 			this.apply();
 		}
@@ -154,9 +152,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		changePosition(x: number, y: number) {
-			// The trigger is a right-side topbar button, so a left-aligned menu
-			// runs off the right edge. Clamp both axes into the viewport (the
-			// menu is in the DOM by now, so its measured size is available).
+			// Clamp into the viewport: a right-side topbar button would push a
+			// left-aligned menu off the right edge.
 			const margin = 8;
 			const width = this.items.offsetWidth || 360;
 			const height = this.items.offsetHeight || 0;
@@ -288,7 +285,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			`.spicetify-topbar-right-buttons [aria-label="${BUTTON_NAME_TEXT}"]`,
 		);
 		const bound = button?.getBoundingClientRect();
-		// Append first so changePosition can measure the rendered menu.
+		// Append before positioning so changePosition can measure the menu.
 		document.body.append(LIST.container);
 		if (bound) LIST.changePosition(bound.left, bound.top);
 		LIST.setScroll();
@@ -317,7 +314,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function createSortSelect(defaultOpt = 0) {
 		const select = document.createElement("select");
-		select.className = "GlueDropdown bookmark-filter";
+		select.className = "spicetify-select bookmark-filter";
 		const allOpt = document.createElement("option");
 		allOpt.text = "All";
 		const pageOpt = document.createElement("option");
@@ -446,8 +443,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const menu = document.createElement("ul");
 		menu.id = "bookmark-menu";
 		menu.className = "main-contextMenu-menu";
-		// Keep clicks inside the menu from reaching the backdrop container,
-		// whose click handler closes the menu.
 		menu.onclick = (e) => e.stopPropagation();
 
 		container.append(menu);
@@ -627,7 +622,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		contextMenuItem.deregister();
 		destroyTippies();
 		disposeMenuItems();
-		// close() also detaches the document dismiss listeners.
 		LIST.close();
 	});
 }
