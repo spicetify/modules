@@ -192,6 +192,10 @@ function tag(push: boolean): void {
 	}
 	for (const t of ordered) {
 		if (push) {
+			// A retagged tag (deleted after a failed run) still has old
+			// runs on its ref; remember the newest so the wait below never
+			// mistakes it for this push's run.
+			const prevRun = latestRunId(t);
 			git(["tag", "-a", t, "-m", t]);
 			git(["push", "origin", t]);
 			console.log(`pushed ${t}`);
@@ -200,7 +204,7 @@ function tag(push: boolean): void {
 			// run (learned the hard way at launch). Wait for this tag's
 			// run to finish before pushing the next; abort the batch on
 			// failure so dependents never publish over a broken dependency.
-			awaitPublish(t);
+			awaitPublish(t, prevRun);
 		} else {
 			console.log(`would tag ${t}`);
 		}
@@ -208,35 +212,47 @@ function tag(push: boolean): void {
 	if (!push) console.log(`\ndry run: ${ordered.length} tag(s); re-run with --push to publish`);
 }
 
-function awaitPublish(tag: string): void {
+type GhRun = { databaseId: number; status: string; conclusion: string | null };
+
+function listRuns(tag: string): GhRun[] {
+	try {
+		return JSON.parse(
+			execFileSync(
+				"gh",
+				[
+					"run",
+					"list",
+					"--workflow",
+					"publish.yml",
+					"--branch",
+					tag,
+					"--limit",
+					"1",
+					"--json",
+					"databaseId,status,conclusion",
+				],
+				{ encoding: "utf8" },
+			),
+		);
+	} catch {
+		throw new Error("gh CLI unavailable: tags must be pushed one at a time, waiting for each publish run");
+	}
+}
+
+function latestRunId(tag: string): number | null {
+	return listRuns(tag)[0]?.databaseId ?? null;
+}
+
+function awaitPublish(tag: string, prevRun: number | null): void {
 	const deadline = Date.now() + 15 * 60 * 1000;
 	process.stdout.write(`  waiting for publish run`);
 	while (Date.now() < deadline) {
-		let runs: Array<{ status: string; conclusion: string | null }> = [];
-		try {
-			runs = JSON.parse(
-				execFileSync(
-					"gh",
-					[
-						"run",
-						"list",
-						"--workflow",
-						"publish.yml",
-						"--branch",
-						tag,
-						"--limit",
-						"1",
-						"--json",
-						"status,conclusion",
-					],
-					{ encoding: "utf8" },
-				),
-			);
-		} catch {
-			throw new Error("gh CLI unavailable: tags must be pushed one at a time, waiting for each publish run");
-		}
-		if (runs[0]?.status === "completed") {
-			const conclusion = runs[0].conclusion ?? "unknown";
+		const run = listRuns(tag)[0];
+		// Ignore anything that predates this push: a retagged ref keeps
+		// its old (failed) runs, and reading one as this push's verdict
+		// aborted a batch at launch.
+		if (run && run.databaseId !== prevRun && run.status === "completed") {
+			const conclusion = run.conclusion ?? "unknown";
 			console.log(` ${conclusion}`);
 			if (conclusion !== "success") {
 				throw new Error(
