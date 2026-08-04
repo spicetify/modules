@@ -45,7 +45,7 @@ function bumpVersion(version: string, level: Level): string {
 
 function suggestLevel(id: string, since: string | null): Level {
 	if (!since) return "patch";
-	const subjects = git(["log", `${since}..HEAD`, "--format=%s", "--", `modules/${id}`])
+	const subjects = git(["log", `${since}..HEAD`, "--format=%s", "--", moduleDir(id)])
 		.split("\n")
 		.filter(Boolean);
 	if (subjects.some((s) => /^[a-z]+(\([^)]*\))?!:/.test(s) || /BREAKING[ -]CHANGE/.test(s))) return "major";
@@ -64,15 +64,30 @@ function lastModuleTag(id: string): string | null {
 	return tags[0] ?? null;
 }
 
+// Content roots, split by kind for repo navigation only; ids stay
+// unique across all of them (the vault and runtime have one namespace).
+const ROOTS = ["modules", "themes", "snippets"];
+
+function moduleDir(id: string): string {
+	const dirs = ROOTS.map((r) => path.join(r, id)).filter((d) => existsSync(path.join(d, "metadata.json")));
+	if (dirs.length > 1) throw new Error(`${id} exists in multiple roots: ${dirs.join(", ")}`);
+	if (!dirs.length) throw new Error(`no module directory for ${id} in ${ROOTS.join("/")}`);
+	return dirs[0];
+}
+
 function readMetadata(id: string): { name?: string; version?: string; dependencies?: Record<string, string> } {
-	return JSON.parse(readFileSync(path.join("modules", id, "metadata.json"), "utf8"));
+	return JSON.parse(readFileSync(path.join(moduleDir(id), "metadata.json"), "utf8"));
 }
 
 function moduleIds(): string[] {
-	return readdirSync("modules", { withFileTypes: true })
-		.filter((d) => d.isDirectory() && existsSync(path.join("modules", d.name, "metadata.json")))
-		.map((d) => d.name)
-		.sort();
+	const ids = ROOTS.filter(existsSync).flatMap((root) =>
+		readdirSync(root, { withFileTypes: true })
+			.filter((d) => d.isDirectory() && existsSync(path.join(root, d.name, "metadata.json")))
+			.map((d) => d.name),
+	);
+	const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+	if (dupes.length) throw new Error(`module ids exist in multiple roots: ${[...new Set(dupes)].join(", ")}`);
+	return ids.sort();
 }
 
 function loadVault(): { modules?: Record<string, { v?: Record<string, unknown> }> } {
@@ -100,7 +115,7 @@ function status(): void {
 		const releasedTag = `${vaultId}@${now.version}`;
 		const baseline = git(["tag", "--list", releasedTag]) ? releasedTag : lastModuleTag(vaultId);
 		if (!baseline) continue; // published outside tags (legacy/inline); no diff possible
-		if (git(["diff", "--name-only", `${baseline}..HEAD`, "--", `modules/${id}`])) {
+		if (git(["diff", "--name-only", `${baseline}..HEAD`, "--", moduleDir(id)])) {
 			const level = suggestLevel(id, baseline);
 			problems.push(
 				`${id}: changed since ${baseline} but ${now.version} is already published (suggest ${level} -> ${bumpVersion(now.version, level)})`,
@@ -116,7 +131,7 @@ function status(): void {
 }
 
 function bump(id: string, level: Level): void {
-	const metaPath = path.join("modules", id, "metadata.json");
+	const metaPath = path.join(moduleDir(id), "metadata.json");
 	const meta = JSON.parse(readFileSync(metaPath, "utf8"));
 	if (!meta.version) throw new Error(`${metaPath} has no version`);
 	const next = bumpVersion(meta.version, level);

@@ -20,18 +20,21 @@ runs:
             node -e '
                const { readFileSync, readdirSync, existsSync } = require("fs");
                const [name, version] = process.argv.slice(1);
-               const dir = readdirSync("modules", { withFileTypes: true })
-                  .filter((d) => d.isDirectory() && existsSync(`modules/${d.name}/metadata.json`))
-                  .map((d) => d.name)
-                  .find((d) => JSON.parse(readFileSync(`modules/${d}/metadata.json`, "utf8")).name === name);
+               // Content roots, split by kind for repo navigation only.
+               const roots = ["modules", "themes", "snippets"].filter((r) => existsSync(r));
+               const dir = roots
+                  .flatMap((root) => readdirSync(root, { withFileTypes: true })
+                     .filter((d) => d.isDirectory() && existsSync(`${root}/${d.name}/metadata.json`))
+                     .map((d) => `${root}/${d.name}`))
+                  .find((d) => JSON.parse(readFileSync(`${d}/metadata.json`, "utf8")).name === name);
                if (!dir) throw new Error(`tag ${name}@${version}: no module with metadata name ${name}`);
-               const meta = JSON.parse(readFileSync(`modules/${dir}/metadata.json`, "utf8"));
+               const meta = JSON.parse(readFileSync(`${dir}/metadata.json`, "utf8"));
                if (meta.version !== version) {
-                  throw new Error(`tag ${name}@${version}: modules/${dir}/metadata.json declares ${meta.version}`);
+                  throw new Error(`tag ${name}@${version}: ${dir}/metadata.json declares ${meta.version}`);
                }
                const vault = JSON.parse(readFileSync("/tmp/main-vault.json", "utf8"));
                const published = !!vault.modules?.[name]?.v?.[version];
-               console.log(published ? `${name}@${version} already in the vault: no-op re-run` : `publishing ${name}@${version} from modules/${dir}`);
+               console.log(published ? `${name}@${version} already in the vault: no-op re-run` : `publishing ${name}@${version} from ${dir}`);
                require("fs").appendFileSync(process.env.GITHUB_ENV, `MODULE_DIR=${dir}\nMODULE_TAG=${name}@${version}\nALREADY_PUBLISHED=${published}\n`);
             ' "$NAME" "$VERSION"
 
@@ -40,7 +43,7 @@ runs:
          shell: bash
          run: |
             set -e
-            node scripts/stitch.ts "modules/${MODULE_DIR}"
+            node scripts/stitch.ts "${MODULE_DIR}"
             pushd "dist/${MODULE_TAG}"
             cp metadata.json "../${MODULE_TAG}.metadata.json"
             # zip -qr . matches vault.ts pack and includes dotfiles;

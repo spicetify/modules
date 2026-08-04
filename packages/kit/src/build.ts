@@ -306,14 +306,24 @@ function parseArgs(argv: string[]): ParsedArgs {
 	return out;
 }
 
+// Sibling content roots next to the modules dir: the org repo splits
+// content by kind (modules/, themes/, snippets/) purely for repo
+// navigation; the runtime namespace stays /modules/<id> regardless.
+export function contentRoots(modulesDir: string): string[] {
+	const siblings = ["themes", "snippets"].map((name) => path.join(path.dirname(modulesDir), name));
+	return [modulesDir, ...siblings.filter((dir) => existsSync(dir))];
+}
+
 // resolveModuleDir accepts a module folder directly (metadata.json
-// present) or a name inside the modules dir.
+// present) or a name inside any content root.
 export function resolveModuleDir(target: string, modulesDir: string, cwd: string): string {
 	const direct = path.resolve(cwd, target);
 	if (existsSync(path.join(direct, "metadata.json"))) return direct;
-	const nested = path.join(modulesDir, target);
-	if (existsSync(path.join(nested, "metadata.json"))) return nested;
-	throw new Error(`no metadata.json under ${direct} or ${nested}`);
+	for (const root of contentRoots(modulesDir)) {
+		const nested = path.join(root, target);
+		if (existsSync(path.join(nested, "metadata.json"))) return nested;
+	}
+	throw new Error(`no metadata.json under ${direct} or ${contentRoots(modulesDir).join(", ")}`);
 }
 
 export async function runBuild(argv: string[], cwd = process.cwd()): Promise<void> {
@@ -332,7 +342,13 @@ export async function runBuild(argv: string[], cwd = process.cwd()): Promise<voi
 		if (existsSync(path.join(cwd, "metadata.json"))) {
 			targets = ["."];
 		} else if (existsSync(modulesDir)) {
-			targets = readdirSync(modulesDir).filter((d) => statSync(path.join(modulesDir, d)).isDirectory());
+			// Batch build spans every content root; targets are paths, so
+			// a same-named dir in two roots resolves unambiguously.
+			targets = contentRoots(modulesDir).flatMap((root) =>
+				readdirSync(root)
+					.filter((d) => statSync(path.join(root, d)).isDirectory())
+					.map((d) => path.join(root, d)),
+			);
 		} else {
 			throw new Error(`nothing to build: no metadata.json in ${cwd} and no ${modulesDir}`);
 		}

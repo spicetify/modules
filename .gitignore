@@ -6,13 +6,20 @@
 # trailing slash: a local symlink must match too)
 /classmaps
 
+# Build outputs in code-module dirs. themes/ and snippets/ are css-only
+# content roots whose css (and any theme js entry) is SOURCE, so they
+# get no blanket ignores; only generated files are listed for them.
 /modules/*/**/*.js
 /modules/*/**/*.css
 # Prebundled vendor files are source, not build output
 !/modules/*/vendor/*.js
 !/modules/*/vendor/*.css
 /modules/*/timestamp
+/themes/*/timestamp
+/snippets/*/timestamp
 /modules/*/classmap.d.ts
+/themes/*/classmap.d.ts
+/snippets/*/classmap.d.ts
 
 # Dependencies
 node_modules/

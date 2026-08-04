@@ -11,7 +11,7 @@
  * usage: node scripts/check-deps.ts
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 interface Meta {
@@ -65,15 +65,18 @@ function satisfies(version: string, range: string): boolean {
 	});
 }
 
-const root = path.join(process.cwd(), "modules");
 const metas = new Map<string, Meta>();
-for (const entry of readdirSync(root)) {
-	const metaPath = path.join(root, entry, "metadata.json");
-	try {
-		if (!statSync(path.join(root, entry)).isDirectory()) continue;
-		metas.set(entry, JSON.parse(readFileSync(metaPath, "utf8")));
-	} catch {
-		/* not a module dir */
+for (const rootName of ["modules", "themes", "snippets"]) {
+	const root = path.join(process.cwd(), rootName);
+	if (!existsSync(root)) continue;
+	for (const entry of readdirSync(root)) {
+		const metaPath = path.join(root, entry, "metadata.json");
+		try {
+			if (!statSync(path.join(root, entry)).isDirectory()) continue;
+			metas.set(entry, JSON.parse(readFileSync(metaPath, "utf8")));
+		} catch {
+			/* not a module dir */
+		}
 	}
 }
 

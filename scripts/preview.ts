@@ -17,7 +17,7 @@
  * accent.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const REPO_RAW = "https://raw.githubusercontent.com/spicetify/modules/main/previews";
@@ -86,7 +86,11 @@ function main(): void {
 	const ids = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 	if (!ids.length) throw new Error("usage: preview.ts <module-id> [<module-id>...]");
 	for (const id of ids) {
-		const metaPath = path.join("modules", id, "metadata.json");
+		const dir = ["modules", "themes", "snippets"]
+			.map((r) => path.join(r, id))
+			.find((d) => existsSync(path.join(d, "metadata.json")));
+		if (!dir) throw new Error(`no module directory for ${id}`);
+		const metaPath = path.join(dir, "metadata.json");
 		const meta = JSON.parse(readFileSync(metaPath, "utf8"));
 		const style = MODULE_STYLE[id] ?? {
 			icon: "bolt",
