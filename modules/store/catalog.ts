@@ -56,7 +56,7 @@ export type VaultModule = {
 export type Catalog = { modules: VaultModule[]; revoked: Record<string, string>; ok: boolean };
 
 // Numeric semver-ish compare; plain string sort breaks at x.10.0.
-function compareVersions(a: string, b: string): number {
+export function compareVersions(a: string, b: string): number {
 	const parse = (v: string) =>
 		v
 			.split(/[+-]/)[0]
