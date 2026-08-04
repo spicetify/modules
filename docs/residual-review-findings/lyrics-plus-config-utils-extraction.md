@@ -58,3 +58,10 @@ rather than fixed.
   recurrence visible, so this dropped in urgency — but a vanilla-DOM fallback
   mount for the manager remains the correct completion of its reliability
   tier.
+
+- **L2 — named shim bindings and the esm.sh fallback.** If the React capture
+  predicate ever fails to match (client refactor, offline degenerate path),
+  the default-export proxy recovers once the esm.sh fallback loads, but the
+  named `export let` bindings populate only from the capture callback and
+  would stay undefined. A second populate pass when the fallback resolves
+  closes it. Low likelihood: React has been present in every capture.
