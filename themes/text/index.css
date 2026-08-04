@@ -514,6 +514,17 @@ select:focus {
     GLOBAL NAV
     ================================ */
 
+/* top-right cluster: size to content so added module topbar buttons
+   (stdlib injects them into .main-actionButtons via a display:contents
+   anchor) never flex-squeeze the row - without this every extra button
+   shrinks all of them toward overlap while the search bar hoards the
+   width. The search section (flex: 1 1 0%) yields the difference. */
+.main-globalNav-contentRight,
+.main-topBar-topbarContentRight,
+.main-actionButtons {
+	min-width: max-content;
+}
+
 /* fix spacing */
 .main-globalNav-historyButtonsContainer > div {
 	gap: 0;
