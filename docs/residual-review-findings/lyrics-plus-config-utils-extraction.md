@@ -32,7 +32,9 @@ rather than fixed.
 
 ## Carried into the plan instead
 
-- **KTD5a** (`docs/plans/2026-08-04-001-refactor-lyrics-plus-provider-extraction-plan.md`):
+- **KTD5a** (workspace-root
+  `docs/plans/2026-08-04-001-refactor-lyrics-plus-provider-extraction-plan.md`,
+  alongside the other v3 plans — plans live in the workspace, not in this repo):
   U4 must not pass `info.duration` into LRCLIB. `componentDidMount` prefetches
   the _next_ track via `tryServices(nextInfo, …)`, so the registry would feed
   the wrong duration to the karaoke end-time fallback. This supersedes the
