@@ -328,7 +328,9 @@ highlights selected song contains multi-digit song numbers */
 	height: 15vh;
 }
 
-.ffFwfKcPDbmAPLXzxzKq {
+/* The right-sidebar panel. Classic named its hashed class, which the client
+   has since renamed; the structural selector cannot rot. */
+.Root__right-sidebar > div {
 	border-radius: 6px;
 }
 

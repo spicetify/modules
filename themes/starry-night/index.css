@@ -36,16 +36,13 @@
 	background-color: #00000000 !important;
 }
 
-.ffFwfKcPDbmAPLXzxzKq:before {
+/* The right-sidebar panel paints an opaque --background-base over the sky.
+   Classic targeted its hashed class (main.panel.aside), which died with the
+   client update that renamed it; the structural selector cannot rot. */
+.Root__right-sidebar > div,
+.Root__right-sidebar > div::before,
+.Root__right-sidebar aside {
 	background-color: #00000000 !important;
-}
-
-.I0bVSxvqA3rm5HvciMap {
-	--bgColor: #00000000 !important;
-}
-
-.I0bVSxvqA3rm5HvciMap::after {
-	--bgColor: #00000000 !important;
 }
 
 .PeLrpasyfBW8ql_bmoAi {
@@ -293,10 +290,6 @@
 	z-index: -1;
 	border-radius: 50%;
 	background-color: var(--spice-star);
-}
-
-.ffFwfKcPDbmAPLXzxzKq {
-	background-color: #00000000 !important;
 }
 
 button[data-testid="cover-art-button"] {
