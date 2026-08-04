@@ -419,6 +419,26 @@
 	}
 }
 
+.spicetify-store-active-theme {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 8px 0;
+	padding: 10px 14px;
+	border-radius: 8px;
+	background: rgba(30, 215, 96, 0.1);
+	font-size: 14px;
+
+	.spicetify-store-active-theme-label {
+		color: var(--spice-subtext, #a7a7a7);
+	}
+
+	.spicetify-store-active-theme-name {
+		flex: 1;
+		color: var(--spice-text, #fff);
+	}
+}
+
 .spicetify-store-updates {
 	display: flex;
 	align-items: center;

@@ -561,6 +561,51 @@ function CatalogCard(props: {
 
 type LocalRecord = ReturnType<typeof localRecords>[number];
 
+// Themes are exclusive (enforceSingleTheme), so the one active theme gets
+// a persistent full-width bar above the results instead of hiding its
+// controls down in the Installed section.
+function ActiveThemeBar(props: {
+	record: LocalRecord;
+	status: (msg: string) => void;
+	refresh: () => void;
+}): ReactElement {
+	const id = props.record.metadata.identifier;
+	const schemes = M().schemes?.(id) as { active: string; names: string[] } | null;
+	// The pick is mirrored locally so the select reflects it immediately.
+	const [schemePick, setSchemePick] = React.useState<string | null>(null);
+
+	const disable = async () => {
+		try {
+			await M().disable(id);
+			props.status(`${id} disabled`);
+		} catch (e) {
+			props.status(`failed: ${(e as Error).message}`);
+		}
+		props.refresh();
+	};
+
+	return (
+		<div className="spicetify-store-active-theme">
+			<span className="spicetify-store-active-theme-label">Active theme</span>
+			<strong className="spicetify-store-active-theme-name">{props.record.metadata.name ?? id}</strong>
+			{schemes && schemes.names.length > 1 && (
+				<Select
+					options={schemes.names.map((name) => ({ value: name, label: name || "default" }))}
+					value={schemePick ?? schemes.active}
+					onChange={(name) => {
+						M().setScheme(id, name);
+						setSchemePick(name);
+						props.status(`${id}: ${name} scheme applied`);
+					}}
+				/>
+			)}
+			<button type="button" className="spicetify-store-cta" onClick={() => void disable()}>
+				Disable
+			</button>
+		</div>
+	);
+}
+
 function InstalledCard(props: {
 	record: LocalRecord;
 	loaded: boolean;
@@ -573,10 +618,6 @@ function InstalledCard(props: {
 	const id = record.metadata.identifier;
 	const isProtected = PROTECTED.has(id);
 	const version = record.sidecar?.installed_version ?? "";
-	// Theme modules expose their color schemes for live switching. The
-	// pick is mirrored locally so the select reflects it immediately.
-	const schemes = M().schemes?.(id) as { active: string; names: string[] } | null;
-	const [schemePick, setSchemePick] = React.useState<string | null>(null);
 
 	const toggle = async () => {
 		try {
@@ -615,17 +656,6 @@ function InstalledCard(props: {
 			</div>
 			{props.revokedReason && (
 				<p className="spicetify-store-card-desc">{`Revoked by the vault: ${props.revokedReason}`}</p>
-			)}
-			{schemes && schemes.names.length > 1 && (
-				<Select
-					options={schemes.names.map((name) => ({ value: name, label: name || "default" }))}
-					value={schemePick ?? schemes.active}
-					onChange={(name) => {
-						M().setScheme(id, name);
-						setSchemePick(name);
-						props.status(`${id}: ${name} scheme applied`);
-					}}
-				/>
 			)}
 			<div className="spicetify-store-card-actions">
 				{/* Protected modules can be re-enabled if somehow down, but never
@@ -774,6 +804,11 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			.map((s: any) => [s.identifier, s]),
 	);
 	const pending = pendingUpdates(catalog);
+	const activeTheme = locals.find(
+		(r) =>
+			(r.metadata.tags ?? []).includes("theme") &&
+			!!(states.get(r.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded,
+	);
 
 	const visible = React.useMemo(
 		() => visibleModules(catalog, filter, activeTab, activeSort),
@@ -933,6 +968,14 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					New snippet
 				</button>
 			</div>
+			{activeTheme && (
+				<ActiveThemeBar
+					key={activeTheme.metadata.identifier}
+					record={activeTheme}
+					status={setStatus}
+					refresh={refreshRegistry}
+				/>
+			)}
 			<div className="spicetify-store-updates" style={pending.length ? undefined : { display: "none" }}>
 				{pending.length > 0 && (
 					<>
