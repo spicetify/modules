@@ -12,6 +12,7 @@
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
 
 // Spicetify.Mousetrap is a client value whose runtime bind/unbind surface is
 // richer than the ambient .d.ts captures. Narrow the member value locally; this
@@ -31,16 +32,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const Mousetrap = Spicetify.Mousetrap as unknown as MousetrapStatic;
 
 	function getConfig(): Record<string, any> {
-		try {
-			const parsed = JSON.parse(Spicetify.LocalStorage.get(CONFIG_KEY) || "{}");
-			if (parsed && typeof parsed === "object") {
-				return parsed;
-			}
-			throw "";
-		} catch {
-			Spicetify.LocalStorage.set(CONFIG_KEY, "{}");
-			return {};
-		}
+		const parsed = parseConfig(Spicetify.LocalStorage.get(CONFIG_KEY));
+		if (parsed) return parsed;
+		Spicetify.LocalStorage.set(CONFIG_KEY, "{}");
+		return {};
 	}
 
 	function saveConfig() {
@@ -122,8 +117,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 
 			const containerRect = container.getBoundingClientRect();
-			const clickX = e.clientX - containerRect.left;
-			const newProgress = (clickX / containerRect.width) * duration;
+			const newProgress = progressFromPointer(e.clientX, containerRect.left, containerRect.width, duration);
 			Spicetify.Player.seek(newProgress);
 			setProgress(newProgress);
 		};
@@ -137,9 +131,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 
 			const containerRect = container.getBoundingClientRect();
-			const offsetX = e.clientX - containerRect.left;
-			const newProgress = (offsetX / containerRect.width) * duration;
-			setProgress(newProgress);
+			setProgress(progressFromPointer(e.clientX, containerRect.left, containerRect.width, duration));
 		};
 		const handleMouseUp = () => {
 			if (!isDragging) {
@@ -167,7 +159,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}, [isDragging]);
 
 		// Calculate the thumb position
-		const thumbPosition = (progress / duration) * 100;
+		const thumbPosition = thumbPercent(progress, duration);
 
 		return react.createElement(
 			"div",
@@ -446,9 +438,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		render() {
-			const rootClass = `Video VideoPlayer--fullscreen VideoPlayer--landscape${CONFIG.vertical ? " fad-vertical" : ""}${
-				checkLyricsPlus() && CONFIG.lyricsPlus ? " fad-lyrics-plus" : ""
-			}`;
+			const rootClass = rootClasses(CONFIG, checkLyricsPlus());
 
 			return react.createElement(
 				"div",
