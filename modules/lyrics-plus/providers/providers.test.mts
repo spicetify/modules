@@ -192,7 +192,7 @@ describe("createProviders registry", () => {
 		const hit = providers.local({ uri: "spotify:track:x" });
 		assert.deepEqual(hit.synced, [{ text: "hi" }]);
 		assert.equal(hit.provider, "local");
-		const miss = providers.local({ uri: "spotify:track:absent" });
+		const miss = providers.local({ uri: "spotify:track:absent" }) as { error?: string };
 		assert.equal(miss.error, "No lyrics");
 		localStorage.removeItem("lyrics-plus:local-lyrics");
 	});
