@@ -20,13 +20,13 @@ rather than fixed.
   only inside the karaoke fallback branch. Harmless (optional chaining plus
   `|| 0` cannot throw) but it adds one client read per LRCLIB parse.
 
-- **LOW — duplicated prefix constant.** `getMusixmatchTranslationPrefix()` in
+- ~~**LOW — duplicated prefix constant.**~~ **Done (lyrics-plus@0.1.6):** `getMusixmatchTranslationPrefix()` deleted from options-menu.tsx; the call site uses `MUSIXMATCH_TRANSLATION_PREFIX` from config.ts. Original note: `getMusixmatchTranslationPrefix()` in
   `mod.tsx` re-implements the lookup and hardcodes `"musixmatchTranslation:"`,
   now a second source of truth against `config.ts`. `mod.tsx` already imports
   `MUSIXMATCH_TRANSLATION_PREFIX`, so the function can return it or be deleted.
   Predates this branch; folding it in belongs with the UI split.
 
-- **Coverage gap — `formatTextWithTimestamps` has no direct test.** It is
+- ~~**Coverage gap — `formatTextWithTimestamps` has no direct test.**~~ **Done (lyrics-plus@0.1.6):** three direct cases in utils.test.mts (plain passthrough, karaoke accumulation, ruby flatten). Original note: It is
   exercised transitively through `convertParsedToLRC`. Worth a direct case when
   the karaoke path is touched again.
 
@@ -42,7 +42,7 @@ rather than fixed.
 
 ## Deferred from the capture-safety work (2026-08-05)
 
-- **D6 — staged-source freshness.** The manager compares nothing against the
+- ~~**D6 — staged-source freshness.**~~ **Done (manager@1.0.1):** `latestPublishedVersions` + `deriveStaleStaged` in manager/state.ts render staged-vs-vault staleness badges. Original note: The manager compares nothing against the
   vault: a stale staged module (the incident's `stdlib 1.0.0`) is invisible
   until something breaks, and published fixes never reach an applied client
   without a manual refresh of `~/.config/spicetify/Modules`. Design sketch:
@@ -59,7 +59,7 @@ rather than fixed.
   mount for the manager remains the correct completion of its reliability
   tier.
 
-- **L2 — named shim bindings and the esm.sh fallback.** If the React capture
+- ~~**L2 — named shim bindings and the esm.sh fallback.**~~ **Done (stdlib@1.1.3):** `onFallbackRecovery` in expose/React.ts re-populates the named bindings when the esm.sh fallback resolves. Original note: If the React capture
   predicate ever fails to match (client refactor, offline degenerate path),
   the default-export proxy recovers once the esm.sh fallback loads, but the
   named `export let` bindings populate only from the capture callback and

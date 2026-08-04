@@ -20,6 +20,7 @@ import {
 	convertParsedToLRC,
 	convertParsedToUnsynced,
 	detectLanguage,
+	formatTextWithTimestamps,
 	formatTime,
 	normalize,
 	parseLocalLyrics,
@@ -195,5 +196,31 @@ describe("convertIntToRGB", () => {
 	it("converts a packed integer to a css rgb() string", () => {
 		assert.equal(convertIntToRGB(0xff0000), "rgb(255,0,0)");
 		assert.equal(convertIntToRGB(0x000000), "rgb(0,0,0)");
+	});
+});
+
+describe("formatTextWithTimestamps", () => {
+	it("passes plain strings through untouched", () => {
+		assert.equal(formatTextWithTimestamps("hello"), "hello");
+	});
+
+	it("stamps karaoke word arrays with accumulated times from the line start", () => {
+		assert.equal(
+			formatTextWithTimestamps(
+				[
+					{ word: "Take ", time: 500 },
+					{ word: "me ", time: 300 },
+				],
+				1000,
+			),
+			"Take <00:01.50>me <00:01.80>",
+		);
+	});
+
+	it("flattens ruby-annotated React elements to their text", () => {
+		assert.equal(
+			formatTextWithTimestamps({ props: { children: ["ruby ", { props: { children: ["base"] } }] } }),
+			"ruby base",
+		);
 	});
 });
