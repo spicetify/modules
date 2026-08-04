@@ -2591,6 +2591,29 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png"
 			}
+		},
+		"nightlight": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/nightlight@0.1.0/nightlight@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:8e725905ec0126db63949aa3363f2de12d538db89f586d1349106b7c6ad65572",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "nightlight",
+				"description": "Nightlight theme, migrated from the classic format",
+				"authors": [
+					{
+						"name": "iTenerai"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png"
+			}
 		}
 	}
 }
