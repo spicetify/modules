@@ -722,6 +722,26 @@ class Translator {
 // ProviderMusixmatch.js
 // ============================================================================
 
+// Whether the current Musixmatch usertoken authenticates. The provider UI reads
+// this to disable itself and explain why when an automatic refresh can't recover.
+let musixmatchTokenValid = true;
+const musixmatchTokenListeners = new Set();
+function setMusixmatchTokenValid(valid) {
+	if (musixmatchTokenValid === valid) return;
+	musixmatchTokenValid = valid;
+	for (const listener of musixmatchTokenListeners) listener(valid);
+}
+function useMusixmatchTokenValid() {
+	const [valid, setValid] = react.useState(musixmatchTokenValid);
+	react.useEffect(() => {
+		musixmatchTokenListeners.add(setValid);
+		return () => {
+			musixmatchTokenListeners.delete(setValid);
+		};
+	}, []);
+	return valid;
+}
+
 const ProviderMusixmatch = (() => {
 	const headers = {
 		Host: "apic-appmobile.musixmatch.com",
@@ -733,6 +753,57 @@ const ProviderMusixmatch = (() => {
 		Connection: "keep-alive",
 		Accept: "application/json",
 	};
+
+	// The shared Musixmatch usertoken expires. When a call comes back 401 we mint
+	// a fresh mac-ios token once and retry, so lyrics and translation keep working
+	// without the user having to find the Refresh token button.
+	function buildRequestUrl(baseURL, params) {
+		return (token) =>
+			baseURL +
+			Object.entries({ ...params, usertoken: token })
+				.map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+				.join("&");
+	}
+
+	let pendingTokenRefresh = null;
+	function refreshToken() {
+		if (!pendingTokenRefresh) {
+			pendingTokenRefresh = (async () => {
+				try {
+					const { message } = await Spicetify.CosmosAsync.get(
+						"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
+						null,
+						headers,
+					);
+					const token = message?.body?.user_token;
+					if (message?.header?.status_code === 200 && token && !token.startsWith("UpgradeOnly")) {
+						CONFIG.providers.musixmatch.token = token;
+						localStorage.setItem("lyrics-plus:provider:musixmatch:token", token);
+						setMusixmatchTokenValid(true);
+						return token;
+					}
+				} catch (error) {
+					console.error("Musixmatch token refresh failed", error);
+				}
+				setMusixmatchTokenValid(false);
+				return null;
+			})().finally(() => {
+				pendingTokenRefresh = null;
+			});
+		}
+		return pendingTokenRefresh;
+	}
+
+	async function request(buildURL) {
+		let body = await Spicetify.CosmosAsync.get(buildURL(CONFIG.providers.musixmatch.token), null, headers);
+		if (body?.message?.header?.status_code === 401) {
+			const token = await refreshToken();
+			if (token) body = await Spicetify.CosmosAsync.get(buildURL(token), null, headers);
+		} else if (body?.message?.header?.status_code === 200) {
+			setMusixmatchTokenValid(true);
+		}
+		return body;
+	}
 
 	function findTranslationStatus(body) {
 		if (!body || typeof body !== "object") {
@@ -778,23 +849,16 @@ const ProviderMusixmatch = (() => {
 			track_spotify_id: info.uri,
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
-			usertoken: CONFIG.providers.musixmatch.token,
 			part: "track_lyrics_translation_status,track_structure,track_performer_tagging",
 		};
 
-		const finalURL =
-			baseURL +
-			Object.keys(params)
-				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
-				.join("&");
+		let body = await request(buildRequestUrl(baseURL, params));
 
-		let body = await Spicetify.CosmosAsync.get(finalURL, null, headers);
+		body = body?.message?.body?.macro_calls;
 
-		body = body.message.body.macro_calls;
-
-		if (body["matcher.track.get"].message.header.status_code !== 200) {
+		if (!body || body["matcher.track.get"].message.header.status_code !== 200) {
 			return {
-				error: `Requested error: ${body["matcher.track.get"].message.header.mode}`,
+				error: `Requested error: ${body?.["matcher.track.get"]?.message?.header?.mode ?? "unauthorized"}`,
 				uri: info.uri,
 			};
 		}
@@ -964,18 +1028,11 @@ const ProviderMusixmatch = (() => {
 			f_subtitle_length: meta.track.track_length,
 			q_duration: meta.track.track_length,
 			commontrack_id: meta.track.commontrack_id,
-			usertoken: CONFIG.providers.musixmatch.token,
 		};
 
-		const finalURL =
-			baseURL +
-			Object.keys(params)
-				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
-				.join("&");
+		let result = await request(buildRequestUrl(baseURL, params));
 
-		let result = await Spicetify.CosmosAsync.get(finalURL, null, headers);
-
-		if (result.message.header.status_code !== 200) {
+		if (result?.message?.header?.status_code !== 200) {
 			return null;
 		}
 
@@ -1116,18 +1173,11 @@ const ProviderMusixmatch = (() => {
 		const params = {
 			track_id: trackId,
 			selected_language: selectedLanguage,
-			usertoken: CONFIG.providers.musixmatch.token,
 		};
 
-		const finalURL =
-			baseURL +
-			Object.keys(params)
-				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
-				.join("&");
+		let result = await request(buildRequestUrl(baseURL, params));
 
-		let result = await Spicetify.CosmosAsync.get(finalURL, null, headers);
-
-		if (result.message.header.status_code !== 200) return null;
+		if (result?.message?.header?.status_code !== 200) return null;
 
 		result = result.message.body;
 
@@ -1161,18 +1211,8 @@ const ProviderMusixmatch = (() => {
 		const baseURL =
 			"https://apic-appmobile.musixmatch.com/ws/1.1/languages.get?app_id=mac-ios-v2.0&get_romanized_info=1&";
 
-		const params = {
-			usertoken: CONFIG.providers.musixmatch.token,
-		};
-
-		const finalURL =
-			baseURL +
-			Object.keys(params)
-				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
-				.join("&");
-
 		try {
-			let body = await Spicetify.CosmosAsync.get(finalURL, null, headers);
+			const body = await request(buildRequestUrl(baseURL, {}));
 			if (body?.message?.body?.language_list) {
 				languageMap = {};
 				body.message.body.language_list.forEach((item) => {
@@ -2561,12 +2601,13 @@ const TabBar = react.memo(
 // Settings.js
 // ============================================================================
 
-const ButtonSVG = ({ icon, active = true, onClick }) => {
+const ButtonSVG = ({ icon, active = true, onClick, disabled = false }) => {
 	return react.createElement(
 		"button",
 		{
 			className: `switch${active ? "" : " disabled"}`,
 			onClick,
+			disabled,
 		},
 		react.createElement("svg", {
 			width: 16,
@@ -2959,11 +3000,15 @@ const ServiceAction = ({ item, setTokenCallback }) => {
 const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
 	const [token, setToken] = useState(item.token);
 	const [active, setActive] = useState(item.on);
+	const tokenValid = useMusixmatchTokenValid();
+	const musixmatchInvalid = item.name === "musixmatch" && !tokenValid;
 
 	const setTokenCallback = useCallback(
 		(token) => {
 			setToken(token);
 			onTokenChange(item.name, token);
+			// A new token is worth re-validating, so let the next request decide.
+			if (item.name === "musixmatch") setMusixmatchTokenValid(true);
 		},
 		[item.token],
 	);
@@ -3009,11 +3054,24 @@ const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false
 					onClick: () => onSwap(item.name, 1),
 					disabled: isLast,
 				}),
-				react.createElement(ButtonSVG, {
-					icon: Spicetify.SVGIcons.check,
-					active,
-					onClick: toggleActive,
-				}),
+				musixmatchInvalid
+					? react.createElement(
+							Spicetify.ReactComponent.TooltipWrapper,
+							{
+								label: "Musixmatch token is invalid and could not be refreshed automatically. Refresh the token or paste your own to re-enable it.",
+							},
+							react.createElement(ButtonSVG, {
+								icon: Spicetify.SVGIcons.check,
+								active,
+								onClick: toggleActive,
+								disabled: true,
+							}),
+						)
+					: react.createElement(ButtonSVG, {
+							icon: Spicetify.SVGIcons.check,
+							active,
+							onClick: toggleActive,
+						}),
 			),
 		),
 		react.createElement("span", {
