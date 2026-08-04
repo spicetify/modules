@@ -11,6 +11,14 @@
  */
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
+import {
+	clampMenuPosition,
+	filterBookmarks,
+	idToProperName,
+	largestImage,
+	withNewEntry,
+	withoutEntry,
+} from "./logic.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 
@@ -105,20 +113,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 			};
 			this.items.append(select);
 
-			const collection = this.getStorage();
-			for (const item of collection) {
-				if (this.filter !== 0) {
-					const isTrack = this.isTrack(item.uri);
-					if (this.filter === 1 && isTrack) continue;
-					if (this.filter === 2 && !isTrack) continue;
-				}
-
+			for (const item of filterBookmarks(this.getStorage(), this.filter)) {
 				this.items.append(createCard(item));
 			}
-		}
-
-		isTrack(uri: string) {
-			return uri.startsWith("spotify:track:") || uri.startsWith("spotify:episode:");
 		}
 
 		getStorage(): any[] {
@@ -135,30 +132,24 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		addToStorage(data: any) {
-			data.id = `${data.uri}-${new Date().getTime()}`;
-
-			const storage = this.getStorage();
-			storage.unshift(data);
-
-			LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
+			LocalStorage.set(STORAGE_KEY, JSON.stringify(withNewEntry(this.getStorage(), data, Date.now())));
 			this.apply();
 		}
 
 		removeFromStorage(id: string) {
-			const storage = this.getStorage().filter((item) => item.id !== id);
-
-			LocalStorage.set(STORAGE_KEY, JSON.stringify(storage));
+			LocalStorage.set(STORAGE_KEY, JSON.stringify(withoutEntry(this.getStorage(), id)));
 			this.apply();
 		}
 
 		changePosition(x: number, y: number) {
 			// Clamp into the viewport: a right-side topbar button would push a
 			// left-aligned menu off the right edge.
-			const margin = 8;
-			const width = this.items.offsetWidth || 360;
-			const height = this.items.offsetHeight || 0;
-			const left = Math.max(margin, Math.min(x, window.innerWidth - width - margin));
-			const top = Math.max(margin, Math.min(y + 40, window.innerHeight - height - margin));
+			const { left, top } = clampMenuPosition(
+				x,
+				y,
+				{ width: this.items.offsetWidth || 360, height: this.items.offsetHeight || 0 },
+				{ width: window.innerWidth, height: window.innerHeight },
+			);
 			this.items.style.left = `${left}px`;
 			this.items.style.top = `${top}px`;
 		}
@@ -428,13 +419,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		LIST.addToStorage(meta);
 	}
 
-	// Utilities
-	function idToProperName(id: string) {
-		const newId = id.replace(/-/g, " ").replace(/^.|\s./g, (char) => char.toUpperCase());
-
-		return newId;
-	}
-
 	function createMenu() {
 		const container = document.createElement("div");
 		container.id = "bookmark-spicetify";
@@ -493,8 +477,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			uri,
 			title: res.name,
 			description: "Album",
-			imageUrl: res.coverArt.sources.reduce((prev: any, curr: any) => (prev.width > curr.width ? prev : curr))
-				.url,
+			imageUrl: largestImage(res.coverArt.sources).url,
 		};
 	};
 
@@ -524,9 +507,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 			title: res.profile.name,
 			description: "Artist",
 			imageUrl:
-				res.visuals.avatarImage?.sources.reduce((prev: any, curr: any) =>
-					prev.width > curr.width ? prev : curr,
-				).url || res.visuals.headerImage?.sources[0].url,
+				(res.visuals.avatarImage?.sources && largestImage(res.visuals.avatarImage.sources).url) ||
+				res.visuals.headerImage?.sources[0].url,
 		};
 	};
 
