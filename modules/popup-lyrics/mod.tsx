@@ -137,6 +137,36 @@ export default async function (ctx: ModuleRuntimeContext) {
 		},
 	};
 
+	// The bundled Musixmatch usertoken expires; when a request comes back 401 we
+	// mint a fresh web-desktop token once and retry, so lyrics keep working without
+	// the user opening settings to refresh it.
+	let pendingTokenRefresh: Promise<string | null> | null = null;
+	function refreshMusixmatchToken(): Promise<string | null> {
+		if (!pendingTokenRefresh) {
+			pendingTokenRefresh = (async () => {
+				try {
+					const { message } = await CosmosAsync.get(
+						"https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0",
+						null,
+						{ authority: "apic-desktop.musixmatch.com", cookie: "x-mxm-token-guid=" },
+					);
+					const token = message?.body?.user_token;
+					if (message?.header?.status_code === 200 && token && !token.startsWith("UpgradeOnly")) {
+						userConfigs.services.musixmatch.token = token;
+						LocalStorage.set("popup-lyrics:services:musixmatch:token", token);
+						return token;
+					}
+				} catch (error) {
+					console.error("Musixmatch token refresh failed", error);
+				}
+				return null;
+			})().finally(() => {
+				pendingTokenRefresh = null;
+			});
+		}
+		return pendingTokenRefresh;
+	}
+
 	const LyricProviders = {
 		async fetchSpotify(info: TrackInfo): Promise<LyricResult> {
 			const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
@@ -171,27 +201,34 @@ export default async function (ctx: ModuleRuntimeContext) {
 				track_spotify_id: info.uri,
 				q_duration: durr,
 				f_subtitle_length: Math.floor(durr),
-				usertoken: userConfigs.services.musixmatch.token,
 			};
 
-			const finalURL =
+			const requestHeaders = {
+				authority: "apic-desktop.musixmatch.com",
+				cookie: "x-mxm-token-guid=",
+			};
+			const buildURL = (token: string) =>
 				baseURL +
-				Object.keys(params)
-					.map((key) => `${key}=${encodeURIComponent(params[key])}`)
+				Object.entries({ ...params, usertoken: token })
+					.map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
 					.join("&");
 
 			try {
-				let body = await CosmosAsync.get(finalURL, null, {
-					authority: "apic-desktop.musixmatch.com",
-					cookie: "x-mxm-token-guid=",
-				});
+				let body = await CosmosAsync.get(buildURL(userConfigs.services.musixmatch.token), null, requestHeaders);
+
+				if (body?.message?.header?.status_code === 401) {
+					const token = await refreshMusixmatchToken();
+					if (token) body = await CosmosAsync.get(buildURL(token), null, requestHeaders);
+				}
 
 				body = body.message.body.macro_calls;
 
-				if (body["matcher.track.get"].message.header.status_code !== 200) {
-					const head = body["matcher.track.get"].message.header;
+				if (body?.["matcher.track.get"]?.message?.header?.status_code !== 200) {
+					const head = body?.["matcher.track.get"]?.message?.header;
 					return {
-						error: `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`,
+						error: head
+							? `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`
+							: "Musixmatch request failed",
 					};
 				}
 
