@@ -11,6 +11,7 @@
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { collectArtistUris, shouldSkipTrack, targetMatchesCurrent, toggleEntry } from "./logic.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { PlaybarButton } from "/modules/stdlib/src/registers/playbarButton.tsx";
 
@@ -59,17 +60,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const shouldSkipCurrentTrack = (uri: string, type: string): boolean => {
 		const curTrack = Spicetify.Player.data?.item;
 		if (!curTrack) return false;
-		if (type === Spicetify.URI.Type.TRACK) return uri === curTrack.uri;
-		if (type === Spicetify.URI.Type.ARTIST) {
-			let count = 1;
-			let artUri = curTrack.metadata.artist_uri;
-			while (artUri) {
-				if (uri === artUri) return true;
-				artUri = curTrack.metadata[`artist_uri:${count}`];
-				count++;
-			}
-		}
-		return false;
+		if (type !== Spicetify.URI.Type.TRACK && type !== Spicetify.URI.Type.ARTIST) return false;
+		return targetMatchesCurrent(uri, type === Spicetify.URI.Type.ARTIST, {
+			uri: curTrack.uri,
+			artistUris: collectArtistUris(curTrack.metadata),
+		});
 	};
 
 	const watchChange = () => {
@@ -81,19 +76,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 			userHitBack = false;
 			return;
 		}
-		if (trashSongList[data.item.uri]) {
+		const item = { uri: data.item.uri, artistUris: collectArtistUris(data.item.metadata) };
+		if (shouldSkipTrack(item, trashSongList, trashArtistList)) {
 			Spicetify.Player.next();
-			return;
-		}
-		let uriIndex = 0;
-		let artistUri = data.item.metadata.artist_uri;
-		while (artistUri) {
-			if (trashArtistList[artistUri]) {
-				Spicetify.Player.next();
-				return;
-			}
-			uriIndex++;
-			artistUri = data.item.metadata[`artist_uri:${uriIndex}`];
 		}
 	};
 
@@ -118,12 +103,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const toggleCurrent = () => {
 		const uri = Spicetify.Player.data?.item?.uri;
 		if (!uri) return;
-		if (!trashSongList[uri]) {
-			trashSongList[uri] = true;
+		const { next, added } = toggleEntry(trashSongList, uri);
+		trashSongList = next;
+		if (added) {
 			Spicetify.Player.next();
 			Spicetify.showNotification("Song added to trashbin");
 		} else {
-			delete trashSongList[uri];
 			Spicetify.showNotification("Song removed from trashbin");
 		}
 		putDataLocal();
@@ -161,13 +146,13 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const uri = uris[0];
 		const type = Spicetify.URI.fromString(uri).type;
 		const isTrack = type === Spicetify.URI.Type.TRACK;
-		const list = isTrack ? trashSongList : trashArtistList;
-		if (!list[uri]) {
-			list[uri] = true;
+		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri);
+		if (isTrack) trashSongList = next;
+		else trashArtistList = next;
+		if (added) {
 			if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
 			Spicetify.showNotification(isTrack ? "Song added to trashbin" : "Artist added to trashbin");
 		} else {
-			delete list[uri];
 			Spicetify.showNotification(isTrack ? "Song removed from trashbin" : "Artist removed from trashbin");
 		}
 		putDataLocal();
