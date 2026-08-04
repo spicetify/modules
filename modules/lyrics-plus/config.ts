@@ -167,3 +167,8 @@ if (
 	CONFIG.visual.translate = false;
 	localStorage.setItem(`${APP_NAME}:visual:translate`, "false");
 }
+
+// Slider bounds shared by the settings page, the options menu and the
+// font-size hotkeys in LyricsContainer.
+export const fontSizeLimit = { min: 16, max: 256, step: 4 };
+export const thresholdSizeLimit = { min: 0, max: 100, step: 5 };
