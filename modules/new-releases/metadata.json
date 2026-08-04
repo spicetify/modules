@@ -1,7 +1,7 @@
 {
 	"name": "new-releases",
 	"tags": ["app"],
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"authors": ["spicetify"],
 	"description": "New album releases, with a graceful fallback to what you have recently added.",
 	"entries": {

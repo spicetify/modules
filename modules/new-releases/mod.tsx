@@ -14,21 +14,20 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
 import { Button, Chip, IconButton, Select } from "/modules/stdlib/lib/primitives.js";
+import {
+	DAY_MS,
+	dedupeAndSort,
+	filterVisible,
+	groupByDay,
+	largestCover,
+	mapPool,
+	typeLabel,
+	validateCache,
+} from "./logic.ts";
+import type { CacheShape, Release } from "./logic.ts";
 
 const ROUTE = "/bespoke/new-releases";
 const ICON = '<path d="M8 1l1.6 4.4L14 7l-4.4 1.6L8 13l-1.6-4.4L2 7l4.4-1.6z" fill="currentColor"/>';
-
-const DAY_MS = 24 * 3600 * 1000;
-
-interface Release {
-	uri: string;
-	title: string;
-	artist: { name: string; uri: string };
-	imageUrl: string;
-	time: number;
-	type: string;
-	trackCount: number;
-}
 
 // ---------- persisted config (same keys as the classic app) ----------
 
@@ -76,14 +75,6 @@ const writeDismissed = (list: string[]): void =>
 
 // spotify:image:HASH is not a browser-loadable URL; map it to the CDN. The
 // GraphQL coverArt sources are already http(s) URLs.
-const artUrl = (raw?: string): string =>
-	raw?.startsWith("spotify:image:") ? `https://i.scdn.co/image/${raw.slice("spotify:image:".length)}` : (raw ?? "");
-
-const largestCover = (sources?: Array<{ url: string; width?: number }>): string => {
-	if (!sources?.length) return "";
-	const best = sources.reduce((prev, curr) => ((prev.width ?? 0) > (curr.width ?? 0) ? prev : curr));
-	return artUrl(best.url);
-};
 
 // The artists the user follows (LibraryAPI content filtered to artists).
 async function getFollowedArtists(): Promise<Array<{ name: string; uri: string }>> {
@@ -111,13 +102,6 @@ async function getArtistReleases(artist: { name: string; uri: string }, cutoff: 
 	if (errors) throw errors;
 
 	const raw = data?.artistUnion?.discography?.all?.items?.flatMap((r: any) => r.releases?.items ?? []) ?? [];
-	const typeLabel = (t: string): string | null => {
-		if (t === "ALBUM") return "Album";
-		if (t === "SINGLE" || t === "EP") return "Single/EP";
-		if (t === "COMPILATION") return "Compilation";
-		return null;
-	};
-
 	const out: Release[] = [];
 	for (const rel of raw) {
 		const label = typeLabel(rel.type);
@@ -139,22 +123,6 @@ async function getArtistReleases(artist: { name: string; uri: string }, cutoff: 
 
 // Bounded-concurrency map so following hundreds of artists does not fire
 // hundreds of requests at once; failures degrade to an empty contribution.
-async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R[]>): Promise<R[]> {
-	const out: R[] = [];
-	let cursor = 0;
-	const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-		while (cursor < items.length) {
-			const item = items[cursor++];
-			try {
-				out.push(...(await fn(item)));
-			} catch {
-				/* one artist failing must not sink the feed */
-			}
-		}
-	});
-	await Promise.all(workers);
-	return out;
-}
 
 // The widest window any range option can request. We fetch and cache this
 // superset once, then filter it per config in the view — so toggling a type
@@ -165,10 +133,7 @@ async function fetchAllReleases(): Promise<Release[]> {
 	const artists = await getFollowedArtists();
 	const cutoff = Date.now() - MAX_RANGE_DAYS * DAY_MS;
 	const releases = await mapPool(artists, 16, (a) => getArtistReleases(a, cutoff));
-	// A release can surface under several followed artists; keep the first.
-	const seen = new Set<string>();
-	const deduped = releases.filter((r) => (seen.has(r.uri) ? false : (seen.add(r.uri), true)));
-	return deduped.sort((a, b) => b.time - a.time);
+	return dedupeAndSort(releases);
 }
 
 // ---------- stale-while-revalidate cache ----------
@@ -180,17 +145,9 @@ const CACHE_VERSION = 1;
 // roughly daily (mostly Fridays), so a few hours of staleness is invisible.
 const TTL_MS = 6 * 3600 * 1000;
 
-interface CacheShape {
-	v: number;
-	fetchedAt: number;
-	releases: Release[];
-}
-
 const readCache = (): CacheShape | null => {
 	try {
-		const parsed = JSON.parse(globalThis.localStorage?.getItem(CACHE_KEY) ?? "null");
-		if (!parsed || parsed.v !== CACHE_VERSION || !Array.isArray(parsed.releases)) return null;
-		return parsed as CacheShape;
+		return validateCache(JSON.parse(globalThis.localStorage?.getItem(CACHE_KEY) ?? "null"), CACHE_VERSION);
 	} catch {
 		return null;
 	}
@@ -204,36 +161,6 @@ const writeCache = (cache: CacheShape): void => {
 };
 
 // ---------- date grouping ----------
-
-interface Group {
-	label: string;
-	items: Release[];
-}
-
-function groupByDay(items: Release[], cfg: Config): Group[] {
-	const locale = globalThis.localStorage?.getItem("new-releases:locale") || navigator.language;
-	const abs = new Intl.DateTimeFormat(locale, { year: "numeric", month: "short", day: "2-digit" });
-	const rel = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
-	const startOfToday = new Date().setHours(0, 0, 0, 0);
-
-	const labelFor = (time: number): string => {
-		if (!cfg.relative) return abs.format(time);
-		const days = Math.round((new Date(time).setHours(0, 0, 0, 0) - startOfToday) / DAY_MS);
-		return rel.format(days, "day");
-	};
-
-	const groups: Group[] = [];
-	let current: Group | undefined;
-	for (const item of items) {
-		const label = labelFor(item.time);
-		if (!current || current.label !== label) {
-			current = { label, items: [] };
-			groups.push(current);
-		}
-		current.items.push(item);
-	}
-	return groups;
-}
 
 // ---------- navigation helpers ----------
 
@@ -397,13 +324,20 @@ const Page = () => {
 	const dismissedSet = React.useMemo(() => new Set(dismissed), [dismissed]);
 	// All type/range filtering happens here over the cached superset, so changing
 	// a chip or the range window is instant and never triggers a network fetch.
-	const visible = React.useMemo(() => {
-		const cutoff = Date.now() - cfg.range * DAY_MS;
-		const typeOn = (label: string): boolean =>
-			label === "Album" ? cfg.album : label === "Single/EP" ? cfg.singleEp : cfg.compilations;
-		return releases.filter((r) => r.time >= cutoff && typeOn(r.type) && !dismissedSet.has(r.uri));
-	}, [releases, dismissedSet, cfg.range, cfg.album, cfg.singleEp, cfg.compilations]);
-	const groups = React.useMemo(() => groupByDay(visible, cfg), [visible, cfg.relative]);
+	const visible = React.useMemo(
+		() => filterVisible(releases, cfg, dismissedSet, Date.now()),
+		[releases, dismissedSet, cfg.range, cfg.album, cfg.singleEp, cfg.compilations],
+	);
+	const groups = React.useMemo(
+		() =>
+			groupByDay(
+				visible,
+				cfg.relative,
+				globalThis.localStorage?.getItem("new-releases:locale") || navigator.language,
+				Date.now(),
+			),
+		[visible, cfg.relative],
+	);
 
 	const rangeOptions = [
 		{ value: "30", label: "30 days" },
