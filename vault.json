@@ -2723,6 +2723,14 @@
 					"providers": [],
 					"checksum": "sha256:0764457d466430b2e6aef8a04adcf0cd9e5634a4205bc578488490afe2810dae",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/blossom@0.1.1/blossom@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:6fa42ed73fdd22a10fb48bfd41ae66ae5bf5edeb97f12bf37c0029c8732904c3",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
