@@ -22,18 +22,23 @@ import { React } from "./React.ts";
 export const Fragment: unknown = Symbol.for("spicetify.jsx.Fragment");
 
 // The automatic runtime passes children inside props and the key as a third
-// argument; createElement wants the key in props. jsx/jsxs differ only in a
-// static-children guarantee createElement doesn't care about.
+// argument; createElement wants the key in props. Children stay in props
+// untouched — createElement reads config.children when no vararg children
+// are given — because re-spreading them as varargs changes arity: a
+// one-element array arrives as a bare child and an empty array as
+// undefined, so any component that does children.map() breaks only when the
+// list happens to have one entry. jsx/jsxs differ only in a static-children
+// guarantee createElement doesn't care about.
+//
+// The sentinel translation only covers these create paths. An element built
+// by handing this module's Fragment straight to React.createElement fails
+// visibly, and element.type === Fragment is always false for JSX-created
+// elements — both need unusual hand-written imports.
 function create(type: unknown, props: Record<string, unknown> | null, key?: unknown) {
 	if (type === Fragment) type = React.Fragment;
-	const { children, ...rest } = props ?? {};
-	if (key !== undefined) (rest as Record<string, unknown>).key = key;
+	const config = key !== undefined ? { ...props, key } : (props ?? {});
 	const ce = React.createElement as (...args: unknown[]) => unknown;
-	return Array.isArray(children)
-		? ce(type, rest, ...children)
-		: children !== undefined
-			? ce(type, rest, children)
-			: ce(type, rest);
+	return ce(type, config);
 }
 
 export const jsx = create;

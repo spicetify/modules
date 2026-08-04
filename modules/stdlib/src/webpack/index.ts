@@ -135,7 +135,17 @@ export function onWebpackCaptured(cb: () => void): void {
 }
 
 CHUNKS.xpui.promise.then(() => {
-	const analysis = analyzeWebpackRequire(webpackRequire);
+	// A single throwing client-module factory must not abort the whole
+	// capture: with no capture, every live binding in the react shims stays
+	// undefined for the session and the failure surfaces as nothing but an
+	// unhandled rejection.
+	let analysis: ReturnType<typeof analyzeWebpackRequire>;
+	try {
+		analysis = analyzeWebpackRequire(webpackRequire);
+	} catch (e) {
+		console.error("[stdlib] webpack capture analysis failed; module surfaces will be degraded:", e);
+		return;
+	}
 	modules = analysis.modules;
 	exports = analysis.exports;
 	exported = analysis.exported;

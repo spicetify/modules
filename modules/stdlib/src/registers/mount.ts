@@ -40,8 +40,16 @@ export interface AnchorSpec {
 export const createItemBoundary = (R: any, label: string) => {
 	const isPage = label.includes("route");
 	const describe = (error: unknown) => {
-		const text = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-		return text.length > 300 ? `${text.slice(0, 300)}…` : text;
+		// Never throws: this runs inside getDerivedStateFromError, and a throw
+		// here unmounts the whole anchor root — the exact blank this boundary
+		// exists to prevent. Exotic errors (null-prototype throws, throwing
+		// toString/getters) get the fixed string instead.
+		try {
+			const text = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+			return text.length > 300 ? `${text.slice(0, 300)}…` : text;
+		} catch {
+			return "(unprintable error)";
+		}
 	};
 	return class ItemBoundary extends R.Component {
 		state = { failed: false, message: "" };

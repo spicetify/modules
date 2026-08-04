@@ -28,12 +28,33 @@ const EXPOSE_DIR = "modules/stdlib/src/expose";
 // whatever they return when read at module init.
 const LAZY_SOURCES = ["React", "ReactDOM", "ReactDOMServer"];
 
-const isSnapshotLine = (line: string): boolean => {
-	// `export const X = R.prop;` / `export const X = React.prop;` where the
-	// right-hand side is a bare property read off a lazy binding (aliases
-	// like `const R = React as any` count as the same source).
-	const m = line.match(/^export const \w+(?::[^=]+)? = ([A-Za-z_$][\w$]*)\.[A-Za-z_$]/);
-	return m !== null && (LAZY_SOURCES.includes(m[1]) || /^R[A-Z]?D?$/.test(m[1]));
+// Track per-file aliases of the lazy sources (`const R = React as any`,
+// `const Mine = ReactDOM`), so renaming cannot dodge the contract.
+const lazyAliases = (source: string): Set<string> => {
+	const aliases = new Set(LAZY_SOURCES);
+	for (const m of source.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*(React|ReactDOM|ReactDOMServer)\b/g)) {
+		aliases.add(m[1]);
+	}
+	return aliases;
+};
+
+// Offending shapes, matched against a whitespace-normalized source so a
+// formatter's line wrapping cannot hide them:
+//   export const X = R.prop            (init-time snapshot)
+//   export const X = (R as any).prop   (cast variant)
+//   export const { x } = R             (destructured snapshot)
+const findSnapshots = (source: string): string[] => {
+	const aliases = [...lazyAliases(source)].map((a) => a.replace(/\$/g, "\\$")).join("|");
+	const flat = source.replace(/\s+/g, " ");
+	const offenders: string[] = [];
+	for (const re of [
+		new RegExp(`export const \\w+(?:\\s*:[^=]*)? = (?:${aliases})\\.[A-Za-z_$][\\w$]*`, "g"),
+		new RegExp(`export const \\w+(?:\\s*:[^=]*)? = \\((?:${aliases}) as [^)]*\\)\\.[A-Za-z_$][\\w$]*`, "g"),
+		new RegExp(`export const \\{[^}]*\\} = (?:${aliases})\\b`, "g"),
+	]) {
+		for (const m of flat.matchAll(re)) offenders.push(m[0].slice(0, 90));
+	}
+	return offenders;
 };
 
 describe("stdlib expose shims never snapshot lazy captures at module init", () => {
@@ -41,18 +62,35 @@ describe("stdlib expose shims never snapshot lazy captures at module init", () =
 
 	for (const file of files) {
 		it(`${file} contains no init-time capture snapshots`, () => {
-			const lines = readFileSync(path.join(EXPOSE_DIR, file), "utf8").split("\n");
-			const offenders = lines
-				.map((line, i) => ({ line: line.trim(), n: i + 1 }))
-				.filter(({ line }) => isSnapshotLine(line));
+			const offenders = findSnapshots(readFileSync(path.join(EXPOSE_DIR, file), "utf8"));
 			assert.deepEqual(
 				offenders,
 				[],
 				`init-time snapshots freeze undefined when evaluated pre-capture; use export let + a capture callback, or resolve at call time:\n` +
-					offenders.map((o) => `  ${file}:${o.n}  ${o.line}`).join("\n"),
+					offenders.map((o) => `  ${file}: ${o}`).join("\n"),
 			);
 		});
 	}
+
+	it("catches the evasions: aliasing, wrapping, casts, destructuring", () => {
+		const frozen = [
+			"const Mine = React as any;\nexport const useState = Mine.useState;",
+			"export const useState =\n\tReact.useState;",
+			"export const x = (React as any).x;",
+			"export const { useState } = React;",
+		];
+		for (const src of frozen) {
+			assert.ok(findSnapshots(src).length > 0, `should flag: ${JSON.stringify(src)}`);
+		}
+		const fine = [
+			"export let useState: any;\nonWebpackCaptured(() => { useState = R.useState; });",
+			"export const jsx = (type: unknown) => React.createElement(type);",
+			'export const Fragment: unknown = Symbol.for("spicetify.jsx.Fragment");',
+		];
+		for (const src of fine) {
+			assert.equal(findSnapshots(src).length, 0, `should pass: ${JSON.stringify(src)}`);
+		}
+	});
 
 	it("covers the expose dir (guards against the glob going stale)", () => {
 		assert.ok(files.length >= 10, `expected the expose shims, found ${files.length} files`);
