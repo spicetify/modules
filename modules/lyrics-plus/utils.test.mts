@@ -21,7 +21,9 @@ import {
 	convertParsedToUnsynced,
 	detectLanguage,
 	formatTime,
+	normalize,
 	parseLocalLyrics,
+	processLyrics,
 	removeExtraInfo,
 	removeSongFeat,
 } from "./utils.ts";
@@ -77,9 +79,10 @@ describe("parseLocalLyrics", () => {
 		assert.equal(last.time, 65000, "end time should be duration minus the word start");
 	});
 
-	it("treats a zero duration as the fallback default", () => {
+	it("defaults the duration to zero when the caller omits it", () => {
+		// formatTime(0) -> "00:00.00" -> 0, minus the 10s word start.
 		const parsed = parseLocalLyrics("[00:10.00] <00:10.00>Hello");
-		assert.equal(parsed.karaoke.length, 1);
+		assert.equal(parsed.karaoke[0].text.at(-1).time, -10000);
 	});
 
 	it("returns an empty unsynced list for an empty body without throwing", () => {
@@ -89,10 +92,12 @@ describe("parseLocalLyrics", () => {
 		assert.equal(karaoke, null);
 	});
 
-	it("reads no client state", () => {
-		// Guards the KTD5 contract: the module must not reach for Spicetify.
+	it("parses the client-reading branch without a client present", () => {
+		// The karaoke end-time fallback is the one line that used to reach for
+		// Spicetify. Exercise exactly that branch with no client defined.
 		assert.equal(typeof globalThis.Spicetify, "undefined");
-		assert.doesNotThrow(() => parseLocalLyrics(SYNCED_LRC, 1000));
+		const parsed = parseLocalLyrics("[00:10.00] <00:10.00>Hello", 30000);
+		assert.equal(parsed.karaoke[0].text.at(-1).time, 20000);
 	});
 });
 
@@ -149,6 +154,18 @@ describe("string helpers", () => {
 		assert.equal(containsHanCharacter("漢字"), true);
 		assert.equal(containsHanCharacter("latin"), false);
 	});
+
+	it("normalize strips punctuation and collapses whitespace", () => {
+		assert.equal(normalize("Hello (feat. X) - Remastered"), "Hello (feat. X) Remastered");
+		// Smart quotes fold to ASCII so titles compare across providers.
+		assert.equal(normalize("It\u2019s \u201Cquoted\u201D"), 'It\'s "quoted"');
+		// Ideographic space collapses even with emptySymbol off.
+		assert.equal(normalize("a\u3000b", false), "a b");
+	});
+
+	it("processLyrics strips spaces for translation line matching", () => {
+		assert.equal(processLyrics("Line one\nLine two"), "Lineone\nLinetwo");
+	});
 });
 
 describe("detectLanguage", () => {
@@ -164,6 +181,13 @@ describe("detectLanguage", () => {
 
 	it("returns undefined for Latin text", () => {
 		assert.equal(detectLanguage(lines("just plain english lyrics")), undefined);
+	});
+
+	// This split is the only path that reads CONFIG thresholds, so it is also
+	// the guard on the utils.ts -> config.ts link surviving the extraction.
+	it("splits simplified from traditional Chinese using CONFIG thresholds", () => {
+		assert.equal(detectLanguage(lines("简体中文歌词测试内容")), "zh-hans");
+		assert.equal(detectLanguage(lines("繁體中文歌詞測試內容")), "zh-hant");
 	});
 });
 

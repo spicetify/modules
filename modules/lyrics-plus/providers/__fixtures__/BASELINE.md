@@ -16,14 +16,14 @@ among them, with `Spicetify.Modules.report.failed` empty:
 
 Six entries, per `mod.tsx:1653-1913`.
 
-| Entry | Baseline result |
-| --- | --- |
-| `spotify` | Not exercised — the test track resolved through `lrclib` first. U5 must select it explicitly. |
-| `lrclib` | **Verified.** Panel mounted, lyrics rendered, footer read `Lyrics provided by lrclib`. Real payload saved as `lrclib-synced.json`. |
-| `musixmatch` | Not exercised (requires a valid usertoken in this session). |
-| `netease` | Not exercised. |
-| `genius` | Not exercised. |
-| `local` | Not exercised (no local lyrics stored). |
+| Entry        | Baseline result                                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `spotify`    | Not exercised — the test track resolved through `lrclib` first. U5 must select it explicitly.                                      |
+| `lrclib`     | **Verified.** Panel mounted, lyrics rendered, footer read `Lyrics provided by lrclib`. Real payload saved as `lrclib-synced.json`. |
+| `musixmatch` | Not exercised (requires a valid usertoken in this session).                                                                        |
+| `netease`    | Not exercised.                                                                                                                     |
+| `genius`     | Not exercised.                                                                                                                     |
+| `local`      | Not exercised (no local lyrics stored).                                                                                            |
 
 ## Rendered baseline
 

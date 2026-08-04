@@ -30,6 +30,10 @@ if (typeof window !== "undefined") {
 	window[MUSIXMATCH_TRANSLATION_PREFIX_GLOBAL_KEY] = MUSIXMATCH_TRANSLATION_PREFIX;
 }
 
+export const MUSIXMATCH_TRANSLATION_FETCH_MESSAGE = "Fetching translation...";
+export const MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE =
+	"Failed to fetch translation, please try again in a few minutes";
+
 export const KARAOKE = 0;
 export const SYNCED = 1;
 export const UNSYNCED = 2;
