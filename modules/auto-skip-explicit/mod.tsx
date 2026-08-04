@@ -12,6 +12,8 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { MenuItem } from "/modules/stdlib/lib/primitives.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
+import { isExplicit } from "./logic.ts";
+
 const KEY = "spicetify:auto-skip-explicit";
 const isEnabled = () => localStorage.getItem(KEY) === "1";
 
@@ -33,11 +35,6 @@ const ToggleItem = () => {
 			Auto-skip explicit: {isEnabled() ? "on" : "off"}
 		</MenuItem>
 	);
-};
-
-const isExplicit = (item: any): boolean => {
-	const flag = item?.metadata?.is_explicit ?? item?.isExplicit;
-	return flag === "true" || flag === true;
 };
 
 export default async function (ctx: ModuleRuntimeContext) {

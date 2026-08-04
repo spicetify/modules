@@ -12,6 +12,8 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { MenuItem } from "/modules/stdlib/lib/primitives.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
+import { isSkippableVideo } from "./logic.ts";
+
 const KEY = "spicetify:auto-skip-video";
 // On by default, matching the classic extension's always-on behaviour; the
 // stored flag only records the opt-out.
@@ -35,13 +37,6 @@ const ToggleItem = () => {
 			Auto-skip videos: {isEnabled() ? "on" : "off"}
 		</MenuItem>
 	);
-};
-
-// Video media plays as media.type "video"; ads are also video, so exclude
-// them (the client handles ads, and skipping them here does nothing useful).
-const isSkippableVideo = (item: any): boolean => {
-	const meta = item?.metadata ?? {};
-	return meta["media.type"] === "video" && meta.is_advertisement !== "true";
 };
 
 export default async function (ctx: ModuleRuntimeContext) {
