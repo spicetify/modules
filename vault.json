@@ -2764,6 +2764,14 @@
 					"providers": [],
 					"checksum": "sha256:8f1d5b03c854ab799bbab1c246f788b1be75707920787f508c12ff7ff0ec5901",
 					"updatedAt": "2026-08-03"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/trashbin@0.1.1/trashbin@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:d72ba79fe88a074b65ba32fc12f64848286a8e654e1365af60f9652bfdffce49",
+					"updatedAt": "2026-08-04"
 				}
 			},
 			"metadata": {
