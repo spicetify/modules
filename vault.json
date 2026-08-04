@@ -2664,6 +2664,29 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png"
 			}
+		},
+		"blossom": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/blossom@0.1.0/blossom@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:0764457d466430b2e6aef8a04adcf0cd9e5634a4205bc578488490afe2810dae",
+					"updatedAt": "2026-08-04"
+				}
+			},
+			"metadata": {
+				"name": "blossom",
+				"description": "A little pink-accented theme for your Spotify client",
+				"authors": [
+					{
+						"name": "Robatortas"
+					}
+				],
+				"tags": ["theme"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png"
+			}
 		}
 	}
 }
