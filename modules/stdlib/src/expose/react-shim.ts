@@ -8,43 +8,87 @@
 // client's React instance — hooks, context, and Component identity all match
 // the renderer. The jsx runtime is stdlib-local too (./jsx-runtime.ts), so a
 // built module's boot never depends on the network.
+//
+// Live bindings, not init-time snapshots: a `const X = R.X` taken while this
+// file evaluates freezes whatever the lazy proxy returned at that moment —
+// undefined, whenever anything evaluates the shim before the webpack capture
+// (the Fragment bug, at 33x the blast radius). `export let` populated by the
+// capture callback keeps the bindings live: consumers evaluate post-capture
+// (the loader gates module loads on webpackLoaded) and read real values.
 
+import { onWebpackCaptured } from "../webpack/index.ts";
 import { React } from "./React.ts";
 
 const R = React as any;
 
 export default React;
 
-export const Children = R.Children;
-export const Component = R.Component;
-export const Fragment = R.Fragment;
-export const Profiler = R.Profiler;
-export const PureComponent = R.PureComponent;
-export const StrictMode = R.StrictMode;
-export const Suspense = R.Suspense;
-export const cloneElement = R.cloneElement;
-export const createContext = R.createContext;
-export const createElement = R.createElement;
-export const createFactory = R.createFactory;
-export const createRef = R.createRef;
-export const forwardRef = R.forwardRef;
-export const isValidElement = R.isValidElement;
-export const lazy = R.lazy;
-export const memo = R.memo;
-export const startTransition = R.startTransition;
-export const useCallback = R.useCallback;
-export const useContext = R.useContext;
-export const useDebugValue = R.useDebugValue;
-export const useDeferredValue = R.useDeferredValue;
-export const useEffect = R.useEffect;
-export const useId = R.useId;
-export const useImperativeHandle = R.useImperativeHandle;
-export const useInsertionEffect = R.useInsertionEffect;
-export const useLayoutEffect = R.useLayoutEffect;
-export const useMemo = R.useMemo;
-export const useReducer = R.useReducer;
-export const useRef = R.useRef;
-export const useState = R.useState;
-export const useSyncExternalStore = R.useSyncExternalStore;
-export const useTransition = R.useTransition;
-export const version = R.version;
+export let Children: any;
+export let Component: any;
+export let Fragment: any;
+export let Profiler: any;
+export let PureComponent: any;
+export let StrictMode: any;
+export let Suspense: any;
+export let cloneElement: any;
+export let createContext: any;
+export let createElement: any;
+export let createFactory: any;
+export let createRef: any;
+export let forwardRef: any;
+export let isValidElement: any;
+export let lazy: any;
+export let memo: any;
+export let startTransition: any;
+export let useCallback: any;
+export let useContext: any;
+export let useDebugValue: any;
+export let useDeferredValue: any;
+export let useEffect: any;
+export let useId: any;
+export let useImperativeHandle: any;
+export let useInsertionEffect: any;
+export let useLayoutEffect: any;
+export let useMemo: any;
+export let useReducer: any;
+export let useRef: any;
+export let useState: any;
+export let useSyncExternalStore: any;
+export let useTransition: any;
+export let version: any;
+
+onWebpackCaptured(() => {
+	Children = R.Children;
+	Component = R.Component;
+	Fragment = R.Fragment;
+	Profiler = R.Profiler;
+	PureComponent = R.PureComponent;
+	StrictMode = R.StrictMode;
+	Suspense = R.Suspense;
+	cloneElement = R.cloneElement;
+	createContext = R.createContext;
+	createElement = R.createElement;
+	createFactory = R.createFactory;
+	createRef = R.createRef;
+	forwardRef = R.forwardRef;
+	isValidElement = R.isValidElement;
+	lazy = R.lazy;
+	memo = R.memo;
+	startTransition = R.startTransition;
+	useCallback = R.useCallback;
+	useContext = R.useContext;
+	useDebugValue = R.useDebugValue;
+	useDeferredValue = R.useDeferredValue;
+	useEffect = R.useEffect;
+	useId = R.useId;
+	useImperativeHandle = R.useImperativeHandle;
+	useInsertionEffect = R.useInsertionEffect;
+	useLayoutEffect = R.useLayoutEffect;
+	useMemo = R.useMemo;
+	useReducer = R.useReducer;
+	useRef = R.useRef;
+	useState = R.useState;
+	useSyncExternalStore = R.useSyncExternalStore;
+	useTransition = R.useTransition;
+	version = R.version;
+});

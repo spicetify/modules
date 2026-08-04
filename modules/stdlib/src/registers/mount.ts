@@ -31,20 +31,93 @@ export interface AnchorSpec {
 	hostDisplay?: string;
 }
 
-// One broken registered node must not take down the others.
-export const createItemBoundary = (R: any, label: string) =>
-	class ItemBoundary extends R.Component {
-		state = { failed: false };
-		static getDerivedStateFromError() {
-			return { failed: true };
+// One broken registered node must not take down the others — and a crash
+// must be visible, never a silent blank (a session's worth of “Spotify looks
+// broken” reports traced back to exactly that). The fallback uses host
+// elements only: when the crash IS a broken component surface, any component
+// rendered here would die the same way. Route-overlay items get a full card;
+// bar and menu items get a compact marker that keeps their layout.
+export const createItemBoundary = (R: any, label: string) => {
+	const isPage = label.includes("route");
+	const describe = (error: unknown) => {
+		const text = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+		return text.length > 300 ? `${text.slice(0, 300)}…` : text;
+	};
+	return class ItemBoundary extends R.Component {
+		state = { failed: false, message: "" };
+		static getDerivedStateFromError(error: unknown) {
+			return { failed: true, message: describe(error) };
 		}
 		componentDidCatch(error: unknown) {
 			console.error(`[stdlib] registered ${label} item crashed:`, error);
 		}
 		render() {
-			return (this.state as { failed: boolean }).failed ? null : (this.props as { children?: unknown }).children;
+			const { failed, message } = this.state as { failed: boolean; message: string };
+			if (!failed) return (this.props as { children?: unknown }).children;
+			if (!isPage) {
+				return R.createElement(
+					"span",
+					{
+						title: `A Spicetify module item crashed here: ${message}`,
+						style: { opacity: 0.6, padding: "0 4px", cursor: "help" },
+					},
+					"⚠",
+				);
+			}
+			return R.createElement(
+				"div",
+				{
+					style: {
+						maxWidth: "560px",
+						margin: "48px auto",
+						padding: "24px",
+						borderRadius: "8px",
+						background: "var(--spice-card, #282828)",
+						color: "var(--spice-text, #fff)",
+						fontSize: "14px",
+						lineHeight: 1.5,
+					},
+				},
+				R.createElement("h2", { style: { margin: "0 0 8px", fontSize: "18px" } }, "This module page crashed"),
+				R.createElement(
+					"p",
+					{ style: { margin: "0 0 12px", opacity: 0.8 } },
+					"The rest of the client keeps working. Reloading usually recovers it; if it keeps crashing, disable the module from the Spicetify Manager.",
+				),
+				R.createElement(
+					"code",
+					{
+						style: {
+							display: "block",
+							padding: "8px",
+							background: "rgba(0,0,0,.3)",
+							borderRadius: "4px",
+							marginBottom: "16px",
+							userSelect: "text",
+						},
+					},
+					message,
+				),
+				R.createElement(
+					"button",
+					{
+						onClick: () => location.reload(),
+						style: {
+							padding: "8px 16px",
+							borderRadius: "500px",
+							border: "none",
+							cursor: "pointer",
+							background: "var(--spice-button, #1ed760)",
+							color: "var(--spice-main, #121212)",
+							fontWeight: 700,
+						},
+					},
+					"Reload Spotify",
+				),
+			);
 		}
 	};
+};
 
 // The top bar doubles as the window drag region; like the client's own
 // buttons, anchor children must opt out or physical clicks drag the window

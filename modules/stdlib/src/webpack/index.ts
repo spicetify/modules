@@ -119,6 +119,21 @@ postWebpackRequireHooks.push((wpr: any) => {
 	}, 100);
 });
 
+// Capture subscribers run synchronously right after the analysis lands, so
+// the expose shims can populate their live bindings from a real capture
+// instead of snapshotting the lazy proxy at module init (which freezes
+// undefined for the whole session when anything evaluates a shim
+// pre-capture — the Fragment/react-shim class of bug).
+let captured = false;
+const captureSubscribers: Array<() => void> = [];
+export function onWebpackCaptured(cb: () => void): void {
+	if (captured) {
+		cb();
+		return;
+	}
+	captureSubscribers.push(cb);
+}
+
 CHUNKS.xpui.promise.then(() => {
 	const analysis = analyzeWebpackRequire(webpackRequire);
 	modules = analysis.modules;
@@ -129,4 +144,12 @@ CHUNKS.xpui.promise.then(() => {
 	exportedContexts = analysis.exportedContexts;
 	exportedForwardRefs = analysis.exportedForwardRefs;
 	exportedMemos = analysis.exportedMemos;
+	captured = true;
+	for (const cb of captureSubscribers.splice(0)) {
+		try {
+			cb();
+		} catch (e) {
+			console.error("[stdlib] capture subscriber failed:", e);
+		}
+	}
 });
