@@ -105,8 +105,15 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		for (const [path, entry] of Object.entries<any>(zip.files)) {
 			if (entry.dir) continue;
 			const text = await entry.async("string");
-			if (path === "metadata.json") metadata = JSON.parse(text);
-			else files[path] = text;
+			if (path === "metadata.json") {
+				try {
+					metadata = JSON.parse(text);
+				} catch (e) {
+					// The artifact is third-party: a malformed manifest should name
+					// itself rather than surface as a bare SyntaxError mid-install.
+					throw new Error(`artifact metadata.json is not valid JSON: ${(e as Error).message}`);
+				}
+			} else files[path] = text;
 		}
 		if (!metadata) throw new Error("artifact has no metadata.json");
 	}
@@ -132,7 +139,11 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	// Re-installs must not stack a second live instance on the old one.
 	try {
 		await M().disable(mod.id);
-	} catch {}
+	} catch (e) {
+		// Nothing to disable on a first install, which is the common path;
+		// the install below is what actually has to succeed.
+		void e;
+	}
 	const result = await M().installLocal(mod.id, {
 		metadata,
 		files,
