@@ -1000,6 +1000,15 @@ button[data-testid="control-button-npv-episodes"] svg {
 	display: none !important;
 }
 
+/* Every icon hidden above is replaced with a text label by the rules in this
+   file. Module buttons registered by stdlib have no such label, and they land
+   inside the same controls container, so hiding their icon leaves nothing at
+   all: keep them drawn. */
+.spicetify-playbar-buttons svg,
+.spicetify-playbar-widgets svg {
+	display: initial !important;
+}
+
 /* connect bar */
 .main-connectBar-connectBar {
 	position: absolute;
