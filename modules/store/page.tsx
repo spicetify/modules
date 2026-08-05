@@ -209,7 +209,11 @@ function SnippetEditor(props: {
 		try {
 			try {
 				await M().disable(id);
-			} catch {}
+			} catch (e) {
+				// Nothing to disable the first time a snippet is saved; the
+				// install below is what has to succeed.
+				void e;
+			}
 			await M().installLocal(id, {
 				metadata: {
 					identifier: id,
@@ -945,7 +949,11 @@ function StorePage(props: { api: PageApi }): ReactElement {
 								setActiveTab(tab.key);
 								try {
 									localStorage.setItem("spicetify:store:tab", tab.key);
-								} catch {}
+								} catch (e) {
+									// Remembering the tab is a convenience; storage being
+									// unavailable must not stop the tab from switching.
+									void e;
+								}
 							}}
 						>
 							{tab.label}
@@ -959,7 +967,11 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						setActiveSort(value);
 						try {
 							localStorage.setItem("spicetify:store:sort", value);
-						} catch {}
+						} catch (e) {
+							// As above: the sort still applies even if it cannot be
+							// remembered for next time.
+							void e;
+						}
 					}}
 				/>
 				<button
