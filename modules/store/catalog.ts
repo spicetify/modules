@@ -20,10 +20,9 @@ const needsProxy = (url: string) => url.startsWith("https://github.com/");
 // this and CosmosAsync cannot drift. A client whose wrapper predates that API
 // still gets the hosted proxy, just without the local one.
 const HOSTED_FALLBACK = (url: string) =>
-	(globalThis.localStorage?.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}").replace(
-		"{url}",
-		url,
-	);
+	(
+		globalThis.localStorage?.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}"
+	).replace("{url}", url);
 
 export const proxiedFetch = (url: string, init?: RequestInit): Promise<Response> => {
 	if (!needsProxy(url)) return fetch(url, init);
