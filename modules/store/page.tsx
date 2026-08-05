@@ -23,11 +23,11 @@ import type * as ReactExpose from "/modules/stdlib/src/expose/React.ts";
 import {
 	type Catalog,
 	categoryOf,
-	corsProxy,
 	deriveRepository,
 	displayName,
 	displayVersion,
 	loadCatalog,
+	proxiedFetch,
 	searchHaystack,
 	type VaultModule,
 } from "./catalog.ts";
@@ -285,7 +285,7 @@ function ModuleDetails(props: {
 		const url = mod.meta?.readme;
 		if (!url?.startsWith("https://")) return;
 		let stale = false;
-		void fetch(corsProxy(url))
+		void proxiedFetch(url)
 			.then((res) => (res.ok ? res.text() : Promise.reject(new Error(`HTTP ${res.status}`))))
 			.then((text) => {
 				if (!stale) setReadme({ kind: "loaded", text });

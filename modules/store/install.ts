@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { corsProxy, type VaultModule } from "./catalog.ts";
+import { proxiedFetch, type VaultModule } from "./catalog.ts";
 import { reportInstall } from "./counter.ts";
 import { M, toast } from "./runtime.ts";
 
@@ -83,7 +83,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		if (!Object.keys(files).length) throw new Error("inline entry has no css files");
 	} else {
 		status(`downloading ${mod.id}@${mod.version}…`);
-		const res = await fetch(corsProxy(mod.artifacts[0]));
+		const res = await proxiedFetch(mod.artifacts[0]);
 		if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
 		const zipBytes = await res.arrayBuffer();
 

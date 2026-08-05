@@ -13,12 +13,23 @@ const DEFAULT_VAULT_URL = () =>
 
 // raw.githubusercontent and the vault hosts are CORS-enabled; github.com
 // release downloads are not. Only proxy what needs it, with the raw URL
-// substituted (the proxy rejects encoded targets).
-const CORS_PROXY_TEMPLATE = () =>
-	globalThis.localStorage?.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}";
+// substituted (both proxies reject encoded targets).
+const needsProxy = (url: string) => url.startsWith("https://github.com/");
 
-export const corsProxy = (url: string) =>
-	url.startsWith("https://github.com/") ? CORS_PROXY_TEMPLATE().replace("{url}", url) : url;
+// The wrapper owns the proxy chain (local daemon first, hosted as backup) so
+// this and CosmosAsync cannot drift. A client whose wrapper predates that API
+// still gets the hosted proxy, just without the local one.
+const HOSTED_FALLBACK = (url: string) =>
+	(globalThis.localStorage?.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}").replace(
+		"{url}",
+		url,
+	);
+
+export const proxiedFetch = (url: string, init?: RequestInit): Promise<Response> => {
+	if (!needsProxy(url)) return fetch(url, init);
+	const proxy = globalThis.Spicetify?.CORSProxy?.fetch;
+	return proxy ? proxy(url, init) : fetch(HOSTED_FALLBACK(url), init);
+};
 
 // Unique-install counts; absent/unreachable degrades to no badges and
 // name-ordered sorting, never to an error.
@@ -71,7 +82,7 @@ export function compareVersions(a: string, b: string): number {
 }
 
 async function fetchJson(url: string) {
-	const res = await fetch(corsProxy(url));
+	const res = await proxiedFetch(url);
 	if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
 	return res.json();
 }
