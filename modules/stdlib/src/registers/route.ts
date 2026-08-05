@@ -35,7 +35,7 @@ transformer(
 		emit();
 
 		str = str.replace(
-			/(\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\([a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*,\{[^\{]*path:"\/search\/\*")/,
+			/(\(0,[a-zA-Z_$][\w$]*\.jsx\)\([a-zA-Z_$][\w$]*\.[a-zA-Z_$][\w$]*,\{[^{]*path:"\/search\/\*")/,
 			"...__renderRoutes(),$1",
 		);
 
@@ -106,7 +106,12 @@ mountRegistryAnchor({
 				style: {
 					position: "absolute",
 					inset: 0,
-					zIndex: 10,
+					// Just high enough to cover the client's own view (its
+					// positioned children top out at 2) and no higher: this page
+					// is opaque, so anything above it in the stack disappears.
+					// Theme chrome drawn over the view — panel borders, labels —
+					// sits above that and must keep showing.
+					zIndex: 2,
 					overflow: "auto",
 					background: "var(--spice-main, var(--background-base, #121212))",
 				},

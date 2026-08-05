@@ -23,6 +23,19 @@ export function tagsOfLocal(id: string): string[] {
 	return record?.metadata?.tags ?? [];
 }
 
+// The loader remembers the active theme by identifier. Removing that theme
+// leaves the preference naming a module that is no longer there, so every
+// later boot resolves it to nothing. Removing an override that a staged copy
+// shadows is not an uninstall, so the module has to be gone from the registry
+// before the preference is dropped.
+const ACTIVE_THEME_KEY = "spicetify:modules:activeTheme";
+
+export function forgetActiveThemeIfRemoved(id: string): void {
+	if (localStorage.getItem(ACTIVE_THEME_KEY) !== id) return;
+	const stillPresent = (M().list() as Array<{ identifier: string }>).some((s) => s.identifier === id);
+	if (!stillPresent) localStorage.removeItem(ACTIVE_THEME_KEY);
+}
+
 // Themes fight over the same client chrome; enabling one disables the
 // others, marketplace-style.
 export async function enforceSingleTheme(id: string, status: (msg: string) => void): Promise<void> {

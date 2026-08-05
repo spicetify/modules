@@ -2,7 +2,9 @@
 	position: fixed;
 	top: 12px;
 	right: 12px;
-	z-index: 9999;
+	// Above the view it floats over, below the client's own furniture: at
+	// 9999 this sat over the playbar and every dialog.
+	z-index: 5;
 
 	.spicetify-store-btn {
 		padding: 6px 16px;
@@ -22,7 +24,7 @@
 	width: 380px;
 	max-height: 70vh;
 	overflow-y: auto;
-	z-index: 9999;
+	z-index: 5;
 
 	// Inside the stdlib popover the host owns position and chrome.
 	&.spicetify-store-panel--anchored {

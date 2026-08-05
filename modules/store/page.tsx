@@ -32,7 +32,7 @@ import {
 	type VaultModule,
 } from "./catalog.ts";
 import { fetchInstallCounts, installCounts } from "./counter.ts";
-import { enforceSingleTheme, installModule, localRecords } from "./install.ts";
+import { enforceSingleTheme, forgetActiveThemeIfRemoved, installModule, localRecords } from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged } from "./runtime.ts";
 import { pendingUpdates } from "./updates.ts";
 
@@ -636,6 +636,7 @@ function InstalledCard(props: {
 	const remove = async () => {
 		try {
 			await M().removeLocal(id);
+			forgetActiveThemeIfRemoved(id);
 		} catch (e) {
 			props.status(`failed: ${(e as Error).message}`);
 		}
@@ -856,6 +857,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const runRemove = async (mod: VaultModule) => {
 		try {
 			await M().removeLocal(mod.id);
+			forgetActiveThemeIfRemoved(mod.id);
 			setStatus(`${displayName(mod)} removed`);
 		} catch (e) {
 			setStatus(`failed: ${(e as Error).message}`);
