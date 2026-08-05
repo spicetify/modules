@@ -115,6 +115,15 @@
 					"checksum": "sha256:7022a3789d4f49c6b9b38ca5a45741272b9acda92527df635bdb444ba30dca9c",
 					"updatedAt": "2026-08-04",
 					"hidden": true
+				},
+				"1.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.1.4/stdlib@1.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:22b1122ac339cf6d5507ef22a5169570b3b251f18778eb84e0cf28551dc04cc8",
+					"updatedAt": "2026-08-05",
+					"hidden": true
 				}
 			}
 		},
