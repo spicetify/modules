@@ -167,6 +167,29 @@ export const Toggle: React.FC<{ value: boolean; onChange: (value: boolean) => vo
 	/>
 );
 
+// The "module with one boolean setting" pattern as a single row for the
+// `settingsRow` register. `getValue` is read lazily on every mount so
+// reopening settings always reflects the current state; the element itself
+// is created once at module load, so a plain value prop would go stale.
+export const SettingsToggleRow: React.FC<{
+	label: React.ReactNode;
+	getValue: () => boolean;
+	onChange: (value: boolean) => void;
+}> = (props) => {
+	const [value, setValue] = React.useState(props.getValue);
+	return (
+		<SettingsRow label={props.label}>
+			<Toggle
+				value={value}
+				onChange={(v) => {
+					setValue(v);
+					props.onChange(v);
+				}}
+			/>
+		</SettingsRow>
+	);
+};
+
 // ---------- context-menu item ----------
 
 // A row for one of Spotify's context menus — register it through the

@@ -8,9 +8,7 @@
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { MenuItem } from "/modules/stdlib/lib/primitives.js";
-import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
+import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 
 import { isSkippableVideo } from "./logic.ts";
 
@@ -19,29 +17,16 @@ const KEY = "spicetify:auto-skip-video";
 // stored flag only records the opt-out.
 const isEnabled = () => localStorage.getItem(KEY) !== "0";
 
-// A toggle in the profile menu (the menu register + the profile-menu
-// discriminator). It self-subscribes with a force-render so the label
-// reflects the flag immediately.
-const ToggleItem = () => {
-	const ctx = useMenuItem();
-	const [, force] = React.useReducer((n: number) => n + 1, 0);
-	if (!openedFromProfileMenu(ctx)) return null;
-	return (
-		<MenuItem
-			onClick={() => {
-				localStorage.setItem(KEY, isEnabled() ? "0" : "1");
-				force();
-				closeMenu();
-			}}
-		>
-			Auto-skip videos: {isEnabled() ? "on" : "off"}
-		</MenuItem>
-	);
-};
-
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
-	registrar.register("menu", <ToggleItem />);
+	registrar.register(
+		"settingsRow",
+		<SettingsToggleRow
+			label="Auto-skip music videos"
+			getValue={isEnabled}
+			onChange={(enabled) => localStorage.setItem(KEY, enabled ? "1" : "0")}
+		/>,
+	);
 
 	// Skip the current track when it is a (non-ad) video and the toggle is on.
 	// Self-subscribe to the player and dispose the listener on unload.

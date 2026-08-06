@@ -17,6 +17,7 @@ import playbarWidget from "./playbarWidget.tsx";
 import { Registry } from "./registry.ts";
 import root from "./root.ts";
 import route from "./route.ts";
+import settingsRow from "./settingsRow.tsx";
 import settingsSection from "./settingsSection.ts";
 import topbarLeftButton, { TopbarLeftButton } from "./topbarLeftButton.tsx";
 import topbarRightButton, { TopbarRightButton } from "./topbarRightButton.tsx";
@@ -30,6 +31,7 @@ const registers = {
 	rootChild,
 	rootProvider,
 	route,
+	settingsRow,
 	settingsSection,
 	topbarLeftButton,
 	topbarRightButton,

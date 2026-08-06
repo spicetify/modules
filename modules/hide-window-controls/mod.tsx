@@ -5,9 +5,7 @@
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { MenuItem } from "/modules/stdlib/lib/primitives.js";
-import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
+import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 
 import { STORAGE_KEY, shouldHide } from "./logic.ts";
 
@@ -31,28 +29,19 @@ const apply = async (hidden: boolean) => {
 	else style.removeProperty("--global-nav-margin-top");
 };
 
-const ToggleItem = ({ onToggle }: { onToggle: (enabled: boolean) => void }) => {
-	const ctx = useMenuItem();
-	const [, force] = React.useReducer((n: number) => n + 1, 0);
-	if (!openedFromProfileMenu(ctx)) return null;
-	return (
-		<MenuItem
-			onClick={() => {
-				const enabled = !isEnabled();
-				localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0");
-				onToggle(enabled);
-				force();
-				closeMenu();
-			}}
-		>
-			Hide window controls: {isEnabled() ? "on" : "off"}
-		</MenuItem>
-	);
-};
-
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
-	registrar.register("menu", <ToggleItem onToggle={(enabled) => void apply(enabled)} />);
+	registrar.register(
+		"settingsRow",
+		<SettingsToggleRow
+			label="Hide window controls"
+			getValue={isEnabled}
+			onChange={(enabled) => {
+				localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0");
+				void apply(enabled);
+			}}
+		/>,
+	);
 
 	if (isEnabled()) await apply(true);
 	ctx.defer(() => {
