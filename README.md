@@ -46,9 +46,8 @@ are no per-version prebuilds.
 
 - [`docs/authoring-guide.md`](docs/authoring-guide.md) — building a module
 - [`docs/module-standard.md`](docs/module-standard.md) — the module contract
-- [`docs/theming-the-client.md`](docs/theming-the-client.md) — the client
-  colors v2's `replaceColors` used to rewrite, and how a standalone v3 theme
-  maps them itself (required reading for light themes)
+- [`docs/theming-the-client.md`](docs/theming-the-client.md) — theming the
+  client's own colors
 - [`docs/pr-flow.md`](docs/pr-flow.md) — release and tag recovery
 
 ## Why Node and not Deno
