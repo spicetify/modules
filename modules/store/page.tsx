@@ -547,9 +547,6 @@ function CatalogCard(props: {
 				)}
 			</h3>
 			{mod.meta?.description && <p className="spicetify-store-card-desc">{mod.meta.description}</p>}
-			{mod.meta?.authors?.length ? (
-				<div className="spicetify-store-card-authors">{`by ${mod.meta.authors.map((a) => a.name).join(", ")}`}</div>
-			) : null}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
 				{category && <Badge>{category}</Badge>}

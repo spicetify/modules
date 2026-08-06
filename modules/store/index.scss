@@ -333,11 +333,6 @@
 			overflow: hidden;
 		}
 
-		.spicetify-store-card-authors {
-			color: var(--spice-subtext, #a7a7a7);
-			font-size: 12px;
-		}
-
 		.spicetify-store-card-meta {
 			display: flex;
 			flex-wrap: wrap;
@@ -511,6 +506,18 @@
 		width: 12px;
 		height: 12px;
 		fill: currentColor;
+	}
+}
+
+// Authors appear only in the details dialog, which renders outside the card,
+// so this rule cannot be nested under it. Size is inherited so the line sits
+// with the dialog's body copy rather than reading as a card caption.
+.spicetify-store-card-authors {
+	color: var(--spice-subtext, #a7a7a7);
+
+	a {
+		color: inherit;
+		text-decoration: underline;
 	}
 }
 
