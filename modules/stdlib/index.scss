@@ -49,6 +49,14 @@
 	margin-bottom: 0;
 }
 
+/* Context-menu items are rendered as <a> for navigations and <button> for
+   actions, and the client sets no cursor of its own, so the two halves of the
+   same menu inherit different UA defaults. Give every enabled item the pointer
+   the links already get. */
+.main-contextMenu-menuItemButton:not([disabled]):not([aria-disabled="true"]) {
+	cursor: pointer;
+}
+
 /* stdlib search bar (lib/components useSearchBar): sensible everywhere,
    overridable by module stylesheets. */
 .spicetify-searchbar {
