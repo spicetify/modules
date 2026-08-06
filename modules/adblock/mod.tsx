@@ -7,8 +7,7 @@
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
+import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 import {
 	AD_MANAGERS,
 	disableManager,
@@ -25,7 +24,6 @@ const UPSELL_KEY = "adblock:hideUpsells";
 const UPSELL_STYLE_ID = "spicetify-adblock-upsells";
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const { useState } = React;
 	const registrar = createRegistrar(ctx);
 
 	const managers = (): Record<string, any> => Spicetify.Platform?.AdManagers ?? {};
@@ -101,44 +99,37 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 	applyUpsells(hideUpsells);
 
-	function Settings() {
-		const [on, setOn] = useState(enabled);
-		const [upsells, setUpsells] = useState(hideUpsells);
-		return (
-			<SettingsSection title="Adblock">
-				<SettingsRow label="Block ad surfaces">
-					<Toggle
-						value={on}
-						onChange={(value) => {
-							setOn(value);
-							enabled = value;
-							Spicetify.LocalStorage.set(STORAGE_KEY, String(value));
-							if (value) {
-								applyBlocking();
-								startSkipping();
-								void applyRemoteConfig();
-							} else {
-								restore();
-							}
-						}}
-					/>
-				</SettingsRow>
-				<SettingsRow label="Hide upsell UI">
-					<Toggle
-						value={upsells}
-						onChange={(value) => {
-							setUpsells(value);
-							hideUpsells = value;
-							Spicetify.LocalStorage.set(UPSELL_KEY, String(value));
-							applyUpsells(value);
-						}}
-					/>
-				</SettingsRow>
-			</SettingsSection>
-		);
-	}
+	registrar.register(
+		"settingsRow",
+		<SettingsToggleRow
+			label="Block ads"
+			getValue={readEnabled}
+			onChange={(value) => {
+				enabled = value;
+				Spicetify.LocalStorage.set(STORAGE_KEY, String(value));
+				if (value) {
+					applyBlocking();
+					startSkipping();
+					void applyRemoteConfig();
+				} else {
+					restore();
+				}
+			}}
+		/>,
+	);
 
-	registrar.register("settingsSection", <Settings />);
+	registrar.register(
+		"settingsRow",
+		<SettingsToggleRow
+			label="Hide upsell UI"
+			getValue={() => hideUpsells}
+			onChange={(value) => {
+				hideUpsells = value;
+				Spicetify.LocalStorage.set(UPSELL_KEY, String(value));
+				applyUpsells(value);
+			}}
+		/>,
+	);
 
 	ctx.defer(() => {
 		restore();
