@@ -155,11 +155,32 @@ between Spotify builds. Prefer, in order:
 2. a semantic attribute — `[data-encore-id="buttonTertiary"]`,
    `[data-testid="control-button-repeat"]`,
 3. a stable ancestor plus structure — `.Root__right-sidebar [data-encore-id=…]`,
-4. the hash, last, with a comment naming the version it was captured on.
+4. **give it a name in the css-map**, so every theme gets a stable selector
+   instead of each one copying the hash,
+5. the hash inline, last, with a comment naming the version it was captured on.
 
-A hash that goes stale simply stops matching, which degrades to the unthemed
-state rather than breaking something else — but it does mean the bug comes
-back silently on the next Spotify release, so leave the version in the comment.
+Option 4 is the one worth reaching for when a surface matters to more than one
+theme. The per-version overlay lives at `classmaps/<key>/css-map.json` and maps
+`hash → semantic name`; apply runs it over the whole tree, so the name lands in
+the DOM as well as the stylesheets. Add the entry, re-run
+`python3 scripts/build_index.py`, and themes can write the `main-*` selector:
+
+```json
+{ "qnaFIKUJ9oUIkN97": "main-layoutResizer-seam" }
+```
+
+The overlay is still per Spotify version — the point is that one entry updates
+per release instead of one rule per theme.
+
+Note this is the **css-map**, not the classmap. They point in opposite
+directions: the classmap resolves `MAP.*` paths to hashes for _module sources_
+at stage time, while the css-map renames hashes to semantic names inside _the
+client itself_. Themes are plain CSS against the client, so the css-map is
+their map.
+
+A hash left inline simply stops matching when it goes stale, which degrades to
+the unthemed state rather than breaking something else — but it does mean the
+bug comes back silently on the next Spotify release.
 
 ## Checklist for a light theme
 

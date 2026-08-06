@@ -83,7 +83,10 @@
 .Root__now-playing-bar {
 	grid-area: now-playing-bar;
 	width: 200px;
-	z-index: 4;
+	z-index: 5;
+	/* The client bleeds the bar past the panel gap with margin: -8px, which
+	   against a pinned width drags the column 8px off the window edge. */
+	margin-inline: 0;
 	/* Only the inner bar carried the gradient, so the client's black
 	   container framed it on every side. */
 	background-image: linear-gradient(var(--gradient-colors));
@@ -160,6 +163,7 @@ html {
 	position: relative;
 	width: 100%;
 	background-color: var(--spice-main);
+	padding-right: 0;
 }
 .main-nowPlayingBar-container {
 	display: flex;
@@ -270,9 +274,8 @@ a:not([data-encore-id]) {
    resizable pane whose cells are painted a flat #000 and revealed while
    the neighbouring resizer is hovered, drawing a black bar down the panel
    gap. The resizer's own hairline already marks the seam, so these are
-   cleared. The class is build-hashed (1.2.94); on a later build the rule
-   simply stops matching rather than hitting anything else. */
-.qnaFIKUJ9oUIkN97 > * {
+   cleared. Named by the css-map, so the hash stays out of the theme. */
+.main-layoutResizer-seam > * {
 	background-color: transparent;
 }
 
