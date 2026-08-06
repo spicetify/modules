@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0%" stop-color="#1b1b1b"/>
+			<stop offset="100%" stop-color="#0e0e0e"/>
+		</linearGradient>
+		<radialGradient id="glow" cx="50%" cy="40%" r="75%">
+			<stop offset="0%" stop-color="#ffbd2e" stop-opacity="0.22"/>
+			<stop offset="100%" stop-color="#ffbd2e" stop-opacity="0"/>
+		</radialGradient>
+	</defs>
+	<rect width="1600" height="900" fill="url(#bg)"/>
+	<rect width="1600" height="900" fill="url(#glow)"/>
+	<g transform="translate(800 430)" text-anchor="middle" font-family="CircularSp, 'Spotify Circular', 'Helvetica Neue', Arial, sans-serif">
+		<g transform="translate(0 -150)">
+			<circle cx="-120" cy="0" r="34" fill="#ff5f57" opacity="0.35"/>
+			<circle cx="0" cy="0" r="34" fill="#ffbd2e" opacity="0.35"/>
+			<circle cx="120" cy="0" r="34" fill="#28c840" opacity="0.35"/>
+			<path d="M-210 60 210 -60" stroke="#ffffff" stroke-width="14" stroke-linecap="round"/>
+		</g>
+		<text y="90" font-size="76" font-weight="700" fill="#ffffff">Hide Window Controls</text>
+		<text y="152" font-size="30" font-weight="600" letter-spacing="7" fill="#ffbd2e">EXTENSION</text>
+	</g>
+</svg>

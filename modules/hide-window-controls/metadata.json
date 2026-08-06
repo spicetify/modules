@@ -1,0 +1,15 @@
+{
+	"name": "hide-window-controls",
+	"tags": ["extension"],
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "Hide the native window controls (macOS traffic lights). Toggle in the profile menu.",
+	"entries": {
+		"js": "index.js"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^1.2.1"
+	},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg"
+}
