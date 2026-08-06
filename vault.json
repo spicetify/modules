@@ -2352,11 +2352,19 @@
 					"providers": [],
 					"checksum": "sha256:6d6808281b437b649c5988b9c33ccf20ba36260c9c7615e10f895eb28cd6fa7b",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-video@0.1.2/auto-skip-video@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2a3c9cfaa656d2d0be5e5c84879a0c09d78dd4f31d1b82519fdbb6e0c949e645",
+					"updatedAt": "2026-08-06"
 				}
 			},
 			"metadata": {
 				"name": "auto-skip-video",
-				"description": "Auto-skip music videos. Toggle in the profile menu.",
+				"description": "Auto-skip music videos. Toggle in Settings.",
 				"authors": [
 					{
 						"name": "spicetify"
