@@ -64,3 +64,43 @@ export function enableManager(manager: Manager | undefined): void {
 	if (typeof manager.enable === "function") manager.enable();
 	else if ("enabled" in manager) manager.enabled = true;
 }
+
+type Unsubscribe = () => void;
+
+type PlayerItem = { uri?: string; type?: string; metadata?: Record<string, unknown> };
+
+type CoreConnector = {
+	skipToNextWithOverride?: (options: Record<string, unknown>) => Promise<unknown>;
+};
+
+/**
+ * Whether the player is on an advertisement.
+ *
+ * Ads arrive as ordinary queue items (`spotify:ad:…`, `type: "ad"`), which is
+ * why disabling the ad managers does not stop them: those own the ad chrome
+ * and reporting, not playback. Three independent tells are checked because a
+ * client that renames one still gets caught by the others.
+ */
+export function isAdItem(item: PlayerItem | undefined | null): boolean {
+	if (!item) return false;
+	return (
+		item.uri?.startsWith("spotify:ad:") === true || item.type === "ad" || item.metadata?.is_advertisement === "true"
+	);
+}
+
+/**
+ * Skips the ad currently playing, reporting whether the client accepted it.
+ *
+ * `Player.next()` is refused during an ad; the ads connector's own override is
+ * the one call that moves past it.
+ */
+export async function skipAd(connector: CoreConnector | undefined): Promise<boolean> {
+	if (typeof connector?.skipToNextWithOverride !== "function") return false;
+	try {
+		await connector.skipToNextWithOverride({});
+		return true;
+	} catch (error) {
+		console.warn("[adblock] could not skip an ad", error);
+		return false;
+	}
+}

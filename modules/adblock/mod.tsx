@@ -9,7 +9,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
-import { AD_MANAGERS, disableManager, enableManager, REMOTE_CONFIG_OVERRIDES } from "./logic.ts";
+import { AD_MANAGERS, disableManager, enableManager, isAdItem, REMOTE_CONFIG_OVERRIDES, skipAd } from "./logic.ts";
 
 const STORAGE_KEY = "adblock:enabled";
 
@@ -24,18 +24,42 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// never had.
 	let disabled: string[] = [];
 
+	let onSongChange: ((event: unknown) => void) | null = null;
+
 	const applyBlocking = () => {
-		disabled = AD_MANAGERS.filter((name) => disableManager(managers()[name]));
+		for (const name of AD_MANAGERS) {
+			if (disableManager(managers()[name]) && !disabled.includes(name)) disabled.push(name);
+		}
 	};
 
 	const restore = () => {
+		stopSkipping();
 		for (const name of disabled) enableManager(managers()[name]);
 		disabled = [];
 	};
 
+	// Ads play as ordinary queue items, so the only thing that stops one is
+	// moving past it as soon as it starts.
+	const skipIfAd = () => {
+		if (!enabled) return;
+		if (!isAdItem(Spicetify.Player?.data?.item)) return;
+		void skipAd(managers().audio?.inStreamApi?.adsCoreConnector);
+	};
+
+	const startSkipping = () => {
+		stopSkipping();
+		onSongChange = () => skipIfAd();
+		Spicetify.Player?.addEventListener?.("songchange", onSongChange);
+		skipIfAd();
+	};
+
+	const stopSkipping = () => {
+		if (onSongChange) Spicetify.Player?.removeEventListener?.("songchange", onSongChange);
+		onSongChange = null;
+	};
+
 	// Upsell chrome is remote-config gated rather than manager-owned. A failure
-	// here must not take the rest of the module down: the managers are what
-	// actually stop playback ads.
+	// here must not take the rest of the module down.
 	const applyRemoteConfig = async () => {
 		const api = Spicetify.Platform?.RemoteConfigDebugAPI;
 		if (typeof api?.setOverride !== "function") return;
@@ -53,6 +77,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	if (enabled) {
 		applyBlocking();
+		startSkipping();
 		void applyRemoteConfig();
 	}
 
@@ -69,6 +94,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 							Spicetify.LocalStorage.set(STORAGE_KEY, String(value));
 							if (value) {
 								applyBlocking();
+								startSkipping();
 								void applyRemoteConfig();
 							} else {
 								restore();

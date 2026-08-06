@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { disableManager, enableManager, isEnabled } from "./logic.ts";
+import { disableManager, enableManager, isAdItem, isEnabled, skipAd } from "./logic.ts";
 
 describe("disableManager", () => {
 	it("prefers the client's own disable()", () => {
@@ -56,5 +56,41 @@ describe("enableManager", () => {
 		const m = { enabled: false };
 		enableManager(m);
 		assert.equal(m.enabled, true);
+	});
+});
+
+describe("isAdItem", () => {
+	it("catches an ad by uri, type, or metadata flag independently", () => {
+		assert.equal(isAdItem({ uri: "spotify:ad:bfa94d1f" }), true);
+		assert.equal(isAdItem({ type: "ad" }), true);
+		assert.equal(isAdItem({ metadata: { is_advertisement: "true" } }), true);
+	});
+
+	it("leaves ordinary tracks alone", () => {
+		assert.equal(isAdItem({ uri: "spotify:track:60Z9I8Yqy6", type: "track" }), false);
+		assert.equal(isAdItem(undefined), false);
+		assert.equal(isAdItem(null), false);
+	});
+});
+
+describe("skipAd", () => {
+	it("uses the ads connector override, which is what the client accepts mid-ad", async () => {
+		let called = 0;
+		assert.equal(await skipAd({ skipToNextWithOverride: async () => void called++ }), true);
+		assert.equal(called, 1);
+	});
+
+	it("reports failure instead of throwing when the client refuses", async () => {
+		assert.equal(
+			await skipAd({
+				skipToNextWithOverride: () => Promise.reject(new Error("nope")),
+			}),
+			false,
+		);
+	});
+
+	it("reports failure when the connector is absent", async () => {
+		assert.equal(await skipAd(undefined), false);
+		assert.equal(await skipAd({}), false);
 	});
 });
