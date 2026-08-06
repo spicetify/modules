@@ -93,6 +93,22 @@ html.spicetify-themed {
 		color: var(--spice-text);
 	}
 
+	/* The nav bar's own background is a flat black literal rather than a
+	   token, so a light theme renders a black band across the top while the
+	   container behind it already carries the theme. */
+	.Root__globalNav {
+		background-color: var(--spice-main);
+	}
+
+	/* The settings page's section wrapper is `color: #fff`, and the heading
+	   and row labels of every registered settings section inherit from it.
+	   Only .x-settings-title resolves through a token, so on a light theme
+	   the Spicetify rows disappear while the client's own rows beside them
+	   stay readable. */
+	.x-settings-section {
+		color: var(--spice-text);
+	}
+
 	/* The sticky home filter-chips bar paints --background-base, which the
 	   client re-derives per view from the artwork, so it arrives tinted
 	   with whatever accent the current page extracted rather than anything
