@@ -289,7 +289,6 @@ export const ManagerPage = () => {
 			{(() => {
 				const sup = effectiveSupport(state, support);
 				const advice = updateAdvice(state.spotifyVersion, sup);
-				const policy = state.updatePolicy;
 				const cmd = (text: string, label: string) => (
 					<button type="button" onClick={() => void copyToClipboard(text, `${label} copied`)}>
 						{label}
@@ -299,7 +298,6 @@ export const ManagerPage = () => {
 					<section>
 						<div className="spicetify-manager-section-head">
 							<h2>Updates</h2>
-							<Badge kind={policy === "gate" ? "ok" : undefined}>policy: {show(policy)}</Badge>
 						</div>
 						<div className="spicetify-manager-env">
 							<Badge>installed {show(state.spotifyVersion)}</Badge>
@@ -321,10 +319,9 @@ export const ManagerPage = () => {
 							Update handling is set from a terminal. Copy a command:
 						</p>
 						<div className="spicetify-manager-update-actions">
-							{cmd("spicetify spotify-updates gate", "gate")}
 							{cmd("spicetify spotify-updates block", "block")}
 							{cmd("spicetify spotify-updates unblock", "allow")}
-							{advice.kind === "ready" && cmd("spicetify restore backup apply", "update & apply")}
+							{advice.kind === "ready" && cmd("spicetify apply", "update & apply")}
 						</div>
 					</section>
 				);

@@ -28,7 +28,6 @@ export interface ManagerState {
 	classmapKey?: string;
 	cliVersion?: string;
 	updatesBlocked?: boolean;
-	updatePolicy?: string;
 	supportedSpotify?: string;
 	latestSpotify?: string;
 	classmapFallback?: boolean;
@@ -66,7 +65,6 @@ type Manifest = {
 	classmapKey?: string;
 	cliVersion?: string;
 	updatesBlocked?: boolean;
-	updatePolicy?: string;
 	supportedSpotify?: string;
 	latestSpotify?: string;
 	classmapFallback?: boolean;
@@ -100,7 +98,6 @@ export function deriveManagerState(): ManagerState {
 		classmapKey: manifest?.classmapKey,
 		cliVersion: manifest?.cliVersion,
 		updatesBlocked: manifest?.updatesBlocked,
-		updatePolicy: manifest?.updatePolicy,
 		supportedSpotify: manifest?.supportedSpotify,
 		latestSpotify: manifest?.latestSpotify,
 		classmapFallback: manifest?.classmapFallback,
