@@ -3,23 +3,31 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { type Catalog, loadCatalog, type VaultModule } from "./catalog.ts";
-import { localRecords } from "./install.ts";
+import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
+import { installedRecords } from "./install.ts";
 import { disposed, toast } from "./runtime.ts";
 
-// Installed modules the catalog has a different version for, dependencies
-// before dependents: "Update all" installs sequentially, and a dependent
-// re-enabling against a not-yet-updated dependency mid-batch would hit the
-// loader's range check. User-authored (custom) modules are never
-// vault-managed, even if a vault entry happens to share their id.
+// Installed modules (localStorage or CLI-staged) the catalog has a different
+// version for, dependencies before dependents: "Update all" installs
+// sequentially, and a dependent re-enabling against a not-yet-updated
+// dependency mid-batch would hit the loader's range check. User-authored
+// (custom) modules are never vault-managed, even if a vault entry happens to
+// share their id.
 export function pendingUpdates(catalog: Catalog): VaultModule[] {
-	const locals = localRecords().filter((r) => !(r.metadata.tags ?? []).includes("custom"));
-	const versions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
-	const dependedUpon = new Set(locals.flatMap((r) => Object.keys(r.metadata.dependencies ?? {})));
+	const installed = installedRecords().filter((r) => !(r.metadata.tags ?? []).includes("custom"));
+	const byId = new Map(installed.map((r) => [r.metadata.identifier, r]));
+	const dependedUpon = new Set(installed.flatMap((r) => Object.keys(r.metadata.dependencies ?? {})));
 	return catalog.modules
 		.filter((mod) => {
-			const installed = versions.get(mod.id);
-			return installed !== undefined && installed !== mod.version && !catalog.revoked[mod.id];
+			const record = byId.get(mod.id);
+			const version = record?.sidecar?.installed_version;
+			if (version === undefined || version === mod.version || catalog.revoked[mod.id]) return false;
+			// A local record converges on whatever the vault says, so any
+			// difference is actionable. A CLI-staged install can only be
+			// overridden by a strictly newer local copy (the loader's
+			// localWins rule); offering an older vault version would write a
+			// permanently shadowed record and the banner would never clear.
+			return record!.local || compareVersions(mod.version, version) > 0;
 		})
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }

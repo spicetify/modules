@@ -32,7 +32,13 @@ import {
 	type VaultModule,
 } from "./catalog.ts";
 import { fetchInstallCounts, installCounts } from "./counter.ts";
-import { enforceSingleTheme, forgetActiveThemeIfRemoved, installModule, localRecords } from "./install.ts";
+import {
+	enforceSingleTheme,
+	forgetActiveThemeIfRemoved,
+	installedRecords,
+	installModule,
+	localRecords,
+} from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged } from "./runtime.ts";
 import { pendingUpdates } from "./updates.ts";
 
@@ -272,6 +278,7 @@ type ReadmeState = { kind: "none" } | { kind: "loading" } | { kind: "loaded"; te
 function ModuleDetails(props: {
 	mod: VaultModule;
 	installLabel: string;
+	installDisabled: boolean;
 	onInstall: () => Promise<void>;
 	onClose: () => void;
 }): ReactElement {
@@ -338,7 +345,7 @@ function ModuleDetails(props: {
 			{mod.meta?.description && <p className="spicetify-store-detail-desc">{mod.meta.description}</p>}
 			<div className="spicetify-store-card-actions">
 				<Button
-					disabled={busy}
+					disabled={busy || props.installDisabled}
 					onClick={() => {
 						setBusy(true);
 						void props.onInstall().finally(() => setBusy(false));
@@ -465,6 +472,7 @@ function installCta(mod: VaultModule, installedVersion: string | undefined): str
 function CatalogCard(props: {
 	mod: VaultModule;
 	installedVersion: string | undefined;
+	localInstall: boolean;
 	enabled: boolean;
 	onOpenDetails: () => void;
 	onInstall: () => Promise<void>;
@@ -479,9 +487,14 @@ function CatalogCard(props: {
 	// something to fetch (not installed, or an update pending); an
 	// installed, current module gets a trash glyph instead, so the corner
 	// action is removal.
-	const canRemove =
-		props.installedVersion !== undefined && props.installedVersion === mod.version && !PROTECTED.has(mod.id);
-	const cta = canRemove ? "Remove" : installCta(mod, props.installedVersion);
+	const current = props.installedVersion !== undefined && props.installedVersion === mod.version;
+	const canRemove = current && props.localInstall && !PROTECTED.has(mod.id);
+	// Current but CLI-staged: there is no localStorage record to remove, and
+	// a store reinstall would only write a copy the loader shadows (localWins
+	// needs strictly newer), so the FAB becomes an inert installed tell.
+	// A newer vault version still offers Update, which does win.
+	const cliCurrent = current && !props.localInstall;
+	const cta = canRemove ? "Remove" : cliCurrent ? "Installed via CLI" : installCta(mod, props.installedVersion);
 	const repo = deriveRepository(mod);
 	const count = installCounts[mod.id];
 	// The category (snippet/theme/extension/app) is the one badge worth
@@ -520,17 +533,19 @@ function CatalogCard(props: {
 			</div>
 			<button
 				type="button"
-				className={`spicetify-store-card-fab${canRemove ? " spicetify-store-card-fab--remove" : ""}`}
-				title={cta}
+				className={`spicetify-store-card-fab${canRemove ? " spicetify-store-card-fab--remove" : ""}${
+					cliCurrent ? " spicetify-store-card-fab--installed" : ""
+				}`}
+				title={cliCurrent ? "Installed via the CLI (spicetify pkg)" : cta}
 				aria-label={`${cta} ${displayName(mod)}`}
-				disabled={busy}
+				disabled={busy || cliCurrent}
 				onClick={(event) => {
 					event.stopPropagation();
 					setBusy(true);
 					void (canRemove ? props.onRemove() : props.onInstall()).finally(() => setBusy(false));
 				}}
 			>
-				<GlyphIcon paths={canRemove ? TRASH_PATHS : DOWNLOAD_PATHS} />
+				<GlyphIcon paths={canRemove ? TRASH_PATHS : cliCurrent ? CHECK_PATHS : DOWNLOAD_PATHS} />
 			</button>
 			<h3 className="spicetify-store-card-name">
 				{repo ? (
@@ -560,13 +575,13 @@ function CatalogCard(props: {
 	);
 }
 
-type LocalRecord = ReturnType<typeof localRecords>[number];
+type InstalledRecord = ReturnType<typeof installedRecords>[number];
 
 // Themes are exclusive (enforceSingleTheme), so the one active theme gets
 // a persistent full-width bar above the results instead of hiding its
 // controls down in the Installed section.
 function ActiveThemeBar(props: {
-	record: LocalRecord;
+	record: InstalledRecord;
 	status: (msg: string) => void;
 	refresh: () => void;
 }): ReactElement {
@@ -608,7 +623,7 @@ function ActiveThemeBar(props: {
 }
 
 function InstalledCard(props: {
-	record: LocalRecord;
+	record: InstalledRecord;
 	loaded: boolean;
 	revokedReason: string | undefined;
 	status: (msg: string) => void;
@@ -654,6 +669,7 @@ function InstalledCard(props: {
 				))}
 				<Badge tone={props.loaded ? "ok" : "neutral"}>{props.loaded ? "enabled" : "disabled"}</Badge>
 				{isProtected && <Badge>core</Badge>}
+				{!record.local && <Badge>cli</Badge>}
 				{props.revokedReason && <Badge>revoked</Badge>}
 			</div>
 			{props.revokedReason && (
@@ -677,7 +693,9 @@ function InstalledCard(props: {
 						Edit
 					</Button>
 				)}
-				{!isProtected && (
+				{/* CLI-staged installs live on disk, out of removeLocal's reach;
+				    removal stays a CLI act (spicetify pkg), so no Remove here. */}
+				{!isProtected && record.local && (
 					<button type="button" className="spicetify-store-danger" onClick={() => void remove()}>
 						Remove
 					</button>
@@ -690,7 +708,7 @@ function InstalledCard(props: {
 // ---------- page component ----------
 
 type Overlay =
-	| { kind: "details"; mod: VaultModule; installLabel: string }
+	| { kind: "details"; mod: VaultModule; installLabel: string; installDisabled: boolean }
 	| { kind: "snippet"; existing: { id: string; name: string; css: string } | null };
 
 // The bridge between the imperative page contract (ensureLoaded on every
@@ -798,15 +816,16 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		[],
 	);
 
-	const locals = localRecords();
-	const localVersions = new Map(locals.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
+	const installed = installedRecords();
+	const installedVersions = new Map(installed.map((r) => [r.metadata.identifier, r.sidecar?.installed_version]));
+	const localIds = new Set(installed.filter((r) => r.local).map((r) => r.metadata.identifier));
 	const states = new Map<string, any>(
 		M()
 			.list()
 			.map((s: any) => [s.identifier, s]),
 	);
 	const pending = pendingUpdates(catalog);
-	const activeTheme = locals.find(
+	const activeTheme = installed.find(
 		(r) =>
 			(r.metadata.tags ?? []).includes("theme") &&
 			!!(states.get(r.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded,
@@ -825,7 +844,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				.list()
 				.map((s: any) => [s.identifier, s]),
 		);
-		for (const record of localRecords()) {
+		for (const record of installedRecords()) {
 			const id = record.metadata.identifier;
 			if (!catalog.revoked[id]) continue;
 			const state = liveStates.get(id) as { loaded?: boolean } | undefined;
@@ -880,8 +899,16 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		refreshRegistry();
 	};
 
-	const openDetails = (mod: VaultModule) =>
-		setOverlay({ kind: "details", mod, installLabel: installCta(mod, localVersions.get(mod.id)) });
+	const openDetails = (mod: VaultModule) => {
+		const version = installedVersions.get(mod.id);
+		const cliCurrent = version !== undefined && version === mod.version && !localIds.has(mod.id);
+		setOverlay({
+			kind: "details",
+			mod,
+			installLabel: cliCurrent ? "Installed via CLI" : installCta(mod, version),
+			installDisabled: cliCurrent,
+		});
+	};
 
 	const onExport = () => {
 		const data = exportStoreData();
@@ -1008,7 +1035,8 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					<CatalogCard
 						key={mod.id}
 						mod={mod}
-						installedVersion={localVersions.get(mod.id)}
+						installedVersion={installedVersions.get(mod.id)}
+						localInstall={localIds.has(mod.id)}
 						enabled={!!(states.get(mod.id) as { loaded?: boolean } | undefined)?.loaded}
 						onOpenDetails={() => openDetails(mod)}
 						onInstall={() => runInstall(mod)}
@@ -1021,11 +1049,11 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					</div>
 				)}
 			</div>
-			<h2 className="spicetify-store-section-title" style={locals.length ? undefined : { display: "none" }}>
+			<h2 className="spicetify-store-section-title" style={installed.length ? undefined : { display: "none" }}>
 				Installed
 			</h2>
 			<div className="spicetify-store-grid">
-				{locals.map((record) => (
+				{installed.map((record) => (
 					<InstalledCard
 						key={record.metadata.identifier}
 						record={record}
@@ -1065,6 +1093,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				<ModuleDetails
 					mod={overlay.mod}
 					installLabel={overlay.installLabel}
+					installDisabled={overlay.installDisabled}
 					onInstall={() => runInstall(overlay.mod)}
 					onClose={() => setOverlay(null)}
 				/>
@@ -1161,6 +1190,11 @@ function GlyphIcon(props: { paths: string[] }): ReactElement {
 const DOWNLOAD_PATHS = [
 	"M12 3a1 1 0 0 1 1 1v7.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1z",
 	"M5 15a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z",
+];
+
+// Checkmark: installed and current via the CLI, nothing for the store to do.
+const CHECK_PATHS = [
+	"M20.1 6.3a1 1 0 0 1 0 1.4l-9.5 9.5a1 1 0 0 1-1.4 0L4.4 12.4a1 1 0 1 1 1.4-1.4l4.1 4.1 8.8-8.8a1 1 0 0 1 1.4 0z",
 ];
 
 // Trash can: remove an installed module.

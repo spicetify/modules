@@ -18,8 +18,37 @@ export function localRecords(): Array<{ metadata: any; sidecar?: any; files?: Re
 	return M().listLocal();
 }
 
-export function tagsOfLocal(id: string): string[] {
-	const record = localRecords().find((r) => r.metadata.identifier === id);
+export type InstalledRecord = {
+	metadata: any;
+	sidecar?: any;
+	files?: Record<string, string>;
+	// false: staged on disk by the CLI (pkg install/enable + apply), so it has
+	// no localStorage record and removeLocal cannot touch it.
+	local: boolean;
+};
+
+// Everything installed, from both sources of truth: localStorage records
+// (store installs) plus registry entries the CLI staged into the app bundle.
+// Staged metadata comes from the manifest; the synthesized sidecar carries
+// the running version so version comparisons work uniformly.
+export function installedRecords(): InstalledRecord[] {
+	const locals = localRecords().map((record) => ({ ...record, local: true }));
+	const have = new Set(locals.map((record) => record.metadata.identifier));
+	const metaById = new Map<string, any>(
+		((M().manifest?.modules ?? []) as Array<{ identifier: string }>).map((m) => [m.identifier, m]),
+	);
+	const staged = ((M().list?.() ?? []) as Array<{ identifier: string; version: string; local: boolean }>)
+		.filter((state) => !state.local && !have.has(state.identifier))
+		.map((state) => ({
+			metadata: metaById.get(state.identifier) ?? { identifier: state.identifier, version: state.version },
+			sidecar: { installed_version: state.version },
+			local: false,
+		}));
+	return [...locals, ...staged];
+}
+
+export function tagsOfInstalled(id: string): string[] {
+	const record = installedRecords().find((r) => r.metadata.identifier === id);
 	return record?.metadata?.tags ?? [];
 }
 
@@ -39,10 +68,10 @@ export function forgetActiveThemeIfRemoved(id: string): void {
 // Themes fight over the same client chrome; enabling one disables the
 // others, marketplace-style.
 export async function enforceSingleTheme(id: string, status: (msg: string) => void): Promise<void> {
-	if (!tagsOfLocal(id).includes("theme")) return;
+	if (!tagsOfInstalled(id).includes("theme")) return;
 	for (const state of M().list() as Array<{ identifier: string; loaded: boolean }>) {
 		if (state.identifier === id || !state.loaded) continue;
-		if (tagsOfLocal(state.identifier).includes("theme")) {
+		if (tagsOfInstalled(state.identifier).includes("theme")) {
 			await M().disable(state.identifier);
 			status(`disabled ${state.identifier} (one theme at a time)`);
 		}
