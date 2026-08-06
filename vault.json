@@ -3250,6 +3250,32 @@
 				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png"
 			}
+		},
+		"adblock": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/adblock@0.1.0/adblock@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:ae2ffddb0d8345958f4c3a7f89d026aa3112fa6907ad1d8d33c89adc8ced07de",
+					"updatedAt": "2026-08-06"
+				}
+			},
+			"metadata": {
+				"name": "adblock",
+				"description": "Disables Spotify's ad surfaces. Toggle in Settings.",
+				"authors": [
+					{
+						"name": "veryboringhwl"
+					},
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg"
+			}
 		}
 	}
 }
