@@ -10,6 +10,7 @@
  */
 
 import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { Button, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { collectArtistUris, shouldSkipTrack, targetMatchesCurrent, toggleEntry } from "./logic.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
@@ -37,6 +38,7 @@ const findSkipBackButton = (): HTMLElement | null =>
 	document.querySelector(".player-controls__left > button[data-encore-id='buttonTertiary']");
 
 export default async function (ctx: ModuleRuntimeContext) {
+	const { useState } = React;
 	const registrar = createRegistrar(ctx);
 
 	let trashSongList: Record<string, boolean> = initValue("TrashSongList", {});
@@ -177,77 +179,75 @@ export default async function (ctx: ModuleRuntimeContext) {
 	cntxMenu.register();
 
 	// ----- settings modal (profile menu) -----
-	const buildSettings = (): HTMLElement => {
-		const content = document.createElement("div");
-		content.className = "trashbin-settings";
+	// Settings live on Spotify's settings page rather than in the account
+	// dropdown, which is for account actions (see BEST_PRACTICES.md).
+	function Settings() {
+		const [enabled, setEnabled] = useState(trashbinStatus);
+		const [widget, setWidget] = useState(enableWidget);
 
-		const sectionTitle = (text: string) => {
-			const h = document.createElement("h2");
-			h.textContent = text;
-			content.appendChild(h);
-		};
-		const addSlider = (name: string, desc: string, value: boolean, cb: (state: boolean) => void) => {
-			const row = document.createElement("div");
-			row.className = "setting-row";
-			const label = document.createElement("label");
-			label.className = "col description";
-			label.textContent = desc;
-			const action = document.createElement("div");
-			action.className = "col action";
-			const btn = document.createElement("button");
-			btn.className = "switch";
-			btn.innerHTML = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.check}</svg>`;
-			btn.classList.toggle("disabled", !value);
-			btn.onclick = () => {
-				const state = btn.classList.contains("disabled");
-				btn.classList.toggle("disabled");
-				Spicetify.LocalStorage.set(name, String(state));
-				cb(state);
-			};
-			action.appendChild(btn);
-			row.append(label, action);
-			content.appendChild(row);
-		};
-		const addButton = (text: string, desc: string, cb: () => void) => {
-			const row = document.createElement("div");
-			row.className = "setting-row";
-			const label = document.createElement("label");
-			label.className = "col description";
-			label.textContent = desc;
-			const action = document.createElement("div");
-			action.className = "col action";
-			const btn = document.createElement("button");
-			btn.className = "reset";
-			btn.textContent = text;
-			btn.onclick = cb;
-			action.appendChild(btn);
-			row.append(label, action);
-			content.appendChild(row);
-		};
-
-		sectionTitle("Options");
-		addSlider("trashbin-enabled", "Enabled", trashbinStatus, refreshEventListeners);
-		addSlider("TrashbinWidgetIcon", "Show Widget Icon", enableWidget, (state) => {
-			enableWidget = state;
-			refreshButtons();
-		});
-
-		sectionTitle("Local Storage");
-		addButton("Copy", "Copy all items in trashbin to clipboard.", () => {
-			Spicetify.Platform.ClipboardAPI.copy(JSON.stringify({ songs: trashSongList, artists: trashArtistList }));
-			Spicetify.showNotification("Copied to clipboard");
-		});
-		addButton("Export", "Save all items in trashbin to a .json file.", () => void exportItems());
-		addButton("Import", "Overwrite all items in trashbin via .json file.", importItems);
-		addButton("Clear", "Clear all items from trashbin (cannot be reverted).", () => {
-			trashSongList = {};
-			trashArtistList = {};
-			putDataLocal();
-			refreshButtons();
-			Spicetify.showNotification("Trashbin cleared!");
-		});
-		return content;
-	};
+		return (
+			<SettingsSection title="Trashbin">
+				<SettingsRow label="Enabled">
+					<Toggle
+						value={enabled}
+						onChange={(value) => {
+							setEnabled(value);
+							Spicetify.LocalStorage.set("trashbin-enabled", String(value));
+							refreshEventListeners(value);
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Show the playbar button">
+					<Toggle
+						value={widget}
+						onChange={(value) => {
+							setWidget(value);
+							enableWidget = value;
+							Spicetify.LocalStorage.set("TrashbinWidgetIcon", String(value));
+							refreshButtons();
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Copy all trashbin items to the clipboard">
+					<Button
+						variant="secondary"
+						onClick={() => {
+							Spicetify.Platform.ClipboardAPI.copy(
+								JSON.stringify({ songs: trashSongList, artists: trashArtistList }),
+							);
+							Spicetify.showNotification("Copied to clipboard");
+						}}
+					>
+						Copy
+					</Button>
+				</SettingsRow>
+				<SettingsRow label="Save the trashbin to a .json file">
+					<Button variant="secondary" onClick={() => void exportItems()}>
+						Export
+					</Button>
+				</SettingsRow>
+				<SettingsRow label="Overwrite the trashbin from a .json file">
+					<Button variant="secondary" onClick={importItems}>
+						Import
+					</Button>
+				</SettingsRow>
+				<SettingsRow label="Clear every item from the trashbin (cannot be undone)">
+					<Button
+						variant="danger"
+						onClick={() => {
+							trashSongList = {};
+							trashArtistList = {};
+							putDataLocal();
+							refreshButtons();
+							Spicetify.showNotification("Trashbin cleared!");
+						}}
+					>
+						Clear
+					</Button>
+				</SettingsRow>
+			</SettingsSection>
+		);
+	}
 
 	async function exportItems() {
 		const data = { songs: trashSongList, artists: trashArtistList };
@@ -291,13 +291,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		input.click();
 	}
 
-	const menuItem = new Spicetify.Menu.Item(
-		"Trashbin",
-		false,
-		() => Spicetify.PopupModal.display({ title: "Trashbin Settings", content: buildSettings() }),
-		ICON_SVG,
-	);
-	menuItem.register();
+	registrar.register("settingsSection", <Settings />);
 
 	// ----- boot -----
 	putDataLocal();
@@ -308,6 +302,5 @@ export default async function (ctx: ModuleRuntimeContext) {
 		skipBackBtn?.removeEventListener("click", onSkipBack);
 		Spicetify.Player.removeEventListener("songchange", watchChange);
 		cntxMenu.deregister();
-		menuItem.deregister();
 	});
 }

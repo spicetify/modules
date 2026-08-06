@@ -291,3 +291,13 @@
 	border-radius: 8px;
 	background: var(--spice-card, #202020);
 }
+
+/* Settings toggle. Sized to sit on the client's own settings row baseline;
+   accent-color keeps it themed without re-implementing a switch. */
+.spicetify-toggle {
+	width: 20px;
+	height: 20px;
+	margin: 0;
+	accent-color: var(--spice-button, #1ed760);
+	cursor: pointer;
+}

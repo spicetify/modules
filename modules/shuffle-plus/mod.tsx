@@ -10,6 +10,8 @@
  */
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { Select, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
 
 import { buildNextTracks, matchesArtistFilter, parseStoredConfig, searchFolder, shuffle } from "./logic.ts";
 
@@ -38,144 +40,63 @@ export default async function (ctx: ModuleRuntimeContext) {
 		Spicetify.LocalStorage.set("shufflePlus:settings", JSON.stringify(CONFIG));
 	}
 
-	function settingsPage() {
-		function DisplayIcon({ icon, size }: { icon: string; size: number }) {
-			return React.createElement("svg", {
-				width: size,
-				height: size,
-				viewBox: "0 0 16 16",
-				fill: "currentColor",
-				dangerouslySetInnerHTML: {
-					__html: icon,
-				},
-			});
-		}
+	const ARTIST_MODES = [
+		{ value: "all", label: "All" },
+		{ value: "album", label: "Albums" },
+		{ value: "single", label: "Singles & EP" },
+		{ value: "likedSongArtist", label: "Artist's Liked Songs" },
+		{ value: "topTen", label: "Top 10 Songs" },
+	] as const;
 
-		function checkBoxItem({
-			name,
-			field,
-			onclickFun = () => {},
-		}: {
-			name: string;
-			field: string;
-			onclickFun?: () => void;
-		}) {
-			const [value, setValue] = useState(CONFIG[field]);
-			return React.createElement(
-				"div",
-				{ className: "popup-row" },
-				React.createElement("label", { className: "col description" }, name),
-				React.createElement(
-					"div",
-					{ className: "col action" },
-					React.createElement(
-						"button",
-						{
-							className: `checkbox${value ? "" : " disabled"}`,
-							onClick: () => {
-								CONFIG[field] = !value;
-								setValue(!value);
-								saveConfig();
-								onclickFun();
-							},
-						},
-						React.createElement(DisplayIcon, {
-							icon: Spicetify.SVGIcons.check,
-							size: 16,
-						}),
-					),
-				),
-			);
-		}
+	// Settings live on Spotify's settings page rather than in the account
+	// dropdown, which is for account actions (see BEST_PRACTICES.md).
+	function Settings() {
+		const [artistMode, setArtistMode] = useState(CONFIG.artistMode as string);
+		const [artistNameMust, setArtistNameMust] = useState(CONFIG.artistNameMust as boolean);
+		const [queueButton, setQueueButton] = useState(CONFIG.enableQueueButton as boolean);
 
-		function dropDownItem({
-			name,
-			field,
-			options,
-			onclickFun = () => {},
-		}: {
-			name: string;
-			field: string;
-			options: Record<string, string>;
-			onclickFun?: () => void;
-		}) {
-			const [value, setValue] = useState(CONFIG[field]);
-			return React.createElement(
-				"div",
-				{ className: "popup-row" },
-				React.createElement("label", { className: "col description" }, name),
-				React.createElement(
-					"div",
-					{ className: "col action" },
-					React.createElement(
-						"select",
-						{
-							value,
-							onChange: (e: any) => {
-								setValue(e.target.value);
-								CONFIG[field] = e.target.value;
-								saveConfig();
-								onclickFun();
-							},
-						},
-						Object.keys(options).map((item) =>
-							React.createElement(
-								"option",
-								{
-									value: item,
-								},
-								options[item],
-							),
-						),
-					),
-				),
-			);
-		}
+		const persist = (field: string, value: unknown) => {
+			CONFIG[field] = value;
+			saveConfig();
+		};
 
-		const settingsDOMContent = React.createElement(
-			"div",
-			{ className: "shuffle-plus-settings" },
-			React.createElement(
-				"div",
-				{ className: "popup-row" },
-				React.createElement("h3", { className: "div-title" }, "Artist Shuffle"),
-			),
-			React.createElement(
-				"div",
-				{ className: "popup-row" },
-				React.createElement("hr", { className: "divider" }, null),
-			),
-			React.createElement(dropDownItem, {
-				name: "Shuffle mode Artist Page",
-				field: "artistMode",
-				options: {
-					all: "All",
-					album: "Albums",
-					single: "Singles & EP",
-					likedSongArtist: "Artist's Liked Songs",
-					topTen: "Top 10 Songs",
-				},
-			}),
-			React.createElement(checkBoxItem, {
-				name: "Chosen artist must be included",
-				field: "artistNameMust",
-			}),
-			React.createElement(checkBoxItem, {
-				name: "Enable Shuffle+ Queue Tracks button in Playbar",
-				field: "enableQueueButton",
-				onclickFun: () => renderQueuePlaybarButton(),
-			}),
+		return (
+			<SettingsSection title="Shuffle+">
+				<SettingsRow label="Shuffle mode on artist pages">
+					<Select
+						options={ARTIST_MODES}
+						value={artistMode}
+						onChange={(value) => {
+							setArtistMode(value);
+							persist("artistMode", value);
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Chosen artist must be included">
+					<Toggle
+						value={artistNameMust}
+						onChange={(value) => {
+							setArtistNameMust(value);
+							persist("artistNameMust", value);
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Show the Shuffle+ queue button in the playbar">
+					<Toggle
+						value={queueButton}
+						onChange={(value) => {
+							setQueueButton(value);
+							persist("enableQueueButton", value);
+							renderQueuePlaybarButton();
+						}}
+					/>
+				</SettingsRow>
+			</SettingsSection>
 		);
-
-		Spicetify.PopupModal.display({
-			title: "Shuffle+",
-			content: settingsDOMContent,
-			isLarge: true,
-		});
 	}
 
-	const menuItem = new Spicetify.Menu.Item("Shuffle+", false, settingsPage, "shuffle");
-	menuItem.register();
+	const registrar = createRegistrar(ctx);
+	registrar.register("settingsSection", <Settings />);
 
 	function shouldAddShufflePlus(uri: string[]) {
 		if (uri.length === 1) {
@@ -599,7 +520,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	// ----- teardown -----
 	ctx.defer(() => {
-		menuItem.deregister();
 		contextMenuItems.forEach((item) => item.deregister());
 		playbarButton?.deregister();
 	});

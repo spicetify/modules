@@ -20,6 +20,7 @@
 
 import { React, ReactDOM } from "../src/expose/React.ts";
 import {
+	TOGGLE_CLASS,
 	SETTINGS_ROW_CLASS,
 	SETTINGS_ROW_CONTROL_CLASS,
 	SETTINGS_ROW_LABEL_CLASS,
@@ -157,6 +158,17 @@ export const SettingsRow: React.FC<{ label: React.ReactNode; children: React.Rea
 		<div className={SETTINGS_ROW_LABEL_CLASS}>{props.label}</div>
 		<div className={SETTINGS_ROW_CONTROL_CLASS}>{props.children}</div>
 	</div>
+);
+
+// A boolean control for a settings row. A native checkbox rather than a
+// re-implemented switch, so keyboard and screen-reader behaviour comes free.
+export const Toggle: React.FC<{ value: boolean; onChange: (value: boolean) => void }> = (props) => (
+	<input
+		type="checkbox"
+		className={TOGGLE_CLASS}
+		checked={props.value}
+		onChange={(e) => props.onChange((e.target as HTMLInputElement).checked)}
+	/>
 );
 
 // ---------- context-menu item ----------

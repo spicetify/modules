@@ -43,3 +43,4 @@ export const SETTINGS_SECTION_CLASS = "x-settings-section";
 export const SETTINGS_ROW_CLASS = "x-settings-row";
 export const SETTINGS_ROW_LABEL_CLASS = "x-settings-firstColumn";
 export const SETTINGS_ROW_CONTROL_CLASS = "x-settings-secondColumn";
+export const TOGGLE_CLASS = "spicetify-toggle";
