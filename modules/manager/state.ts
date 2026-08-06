@@ -41,6 +41,7 @@ export interface ManagerState {
 
 type LoaderGlobals = {
 	Spicetify?: {
+		Platform?: { version?: string };
 		Modules?: {
 			manifest?: Manifest;
 			registry?: { manifest?: Manifest };
@@ -91,8 +92,11 @@ export function deriveManagerState(): ManagerState {
 		dependencies: manifestById.get(s.identifier)?.dependencies ?? {},
 	}));
 
+	// The client reports its full four-part build ("1.2.94.583"); the manifest
+	// carries only the three-part semver the CLI derives the classmap key from,
+	// which the update feed's four-part version always compares as newer.
 	return {
-		spotifyVersion: manifest?.spotifyVersion,
+		spotifyVersion: g.Spicetify?.Platform?.version ?? manifest?.spotifyVersion,
 		classmapKey: manifest?.classmapKey,
 		cliVersion: manifest?.cliVersion,
 		updatesBlocked: manifest?.updatesBlocked,
@@ -143,7 +147,10 @@ export async function fetchSupportStatus(): Promise<SpotifySupportStatus | null>
 }
 
 // Numeric dotted-prefix compare ("1.2.95.120" vs "1.2.94.583.g..."): git
-// suffixes and missing segments are ignored.
+// suffixes are ignored, and only the segments both sides carry are compared.
+// A shorter version is a less precise reading of the same build, not an older
+// one: padding "1.2.94" with a zero would rank it below "1.2.94.583" and
+// report an update that does not exist.
 export function compareSpotifyVersions(a: string, b: string): number {
 	const parse = (v: string) =>
 		v
@@ -152,8 +159,8 @@ export function compareSpotifyVersions(a: string, b: string): number {
 			.filter((n) => !Number.isNaN(n));
 	const pa = parse(a);
 	const pb = parse(b);
-	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+	for (let i = 0; i < Math.min(pa.length, pb.length); i++) {
+		const d = pa[i]! - pb[i]!;
 		if (d !== 0) return d;
 	}
 	return 0;

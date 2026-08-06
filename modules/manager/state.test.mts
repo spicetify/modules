@@ -19,7 +19,12 @@ describe("compareSpotifyVersions", () => {
 
 	it("ignores git suffixes and missing segments", () => {
 		assert.equal(compareSpotifyVersions("1.2.94.583.gdeadbeef", "1.2.94.583"), 0);
-		assert.ok(compareSpotifyVersions("1.2.94", "1.2.94.583") < 0);
+		assert.equal(
+			compareSpotifyVersions("1.2.94", "1.2.94.583"),
+			0,
+			"the CLI stamps a three-part semver, so a truncated read of the running build must not rank below it",
+		);
+		assert.ok(compareSpotifyVersions("1.2.93", "1.2.94.583") < 0, "a genuinely older build still compares older");
 	});
 });
 
