@@ -1,5 +1,38 @@
 :root {
-	--gradient-colors: var(--spice-gradienttop), var(--spice-gradientbottom);
+	/* color.ini declares these camelCase. The classic CLI lowercased every
+	   key, and so does the current loader, but a client applied by an older
+	   v3 build still defines the camelCase spelling; custom properties are
+	   case-sensitive, so both are read here to cover either payload. */
+	--gradient-colors:
+		var(--spice-gradienttop, var(--spice-gradientTop)), var(--spice-gradientbottom, var(--spice-gradientBottom));
+}
+
+/* Encore token bridge. The v2 CLI rewrote the client's hardcoded colors to
+   --spice variables at apply time, so the original theme never carried one;
+   a standalone v3 theme must map the tokens itself or the client keeps its
+   dark-theme white text and elevated surfaces over the pastel scheme. */
+.encore-dark-theme,
+.encore-dark-theme .encore-base-set,
+.encore-dark-theme .encore-elevated-set,
+.encore-dark-theme .encore-overlay-set {
+	--text-base: var(--spice-text);
+	--text-subdued: var(--spice-subtext);
+	--text-bright-accent: var(--spice-button-active);
+	--text-negative: var(--spice-notification-error);
+	--essential-base: var(--spice-text);
+	--essential-subdued: var(--spice-subtext);
+	--essential-bright-accent: var(--spice-button-active);
+	--decorative-base: var(--spice-text);
+	--decorative-subdued: var(--spice-subtext);
+	--background-base: var(--spice-main);
+	--background-highlight: var(--spice-card-hover);
+	--background-press: var(--spice-card-background);
+	--background-elevated-base: var(--spice-card-background);
+	--background-elevated-highlight: var(--spice-card-hover);
+	--background-elevated-press: var(--spice-card-hover);
+	--background-tinted-base: rgba(var(--spice-rgb-shadow), 0.15);
+	--background-tinted-highlight: rgba(var(--spice-rgb-shadow), 0.25);
+	--background-tinted-press: rgba(var(--spice-rgb-shadow), 0.35);
 }
 
 .main-rootlist-rootlistItem:hover {
@@ -51,6 +84,9 @@
 	grid-area: now-playing-bar;
 	width: 200px;
 	z-index: 4;
+	/* Only the inner bar carried the gradient, so the client's black
+	   container framed it on every side. */
+	background-image: linear-gradient(var(--gradient-colors));
 }
 #spicetify-home-config button:disabled,
 #spicetify-sidebar-config button:disabled {
@@ -68,7 +104,16 @@
 .main-topBar-background,
 .main-topBar-overlay,
 .x-entityHeader-overlay,
-.x-actionBarBackground-background {
+.x-actionBarBackground-background,
+/* The sticky home filter-chips bar paints --background-base, which the
+   client re-derives per view from the artwork, so it arrives as whatever
+   accent the current page extracted rather than anything theme-related. */
+.main-home-filterChipsSection {
+	background-color: var(--spice-main) !important;
+}
+/* Its scrim is a flat 60% black, meant to darken the shortcuts scrolling
+   under it; over a light scheme that reads as a grey slab. */
+.main-home-filterChipsSectionActive::after {
 	background-color: var(--spice-main) !important;
 }
 .x-actionBarBackground-background,
@@ -87,24 +132,34 @@
 	justify-content: center;
 	align-items: center;
 }
-.Root__top-container {
+/* The client paints the window root near-black; on a light scheme every
+   panel gap and the pre-paint flash show it. */
+html {
+	background-color: var(--spice-main);
+}
+
+/* The theme's signature: the playbar becomes a full-height right column
+   instead of the client's bottom row, running the whole window height so
+   the global nav ends beside it rather than cutting across it. The
+   client's own template carries four rows (top-banner, global-nav, the
+   panes, now-playing-bar), so the areas and the row sizes are both
+   restated here — naming fewer rows than the template collapses the
+   global-nav row to 0px and the panes paint over the nav, taking the
+   home, search and module buttons with it. */
+.Root__top-container,
+.global-nav .Root__top-container {
 	display: grid;
-	grid-template-areas: "left-sidebar main-view right-sidebar now-playing-bar";
-	grid-template-columns: auto 1fr;
-	grid-template-rows: 1fr auto;
+	grid-template-areas:
+		"top-banner top-banner top-banner now-playing-bar"
+		"global-nav global-nav global-nav now-playing-bar"
+		"left-sidebar main-view right-sidebar now-playing-bar";
+	grid-template-columns: auto 1fr auto 200px;
+	grid-template-rows: auto auto 1fr;
 	height: 100%;
 	min-height: 100%;
 	position: relative;
 	width: 100%;
 	background-color: var(--spice-main);
-}
-.global-nav .Root__top-container {
-	grid-template-areas:
-		"global-nav global-nav global-nav global-nav"
-		"left-sidebar main-view right-sidebar now-playing-bar"
-		"left-sidebar main-view right-sidebar now-playing-bar";
-	grid-template-columns: auto 1fr auto 15vw;
-	grid-template-rows: 1fr auto;
 }
 .main-nowPlayingBar-container {
 	display: flex;
@@ -161,6 +216,25 @@
 	background-image: linear-gradient(var(--gradient-colors));
 }
 
+/* The client styles unclassed anchors `color: #fff` as a dark-theme
+   fallback (shelf headings like "Jump back in" are one), which the v2 CLI
+   used to rewrite at apply time. Inheriting puts them back under whatever
+   the surrounding text color is, which is correct in every context. */
+a:not([data-encore-id]) {
+	color: inherit;
+}
+
+/* The now-playing view's track info assumes the stock dark backdrop and
+   hardcodes white; on the pastel gradient it follows the scheme instead. */
+.Root__right-sidebar .main-trackInfo-name,
+.Root__right-sidebar .main-trackInfo-name a {
+	color: var(--spice-text);
+}
+.Root__right-sidebar .main-trackInfo-artists,
+.Root__right-sidebar .main-trackInfo-artists a {
+	color: var(--spice-subtext);
+}
+
 /*button*/
 .encore-dark-theme .encore-bright-accent-set {
 	--background-base: var(--spice-button-active);
@@ -169,7 +243,47 @@
 	--decorative-subdued: var(--spice-player);
 }
 
+/* Icon buttons. The client hardcodes 70% white on its generic icon button
+   (every module button in the playbar rides on it) and on the now-playing
+   panel's own controls, so they vanish against the light scheme. */
+.main-genericButton-button,
+.Root__right-sidebar [data-encore-id="buttonTertiary"] {
+	color: var(--spice-subtext);
+}
+.main-genericButton-button:hover,
+.Root__right-sidebar [data-encore-id="buttonTertiary"]:hover {
+	color: var(--spice-text);
+}
+
+/* Inactive shuffle/repeat are dimmed to 30%, which is legible as white on
+   the stock near-black backdrop but not as brown on a pastel one. */
+.main-actionBar-shuffleButton,
+.Root__now-playing-bar [data-testid="control-button-repeat"] {
+	opacity: 0.55;
+}
+.main-actionBar-shuffleButton:hover,
+.Root__now-playing-bar [data-testid="control-button-repeat"]:hover {
+	opacity: 1;
+}
+
+/* Resize seam indicator: a pointer-events:none overlay inside each
+   resizable pane whose cells are painted a flat #000 and revealed while
+   the neighbouring resizer is hovered, drawing a black bar down the panel
+   gap. The resizer's own hairline already marks the seam, so these are
+   cleared. The class is build-hashed (1.2.94); on a later build the rule
+   simply stops matching rather than hitting anything else. */
+.qnaFIKUJ9oUIkN97 > * {
+	background-color: transparent;
+}
+
 /*tracklist*/
+/* Track titles and the end column hardcode white in the client, so they
+   washed out over the light scheme regardless of the Encore tokens. */
+.main-trackList-rowMainContentTitle,
+.main-trackList-rowSectionEnd,
+.main-trackList-rowImagePlayButton {
+	color: var(--spice-text);
+}
 .main-trackList-trackListRow {
 	border-radius: var(--border-radius-2);
 }
@@ -236,14 +350,63 @@ li > div::after {
 	background-color: transparent;
 }
 .search-searchCategory-carouselButton:hover {
-	background-color: var(--spicecard-background);
+	background-color: var(--spice-card-background);
 }
 .main-yourLibraryX-iconOnly:hover {
 	background-color: var(--spice-card-background);
 	color: var(--spice-text);
 }
+/* Library filter box: the client hardcodes a translucent white for the
+   magnifier and its input, invisible against the light sidebar. */
+.x-filterBox-expandButton,
+.x-filterBox-searchIcon,
+.x-filterBox-filterInput {
+	color: var(--spice-subtext);
+}
+.x-filterBox-filterInput::placeholder {
+	color: var(--spice-subtext);
+}
 .Root__nav-bar {
 	background-color: var(--spice-main);
+}
+
+/* Global nav (the modern top bar). The theme predates it, so it kept the
+   client's black bar and white glyphs above the pastel scheme. */
+.Root__globalNav,
+.main-globalNav-globalNav {
+	background-color: var(--spice-main);
+}
+/* The client spans the nav to the last column line, which now belongs to
+   the playbar; without this its right-hand controls (the module buttons
+   and the profile menu) render underneath it. */
+.Root__globalNav {
+	grid-column: 1 / 4 !important;
+}
+.main-globalNav-navLink,
+.main-globalNav-navLinkActive,
+.main-globalNav-link-icon,
+.main-globalNav-navLink:hover,
+/* The client scopes the active link's white under .Root__globalNav, so the
+   override has to carry the same specificity to land. */
+.Root__globalNav .main-globalNav-navLinkActive,
+.Root__globalNav .main-globalNav-navLinkActive:hover {
+	color: var(--spice-text);
+}
+.main-globalNav-navLink,
+.main-globalNav-navLinkActive {
+	background-color: var(--spice-card-background);
+}
+.main-globalNav-navLink:hover,
+.main-globalNav-navLinkActive:hover {
+	background-color: var(--spice-card-hover);
+}
+.main-globalNav-searchInputText,
+.main-globalNav-searchInputPlaceholder {
+	color: var(--spice-subtext);
+}
+.main-topBar-searchBar {
+	background-color: var(--spice-card-background);
+	color: var(--spice-text);
 }
 /* give active nav tab a background */
 .main-navBar-mainNav li:has(> .active) {
@@ -252,6 +415,11 @@ li > div::after {
 }
 .view-homeShortcutsGrid-shortcut {
 	background-image: linear-gradient(var(--gradient-colors));
+}
+/* The tile is repainted with the pastel gradient above, so its label can
+   no longer keep the client's white. */
+.view-homeShortcutsGrid-name {
+	color: var(--spice-text);
 }
 .main-actionBar-ActionBarRow > * {
 	color: var(--spice-text);
