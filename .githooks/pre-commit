@@ -1,7 +1,8 @@
 #!/bin/sh
-# Formats staged files with oxfmt and re-stages them, so a commit can never
-# fail CI's format job. `nub run check` is tsc plus oxlint and does not
-# format, which is exactly how unformatted code reached main before.
+# Formats staged files with oxfmt and re-stages them, then lints them, so a
+# commit can never fail CI's format or lint job. `nub run check` is tsc plus
+# oxlint and does not format, which is exactly how unformatted code reached
+# main before; a dead type alias later reached it the same way through lint.
 #
 # Caveat: a file staged only in part gets its unstaged changes staged too,
 # because the formatter rewrites the whole working file. Commit partial
@@ -25,3 +26,16 @@ out=$(printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 "$fmt" 2>&1) || {
 }
 
 printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 git add
+
+lint=./node_modules/.bin/oxlint
+[ -x "$lint" ] || exit 0
+
+# Lint only the sources oxlint handles, and only fail on errors: the repo
+# carries pre-existing warnings and CI does not fail on those either.
+lintable=$(printf '%s\n' "$staged" | grep -E '\.(ts|tsx|mts|cts|js|jsx|mjs)$' || true)
+[ -z "$lintable" ] && exit 0
+
+printf '%s\n' "$lintable" | tr '\n' '\0' | xargs -0 "$lint" --quiet || {
+	echo "pre-commit: oxlint reported errors; fix them or commit with --no-verify" >&2
+	exit 1
+}
