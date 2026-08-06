@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { disableManager, enableManager, isAdItem, isEnabled, skipAd } from "./logic.ts";
+import { disableManager, enableManager, injectStyle, isAdItem, isEnabled, skipAd, UPSELL_CSS } from "./logic.ts";
 
 describe("disableManager", () => {
 	it("prefers the client's own disable()", () => {
@@ -92,5 +92,38 @@ describe("skipAd", () => {
 	it("reports failure when the connector is absent", async () => {
 		assert.equal(await skipAd(undefined), false);
 		assert.equal(await skipAd({}), false);
+	});
+});
+
+describe("UPSELL_CSS", () => {
+	it("targets premium links by destination, not by hashed class names", () => {
+		assert.match(UPSELL_CSS, /a\[href\*="\/premium"\]/);
+	});
+
+	it("hides the row as well as the link so no blank menu entry is left", () => {
+		assert.match(UPSELL_CSS, /li:has\(> a\[href\*="\/premium"\]\)/);
+	});
+});
+
+describe("injectStyle", () => {
+	it("replaces a previous copy instead of stacking styles", () => {
+		const nodes: Record<string, { id: string; textContent: string; remove: () => void }> = {};
+		const doc = {
+			getElementById: (id: string) => nodes[id] ?? null,
+			createElement: () => ({ id: "", textContent: "", remove: () => {} }) as never,
+			head: {
+				appendChild: (n: { id: string; textContent: string }) => {
+					nodes[n.id] = { ...n, remove: () => delete nodes[n.id] } as never;
+				},
+			},
+		};
+		(globalThis as { document?: unknown }).document = doc;
+
+		const remove = injectStyle("x", "a{}");
+		injectStyle("x", "b{}");
+		assert.equal(Object.keys(nodes).length, 1, "a second injection must not stack a second tag");
+		remove();
+		assert.deepEqual(Object.keys(nodes), []);
+		delete (globalThis as { document?: unknown }).document;
 	});
 });

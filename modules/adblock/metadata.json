@@ -3,7 +3,7 @@
 	"tags": ["extension"],
 	"version": "0.1.2",
 	"authors": ["spicetify", "rxri", "veryboringhwl"],
-	"description": "Disables Spotify's ad surfaces. Toggle in Settings.",
+	"description": "Skips audio ads and hides ad and upsell surfaces. Toggle in Settings.",
 	"entries": {
 		"js": "index.js"
 	},

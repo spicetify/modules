@@ -104,3 +104,34 @@ export async function skipAd(connector: CoreConnector | undefined): Promise<bool
 		return false;
 	}
 }
+
+/**
+ * CSS that hides Spotify's upgrade prompts.
+ *
+ * Anchored on where a premium link points rather than on class names, which
+ * are hashed and change between builds. The list item is hidden along with the
+ * link so a menu does not keep a blank row where the entry was.
+ *
+ * This hides upsell chrome only. It does not tell the client the account is
+ * premium: the capability keys (`player-license`, `offline`, `audio-quality`)
+ * are separate and still read true, so nothing here offers a feature that
+ * would then fail.
+ */
+export const UPSELL_CSS = `
+	a[href*="/premium"],
+	li:has(> a[href*="/premium"]),
+	.main-topBar-UpgradeButton,
+	[data-testid="upgrade-button"] {
+		display: none !important;
+	}
+`;
+
+/** Installs `css` under `id`, replacing any previous copy. Returns a remover. */
+export function injectStyle(id: string, css: string): () => void {
+	document.getElementById(id)?.remove();
+	const style = document.createElement("style");
+	style.id = id;
+	style.textContent = css;
+	document.head.appendChild(style);
+	return () => document.getElementById(id)?.remove();
+}

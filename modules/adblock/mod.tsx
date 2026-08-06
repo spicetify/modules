@@ -9,9 +9,20 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
-import { AD_MANAGERS, disableManager, enableManager, isAdItem, REMOTE_CONFIG_OVERRIDES, skipAd } from "./logic.ts";
+import {
+	AD_MANAGERS,
+	disableManager,
+	enableManager,
+	injectStyle,
+	isAdItem,
+	REMOTE_CONFIG_OVERRIDES,
+	skipAd,
+	UPSELL_CSS,
+} from "./logic.ts";
 
 const STORAGE_KEY = "adblock:enabled";
+const UPSELL_KEY = "adblock:hideUpsells";
+const UPSELL_STYLE_ID = "spicetify-adblock-upsells";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const { useState } = React;
@@ -75,14 +86,24 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const readEnabled = (): boolean => Spicetify.LocalStorage.get(STORAGE_KEY) !== "false";
 	let enabled = readEnabled();
 
+	let removeUpsellStyle: (() => void) | null = null;
+	let hideUpsells = Spicetify.LocalStorage.get(UPSELL_KEY) !== "false";
+
+	const applyUpsells = (value: boolean) => {
+		removeUpsellStyle?.();
+		removeUpsellStyle = value ? injectStyle(UPSELL_STYLE_ID, UPSELL_CSS) : null;
+	};
+
 	if (enabled) {
 		applyBlocking();
 		startSkipping();
 		void applyRemoteConfig();
 	}
+	applyUpsells(hideUpsells);
 
 	function Settings() {
 		const [on, setOn] = useState(enabled);
+		const [upsells, setUpsells] = useState(hideUpsells);
 		return (
 			<SettingsSection title="Adblock">
 				<SettingsRow label="Block ad surfaces">
@@ -102,6 +123,17 @@ export default async function (ctx: ModuleRuntimeContext) {
 						}}
 					/>
 				</SettingsRow>
+				<SettingsRow label="Hide upsell UI">
+					<Toggle
+						value={upsells}
+						onChange={(value) => {
+							setUpsells(value);
+							hideUpsells = value;
+							Spicetify.LocalStorage.set(UPSELL_KEY, String(value));
+							applyUpsells(value);
+						}}
+					/>
+				</SettingsRow>
 			</SettingsSection>
 		);
 	}
@@ -110,5 +142,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	ctx.defer(() => {
 		restore();
+		removeUpsellStyle?.();
+		removeUpsellStyle = null;
 	});
 }
