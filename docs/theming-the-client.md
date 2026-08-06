@@ -88,6 +88,43 @@ Opacity is the same story in reverse: inactive shuffle/repeat sit at
 `opacity: .3`, which reads fine as white on near-black and disappears as a mid
 tone on a pastel. Raise it rather than recoloring.
 
+## When the token is the bug, not the theme
+
+Before "this theme is missing a color", check whether the component picked a
+token themes actually declare. Coverage across the 14 themes in this repo:
+
+| Token                                          | Declared by                                          |
+| ---------------------------------------------- | ---------------------------------------------------- |
+| `main`                                         | 13/14                                                |
+| `sidebar`, `player`, `button`, `button-active` | 12/14                                                |
+| `text`, `subtext`                              | 11/14                                                |
+| `card`                                         | 10/14                                                |
+| `tab-active`, `misc`                           | 9/14                                                 |
+| `selected-row`, `shadow`                       | 8-9/14                                               |
+| `highlight`                                    | **5/14**                                             |
+| `main-elevated`, `highlight-elevated`          | **4/14**                                             |
+| `card-hover`                                   | **1/14** (not canonical — one theme's own invention) |
+
+Reach for the top of that table. A component styled on `--spice-highlight` is
+broken on nine themes out of fourteen before anyone writes a line of theme CSS,
+and that is the component's bug to fix.
+
+Two rules follow:
+
+- **Prefer the high-coverage token when two are semantically close.** stdlib's
+  chip moved from `highlight` to `card` for exactly this reason — and as a
+  bonus `card` sits further from `main`, which is what a chip on the page
+  background needs for contrast.
+- **Never invent a key.** `card-hover` reads naturally and is declared by
+  precisely one theme, so anything styled on it is unthemed everywhere else.
+  The canonical list is `utils.BaseColorList` in the Go CLI.
+
+The loader backstops the rest: `fillCanonical` (modularLoader `index.ts`)
+derives any canonical key a theme omits from ones it did declare, so an
+undeclared token resolves inside the theme's own palette instead of falling
+back to the dark literal in `var(--spice-card, #202020)`. That is what makes a
+low-coverage token _safe_; it does not make it _right_.
+
 ## Finding them: the CDP recipe
 
 Drive the running client over CDP (see the workspace `AGENTS.md` for the
