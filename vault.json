@@ -3106,6 +3106,12 @@
 					"providers": [],
 					"checksum": "sha256:22b7c9123ea7f21dd34f32acab65501df24978886b0300faeb79840c4ab17734",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.2": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/flow@0.1.2/flow@0.1.2.zip"],
+					"providers": [],
+					"checksum": "sha256:931ca5c9769703bd3938a2f589c8f097b58e522dd01ec3f50f2d22d4133d55bd",
+					"updatedAt": "2026-08-06"
 				}
 			},
 			"metadata": {
