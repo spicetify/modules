@@ -103,7 +103,9 @@ export function createSyncedStorage(playlistUri: string) {
 	return {
 		async getItem(key: string) {
 			const encodedData = await getKey(markKey(key));
-			return decodeURIComponent(encodedData);
+			// decodeURIComponent(null) is the string "null", so a missing key
+			// would read back as truthy text instead of absent.
+			return encodedData === null ? null : decodeURIComponent(encodedData);
 		},
 		async removeItem(key: string) {
 			try {
