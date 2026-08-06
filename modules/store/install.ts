@@ -27,24 +27,36 @@ export type InstalledRecord = {
 	local: boolean;
 };
 
-// Everything installed, from both sources of truth: localStorage records
-// (store installs) plus registry entries the CLI staged into the app bundle.
-// Staged metadata comes from the manifest; the synthesized sidecar carries
-// the running version so version comparisons work uniformly.
+// Everything installed, one record per module, describing the copy that is
+// actually running. The registry's `local` flag is authoritative: a
+// localStorage record the loader shadowed (localWins refused it) is not the
+// running install, so the staged entry represents that module instead —
+// otherwise the shadowed record's version would drive update offers the
+// loader is guaranteed to refuse. Staged metadata comes from the manifest;
+// the synthesized sidecar carries the running version so comparisons work
+// uniformly.
 export function installedRecords(): InstalledRecord[] {
-	const locals = localRecords().map((record) => ({ ...record, local: true }));
-	const have = new Set(locals.map((record) => record.metadata.identifier));
+	const states = (M().list?.() ?? []) as Array<{ identifier: string; version: string; local: boolean }>;
+	const stateById = new Map(states.map((state) => [state.identifier, state]));
 	const metaById = new Map<string, any>(
 		((M().manifest?.modules ?? []) as Array<{ identifier: string }>).map((m) => [m.identifier, m]),
 	);
-	const staged = ((M().list?.() ?? []) as Array<{ identifier: string; version: string; local: boolean }>)
-		.filter((state) => !state.local && !have.has(state.identifier))
-		.map((state) => ({
+	const out: InstalledRecord[] = [];
+	for (const record of localRecords()) {
+		const state = stateById.get(record.metadata.identifier);
+		if (state && !state.local) continue;
+		out.push({ ...record, local: true });
+	}
+	const have = new Set(out.map((record) => record.metadata.identifier));
+	for (const state of states) {
+		if (state.local || have.has(state.identifier)) continue;
+		out.push({
 			metadata: metaById.get(state.identifier) ?? { identifier: state.identifier, version: state.version },
 			sidecar: { installed_version: state.version },
 			local: false,
-		}));
-	return [...locals, ...staged];
+		});
+	}
+	return out;
 }
 
 export function tagsOfInstalled(id: string): string[] {

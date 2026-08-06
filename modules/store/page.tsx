@@ -36,6 +36,7 @@ import { fetchInstallCounts, installCounts } from "./counter.ts";
 import {
 	enforceSingleTheme,
 	forgetActiveThemeIfRemoved,
+	type InstalledRecord,
 	installedRecords,
 	installModule,
 	localRecords,
@@ -635,8 +636,6 @@ function CatalogCard(props: {
 		</article>
 	);
 }
-
-type InstalledRecord = ReturnType<typeof installedRecords>[number];
 
 // Themes are exclusive (enforceSingleTheme), so the one active theme gets
 // a persistent full-width bar above the results instead of hiding its
