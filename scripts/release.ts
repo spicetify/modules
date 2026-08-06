@@ -226,19 +226,25 @@ function pendingJson(): void {
 	console.log(JSON.stringify(ordered));
 }
 
+// Writes metadata.json in the repo's JSON style when the formatter is
+// available. JSON.stringify expands every array onto its own lines, so an
+// unformatted write shows up as a whole-file diff.
+function writeMetadata(metaPath: string, meta: unknown): void {
+	writeFileSync(metaPath, `${JSON.stringify(meta, null, "\t")}\n`);
+	try {
+		execFileSync(path.join(process.cwd(), "node_modules", ".bin", "oxfmt"), [metaPath], { stdio: "ignore" });
+	} catch {
+		console.warn("warning: oxfmt unavailable; metadata.json left in JSON.stringify formatting");
+	}
+}
+
 function bump(id: string, level: Level): void {
 	const metaPath = path.join(moduleDir(id), "metadata.json");
 	const meta = JSON.parse(readFileSync(metaPath, "utf8"));
 	if (!meta.version) throw new Error(`${metaPath} has no version`);
 	const next = bumpVersion(meta.version, level);
 	meta.version = next;
-	writeFileSync(metaPath, `${JSON.stringify(meta, null, "\t")}\n`);
-	// Match the repo's JSON style when the formatter is available.
-	try {
-		execFileSync(path.join(process.cwd(), "node_modules", ".bin", "oxfmt"), [metaPath], { stdio: "ignore" });
-	} catch {
-		console.warn("warning: oxfmt unavailable; metadata.json left in JSON.stringify formatting");
-	}
+	writeMetadata(metaPath, meta);
 	console.log(`${id}: bumped to ${next}`);
 }
 
@@ -318,7 +324,12 @@ function autobump(apply: boolean): string[] {
 		console.log(`${id}: ${meta.version} -> ${next} (${entry.level}, ${entry.reason})`);
 		if (apply) {
 			bump(id, entry.level);
-			bumped.set(readMetadata(id).name ?? id, next);
+			// Only a minor or major belongs here, for the same reason it is the
+			// only thing that cascades: a caret range already admits its
+			// dependency's patches, so rewriting on a patch churns every
+			// dependent and leaves it "changed since its tag", which demands a
+			// bump of the whole graph on the next run.
+			if (entry.level !== "patch") bumped.set(readMetadata(id).name ?? id, next);
 		}
 	}
 
@@ -337,7 +348,7 @@ function autobump(apply: boolean): string[] {
 				}
 			}
 			if (changed) {
-				writeFileSync(metaPath, `${JSON.stringify(meta, null, "\t")}\n`);
+				writeMetadata(metaPath, meta);
 				console.log(`${dir}: ranges -> ${JSON.stringify(meta.dependencies)}`);
 			}
 		}

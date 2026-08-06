@@ -189,12 +189,22 @@ describe("autobump", () => {
 		git("add", "-A");
 		git("commit", "-m", "fix(zeta): correct the export");
 
-		const out = run("autobump", "--dry-run");
+		const out = run("autobump");
 		assert.match(out, /zeta: .* \(patch, own changes\)/);
 		assert.doesNotMatch(out, /alpha:/, "a caret range already admits its dependency's patches");
+
+		const alpha = JSON.parse(readFileSync(path.join(repo, "modules", "alpha", "metadata.json"), "utf8"));
+		assert.equal(alpha.version, "1.0.1", "a dependency patch must not bump the dependent");
+		assert.equal(
+			alpha.dependencies["zeta-name"],
+			"^1.1.0",
+			"a dependency patch must not rewrite the dependent's range either, or every dependent " +
+				"reads as changed and the next run republishes the whole graph",
+		);
 	});
 
 	it("honours a Release-As: none trailer", () => {
+		publish("zeta", "zeta-name");
 		writeFileSync(path.join(repo, "modules", "zeta", "code.ts"), "export const added = 3;\n");
 		git("add", "-A");
 		git("commit", "-m", "fix(zeta): internal only\n\nRelease-As: none");
