@@ -24,7 +24,7 @@
 
 .spicetify-manager-cta {
 	padding: 6px 16px;
-	border: 1px solid rgba(255, 255, 255, 0.25);
+	border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
 	border-radius: 999px;
 	background: transparent;
 	color: var(--spice-text, #fff);
@@ -90,7 +90,7 @@
 		font-size: 13px;
 
 		code {
-			background: rgba(255, 255, 255, 0.08);
+			background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.08);
 			border-radius: 4px;
 			padding: 1px 5px;
 		}
@@ -127,7 +127,7 @@
 		}
 
 		&__failure {
-			color: #ff6b76;
+			color: var(--spice-text, #ff6b76);
 		}
 
 		&__actions {
@@ -137,7 +137,7 @@
 
 			button {
 				padding: 4px 14px;
-				border: 1px solid rgba(255, 255, 255, 0.25);
+				border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
 				border-radius: 999px;
 				background: transparent;
 				color: var(--spice-text, #fff);
@@ -170,19 +170,19 @@
 	.spicetify-manager-badge {
 		padding: 2px 8px;
 		border-radius: 999px;
-		background: rgba(255, 255, 255, 0.08);
+		background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
 		color: var(--spice-subtext, #a7a7a7);
 		font-size: 11px;
 		white-space: nowrap;
 
 		&--ok {
-			background: rgba(30, 215, 96, 0.12);
-			color: var(--spice-button, #1ed760);
+			background: rgba(var(--spice-rgb-button, 30, 215, 96), 0.16);
+			color: var(--spice-text, #1ed760);
 		}
 
 		&--bad {
-			background: rgba(255, 65, 81, 0.15);
-			color: #ff6b76;
+			background: rgba(var(--spice-rgb-notification-error, 255, 65, 81), 0.18);
+			color: var(--spice-text, #ff6b76);
 		}
 	}
 
@@ -193,7 +193,7 @@
 
 		button {
 			padding: 4px 14px;
-			border: 1px solid rgba(255, 255, 255, 0.25);
+			border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
 			border-radius: 999px;
 			background: transparent;
 			color: var(--spice-text, #fff);
@@ -234,7 +234,7 @@
 		}
 
 		&--error {
-			color: #ff6b76;
+			color: var(--spice-text, #ff6b76);
 		}
 	}
 
@@ -276,7 +276,7 @@
 	// copy-command buttons fall back to the washed-out browser default.
 	button {
 		padding: 4px 14px;
-		border: 1px solid rgba(255, 255, 255, 0.25);
+		border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
 		border-radius: 999px;
 		background: transparent;
 		color: var(--spice-text, #fff);
@@ -290,7 +290,7 @@
 		}
 
 		&:active {
-			background: rgba(255, 255, 255, 0.06);
+			background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.06);
 		}
 	}
 }

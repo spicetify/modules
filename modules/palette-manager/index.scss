@@ -13,9 +13,9 @@
 	--background-elevated-base: var(--spice-main-elevated);
 	--background-elevated-highlight: var(--spice-highlight-elevated);
 	--background-elevated-press: var(--spice-highlight-elevated);
-	--background-tinted-base: rgba(255, 255, 255, 0.07);
-	--background-tinted-highlight: rgba(255, 255, 255, 0.1);
-	--background-tinted-press: rgba(255, 255, 255, 0.04);
+	--background-tinted-base: rgba(var(--spice-rgb-text, 255, 255, 255), 0.07);
+	--background-tinted-highlight: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
+	--background-tinted-press: rgba(var(--spice-rgb-text, 255, 255, 255), 0.04);
 	--text-base: var(--spice-text);
 	--text-subdued: var(--spice-subtext);
 	--text-bright-accent: var(--spice-button);
@@ -91,7 +91,7 @@
 		gap: 2px;
 		margin-top: 4px;
 		padding-top: 4px;
-		border-top: 1px solid rgba(255, 255, 255, 0.08);
+		border-top: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.08);
 	}
 
 	.palette-scheme-heading {
@@ -123,14 +123,14 @@
 		}
 
 		&:hover {
-			background: rgba(255, 255, 255, 0.07);
+			background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.07);
 		}
 
 		&--active {
-			background: rgba(255, 255, 255, 0.1);
+			background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
 
 			&:hover {
-				background: rgba(255, 255, 255, 0.12);
+				background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.12);
 			}
 		}
 	}
@@ -209,7 +209,7 @@
 
 		> button {
 			background: transparent;
-			border: 1px solid rgba(255, 255, 255, 0.25);
+			border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
 			height: 32px;
 			border-radius: 999px;
 			padding: 0px 14px;

@@ -46,7 +46,7 @@
 	cursor: pointer;
 
 	&:hover {
-		background: rgba(255, 255, 255, 0.1);
+		background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
 	}
 }
 
@@ -65,7 +65,7 @@
 	cursor: pointer;
 
 	&:hover {
-		background: rgba(255, 255, 255, 0.08);
+		background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.08);
 	}
 
 	.main-playButton-PlayButton {
@@ -144,7 +144,7 @@
 	padding: 8px;
 
 	&:hover {
-		background-color: rgba(255, 255, 255, 0.1);
+		background-color: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
 		color: var(--spice-text, #fff);
 	}
 }

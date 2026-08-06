@@ -95,7 +95,7 @@
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 
 	&--empty {
-		background: var(--spice-highlight-elevated, rgba(255, 255, 255, 0.1));
+		background: var(--spice-highlight-elevated, rgba(var(--spice-rgb-text, 255, 255, 255), 0.1));
 	}
 }
 
