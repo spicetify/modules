@@ -23,6 +23,7 @@ import type * as ReactExpose from "/modules/stdlib/src/expose/React.ts";
 import {
 	type Catalog,
 	categoryOf,
+	compareVersions,
 	deriveRepository,
 	displayName,
 	displayVersion,
@@ -39,7 +40,7 @@ import {
 	installModule,
 	localRecords,
 } from "./install.ts";
-import { M, openDialogClosers, PLATFORM, setOnCountsChanged } from "./runtime.ts";
+import { M, openDialogClosers, PLATFORM, setOnCountsChanged, toast } from "./runtime.ts";
 import { pendingUpdates } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
@@ -279,6 +280,8 @@ function ModuleDetails(props: {
 	mod: VaultModule;
 	installLabel: string;
 	installDisabled: boolean;
+	canActivate: boolean;
+	onActivate: () => Promise<void>;
 	onInstall: () => Promise<void>;
 	onClose: () => void;
 }): ReactElement {
@@ -344,6 +347,22 @@ function ModuleDetails(props: {
 			) : null}
 			{mod.meta?.description && <p className="spicetify-store-detail-desc">{mod.meta.description}</p>}
 			<div className="spicetify-store-card-actions">
+				{/* Activating closes the dialog: the point is seeing the theme
+				    take over the client behind it. */}
+				{props.canActivate && (
+					<Button
+						disabled={busy}
+						onClick={() => {
+							setBusy(true);
+							void props
+								.onActivate()
+								.finally(() => setBusy(false))
+								.then(() => props.onClose());
+						}}
+					>
+						Activate
+					</Button>
+				)}
 				<Button
 					disabled={busy || props.installDisabled}
 					onClick={() => {
@@ -467,6 +486,38 @@ function installCta(mod: VaultModule, installedVersion: string | undefined): str
 	return installedVersion === undefined ? "Install" : installedVersion === mod.version ? "Reinstall" : "Update";
 }
 
+// One resolution of a card's install state, shared by the catalog card and
+// the details dialog so their actions can never disagree.
+//
+// "Current" differs by source: a local record converges on whatever the
+// vault says, so only an exact match is current; a CLI-staged install can
+// only be overridden by a strictly newer local copy (the loader's localWins
+// rule), so anything the vault cannot better counts as current.
+//
+// Priority: an installed, inactive theme activates (themes switch from the
+// gallery, marketplace-style); an active/current local install removes; a
+// current CLI install is an inert tell; everything else installs/updates.
+function installState(mod: VaultModule, installedVersion: string | undefined, localInstall: boolean, enabled: boolean) {
+	const current =
+		installedVersion !== undefined &&
+		(localInstall ? installedVersion === mod.version : compareVersions(mod.version, installedVersion) <= 0);
+	const canActivate = current && (mod.meta?.tags ?? []).includes("theme") && !enabled;
+	const canRemove = current && !canActivate && localInstall && !PROTECTED.has(mod.id);
+	// stagedCurrent gates the install action everywhere (a reinstall would
+	// be shadowed); cliCurrent is the FAB's inert tell, which activation
+	// outranks.
+	const stagedCurrent = current && !localInstall;
+	const cliCurrent = stagedCurrent && !canActivate;
+	const cta = canActivate
+		? "Activate"
+		: canRemove
+			? "Remove"
+			: cliCurrent
+				? "Installed via CLI"
+				: installCta(mod, installedVersion);
+	return { canActivate, canRemove, cliCurrent, stagedCurrent, cta };
+}
+
 // ---------- cards ----------
 
 function CatalogCard(props: {
@@ -477,6 +528,7 @@ function CatalogCard(props: {
 	onOpenDetails: () => void;
 	onInstall: () => Promise<void>;
 	onRemove: () => Promise<void>;
+	onActivate: () => Promise<void>;
 }): ReactElement {
 	const { mod } = props;
 	const [busy, setBusy] = React.useState(false);
@@ -484,17 +536,15 @@ function CatalogCard(props: {
 	// Hover-revealed circular button pinned to the card's bottom-right
 	// corner: the album-card play FAB, white with a glyph instead of green
 	// with a play triangle. The glyph is a download while there is
-	// something to fetch (not installed, or an update pending); an
-	// installed, current module gets a trash glyph instead, so the corner
-	// action is removal.
-	const current = props.installedVersion !== undefined && props.installedVersion === mod.version;
-	const canRemove = current && props.localInstall && !PROTECTED.has(mod.id);
-	// Current but CLI-staged: there is no localStorage record to remove, and
-	// a store reinstall would only write a copy the loader shadows (localWins
-	// needs strictly newer), so the FAB becomes an inert installed tell.
-	// A newer vault version still offers Update, which does win.
-	const cliCurrent = current && !props.localInstall;
-	const cta = canRemove ? "Remove" : cliCurrent ? "Installed via CLI" : installCta(mod, props.installedVersion);
+	// something to fetch, a brush when an installed theme can be activated,
+	// a trash can when the corner action is removal, and an inert check for
+	// a current CLI-staged install (see installState).
+	const { canActivate, canRemove, cliCurrent, cta } = installState(
+		mod,
+		props.installedVersion,
+		props.localInstall,
+		props.enabled,
+	);
 	const repo = deriveRepository(mod);
 	const count = installCounts[mod.id];
 	// The category (snippet/theme/extension/app) is the one badge worth
@@ -537,15 +587,26 @@ function CatalogCard(props: {
 					cliCurrent ? " spicetify-store-card-fab--installed" : ""
 				}`}
 				title={cliCurrent ? "Installed via the CLI (spicetify pkg)" : cta}
-				aria-label={`${cta} ${displayName(mod)}`}
-				disabled={busy || cliCurrent}
+				aria-label={cliCurrent ? `${displayName(mod)} installed via the CLI` : `${cta} ${displayName(mod)}`}
+				aria-disabled={cliCurrent || undefined}
+				disabled={busy}
 				onClick={(event) => {
+					// The inert installed tell has no action of its own; letting
+					// the click bubble keeps the corner opening details instead
+					// of being a dead zone.
+					if (cliCurrent) return;
 					event.stopPropagation();
 					setBusy(true);
-					void (canRemove ? props.onRemove() : props.onInstall()).finally(() => setBusy(false));
+					void (canActivate ? props.onActivate() : canRemove ? props.onRemove() : props.onInstall()).finally(
+						() => setBusy(false),
+					);
 				}}
 			>
-				<GlyphIcon paths={canRemove ? TRASH_PATHS : cliCurrent ? CHECK_PATHS : DOWNLOAD_PATHS} />
+				<GlyphIcon
+					paths={
+						canActivate ? BRUSH_PATHS : canRemove ? TRASH_PATHS : cliCurrent ? CHECK_PATHS : DOWNLOAD_PATHS
+					}
+				/>
 			</button>
 			<h3 className="spicetify-store-card-name">
 				{repo ? (
@@ -708,7 +769,7 @@ function InstalledCard(props: {
 // ---------- page component ----------
 
 type Overlay =
-	| { kind: "details"; mod: VaultModule; installLabel: string; installDisabled: boolean }
+	| { kind: "details"; mod: VaultModule; installLabel: string; installDisabled: boolean; canActivate: boolean }
 	| { kind: "snippet"; existing: { id: string; name: string; css: string } | null };
 
 // The bridge between the imperative page contract (ensureLoaded on every
@@ -874,6 +935,23 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		}
 	};
 
+	// Theme switching from the gallery: enabling loads the theme (the
+	// loader unloads the previous one first, so there is no overlap) and
+	// the single-theme sweep catches anything the registry missed. Toasts,
+	// not the inline status line, because activation also runs from the
+	// details dialog, which covers the status line.
+	const runActivate = async (mod: VaultModule) => {
+		try {
+			await M().enable(mod.id);
+			await enforceSingleTheme(mod.id, setStatus);
+			toast(`${displayName(mod)} is now the active theme`, "success");
+		} catch (e) {
+			toast(`Failed to activate ${displayName(mod)}: ${(e as Error).message}`, "error");
+		} finally {
+			refreshRegistry();
+		}
+	};
+
 	const runRemove = async (mod: VaultModule) => {
 		try {
 			await M().removeLocal(mod.id);
@@ -900,13 +978,18 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	};
 
 	const openDetails = (mod: VaultModule) => {
-		const version = installedVersions.get(mod.id);
-		const cliCurrent = version !== undefined && version === mod.version && !localIds.has(mod.id);
+		const state = installState(
+			mod,
+			installedVersions.get(mod.id),
+			localIds.has(mod.id),
+			!!(states.get(mod.id) as { loaded?: boolean } | undefined)?.loaded,
+		);
 		setOverlay({
 			kind: "details",
 			mod,
-			installLabel: cliCurrent ? "Installed via CLI" : installCta(mod, version),
-			installDisabled: cliCurrent,
+			installLabel: state.stagedCurrent ? "Installed via CLI" : installCta(mod, installedVersions.get(mod.id)),
+			installDisabled: state.stagedCurrent,
+			canActivate: state.canActivate,
 		});
 	};
 
@@ -1041,6 +1124,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						onOpenDetails={() => openDetails(mod)}
 						onInstall={() => runInstall(mod)}
 						onRemove={() => runRemove(mod)}
+						onActivate={() => runActivate(mod)}
 					/>
 				))}
 				{visible.length === 0 && (
@@ -1094,6 +1178,8 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					mod={overlay.mod}
 					installLabel={overlay.installLabel}
 					installDisabled={overlay.installDisabled}
+					canActivate={overlay.canActivate}
+					onActivate={() => runActivate(overlay.mod)}
 					onInstall={() => runInstall(overlay.mod)}
 					onClose={() => setOverlay(null)}
 				/>
@@ -1190,6 +1276,12 @@ function GlyphIcon(props: { paths: string[] }): ReactElement {
 const DOWNLOAD_PATHS = [
 	"M12 3a1 1 0 0 1 1 1v7.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 1 1 1.4-1.4l2.3 2.3V4a1 1 0 0 1 1-1z",
 	"M5 15a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z",
+];
+
+// Paintbrush: activate an installed theme.
+const BRUSH_PATHS = [
+	"M20.8 3.2a2.3 2.3 0 0 0-3.3 0L10 10.7l3.3 3.3 7.5-7.5a2.3 2.3 0 0 0 0-3.3z",
+	"M9 12a4 4 0 0 0-4 4c0 1.2-.6 2.1-1.6 2.7-.4.2-.4.8 0 1 1.6.8 3.6 1.2 5.3.6a5 5 0 0 0 3.3-4.3L9 12z",
 ];
 
 // Checkmark: installed and current via the CLI, nothing for the store to do.

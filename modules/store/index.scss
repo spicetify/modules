@@ -287,6 +287,16 @@
 				transform: scale(1.06);
 			}
 
+			// CLI-installed and current: an inert check. The :disabled
+			// visibility below is for mid-install only; this state is
+			// permanent, so it stays hover-revealed like the other glyphs
+			// instead of sitting over the artwork at rest. Before the
+			// :focus-visible and :disabled rules so both win the tie.
+			&.spicetify-store-card-fab--installed {
+				opacity: 0;
+				transform: translateY(8px);
+			}
+
 			&:focus-visible {
 				opacity: 1;
 				transform: translateY(0);
@@ -303,15 +313,6 @@
 			// so the glyph turns negative-red as the destructive tell.
 			&.spicetify-store-card-fab--remove {
 				color: var(--spice-negative, #e91429);
-			}
-
-			// CLI-installed and current: an inert check. The :disabled
-			// visibility above is for mid-install only; this state is
-			// permanent, so it stays hover-revealed like the other glyphs
-			// instead of sitting over the artwork at rest.
-			&.spicetify-store-card-fab--installed {
-				opacity: 0;
-				transform: translateY(8px);
 			}
 		}
 
