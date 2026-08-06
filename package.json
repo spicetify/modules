@@ -1,27 +1,28 @@
 {
-  "name": "spicetify-modules",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "stitch": "node scripts/stitch.ts",
-    "check": "tsc && oxlint && node scripts/check-deps.ts",
-    "test": "node --test 'modules/**/*.test.mts' 'scripts/*.test.mts'",
-    "lint": "oxlint",
-    "lint:fix": "oxlint --fix",
-    "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
-  },
-  "devDependencies": {
-    "@types/node": "^26.1.1",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "happy-dom": "^20.11.1",
-    "oxfmt": "^0.60.0",
-    "oxlint": "^1.75.0",
-    "rolldown": "^1.2.0",
-    "rxjs": "^7.8.2",
-    "sass-embedded": "^1.80.0",
-    "typescript": "^7.0.2"
-  },
-  "packageManager": "pnpm@10.0.0"
+	"name": "spicetify-modules",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"stitch": "node scripts/stitch.ts",
+		"check": "tsc && oxlint && node scripts/check-deps.ts",
+		"test": "node --test 'modules/**/*.test.mts' 'scripts/*.test.mts'",
+		"lint": "oxlint",
+		"lint:fix": "oxlint --fix",
+		"fmt": "oxfmt",
+		"fmt:check": "oxfmt --check",
+		"prepare": "git config core.hooksPath .githooks || true"
+	},
+	"devDependencies": {
+		"@types/node": "^26.1.1",
+		"@types/react": "^18",
+		"@types/react-dom": "^18",
+		"happy-dom": "^20.11.1",
+		"oxfmt": "^0.60.0",
+		"oxlint": "^1.75.0",
+		"rolldown": "^1.2.0",
+		"rxjs": "^7.8.2",
+		"sass-embedded": "^1.80.0",
+		"typescript": "^7.0.2"
+	},
+	"packageManager": "pnpm@10.0.0"
 }

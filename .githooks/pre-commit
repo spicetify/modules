@@ -1,0 +1,27 @@
+#!/bin/sh
+# Formats staged files with oxfmt and re-stages them, so a commit can never
+# fail CI's format job. `nub run check` is tsc plus oxlint and does not
+# format, which is exactly how unformatted code reached main before.
+#
+# Caveat: a file staged only in part gets its unstaged changes staged too,
+# because the formatter rewrites the whole working file. Commit partial
+# hunks with --no-verify and format by hand.
+set -e
+
+fmt=./node_modules/.bin/oxfmt
+[ -x "$fmt" ] || exit 0
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR -z | tr '\0' '\n' |
+	grep -E '\.(ts|tsx|mts|cts|js|jsx|mjs|json|scss)$' || true)
+[ -z "$staged" ] && exit 0
+
+# oxfmt exits non-zero when every path it was given is ignored (.oxfmtrc),
+# which is a normal commit, not a failure. Anything else is real.
+out=$(printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 "$fmt" 2>&1) || {
+	case "$out" in
+	*"Expected at least one target file"*) exit 0 ;;
+	*) printf '%s\n' "$out" >&2; exit 1 ;;
+	esac
+}
+
+printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 git add
