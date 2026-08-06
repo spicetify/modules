@@ -9,7 +9,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, before, describe, it } from "node:test";
@@ -123,5 +123,81 @@ describe("fixture repo", () => {
 		const notes = run(NOTES, "zeta-name@1.0.0");
 		assert.match(notes, /branch change inside zeta/);
 		assert.doesNotMatch(notes, /Merge pull request/);
+	});
+});
+
+// Its own fixture: autobump mutates versions, tags and the vault, so it must
+// not share a repo with tests that assert on a pristine one.
+describe("autobump", () => {
+	let repo: string;
+	const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
+	const git = (...args: string[]) => execFileSync("git", args, { cwd: repo, env, encoding: "utf8" }).trim();
+	const run = (...args: string[]) => execFileSync("node", [RELEASE, ...args], { cwd: repo, env, encoding: "utf8" });
+	const writeModule = (dir: string, meta: Record<string, unknown>) => {
+		mkdirSync(path.join(repo, "modules", dir), { recursive: true });
+		writeFileSync(path.join(repo, "modules", dir, "metadata.json"), JSON.stringify(meta, null, "\t"));
+	};
+	const publish = (dir: string, name: string) => {
+		const version = JSON.parse(readFileSync(path.join(repo, "modules", dir, "metadata.json"), "utf8")).version;
+		const vault = JSON.parse(readFileSync(path.join(repo, "vault.json"), "utf8"));
+		vault.modules[name] = { v: { ...vault.modules[name]?.v, [version]: {} } };
+		writeFileSync(path.join(repo, "vault.json"), JSON.stringify(vault));
+		git("add", "-A");
+		git("commit", "-m", `chore: publish ${name}@${version}`);
+		git("tag", `${name}@${version}`);
+	};
+
+	before(() => {
+		repo = mkdtempSync(path.join(tmpdir(), "autobump-fixture-"));
+		git("init", "-b", "main");
+		git("config", "user.email", "test@example.com");
+		git("config", "user.name", "test");
+		git("config", "commit.gpgsign", "false");
+		git("config", "tag.gpgsign", "false");
+		writeModule("zeta", { name: "zeta-name", version: "1.0.0" });
+		writeModule("alpha", { name: "alpha", version: "1.0.0", dependencies: { "zeta-name": "^1.0.0" } });
+		writeFileSync(path.join(repo, "vault.json"), JSON.stringify({ modules: {} }));
+		git("add", "-A");
+		git("commit", "-m", "feat: initial modules");
+		publish("zeta", "zeta-name");
+		publish("alpha", "alpha");
+	});
+
+	after(() => rmSync(repo, { recursive: true, force: true }));
+
+	it("derives the level from conventional commits and moves dependents' ranges", () => {
+		writeFileSync(path.join(repo, "modules", "zeta", "code.ts"), "export const added = 1;\n");
+		git("add", "-A");
+		git("commit", "-m", "feat(zeta): add an export");
+
+		const out = run("autobump");
+		assert.match(out, /zeta: 1\.0\.0 -> 1\.1\.0 \(minor, own changes\)/, "feat implies minor");
+		assert.match(out, /alpha: 1\.0\.0 -> 1\.0\.1 \(patch, dependency bumped\)/);
+
+		const alpha = JSON.parse(readFileSync(path.join(repo, "modules", "alpha", "metadata.json"), "utf8"));
+		assert.equal(
+			alpha.dependencies["zeta-name"],
+			"^1.1.0",
+			"a dependent must not ship against a range its new dependency export predates",
+		);
+	});
+
+	it("does not cascade a dependency patch to its dependents", () => {
+		publish("zeta", "zeta-name");
+		publish("alpha", "alpha");
+		writeFileSync(path.join(repo, "modules", "zeta", "code.ts"), "export const added = 2;\n");
+		git("add", "-A");
+		git("commit", "-m", "fix(zeta): correct the export");
+
+		const out = run("autobump", "--dry-run");
+		assert.match(out, /zeta: .* \(patch, own changes\)/);
+		assert.doesNotMatch(out, /alpha:/, "a caret range already admits its dependency's patches");
+	});
+
+	it("honours a Release-As: none trailer", () => {
+		writeFileSync(path.join(repo, "modules", "zeta", "code.ts"), "export const added = 3;\n");
+		git("add", "-A");
+		git("commit", "-m", "fix(zeta): internal only\n\nRelease-As: none");
+		assert.match(run("autobump", "--dry-run"), /zeta: skipped \(Release-As: none\)/);
 	});
 });

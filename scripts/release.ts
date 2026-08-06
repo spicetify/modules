@@ -15,6 +15,7 @@
  *   node scripts/release.ts status --summary [--soft]  # job-summary markdown
  *   node scripts/release.ts pending             # topo-ordered unpublished, JSON
  *   node scripts/release.ts bump <id> [major|minor|patch]
+ *   node scripts/release.ts autobump [--dry-run]  # bump + propagate ranges
  *   node scripts/release.ts tag [--push]        # tag every unpublished version
  */
 
@@ -241,6 +242,110 @@ function bump(id: string, level: Level): void {
 	console.log(`${id}: bumped to ${next}`);
 }
 
+// A module opts out of an automatic bump with this trailer in any commit
+// that touched it, so work can land on main without shipping.
+const SKIP_TRAILER = /^Release-As:\s*none$/im;
+
+function skipsRelease(id: string, since: string | null): boolean {
+	if (!since) return false;
+	const bodies = git(["log", `${since}..HEAD`, "--format=%B", "--", moduleDir(id)]);
+	return SKIP_TRAILER.test(bodies);
+}
+
+function rangeFor(version: string): string {
+	return `^${version}`;
+}
+
+/**
+ * Writes the bump each changed module already implies, then propagates it:
+ * a dependent of a bumped module has its range moved to the new version and
+ * is itself bumped, so it can never ship against an installed dependency
+ * that predates the export it uses. Without that second half an automatic
+ * bump makes the silent-undefined failure MORE likely, not less.
+ *
+ * Returns the modules it changed, dependency-first.
+ */
+function autobump(apply: boolean): string[] {
+	const { states, malformed } = analyze();
+	if (malformed.length) throw new Error(malformed.join("\n"));
+
+	const bumped = new Map<string, string>(); // dir id -> new version
+	const plan: Array<{ id: string; level: Level; reason: string }> = [];
+
+	for (const state of states.filter((s) => s.kind === "needs-bump")) {
+		const baseline = git(["tag", "--list", state.tag]) ? state.tag : lastModuleTag(state.tag.split("@")[0]);
+		if (skipsRelease(state.id, baseline)) {
+			console.log(`${state.id}: skipped (Release-As: none)`);
+			continue;
+		}
+		plan.push({ id: state.id, level: suggestLevel(state.id, baseline), reason: "own changes" });
+	}
+
+	// Propagate to a fixpoint: a dependent bumped in one pass can itself be
+	// the dependency of another module.
+	const dirIds = moduleIds();
+	const dirByName = new Map(dirIds.map((dir) => [readMetadata(dir).name ?? dir, dir]));
+	const planned = new Set(plan.map((p) => p.id));
+	for (let pass = 0; pass < dirIds.length; pass++) {
+		let added = false;
+		for (const dir of dirIds) {
+			if (planned.has(dir)) continue;
+			const deps = readMetadata(dir).dependencies ?? {};
+			// Only a minor or major moves a dependent. A caret range already
+			// admits its dependency's patches, and a patch adds no export a
+			// dependent could be reaching for, so cascading there would
+			// republish the whole graph for nothing.
+			const touched = Object.keys(deps).some((dep) => {
+				const depDir = dirByName.get(dep);
+				if (!depDir) return false;
+				const depPlan = plan.find((p) => p.id === depDir);
+				return depPlan ? depPlan.level !== "patch" : false;
+			});
+			if (touched) {
+				plan.push({ id: dir, level: "patch", reason: "dependency bumped" });
+				planned.add(dir);
+				added = true;
+			}
+		}
+		if (!added) break;
+	}
+
+	const ordered = topoOrder(plan.map((p) => p.id));
+	for (const id of ordered) {
+		const entry = plan.find((p) => p.id === id)!;
+		const meta = readMetadata(id);
+		const next = bumpVersion(meta.version!, entry.level);
+		console.log(`${id}: ${meta.version} -> ${next} (${entry.level}, ${entry.reason})`);
+		if (apply) {
+			bump(id, entry.level);
+			bumped.set(readMetadata(id).name ?? id, next);
+		}
+	}
+
+	// Move every declared range onto the versions just published, including
+	// for modules that were not themselves bumped.
+	if (apply) {
+		for (const dir of dirIds) {
+			const metaPath = path.join(moduleDir(dir), "metadata.json");
+			const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+			let changed = false;
+			for (const [dep, range] of Object.entries(meta.dependencies ?? {})) {
+				const newVersion = bumped.get(dep);
+				if (newVersion && range !== rangeFor(newVersion)) {
+					meta.dependencies[dep] = rangeFor(newVersion);
+					changed = true;
+				}
+			}
+			if (changed) {
+				writeFileSync(metaPath, `${JSON.stringify(meta, null, "\t")}\n`);
+				console.log(`${dir}: ranges -> ${JSON.stringify(meta.dependencies)}`);
+			}
+		}
+	}
+
+	return ordered;
+}
+
 // Dependency-first order over module DIRECTORY ids (dependency maps
 // key by metadata name, which may differ), so a batch of pushed tags
 // publishes stdlib before its dependents and the vault never lists a
@@ -380,11 +485,15 @@ function dispatch(): void {
 		const [id, level = "patch"] = rest;
 		if (!id || !LEVELS.includes(level as Level)) throw new Error("usage: release.ts bump <id> [major|minor|patch]");
 		bump(id, level as Level);
+	} else if (cmd === "autobump") {
+		// --dry-run prints the plan without touching metadata, so the same
+		// code path can gate a PR and perform the release.
+		autobump(!rest.includes("--dry-run"));
 	} else if (cmd === "tag") {
 		tag(rest.includes("--push"));
 	} else {
 		throw new Error(
-			"usage: release.ts status [--summary] [--soft] | pending | bump <id> [major|minor|patch] | tag [--push]",
+			"usage: release.ts status [--summary] [--soft] | pending | bump <id> [major|minor|patch] | autobump [--dry-run] | tag [--push]",
 		);
 	}
 }
