@@ -1,14 +1,19 @@
 {
 	"name": "adblock",
-	"tags": ["extension"],
+	"tags": [
+		"extension"
+	],
 	"version": "0.1.0",
-	"authors": ["veryboringhwl", "spicetify"],
+	"authors": [
+		"veryboringhwl",
+		"spicetify"
+	],
 	"description": "Disables Spotify's ad surfaces. Toggle in Settings.",
 	"entries": {
 		"js": "index.js"
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.1.0"
+		"stdlib": "^1.2.0"
 	}
 }

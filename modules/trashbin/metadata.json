@@ -1,8 +1,12 @@
 {
 	"name": "trashbin",
-	"tags": ["extension"],
-	"version": "0.1.1",
-	"authors": ["spicetify"],
+	"tags": [
+		"extension"
+	],
+	"version": "0.2.0",
+	"authors": [
+		"spicetify"
+	],
 	"description": "Throw songs and artists in the trashbin and never hear them again.",
 	"entries": {
 		"js": "index.js",
@@ -10,7 +14,7 @@
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.0.0"
+		"stdlib": "^1.2.0"
 	},
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
 }
