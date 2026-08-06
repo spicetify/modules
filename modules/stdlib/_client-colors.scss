@@ -1,0 +1,105 @@
+/* Client colour bridge.
+ *
+ * The v2 CLI ran a `replaceColors` pass over Spotify's own stylesheets at
+ * apply time, rewriting the literals baked into them into --spice-*
+ * variables. v3 themes are standalone modules and get no such pass, so
+ * every place the client hardcodes a colour still renders as shipped:
+ * built for a near-black backdrop. On a dark theme that is invisible; on a
+ * light one it is white glyphs on cream and black scrims over pastel.
+ *
+ * Doing this per theme means every light theme reimplements the same
+ * overrides and each new one rediscovers them, so it lives here and every
+ * theme inherits it. The mappings are correct for dark themes too: a theme
+ * whose text is white rewrites #fff to #fff.
+ *
+ * Everything is scoped to html.spicetify-themed (set by the loader while a
+ * theme's variables are on :root), so with no theme active this whole file
+ * contributes nothing and the client keeps its stock look.
+ *
+ * See docs/theming-the-client.md for how these were found and what is
+ * deliberately not here (alpha masks and over-media scrims are the
+ * client's own and correct on any theme).
+ */
+
+html.spicetify-themed {
+	background-color: var(--spice-main);
+
+	/* Encore design tokens. Most client text and surfaces resolve through
+	   these, so mapping them is what stops "everything is white". */
+	/* The encore theme classes sit on <html> itself, so these compound onto
+	   the parent rather than descending from it. */
+	&.encore-dark-theme,
+	&.encore-dark-theme .encore-base-set,
+	&.encore-dark-theme .encore-elevated-set,
+	&.encore-dark-theme .encore-overlay-set {
+		--text-base: var(--spice-text);
+		--text-subdued: var(--spice-subtext);
+		--text-bright-accent: var(--spice-button-active);
+		--essential-base: var(--spice-text);
+		--essential-subdued: var(--spice-subtext);
+		--essential-bright-accent: var(--spice-button-active);
+		--decorative-base: var(--spice-text);
+		--decorative-subdued: var(--spice-subtext);
+		--background-base: var(--spice-main);
+		--background-highlight: var(--spice-highlight);
+		--background-press: var(--spice-card);
+		--background-elevated-base: var(--spice-card);
+		--background-elevated-highlight: var(--spice-highlight-elevated);
+		--background-elevated-press: var(--spice-highlight-elevated);
+		--background-tinted-base: rgba(var(--spice-rgb-text), 0.07);
+		--background-tinted-highlight: rgba(var(--spice-rgb-text), 0.1);
+		--background-tinted-press: rgba(var(--spice-rgb-text), 0.14);
+	}
+
+	/* Unclassed anchors are `color: #fff` as a dark-theme fallback; shelf
+	   headings ("Jump back in") are the visible case. Inheriting puts them
+	   under whatever the surrounding text colour is, which is right in
+	   every context including over artwork. */
+	a:not([data-encore-id]) {
+		color: inherit;
+	}
+
+	/* Track titles and the tracklist end column. */
+	.main-trackList-rowMainContentTitle,
+	.main-trackList-rowSectionEnd,
+	.main-trackList-rowImagePlayButton {
+		color: var(--spice-text);
+	}
+
+	/* The generic icon button: every module playbar button rides on it,
+	   along with lyrics, queue, connect, miniplayer and full screen. */
+	.main-genericButton-button {
+		color: var(--spice-subtext);
+
+		&:hover {
+			color: var(--spice-text);
+		}
+	}
+
+	/* Library filter box. */
+	.x-filterBox-expandButton,
+	.x-filterBox-searchIcon,
+	.x-filterBox-filterInput {
+		color: var(--spice-subtext);
+	}
+
+	.x-filterBox-filterInput::placeholder {
+		color: var(--spice-subtext);
+	}
+
+	/* The client scopes the active nav link's white under .Root__globalNav,
+	   so the override needs the same specificity to land. */
+	.Root__globalNav .main-globalNav-navLinkActive {
+		color: var(--spice-text);
+	}
+
+	/* The sticky home filter-chips bar paints --background-base, which the
+	   client re-derives per view from the artwork, so it arrives tinted
+	   with whatever accent the current page extracted rather than anything
+	   theme-related. Its ::after is a flat 60% black scrim over the
+	   shortcuts scrolling under it. */
+	.main-home-filterChipsSection,
+	.main-home-filterChipsSectionActive::after {
+		background-color: var(--spice-main) !important;
+	}
+}

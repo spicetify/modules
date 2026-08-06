@@ -7,34 +7,6 @@
 		var(--spice-gradienttop, var(--spice-gradientTop)), var(--spice-gradientbottom, var(--spice-gradientBottom));
 }
 
-/* Encore token bridge. The v2 CLI rewrote the client's hardcoded colors to
-   --spice variables at apply time, so the original theme never carried one;
-   a standalone v3 theme must map the tokens itself or the client keeps its
-   dark-theme white text and elevated surfaces over the pastel scheme. */
-.encore-dark-theme,
-.encore-dark-theme .encore-base-set,
-.encore-dark-theme .encore-elevated-set,
-.encore-dark-theme .encore-overlay-set {
-	--text-base: var(--spice-text);
-	--text-subdued: var(--spice-subtext);
-	--text-bright-accent: var(--spice-button-active);
-	--text-negative: var(--spice-notification-error);
-	--essential-base: var(--spice-text);
-	--essential-subdued: var(--spice-subtext);
-	--essential-bright-accent: var(--spice-button-active);
-	--decorative-base: var(--spice-text);
-	--decorative-subdued: var(--spice-subtext);
-	--background-base: var(--spice-main);
-	--background-highlight: var(--spice-card-hover);
-	--background-press: var(--spice-card-background);
-	--background-elevated-base: var(--spice-card-background);
-	--background-elevated-highlight: var(--spice-card-hover);
-	--background-elevated-press: var(--spice-card-hover);
-	--background-tinted-base: rgba(var(--spice-rgb-shadow), 0.15);
-	--background-tinted-highlight: rgba(var(--spice-rgb-shadow), 0.25);
-	--background-tinted-press: rgba(var(--spice-rgb-shadow), 0.35);
-}
-
 .main-rootlist-rootlistItem:hover {
 	background-color: var(--spice-card-background);
 }
@@ -107,16 +79,7 @@
 .main-topBar-background,
 .main-topBar-overlay,
 .x-entityHeader-overlay,
-.x-actionBarBackground-background,
-/* The sticky home filter-chips bar paints --background-base, which the
-   client re-derives per view from the artwork, so it arrives as whatever
-   accent the current page extracted rather than anything theme-related. */
-.main-home-filterChipsSection {
-	background-color: var(--spice-main) !important;
-}
-/* Its scrim is a flat 60% black, meant to darken the shortcuts scrolling
-   under it; over a light scheme that reads as a grey slab. */
-.main-home-filterChipsSectionActive::after {
+.x-actionBarBackground-background {
 	background-color: var(--spice-main) !important;
 }
 .x-actionBarBackground-background,
@@ -135,12 +98,6 @@
 	justify-content: center;
 	align-items: center;
 }
-/* The client paints the window root near-black; on a light scheme every
-   panel gap and the pre-paint flash show it. */
-html {
-	background-color: var(--spice-main);
-}
-
 /* The theme's signature: the playbar becomes a full-height right column
    instead of the client's bottom row, running the whole window height so
    the global nav ends beside it rather than cutting across it. The
@@ -220,14 +177,6 @@ html {
 	background-image: linear-gradient(var(--gradient-colors));
 }
 
-/* The client styles unclassed anchors `color: #fff` as a dark-theme
-   fallback (shelf headings like "Jump back in" are one), which the v2 CLI
-   used to rewrite at apply time. Inheriting puts them back under whatever
-   the surrounding text color is, which is correct in every context. */
-a:not([data-encore-id]) {
-	color: inherit;
-}
-
 /* The now-playing view's track info assumes the stock dark backdrop and
    hardcodes white; on the pastel gradient it follows the scheme instead. */
 .Root__right-sidebar .main-trackInfo-name,
@@ -245,18 +194,6 @@ a:not([data-encore-id]) {
 	--background-highlight: var(--spice-player);
 	--background-press: var(--spice-player);
 	--decorative-subdued: var(--spice-player);
-}
-
-/* Icon buttons. The client hardcodes 70% white on its generic icon button
-   (every module button in the playbar rides on it) and on the now-playing
-   panel's own controls, so they vanish against the light scheme. */
-.main-genericButton-button,
-.Root__right-sidebar [data-encore-id="buttonTertiary"] {
-	color: var(--spice-subtext);
-}
-.main-genericButton-button:hover,
-.Root__right-sidebar [data-encore-id="buttonTertiary"]:hover {
-	color: var(--spice-text);
 }
 
 /* Inactive shuffle/repeat are dimmed to 30%, which is legible as white on
@@ -280,13 +217,6 @@ a:not([data-encore-id]) {
 }
 
 /*tracklist*/
-/* Track titles and the end column hardcode white in the client, so they
-   washed out over the light scheme regardless of the Encore tokens. */
-.main-trackList-rowMainContentTitle,
-.main-trackList-rowSectionEnd,
-.main-trackList-rowImagePlayButton {
-	color: var(--spice-text);
-}
 .main-trackList-trackListRow {
 	border-radius: var(--border-radius-2);
 }
@@ -358,16 +288,6 @@ li > div::after {
 .main-yourLibraryX-iconOnly:hover {
 	background-color: var(--spice-card-background);
 	color: var(--spice-text);
-}
-/* Library filter box: the client hardcodes a translucent white for the
-   magnifier and its input, invisible against the light sidebar. */
-.x-filterBox-expandButton,
-.x-filterBox-searchIcon,
-.x-filterBox-filterInput {
-	color: var(--spice-subtext);
-}
-.x-filterBox-filterInput::placeholder {
-	color: var(--spice-subtext);
 }
 .Root__nav-bar {
 	background-color: var(--spice-main);
