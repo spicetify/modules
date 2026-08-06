@@ -3394,6 +3394,29 @@
 				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg"
 			}
+		},
+		"hide-window-controls": {
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/hide-window-controls@0.1.0/hide-window-controls@0.1.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:939c1f552713e5d565f15e724ab6fb30d61069b1ae8daad92ea1091ae33e8e58",
+					"updatedAt": "2026-08-06"
+				}
+			},
+			"metadata": {
+				"name": "hide-window-controls",
+				"description": "Hide the native window controls (macOS traffic lights). Toggle in Settings.",
+				"authors": [
+					{
+						"name": "spicetify"
+					}
+				],
+				"tags": ["extension"],
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg"
+			}
 		}
 	}
 }
