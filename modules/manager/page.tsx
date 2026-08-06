@@ -113,12 +113,28 @@ const ModuleRow = ({
 	);
 };
 
+// The daemon surface the wrapper exposes. Absent on a client patched by an
+// older apply, and unusable when the daemon is not running, so the panel has
+// to degrade to copy-a-command rather than assume it.
+type DaemonMethod = "apply" | "blockUpdates" | "unblockUpdates";
+type DaemonApi = Record<DaemonMethod, () => Promise<unknown>> & { available: () => Promise<boolean> };
+
+const daemonApi = (): DaemonApi | null =>
+	(globalThis as never as { Spicetify?: { Daemon?: DaemonApi } }).Spicetify?.Daemon ?? null;
+
 export const ManagerPage = () => {
 	const [state, setState] = React.useState(deriveManagerState);
 	const [filter, setFilter] = React.useState("");
 	const [status, setStatus] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
 	const [support, setSupport] = React.useState<SpotifySupportStatus | null>(null);
+	const [daemon, setDaemon] = React.useState<DaemonApi | null>(null);
+
+	React.useEffect(() => {
+		const api = daemonApi();
+		if (!api?.available) return;
+		void api.available().then((up) => setDaemon(up ? api : null));
+	}, []);
 
 	React.useEffect(() => {
 		void fetchSupportStatus().then(setSupport);
@@ -294,6 +310,25 @@ export const ManagerPage = () => {
 						{label}
 					</button>
 				);
+				// Every one of these restarts Spotify: apply rebuilds the served
+				// tree, and the update policy is patched into Spotify's binary,
+				// which cannot happen while it runs.
+				const run = (label: string, fn: () => Promise<unknown>) => (
+					<button
+						type="button"
+						disabled={busy}
+						onClick={() =>
+							onAction(label, async () => {
+								if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
+								await fn();
+							})
+						}
+					>
+						{label}
+					</button>
+				);
+				const action = (label: string, method: DaemonMethod, fallback: string) =>
+					daemon ? run(label, () => daemon[method]()) : cmd(fallback, label);
 				return (
 					<section>
 						<div className="spicetify-manager-section-head">
@@ -316,12 +351,14 @@ export const ManagerPage = () => {
 							</p>
 						)}
 						<p className="spicetify-manager-note">
-							Update handling is set from a terminal. Copy a command:
+							{daemon
+								? "Update handling runs through the local daemon. Spotify restarts."
+								: "The daemon is not running, so these are set from a terminal. Copy a command:"}
 						</p>
 						<div className="spicetify-manager-update-actions">
-							{cmd("spicetify spotify-updates block", "block")}
-							{cmd("spicetify spotify-updates unblock", "allow")}
-							{advice.kind === "ready" && cmd("spicetify apply", "update & apply")}
+							{action("block", "blockUpdates", "spicetify spotify-updates block")}
+							{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
+							{advice.kind === "ready" && action("update & apply", "apply", "spicetify apply")}
 						</div>
 					</section>
 				);
