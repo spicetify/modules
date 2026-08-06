@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0%" stop-color="#1b1b1b"/>
+			<stop offset="100%" stop-color="#0e0e0e"/>
+		</linearGradient>
+		<radialGradient id="glow" cx="50%" cy="40%" r="75%">
+			<stop offset="0%" stop-color="#1ed760" stop-opacity="0.28"/>
+			<stop offset="100%" stop-color="#1ed760" stop-opacity="0"/>
+		</radialGradient>
+	</defs>
+	<rect width="1600" height="900" fill="url(#bg)"/>
+	<rect width="1600" height="900" fill="url(#glow)"/>
+	<g transform="translate(800 430)" text-anchor="middle" font-family="CircularSp, 'Spotify Circular', 'Helvetica Neue', Arial, sans-serif">
+		<g transform="translate(-84 -190) scale(7)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round">
+			<circle cx="12" cy="12" r="9"/>
+			<line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/>
+		</g>
+		<text y="90" font-size="76" font-weight="700" fill="#ffffff">Adblock</text>
+		<text y="152" font-size="30" font-weight="600" letter-spacing="7" fill="#1ed760">EXTENSION</text>
+	</g>
+</svg>
