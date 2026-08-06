@@ -89,14 +89,25 @@
 .main-entityHeader-backgroundColor {
 	background: var(--spice-main);
 }
-.player-controls__buttons--new-icons {
+/* The five transport controls stack rather than sitting in a row. The client
+   splits them into a left group (shuffle, previous) and a right group (next,
+   repeat) either side of play/pause, so those groups turn vertical too and
+   the reading order survives the rotation. All three share one gap so the
+   stack is evenly spaced. */
+.player-controls__buttons {
 	gap: 16px;
 	margin-bottom: 8px;
 	display: flex;
 	flex-direction: column;
-	flex: 1;
 	justify-content: center;
 	align-items: center;
+}
+.player-controls__left,
+.player-controls__right {
+	flex: 0 0 auto;
+	flex-direction: column;
+	align-items: center;
+	gap: 16px;
 }
 /* The theme's signature: the playbar becomes a full-height right column
    instead of the client's bottom row, running the whole window height so
@@ -131,34 +142,45 @@
 	user-select: none;
 }
 
-.player-controls__left,
-.player-controls__right {
-	flex-direction: column;
-}
-
+/* One row of elapsed / bar / duration does not fit 200px, so the bar takes a
+   row of its own with the two times beneath it. */
 .playback-bar {
-	flex-direction: column;
-	position: relative;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-areas:
+		"bar bar"
+		"elapsed duration";
+	align-items: center;
+	gap: 4px;
+	width: 100%;
+	padding-inline: 16px;
 }
-
+.playback-bar > :has(> .playback-progressbar) {
+	grid-area: bar;
+}
 .playback-bar__progress-time-elapsed {
-	position: absolute;
-	left: 16px;
-	top: 20px;
-}
-.playback-bar__progress-time-elapsed::after {
-	content: "/";
-	margin-left: 6px;
+	grid-area: elapsed;
+	justify-self: start;
 }
 .main-playbackBarRemainingTime-container {
-	margin-left: 56px;
+	grid-area: duration;
+	justify-self: end;
 }
 
+/* The client sizes this section as 40% of a horizontal bar, which is 74px in
+   the column layout; its children then size against it in percentages, so
+   player-controls resolves to zero width and its buttons spill out to the
+   right of the column. */
 .main-nowPlayingBar-center {
 	flex: 1;
+	width: 100%;
+	max-width: none;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+}
+.player-controls {
+	width: 100%;
 }
 
 .main-nowPlayingBar-nowPlayingBar {
@@ -233,12 +255,18 @@
 	display: none;
 }
 
-.progress-bar {
-	width: 150px;
+/* The seek bar fills its grid row; the volume slider is laid out beside the
+   mute button with no width of its own, so it keeps an explicit one. */
+.playback-bar .playback-progressbar {
+	width: 100%;
 }
-
-.playback-progressbar {
+[data-testid="volume-bar"] .playback-progressbar {
 	width: 100px;
+}
+/* The inner track sits inside the progressbar and was pinned wider than it,
+   which overflowed both bars past the right edge of the column. */
+.Root__now-playing-bar .progress-bar {
+	width: 100%;
 }
 
 .volume-bar {
