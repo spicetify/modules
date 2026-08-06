@@ -6,7 +6,13 @@ import { disableManager, enableManager, isEnabled } from "./logic.ts";
 describe("disableManager", () => {
 	it("prefers the client's own disable()", () => {
 		let called = false;
-		const m = { enabled: true, disable: () => { called = true; }, enable: () => {} };
+		const m = {
+			enabled: true,
+			disable: () => {
+				called = true;
+			},
+			enable: () => {},
+		};
 		assert.equal(disableManager(m), true);
 		assert.equal(called, true, "disable() unsubscribes; writing the flag does not");
 	});
@@ -37,7 +43,12 @@ describe("isEnabled", () => {
 describe("enableManager", () => {
 	it("restores through enable() when present", () => {
 		let called = false;
-		enableManager({ enabled: false, enable: () => { called = true; } });
+		enableManager({
+			enabled: false,
+			enable: () => {
+				called = true;
+			},
+		});
 		assert.equal(called, true);
 	});
 

@@ -1,7 +1,7 @@
 # Module best practices
 
 stdlib will let you mount almost anything almost anywhere. This document is
-about what you *should* do, so that ten installed modules still feel like one
+about what you _should_ do, so that ten installed modules still feel like one
 coherent Spotify rather than ten tenants fighting over the chrome.
 
 The rule behind most of what follows: **a surface belongs to the user, not to
@@ -20,12 +20,12 @@ import { SettingsRow, SettingsSection } from "/modules/stdlib/lib/primitives.js"
 import { registers } from "/modules/stdlib/mod.js";
 
 registrar.register(
-  "settingsSection",
-  <SettingsSection title="Shuffle+">
-    <SettingsRow label="Shuffle whole library">
-      <Toggle value={enabled} onChange={setEnabled} />
-    </SettingsRow>
-  </SettingsSection>,
+	"settingsSection",
+	<SettingsSection title="Shuffle+">
+		<SettingsRow label="Shuffle whole library">
+			<Toggle value={enabled} onChange={setEnabled} />
+		</SettingsRow>
+	</SettingsSection>,
 );
 ```
 
@@ -33,7 +33,7 @@ registrar.register(
 `x-settings-section` / `x-settings-row` structure, so your options line up with
 Spotify's and inherit its styling and theming for free.
 
-**Do not put settings in the account dropdown.** You *can*: `Menu.Item` works,
+**Do not put settings in the account dropdown.** You _can_: `Menu.Item` works,
 and it is the shortest path to a visible toggle. It is also where the user
 looks for account actions, not for your module's preferences, and it is a
 single shared list that every module can append to. Three modules doing this
@@ -41,8 +41,8 @@ turns the profile menu into a settings page nobody designed. The same applies
 to the context menu: `ContextMenu.Item` is for acting on the right-clicked
 item, not for configuration.
 
-A useful test: if the control changes something *about your module*, it is a
-setting. If it acts on *the thing the user is looking at right now*, it is a
+A useful test: if the control changes something _about your module_, it is a
+setting. If it acts on _the thing the user is looking at right now_, it is a
 menu item.
 
 ---
@@ -51,13 +51,13 @@ menu item.
 
 Ranked from cheapest to most intrusive for the user:
 
-| Surface | Use it for |
-| --- | --- |
-| `settingsSection` | anything configurable |
-| `route` + `navlink` | a whole feature with its own page |
-| `menu` / `ContextMenu.Item` | an action on the current or right-clicked item |
-| `playbarButton` | a control the user reaches for *while playing* |
-| `topbarRightButton` | a genuinely global action, and even then, think twice |
+| Surface                     | Use it for                                            |
+| --------------------------- | ----------------------------------------------------- |
+| `settingsSection`           | anything configurable                                 |
+| `route` + `navlink`         | a whole feature with its own page                     |
+| `menu` / `ContextMenu.Item` | an action on the current or right-clicked item        |
+| `playbarButton`             | a control the user reaches for _while playing_        |
+| `topbarRightButton`         | a genuinely global action, and even then, think twice |
 
 One persistent button per module is a reasonable ceiling. If you need more,
 you need a route, not more buttons.
@@ -75,7 +75,7 @@ The client changes under you. A module that cannot find its anchor must
 disappear quietly, not take the client with it.
 
 - **Bound every wait.** An unbounded `await` in your default export hangs the
-  entire loader: `Spicetify.Modules` never gets set and *every* module silently
+  entire loader: `Spicetify.Modules` never gets set and _every_ module silently
   fails to load, with no error. Cap the retries and give up.
 - **Never assume a selector resolves.** Check, and no-op if it does not.
 - **Clean up in `ctx.defer(...)`.** Anything you mount, listen to, or patch has

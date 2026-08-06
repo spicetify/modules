@@ -139,9 +139,7 @@ export const Card: React.FC<{ children: React.ReactNode }> = (props) => (
 // render the client's own section/row structure rather than capturing its
 // components: the settings route is a lazily loaded chunk, and the loader
 // does not source-transform those, so a capture there never resolves.
-export const SettingsSection: React.FC<{ title?: React.ReactNode; children: React.ReactNode }> = (
-	props,
-) => (
+export const SettingsSection: React.FC<{ title?: React.ReactNode; children: React.ReactNode }> = (props) => (
 	<div className={SETTINGS_SECTION_CLASS}>
 		{props.title === undefined ? null : <h2>{props.title}</h2>}
 		{props.children}
@@ -151,9 +149,7 @@ export const SettingsSection: React.FC<{ title?: React.ReactNode; children: Reac
 // One labelled row. `label` fills the client's first column and `children`
 // the control column, so a toggle or select lines up with the native rows
 // above and below it.
-export const SettingsRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }> = (
-	props,
-) => (
+export const SettingsRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }> = (props) => (
 	<div className={SETTINGS_ROW_CLASS}>
 		<div className={SETTINGS_ROW_LABEL_CLASS}>{props.label}</div>
 		<div className={SETTINGS_ROW_CONTROL_CLASS}>{props.children}</div>
