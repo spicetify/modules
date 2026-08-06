@@ -82,8 +82,6 @@ export function enableManager(manager: Manager | undefined): void {
 	else if ("enabled" in manager) manager.enabled = true;
 }
 
-type Unsubscribe = () => void;
-
 type PlayerItem = { uri?: string; type?: string; metadata?: Record<string, unknown> };
 
 type CoreConnector = {
