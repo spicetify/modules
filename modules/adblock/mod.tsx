@@ -10,10 +10,12 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 import {
 	AD_MANAGERS,
+	AD_SURFACE_CSS,
 	disableManager,
 	enableManager,
 	injectStyle,
 	isAdItem,
+	resolveManager,
 	REMOTE_CONFIG_OVERRIDES,
 	skipAd,
 	UPSELL_CSS,
@@ -22,6 +24,7 @@ import {
 const STORAGE_KEY = "adblock:enabled";
 const UPSELL_KEY = "adblock:hideUpsells";
 const UPSELL_STYLE_ID = "spicetify-adblock-upsells";
+const AD_STYLE_ID = "spicetify-adblock-surfaces";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
@@ -35,15 +38,22 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	let onSongChange: ((event: unknown) => void) | null = null;
 
+	let removeAdStyle: (() => void) | null = null;
+
 	const applyBlocking = () => {
-		for (const name of AD_MANAGERS) {
-			if (disableManager(managers()[name]) && !disabled.includes(name)) disabled.push(name);
+		for (const path of AD_MANAGERS) {
+			if (disableManager(resolveManager(managers(), path) as never) && !disabled.includes(path)) {
+				disabled.push(path);
+			}
 		}
+		removeAdStyle ??= injectStyle(AD_STYLE_ID, AD_SURFACE_CSS);
 	};
 
 	const restore = () => {
 		stopSkipping();
-		for (const name of disabled) enableManager(managers()[name]);
+		removeAdStyle?.();
+		removeAdStyle = null;
+		for (const path of disabled) enableManager(resolveManager(managers(), path) as never);
 		disabled = [];
 	};
 

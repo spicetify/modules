@@ -9,20 +9,33 @@
  * scanner.
  */
 
-// Every ad surface the client manages. Each entry either exposes enable() and
-// disable() or a plain `enabled` flag, so both shapes are handled.
+// Where each ad surface's disable actually lives. Some managers expose it
+// directly, others keep it on a nested object, and the leaderboard names it
+// `disableLeaderboard`. Addressing the outer object alone silently skips the
+// nested ones: they have no `disable` and no `enabled`, so nothing happens and
+// nothing reports a failure.
 export const AD_MANAGERS = [
 	"audio",
 	"inStreamApi",
 	"sponsoredPlaylist",
-	"hpto",
 	"leaderboard",
-	"vto",
+	"hpto",
 	"home",
 	"survey",
-	"embeddedAd",
-	"embeddedPlaylist",
+	"vto.manager",
+	"embeddedAd.embeddedAdManager",
+	"embeddedPlaylist.embeddedPlaylistManager",
 ] as const;
+
+/** Walks a dotted path, returning undefined rather than throwing on a gap. */
+export function resolveManager(root: Record<string, any> | undefined, path: string): unknown {
+	let node: any = root;
+	for (const key of path.split(".")) {
+		if (!node || typeof node !== "object") return undefined;
+		node = node[key];
+	}
+	return node;
+}
 
 // Remote-config flags that gate upsell and ad chrome the managers do not own.
 export const REMOTE_CONFIG_OVERRIDES: Record<string, boolean> = {
@@ -37,6 +50,8 @@ type Manager = {
 	enabled?: boolean;
 	enable?: () => void;
 	disable?: () => void;
+	disableLeaderboard?: () => void;
+	enableLeaderboard?: () => void;
 	subscription?: { cancel?: () => void; unsubscribe?: () => void };
 };
 
@@ -54,6 +69,7 @@ export function disableManager(manager: Manager | undefined): boolean {
 	if (!manager) return false;
 	const wasEnabled = isEnabled(manager);
 	if (typeof manager.disable === "function") manager.disable();
+	else if (typeof manager.disableLeaderboard === "function") manager.disableLeaderboard();
 	else if ("enabled" in manager) manager.enabled = false;
 	else return false;
 	return wasEnabled;
@@ -62,6 +78,7 @@ export function disableManager(manager: Manager | undefined): boolean {
 export function enableManager(manager: Manager | undefined): void {
 	if (!manager) return;
 	if (typeof manager.enable === "function") manager.enable();
+	else if (typeof manager.enableLeaderboard === "function") manager.enableLeaderboard();
 	else if ("enabled" in manager) manager.enabled = true;
 }
 
@@ -117,6 +134,22 @@ export async function skipAd(connector: CoreConnector | undefined): Promise<bool
  * are separate and still read true, so nothing here offers a feature that
  * would then fail.
  */
+/**
+ * CSS that hides ad surfaces already on screen.
+ *
+ * Disabling a manager stops the next ad; it does not tear down one the client
+ * has already rendered. Both blocks carry a `data-testid`, which is stable
+ * across builds where the class names beside them are hashed.
+ */
+export const AD_SURFACE_CSS = `
+	[data-testid="embedded-ad"],
+	[data-testid="ad-companion-card"],
+	[data-testid="hpto-container"],
+	.main-leaderboardComponent-container {
+		display: none !important;
+	}
+`;
+
 export const UPSELL_CSS = `
 	a[href*="/premium"],
 	li:has(> a[href*="/premium"]),

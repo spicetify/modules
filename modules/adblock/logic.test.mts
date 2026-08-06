@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { disableManager, enableManager, injectStyle, isAdItem, isEnabled, skipAd, UPSELL_CSS } from "./logic.ts";
+import {
+	AD_MANAGERS,
+	AD_SURFACE_CSS,
+	disableManager,
+	enableManager,
+	injectStyle,
+	isAdItem,
+	isEnabled,
+	resolveManager,
+	skipAd,
+	UPSELL_CSS,
+} from "./logic.ts";
 
 describe("disableManager", () => {
 	it("prefers the client's own disable()", () => {
@@ -125,5 +136,45 @@ describe("injectStyle", () => {
 		remove();
 		assert.deepEqual(Object.keys(nodes), []);
 		delete (globalThis as { document?: unknown }).document;
+	});
+});
+
+describe("resolveManager", () => {
+	it("reaches a manager nested one level down, where the disable actually lives", () => {
+		const disable = () => {};
+		const root = { embeddedAd: { embeddedAdManager: { disable } } };
+		assert.equal(resolveManager(root, "embeddedAd.embeddedAdManager"), root.embeddedAd.embeddedAdManager);
+	});
+
+	it("returns undefined for a gap instead of throwing", () => {
+		assert.equal(resolveManager({}, "vto.manager"), undefined);
+		assert.equal(resolveManager(undefined, "audio"), undefined);
+	});
+
+	it("covers every surface whose control is not on the outer object", () => {
+		for (const path of ["vto.manager", "embeddedAd.embeddedAdManager"]) {
+			assert.ok(AD_MANAGERS.includes(path as never), `${path} must be addressed by its nested path`);
+		}
+	});
+});
+
+describe("disableManager, leaderboard shape", () => {
+	it("uses disableLeaderboard when that is the only control", () => {
+		let called = false;
+		const m = {
+			enabled: true,
+			disableLeaderboard: () => {
+				called = true;
+			},
+		};
+		assert.equal(disableManager(m), true);
+		assert.equal(called, true, "writing the flag alone leaves the leaderboard subscribed");
+	});
+});
+
+describe("AD_SURFACE_CSS", () => {
+	it("hides rendered ads by testid, since disabling a manager only stops the next one", () => {
+		assert.match(AD_SURFACE_CSS, /\[data-testid="embedded-ad"\]/);
+		assert.match(AD_SURFACE_CSS, /\[data-testid="ad-companion-card"\]/);
 	});
 });
