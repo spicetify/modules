@@ -20,6 +20,10 @@
 
 import { React, ReactDOM } from "../src/expose/React.ts";
 import {
+	SETTINGS_ROW_CLASS,
+	SETTINGS_ROW_CONTROL_CLASS,
+	SETTINGS_ROW_LABEL_CLASS,
+	SETTINGS_SECTION_CLASS,
 	badgeClass,
 	buttonClass,
 	type BadgeTone,
@@ -126,6 +130,33 @@ export const Chip: React.FC<{ active: boolean; onClick?: () => void; children: R
 // A plain elevated container; slot layout is the consumer's own concern.
 export const Card: React.FC<{ children: React.ReactNode }> = (props) => (
 	<article className={CARD_CLASS}>{props.children}</article>
+);
+
+// ---------- settings ----------
+
+// Native-looking settings chrome for the `settingsSection` register. These
+// render the client's own section/row structure rather than capturing its
+// components: the settings route is a lazily loaded chunk, and the loader
+// does not source-transform those, so a capture there never resolves.
+export const SettingsSection: React.FC<{ title?: React.ReactNode; children: React.ReactNode }> = (
+	props,
+) => (
+	<div className={SETTINGS_SECTION_CLASS}>
+		{props.title === undefined ? null : <h2>{props.title}</h2>}
+		{props.children}
+	</div>
+);
+
+// One labelled row. `label` fills the client's first column and `children`
+// the control column, so a toggle or select lines up with the native rows
+// above and below it.
+export const SettingsRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }> = (
+	props,
+) => (
+	<div className={SETTINGS_ROW_CLASS}>
+		<div className={SETTINGS_ROW_LABEL_CLASS}>{props.label}</div>
+		<div className={SETTINGS_ROW_CONTROL_CLASS}>{props.children}</div>
+	</div>
 );
 
 // ---------- context-menu item ----------

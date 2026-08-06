@@ -35,3 +35,11 @@ export const SCRIM_CLASS = "spicetify-scrim";
 export const DIALOG_CLASS = "spicetify-dialog";
 export const DIALOG_HEADER_CLASS = "spicetify-dialog-header";
 export const DIALOG_BODY_CLASS = "spicetify-dialog-body";
+
+// The client's own settings chrome. These names exist because the CLI's
+// css-map recreates them, so a module row is styled by Spotify's own CSS
+// instead of approximating it.
+export const SETTINGS_SECTION_CLASS = "x-settings-section";
+export const SETTINGS_ROW_CLASS = "x-settings-row";
+export const SETTINGS_ROW_LABEL_CLASS = "x-settings-firstColumn";
+export const SETTINGS_ROW_CONTROL_CLASS = "x-settings-secondColumn";
