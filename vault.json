@@ -3320,17 +3320,28 @@
 					"providers": [],
 					"checksum": "sha256:3907f076dfcbb0309ae3e2cdbb100d017ac6c392e342e0bf948b2f13bfdd33e0",
 					"updatedAt": "2026-08-06"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/adblock@0.1.2/adblock@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:580a0abebbb88515b4eb86b4de3659cf6e37e45c76bcc02b81bfb9540d061c06",
+					"updatedAt": "2026-08-06"
 				}
 			},
 			"metadata": {
 				"name": "adblock",
-				"description": "Disables Spotify's ad surfaces. Toggle in Settings.",
+				"description": "Skips audio ads and hides ad and upsell surfaces. Toggle in Settings.",
 				"authors": [
 					{
-						"name": "veryboringhwl"
+						"name": "spicetify"
 					},
 					{
-						"name": "spicetify"
+						"name": "rxri"
+					},
+					{
+						"name": "veryboringhwl"
 					}
 				],
 				"tags": ["extension"],
