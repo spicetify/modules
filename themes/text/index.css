@@ -841,6 +841,19 @@ form .main-topBar-searchBar:placeholder-shown {
 }
 .main-nowPlayingWidget-trackInfo {
 	margin: 0;
+	position: relative;
+}
+/* music video badge: icon only, placed beside the save button
+   (64px clears the 8px gap + 44px hide/save wrapper + 12px button pitch) */
+.main-nowPlayingWidget-trackInfo .main-trackInfo-xsmallBadges {
+	grid-area: 1 / 1 / -1 / -1;
+	position: absolute;
+	inset-inline-start: calc(100% + 64px);
+	top: 50%;
+	transform: translateY(-50%);
+}
+.main-nowPlayingWidget-trackInfo .main-trackInfo-xsmallBadges span:not([class*="icon-wrapper"]) {
+	display: none;
 }
 
 /* volume bar */
