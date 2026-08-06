@@ -100,8 +100,11 @@ describe("pendingUpdates", () => {
 	});
 
 	it("prefers the local record when a module is both local and staged", () => {
+		// A shadowed local record: the registry serves the staged copy
+		// (local: false) while listLocal still returns the record, so the
+		// merge must dedup on the local one.
 		locals = [{ metadata: { identifier: "both" }, sidecar: { installed_version: "1.1.0" } }];
-		stagedStates = [{ identifier: "both", version: "1.0.0", local: true }];
+		stagedStates = [{ identifier: "both", version: "1.0.0", local: false }];
 		manifestModules = [{ identifier: "both", version: "1.0.0" }];
 		assert.deepEqual(pendingUpdates(catalog([entry("both", "1.1.0")])), []);
 	});
