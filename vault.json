@@ -3422,6 +3422,14 @@
 					"providers": [],
 					"checksum": "sha256:eda5f7a68f5007f6c6035dff5f83b2629dda6fee6069d535fae66ac7693cff14",
 					"updatedAt": "2026-08-06"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/adblock@0.1.4/adblock@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:922609ec10ca12173cb1f235978718c97b896782dcf65200b2ba45120aaa4e97",
+					"updatedAt": "2026-08-07"
 				}
 			},
 			"metadata": {
