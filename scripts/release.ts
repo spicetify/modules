@@ -26,6 +26,24 @@ import path from "node:path";
 
 const git = (args: string[]) => execFileSync("git", args, { encoding: "utf8" }).trim();
 
+// Published state is judged entirely against tags, so a checkout that has not
+// fetched reports a version as unpublished when it in fact shipped. The bump is
+// then skipped and the change never releases: `pending` returns nothing, the
+// release run succeeds having published nothing, and no step reports a problem.
+// A failure here (offline, no remote) must not block the run, so it degrades to
+// the local tags. The warning goes to stderr because stdout is parsed — by
+// `pending` for the release matrix, and by `--summary` for the step summary.
+function syncTags(): void {
+	try {
+		execFileSync("git", ["fetch", "--tags", "--quiet", "origin"], {
+			stdio: ["ignore", "ignore", "pipe"],
+			timeout: 15_000,
+		});
+	} catch {
+		console.warn("[release] could not fetch tags; judging against the local checkout, which may be stale");
+	}
+}
+
 const LEVELS = ["patch", "minor", "major"] as const;
 type Level = (typeof LEVELS)[number];
 
@@ -487,6 +505,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 
 function dispatch(): void {
 	const [cmd, ...rest] = process.argv.slice(2);
+	syncTags();
 	if (cmd === "status") {
 		if (rest.includes("--summary")) summary(rest.includes("--soft"));
 		else status(rest.includes("--soft"));
