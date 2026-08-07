@@ -64,10 +64,16 @@
    menuItemButton` colour, so the navigating half of a menu is painted by
    whatever that fallback resolves to and the acting half by the item colour.
    Give both the theme's text colour, at the fallback's specificity so the
-   client's own hover, disabled and checked-item colours still win. */
+   client's own hover, disabled and checked-item colours still win.
+
+   The chain resolves a theme's own menu colour first: this rule outranks the
+   plain `.main-contextMenu-menuItemButton` a theme would set, so reading its
+   variable is what keeps that choice from being overwritten. Falling all the
+   way through to --text-base covers having no theme at all, where no
+   --spice-* is defined. */
 a.main-contextMenu-menuItemButton,
 button.main-contextMenu-menuItemButton {
-	color: var(--spice-text, var(--text-base));
+	color: var(--spice-context-menu-text, var(--spice-text, var(--text-base)));
 }
 
 /* stdlib search bar (lib/components useSearchBar): sensible everywhere,
