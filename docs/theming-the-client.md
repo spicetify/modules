@@ -61,15 +61,70 @@ have to be overridden by selector. Known hotspots, all confirmed on 1.2.94:
 | `.Root__globalNav .main-globalNav-navLinkActive` | `color: #fff`                | active Home/nav link                                         |
 | `.main-home-filterChipsSectionActive::after`     | `background: rgba(0,0,0,.6)` | scrim over the sticky home chips                             |
 | `html`                                           | `background: #121212`        | shows through every panel gap and on load                    |
+| `.main-contextMenu-menuItemButton`               | `color: #ffffffe6`           | every context-menu item — see the specificity note below     |
+| `.main-globalNav-searchInputContainer:hover …`   | `color: #fff`                | search magnifier, on hover **and** `:focus-within`           |
 
 For anchors, `color: inherit` beats picking a color — the surrounding context is
 always right:
 
 ```css
-a:not([data-encore-id]) {
+a:not([data-encore-id]):not(.main-contextMenu-menuItemButton) {
 	color: inherit;
 }
 ```
+
+### A blanket selector here outranks everything it lands on
+
+That `:not(.main-contextMenu-menuItemButton)` is not decoration, and the reason
+generalizes to every rule you add to `_client-colors.scss`.
+
+Everything in the file is nested under `html.spicetify-themed`, which adds a
+class **and** a type to each compiled selector. So the anchor rule ships as
+`html.spicetify-themed a:not([data-encore-id])` and scores **0-2-2** — the
+`:not()` attribute counts as a class. Meanwhile the colors it is meant to
+correct are ordinary class rules at **0-1-0**, both the client's and the
+theme's. The bridge rule beats all of them, including the ones that were
+already right.
+
+Context menus are where this showed up. Spotify renders navigations as `<a>`
+and actions as `<button>`, both with `.main-contextMenu-menuItemButton`. The
+anchor rule outranked that class and the theme's override of it, so half of
+every menu dropped to the inherited body color and the other half stayed at
+full strength — with no rule anywhere that says "make these two different".
+
+The rule of thumb:
+
+- Prefer a targeted selector. A blanket element selector in this file is a
+  claim over **every** element of that type, not just the unstyled ones.
+- If you need a blanket one, exempt what the client or a theme colors by class
+  (`:not(.that-class)`), then color that class explicitly.
+- Give the explicit rule the **lowest** specificity that still wins. The
+  client's state colors — hover, disabled, checked — are typically 0-2-0, so
+  anything at 0-2-2 silently eats them too. `a.main-contextMenu-menuItemButton`
+  (0-1-1) beats the client's 0-1-1 anchor fallback on source order and leaves
+  the states alone; that pair lives in `index.scss`.
+- Outside the themed scope, remember `--spice-*` is undefined. Fall back
+  through the client's own token: `var(--spice-text, var(--text-base))`.
+
+Computed style alone will not show you this — it reports the winner, not who
+lost. Ask CDP for the whole matched list instead. This is the one probe that
+needs the `CSS` domain rather than a `Runtime.evaluate` snippet:
+
+```js
+await call("DOM.enable");
+await call("CSS.enable");
+const { root } = await call("DOM.getDocument", { depth: -1, pierce: true });
+const { nodeId } = await call("DOM.querySelector", { nodeId: root.nodeId, selector: SEL });
+const { matchedCSSRules } = await call("CSS.getMatchedStylesForNode", { nodeId });
+// rules come in cascade order, weakest first — the last one setting `color` won
+for (const r of matchedCSSRules) {
+	const color = r.rule.style.cssProperties.find((p) => p.name === "color");
+	if (color) console.log(r.rule.selectorList.text, color.value);
+}
+```
+
+A bridge selector printed below a class rule that should have won is the bug.
+Add `:not()` and color that class yourself.
 
 ### 3. Runtime-derived values
 
