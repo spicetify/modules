@@ -271,4 +271,44 @@ describe("stale checkout", () => {
 		assert.notEqual(r.status, 0, "an unshippable change must fail the gate, not pass it quietly");
 		assert.equal(git(clone, "tag", "--list", "alpha@1.0.0"), "alpha@1.0.0", "the fetch refreshed the local tags");
 	});
+
+	// The tag refresh above cannot cover this: the vault is a working-tree
+	// file, so a checkout predating origin's publish commit reads it without
+	// the release in it no matter how many tags are fetched.
+	it("sees a release the checkout predates, from the remote vault", () => {
+		// origin publishes alpha@1.1.0; the clone never pulls it.
+		writeFileSync(
+			path.join(origin, "modules", "alpha", "metadata.json"),
+			JSON.stringify({ name: "alpha", version: "1.1.0" }, null, "\t"),
+		);
+		writeFileSync(
+			path.join(origin, "vault.json"),
+			JSON.stringify({ modules: { alpha: { v: { "1.0.0": {}, "1.1.0": {} } } } }),
+		);
+		git(origin, "add", "-A");
+		git(origin, "commit", "-m", "chore: publish alpha@1.1.0");
+		git(origin, "tag", "-a", "alpha@1.1.0", "-m", "alpha@1.1.0");
+
+		// The stale checkout bumps onto the version origin already shipped.
+		writeFileSync(
+			path.join(clone, "modules", "alpha", "metadata.json"),
+			JSON.stringify({ name: "alpha", version: "1.1.0" }, null, "\t"),
+		);
+		git(clone, "add", "-A");
+		git(clone, "commit", "-m", "fix(alpha): another change");
+
+		const local = JSON.parse(readFileSync(path.join(clone, "vault.json"), "utf8"));
+		assert.equal(local.modules.alpha.v["1.1.0"], undefined, "precondition: the local vault predates the release");
+
+		const r = spawnSync("node", [RELEASE, "status"], { cwd: clone, env, encoding: "utf8" });
+
+		assert.match(
+			r.stderr,
+			/missing 1 commit\(s\) from origin\/main/,
+			"the staleness has to be named, not silently worked around",
+		);
+		assert.match(r.stderr, /alpha: changed since alpha@1\.1\.0 but 1\.1\.0 is already published/);
+		assert.doesNotMatch(r.stdout, /ok: every changed module/);
+		assert.notEqual(r.status, 0);
+	});
 });

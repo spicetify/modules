@@ -26,10 +26,12 @@ import path from "node:path";
 
 const git = (args: string[]) => execFileSync("git", args, { encoding: "utf8" }).trim();
 
-// Published state is judged entirely against tags, so a checkout that has not
-// fetched reports a version as unpublished when it in fact shipped. The bump is
-// then skipped and the change never releases: `pending` returns nothing, the
-// release run succeeds having published nothing, and no step reports a problem.
+// Release tags are the diff baseline, so a checkout that has not fetched reads
+// the wrong one and reports a changed module as untouched since its release.
+// The bump is then skipped and the change never releases: `pending` returns
+// nothing, the release run succeeds having published nothing, and no step
+// reports a problem. This refreshes the remote-tracking branches too, which is
+// what lets loadVault judge published state against the remote.
 // A failure here (offline, no remote) must not block the run, so it degrades to
 // the local tags. The warning goes to stderr because stdout is parsed — by
 // `pending` for the release matrix, and by `--summary` for the step summary.
@@ -112,7 +114,45 @@ function moduleIds(): string[] {
 	return ids.sort();
 }
 
+// The remote branch this checkout tracks, when it carries commits HEAD does
+// not have. Strictly-behind is too narrow: local work on top of a stale base
+// diverges rather than trails, and that is the shape the bug arrives in.
+// Null when there is no upstream, when the ref cannot be read, or when HEAD
+// already contains it — including every CI run, which checks out the pushed
+// commit itself.
+function staleUpstream(): { ref: string; missing: string } | null {
+	try {
+		const ref = git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"]);
+		if (!ref) return null;
+		const missing = git(["rev-list", "--count", `HEAD..${ref}`]);
+		return missing === "0" ? null : { ref, missing };
+	} catch {
+		return null;
+	}
+}
+
+// Published state comes from the vault, and syncTags cannot keep it honest:
+// tags are fetched into the object store, the vault is a working-tree file
+// written by origin's own publish commits. A checkout that predates them
+// reads a vault with the newest releases missing and calls them unpublished —
+// `status` answers ok, the bump is skipped, and the change ships onto a
+// version that is already taken. Reading the vault from the remote ref keeps
+// the answer right until the pull happens.
 function loadVault(): { modules?: Record<string, { v?: Record<string, unknown> }> } {
+	const stale = staleUpstream();
+	if (stale) {
+		console.warn(
+			`[release] this checkout is missing ${stale.missing} commit(s) from ${stale.ref}; ` +
+				`judging published state against ${stale.ref}:vault.json. Pull to silence this.`,
+		);
+		try {
+			return JSON.parse(git(["show", `${stale.ref}:vault.json`]));
+		} catch {
+			console.warn(
+				`[release] could not read ${stale.ref}:vault.json; falling back to the local checkout, which is stale`,
+			);
+		}
+	}
 	return JSON.parse(readFileSync("vault.json", "utf8"));
 }
 
