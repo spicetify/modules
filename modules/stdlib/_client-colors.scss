@@ -54,8 +54,14 @@ html.spicetify-themed {
 	/* Unclassed anchors are `color: #fff` as a dark-theme fallback; shelf
 	   headings ("Jump back in") are the visible case. Inheriting puts them
 	   under whatever the surrounding text colour is, which is right in
-	   every context including over artwork. */
-	a:not([data-encore-id]) {
+	   every context including over artwork.
+
+	   Context-menu items are exempt: they carry their own colour and are
+	   coloured in index.scss, but this selector outranks anything a class
+	   can say, so leaving them in drops the anchor half of every menu to
+	   the inherited body colour while the button half stays at full
+	   strength. */
+	a:not([data-encore-id]):not(.main-contextMenu-menuItemButton) {
 		color: inherit;
 	}
 

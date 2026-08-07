@@ -59,6 +59,17 @@
 	cursor: pointer;
 }
 
+/* The same split colours the two halves differently. The client's blanket
+   `a:not([data-encore-id])` fallback outranks its own `.main-contextMenu-
+   menuItemButton` colour, so the navigating half of a menu is painted by
+   whatever that fallback resolves to and the acting half by the item colour.
+   Give both the theme's text colour, at the fallback's specificity so the
+   client's own hover, disabled and checked-item colours still win. */
+a.main-contextMenu-menuItemButton,
+button.main-contextMenu-menuItemButton {
+	color: var(--spice-text, var(--text-base));
+}
+
 /* stdlib search bar (lib/components useSearchBar): sensible everywhere,
    overridable by module stylesheets. */
 .spicetify-searchbar {
