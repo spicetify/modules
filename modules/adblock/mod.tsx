@@ -9,6 +9,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 import {
+	AD_FETCHERS,
 	AD_MANAGERS,
 	AD_SURFACE_CSS,
 	disableManager,
@@ -18,6 +19,7 @@ import {
 	resolveManager,
 	REMOTE_CONFIG_OVERRIDES,
 	skipAd,
+	stubFetcher,
 	UPSELL_CSS,
 } from "./logic.ts";
 
@@ -36,6 +38,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// never had.
 	let disabled: string[] = [];
 
+	// Restorers for the fetch-driven surfaces, kept separate because those are
+	// put back by handing the original function back rather than by re-enabling.
+	let unstub: (() => void)[] = [];
+
 	let onSongChange: ((event: unknown) => void) | null = null;
 
 	let removeAdStyle: (() => void) | null = null;
@@ -44,6 +50,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 		for (const path of AD_MANAGERS) {
 			if (disableManager(resolveManager(managers(), path) as never) && !disabled.includes(path)) {
 				disabled.push(path);
+			}
+		}
+		if (unstub.length === 0) {
+			for (const { path, method } of AD_FETCHERS) {
+				const restorer = stubFetcher(resolveManager(managers(), path) as never, method);
+				if (restorer) unstub.push(restorer);
 			}
 		}
 		removeAdStyle ??= injectStyle(AD_STYLE_ID, AD_SURFACE_CSS);
@@ -55,6 +67,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 		removeAdStyle = null;
 		for (const path of disabled) enableManager(resolveManager(managers(), path) as never);
 		disabled = [];
+		for (const restorer of unstub) restorer();
+		unstub = [];
 	};
 
 	// Ads play as ordinary queue items, so the only thing that stops one is

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+	AD_FETCHERS,
 	AD_MANAGERS,
 	AD_SURFACE_CSS,
 	disableManager,
@@ -11,6 +12,7 @@ import {
 	isEnabled,
 	resolveManager,
 	skipAd,
+	stubFetcher,
 	UPSELL_CSS,
 } from "./logic.ts";
 
@@ -176,5 +178,52 @@ describe("AD_SURFACE_CSS", () => {
 	it("hides rendered ads by testid, since disabling a manager only stops the next one", () => {
 		assert.match(AD_SURFACE_CSS, /\[data-testid="embedded-ad"\]/);
 		assert.match(AD_SURFACE_CSS, /\[data-testid="ad-companion-card"\]/);
+	});
+
+	it("hides the home ad shelf, which no manager can turn off", () => {
+		assert.match(AD_SURFACE_CSS, /\[data-testid="home-ads-container"\]/);
+	});
+});
+
+describe("stubFetcher", () => {
+	it("stops the fetch that would deliver the ad", async () => {
+		let called = 0;
+		const m = {
+			fetchHomeAd: async () => {
+				called++;
+				return { ad: "lidl" };
+			},
+		};
+		const restore = stubFetcher(m, "fetchHomeAd");
+		assert.equal(await m.fetchHomeAd(), null, "an empty result renders no card");
+		assert.equal(called, 0, "the ad must never be requested");
+		assert.ok(restore);
+	});
+
+	it("hands the original function back on restore", async () => {
+		const original = async () => ({ ad: "lidl" });
+		const m = { fetchHomeAd: original };
+		stubFetcher(m, "fetchHomeAd")?.();
+		assert.equal(m.fetchHomeAd, original);
+		assert.deepEqual(await m.fetchHomeAd(), { ad: "lidl" });
+	});
+
+	it("reports nothing to restore when the build has no such method", () => {
+		assert.equal(stubFetcher({}, "fetchHomeAd"), null);
+		assert.equal(stubFetcher(undefined, "fetchHomeAd"), null);
+		assert.equal(stubFetcher({ fetchHomeAd: "not a function" } as never, "fetchHomeAd"), null);
+	});
+});
+
+describe("AD_FETCHERS", () => {
+	it("covers home, whose manager exposes neither disable nor enabled", () => {
+		assert.ok(AD_FETCHERS.some((f) => f.path === "home" && f.method === "fetchHomeAd"));
+	});
+
+	it("leaves a fetch-driven surface untouched by disableManager", () => {
+		// The real shape of Platform.AdManagers.home: no disable, no enabled, so
+		// disableManager does nothing and reports false. This is why the stub exists.
+		const home = { logger: {}, fetchHomeAd: async () => ({}), enableLegacyHptoContainerLoader: true };
+		assert.equal(disableManager(home as never), false);
 	});
 });

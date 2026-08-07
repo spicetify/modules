@@ -27,6 +27,27 @@ export const AD_MANAGERS = [
 	"embeddedPlaylist.embeddedPlaylistManager",
 ] as const;
 
+// Surfaces whose ad is pulled by a fetch instead of gated by a flag. They carry
+// neither `disable` nor `enabled`, so `disableManager` cannot touch them and
+// returns false without anything reporting a failure — the same silent no-op as
+// a nested manager addressed by its outer object. Overriding the fetch to
+// resolve empty is what stops them; the client renders no card for an empty
+// result and the leftover container collapses to zero height.
+export const AD_FETCHERS = [{ path: "home", method: "fetchHomeAd" }] as const;
+
+/**
+ * Replaces `method` on `manager` with one that resolves empty, returning a
+ * restorer, or null when this build has no such method to stub.
+ */
+export function stubFetcher(manager: Record<string, any> | undefined, method: string): (() => void) | null {
+	if (typeof manager?.[method] !== "function") return null;
+	const original = manager[method];
+	manager[method] = async () => null;
+	return () => {
+		manager[method] = original;
+	};
+}
+
 /** Walks a dotted path, returning undefined rather than throwing on a gap. */
 export function resolveManager(root: Record<string, any> | undefined, path: string): unknown {
 	let node: any = root;
@@ -143,6 +164,7 @@ export const AD_SURFACE_CSS = `
 	[data-testid="embedded-ad"],
 	[data-testid="ad-companion-card"],
 	[data-testid="hpto-container"],
+	[data-testid="home-ads-container"],
 	.main-leaderboardComponent-container {
 		display: none !important;
 	}
