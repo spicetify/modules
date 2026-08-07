@@ -211,3 +211,64 @@ describe("autobump", () => {
 		assert.match(run("autobump", "--dry-run"), /zeta: skipped \(Release-As: none\)/);
 	});
 });
+
+// Its own pair of repos: reproducing the stale-checkout bug needs a real
+// origin, which the fixtures above deliberately do not have.
+describe("stale checkout", () => {
+	let origin: string;
+	let clone: string;
+	const env = { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null" };
+	const git = (cwd: string, ...args: string[]) => execFileSync("git", args, { cwd, env, encoding: "utf8" }).trim();
+	const identify = (cwd: string) => {
+		git(cwd, "config", "user.email", "test@example.com");
+		git(cwd, "config", "user.name", "test");
+		git(cwd, "config", "commit.gpgsign", "false");
+		git(cwd, "config", "tag.gpgsign", "false");
+	};
+
+	before(() => {
+		origin = mkdtempSync(path.join(tmpdir(), "release-origin-"));
+		git(origin, "init", "-b", "main");
+		identify(origin);
+		mkdirSync(path.join(origin, "modules", "alpha"), { recursive: true });
+		writeFileSync(
+			path.join(origin, "modules", "alpha", "metadata.json"),
+			JSON.stringify({ name: "alpha", version: "1.0.0" }, null, "\t"),
+		);
+		// alpha@1.0.0 is published: in the vault, and tagged on the remote.
+		writeFileSync(path.join(origin, "vault.json"), JSON.stringify({ modules: { alpha: { v: { "1.0.0": {} } } } }));
+		git(origin, "add", "-A");
+		git(origin, "commit", "-m", "chore: publish alpha@1.0.0");
+		git(origin, "tag", "-a", "alpha@1.0.0", "-m", "alpha@1.0.0");
+
+		clone = mkdtempSync(path.join(tmpdir(), "release-clone-"));
+		rmSync(clone, { recursive: true, force: true });
+		execFileSync("git", ["clone", "--quiet", origin, clone], { env, encoding: "utf8" });
+		identify(clone);
+		// The stale part: this checkout has not seen the release tag.
+		git(clone, "tag", "-d", "alpha@1.0.0");
+		writeFileSync(path.join(clone, "modules", "alpha", "extra.ts"), "export const x = 1;\n");
+		git(clone, "add", "-A");
+		git(clone, "commit", "-m", "fix(alpha): change since the published version");
+	});
+
+	after(() => {
+		rmSync(origin, { recursive: true, force: true });
+		rmSync(clone, { recursive: true, force: true });
+	});
+
+	it("still sees a change on an already-published version when the tag is only on the remote", () => {
+		assert.equal(git(clone, "tag", "--list", "alpha@1.0.0"), "", "precondition: the checkout is missing the tag");
+
+		const r = spawnSync("node", [RELEASE, "status"], { cwd: clone, env, encoding: "utf8" });
+
+		assert.match(r.stderr, /alpha: changed since alpha@1\.0\.0 but 1\.0\.0 is already published/);
+		assert.doesNotMatch(
+			r.stdout,
+			/ok: every changed module/,
+			"reporting ok here is the bug: the bump is skipped and the change never ships",
+		);
+		assert.notEqual(r.status, 0, "an unshippable change must fail the gate, not pass it quietly");
+		assert.equal(git(clone, "tag", "--list", "alpha@1.0.0"), "alpha@1.0.0", "the fetch refreshed the local tags");
+	});
+});
