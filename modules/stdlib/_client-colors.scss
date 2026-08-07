@@ -99,6 +99,16 @@ html.spicetify-themed {
 		color: var(--spice-text);
 	}
 
+	/* Hovering or focusing the search box lifts its magnifier to a flat white
+	   literal, so on a light theme the icon washes out at the moment it is
+	   meant to stand out. The icon carries no mapped class of its own, so it
+	   is reached through encore's leading-icon slot; the trailing slot holds
+	   the clear and browse buttons, which the client leaves alone. */
+	.main-globalNav-searchInputContainer:hover [class*="form-input-icon__icon--leading"] button,
+	.main-globalNav-searchInputContainer:focus-within [class*="form-input-icon__icon--leading"] button {
+		color: var(--spice-text);
+	}
+
 	/* The nav bar's own background is a flat black literal rather than a
 	   token, so a light theme renders a black band across the top while the
 	   container behind it already carries the theme. */
