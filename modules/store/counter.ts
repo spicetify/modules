@@ -25,10 +25,19 @@ export async function fetchInstallCounts(ids: string[]): Promise<void> {
 	}
 }
 
+// Modules whose badge this session has already bumped, so reinstalling one
+// twice in a session does not count twice on screen.
+const bumped = new Set<string>();
+
 // Fire-and-forget: an install must never fail or slow down because the
 // counter is down. The account id is read client-side (no token authenticates
 // against Spotify's Web API in v3) and the server stores only a keyed hash, so
 // repeat installs by the same account are not double counted.
+//
+// The badge bump is local and optimistic. The server does not report whether
+// the install was new, because an endpoint that did could be probed with a
+// known username to learn whether that account installed a module. The next
+// fetchInstallCounts corrects the number either way.
 export function reportInstall(mod: VaultModule): void {
 	if (disposed) return;
 	void (async () => {
@@ -42,12 +51,10 @@ export function reportInstall(mod: VaultModule): void {
 				headers: { "content-type": "application/json" },
 				body: JSON.stringify({ module: mod.id, version: mod.version.split("+")[0], account }),
 			});
-			if (!res.ok) return;
-			const data = (await res.json()) as { counted?: boolean };
-			if (data.counted) {
-				installCounts[mod.id] = (installCounts[mod.id] ?? 0) + 1;
-				onCountsChanged?.();
-			}
+			if (!res.ok || bumped.has(mod.id)) return;
+			bumped.add(mod.id);
+			installCounts[mod.id] = (installCounts[mod.id] ?? 0) + 1;
+			onCountsChanged?.();
 		} catch {}
 	})();
 }
