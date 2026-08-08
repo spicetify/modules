@@ -19,6 +19,8 @@
 		"happy-dom": "^20.11.1",
 		"oxfmt": "^0.60.0",
 		"oxlint": "^1.75.0",
+		"pixelmatch": "^7.1.0",
+		"pngjs": "^7.0.0",
 		"rolldown": "^1.2.0",
 		"rxjs": "^7.8.2",
 		"sass-embedded": "^1.80.0",
