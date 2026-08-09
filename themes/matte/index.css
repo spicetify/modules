@@ -314,6 +314,12 @@ form .main-topBar-searchBar:focus {
 
 /*  root
     -------------------------------- */
+.Root {
+	--panel-gap: 0 !important;
+}
+.spotify__container--is-desktop .Root__top-container {
+	padding-top: 0 !important;
+}
 
 /*  scrollbar
     -------------------------------- */
