@@ -10,7 +10,8 @@
 				"name": "Delusoire"
 			}
 		],
-		"tags": ["lib"]
+		"tags": ["lib"],
+		"license": "GPL-3.0-or-later"
 	},
 	"v": {
 		"1.0.0": {
@@ -102,6 +103,13 @@
 			"providers": [],
 			"checksum": "sha256:b4b81cbb27b9c8bba49f32e3782e6a16fc831f96238223fafc2887242f722385",
 			"updatedAt": "2026-08-07",
+			"hidden": true
+		},
+		"1.4.4": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/stdlib@1.4.4/stdlib@1.4.4.zip"],
+			"providers": [],
+			"checksum": "sha256:faae012366975bedd8437c54dab18d9d1b6b1dbdb1726f943bceb1454a4f4521",
+			"updatedAt": "2026-08-09",
 			"hidden": true
 		}
 	}
