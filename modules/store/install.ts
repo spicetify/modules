@@ -109,6 +109,28 @@ export async function installModule(mod: VaultModule, status: (msg: string) => v
 	}
 }
 
+/**
+ * Artifacts are listed in preference order, author's host first and this
+ * org's mirror after it. A host that has gone away (a deleted release asset)
+ * is an availability failure the checksum cannot help with, so try the rest
+ * of the list before giving up; whichever one answers is still verified
+ * against the same checksum.
+ */
+async function downloadArtifact(mod: VaultModule, status: (msg: string) => void): Promise<ArrayBuffer> {
+	const failures: string[] = [];
+	for (const [index, url] of mod.artifacts.entries()) {
+		if (index > 0) status(`trying mirror ${index} of ${mod.artifacts.length - 1}…`);
+		try {
+			const res = await proxiedFetch(url);
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			return await res.arrayBuffer();
+		} catch (e) {
+			failures.push(`${url}: ${(e as Error).message}`);
+		}
+	}
+	throw new Error(`download failed: ${failures.join("; ")}`);
+}
+
 async function installModuleInner(mod: VaultModule, status: (msg: string) => void) {
 	let metadata: any = null;
 	let files: Record<string, string>;
@@ -124,9 +146,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		if (!Object.keys(files).length) throw new Error("inline entry has no css files");
 	} else {
 		status(`downloading ${mod.id}@${mod.version}…`);
-		const res = await proxiedFetch(mod.artifacts[0]);
-		if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
-		const zipBytes = await res.arrayBuffer();
+		const zipBytes = await downloadArtifact(mod, status);
 
 		if (mod.checksum) {
 			const got = `sha256:${await sha256Hex(zipBytes)}`;

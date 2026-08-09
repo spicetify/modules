@@ -1,0 +1,78 @@
+name: Vault
+
+# vault/<id>.json is the reviewable source; vault.json is the aggregate the
+# store and the CLI fetch. A submission PR only ever touches its own source
+# file, so the aggregate is rebuilt here after the merge and committed back.
+# Publishes rebuild it in their own commit (the release action runs the
+# builder), so this is the catch-up for everything else and a no-op
+# otherwise.
+on:
+   push:
+      branches:
+         - main
+   workflow_dispatch:
+
+# Deliberately NOT the `publish` group: that queue holds a single pending
+# run and replaces it with the newest, so sharing it would let a rebuild
+# evict a queued release and drop its bumps.
+concurrency:
+   group: vault-rebuild
+   cancel-in-progress: false
+
+jobs:
+   rebuild:
+      name: Rebuild vault.json
+      runs-on: ubuntu-latest
+      if: github.repository_owner == 'spicetify'
+      permissions:
+         contents: write
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v4
+
+         -  name: Setup pnpm
+            uses: pnpm/action-setup@v6
+
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               cache: pnpm
+
+         -  name: Install dependencies
+            run: pnpm install --frozen-lockfile
+
+         # An entry points at a host this org does not control, so a copy is
+         # kept here too. Failing to mirror must not fail the rebuild: the
+         # catalog is still correct without it, just less durable.
+         -  name: Mirror published artifacts
+            continue-on-error: true
+            env:
+               GH_TOKEN: ${{ github.token }}
+            run: node scripts/mirror-artifacts.ts
+
+         -  name: Rebuild
+            run: node scripts/vault-build.ts
+
+         # A racing publish commit rebases cleanly: the aggregate is a pure
+         # function of the sources, so re-running the builder after the
+         # rebase converges rather than fighting.
+         -  name: Commit
+            run: |
+               set -e
+               if git diff --quiet -- vault.json vault; then
+                  echo "vault.json already current"
+                  exit 0
+               fi
+               git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
+               git config --local user.name "$GITHUB_ACTOR"
+               git add vault.json vault
+               git commit -m "Rebuild vault.json"
+               git push origin HEAD:main || {
+                  git fetch origin main
+                  git rebase origin/main
+                  node scripts/vault-build.ts
+                  git add vault.json vault
+                  git diff --cached --quiet || git commit --amend --no-edit
+                  git push origin HEAD:main
+               }
