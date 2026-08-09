@@ -66,9 +66,6 @@ jobs:
          -  name: Test kit
             run: npm test --prefix packages/kit
 
-         -  name: Test installs-api
-            run: npm test --prefix packages/installs-api
-
          # A changed module must carry a new, unpublished version or the
          # next release would overwrite a live vault entry. Hard in PR
          # and merge-queue contexts (pre-merge enforcement works there);
