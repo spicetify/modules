@@ -203,6 +203,8 @@ These are the contract; [the standard](./module-standard.md) carries the detail.
   tier with the recovery-vs-leaf test.
 - **Ship** with `spicetify-kit build` then `pack` then `vault add`. `build`
   enforces the standard's error tier (bad metadata or a missing loader shim
-  aborts the build).
+  aborts the build). [`publishing.md`](./publishing.md) covers the rest of the
+  way: the entry is submitted to this repo's registry, where the artifact is
+  downloaded and re-hashed before it can merge.
 
 Then run the [golden-module checklist](./module-standard.md#definition-of-a-golden-module).

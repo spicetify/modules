@@ -46,6 +46,7 @@ are no per-version prebuilds.
 
 - [`docs/authoring-guide.md`](docs/authoring-guide.md) — building a module
 - [`docs/module-standard.md`](docs/module-standard.md) — the module contract
+- [`docs/publishing.md`](docs/publishing.md) — submitting a module to the store
 - [`docs/theming-the-client.md`](docs/theming-the-client.md) — theming the
   client's own colors
 - [`docs/pr-flow.md`](docs/pr-flow.md) — release and tag recovery

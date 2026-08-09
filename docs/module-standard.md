@@ -34,9 +34,11 @@ walkthrough (scaffold, registrars, `placeButton`, the typed surface), see the
    serialized. Every CI run on `main` lists unreleased work in its job
    summary, so pending state is always one Actions tab away. The manual
    path (`node scripts/release.ts tag --push`) remains as a fallback, and
-   third-party authors outside this repo still publish with `spicetify-kit
-build` → `pack` → `vault add <dist> --artifact <url>` into their own
-   vaults.
+   third-party authors outside this repo publish with `spicetify-kit
+build` → `pack` → `vault add <dist> --artifact <url>`, which writes the
+   registry entry, submitted as a pull request here (by hand or from their own
+   release workflow via the publish action).
+   [`publishing.md`](./publishing.md) walks the submission path.
 5. Ship a preview. Store cards are artwork-first, so `metadata.json` must
    carry an absolute https `preview` or `vault add` refuses the entry. Capture
    a real screenshot whenever the module has UI (16:9, vendored under
