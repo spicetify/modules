@@ -30,4 +30,11 @@ describe("mirror-artifacts", () => {
 	it("leaves inline entries alone", () => {
 		assert.equal(needsMirror("snippet-x", "1.0.0", []), false);
 	});
+
+	it("does not copy what this repository already hosts", () => {
+		// Everything published from here already lives in our releases, so
+		// the whole existing catalog is a no-op rather than 114 uploads.
+		const ours = ["https://github.com/spicetify/modules/releases/download/trashbin@0.1.0/trashbin@0.1.0.zip"];
+		assert.equal(needsMirror("trashbin", "0.1.0", ours), false);
+	});
 });

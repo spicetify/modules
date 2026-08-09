@@ -37,9 +37,16 @@ export const mirrorTag = (id: string) => `mirror/${id}`;
 export const mirrorAsset = (id: string, version: string) => `${id}@${version}.zip`;
 export const mirrorUrl = (id: string, version: string) => `${MIRROR_HOST}/${mirrorTag(id)}/${mirrorAsset(id, version)}`;
 
-/** An entry needs mirroring when it has an artifact and no mirror yet. */
+/**
+ * An entry needs mirroring when it points somewhere we do not control and
+ * has no copy here yet. Inline entries have nothing to fetch, and a module
+ * published from this repository is already hosted by us, so neither gains
+ * anything from a second copy.
+ */
 export function needsMirror(id: string, version: string, artifacts: string[]): boolean {
-	if (!artifacts.length) return false;
+	const primary = artifacts[0];
+	if (!primary) return false;
+	if (primary.startsWith(MIRROR_HOST)) return false;
 	return !artifacts.includes(mirrorUrl(id, version));
 }
 
@@ -67,15 +74,14 @@ async function main(): Promise<void> {
 			const artifacts = entry.artifacts ?? [];
 			if (!needsMirror(id, version, artifacts)) continue;
 			const url = mirrorUrl(id, version);
-			// Nothing is mirrored unverified: an artifact whose checksum no
-			// longer matches must not be given a second, more durable home.
 			const primary = artifacts[0]!;
-			if (primary.startsWith(MIRROR_HOST)) continue;
 			if (dryRun) {
 				console.log(`would mirror ${id}@${version} from ${primary}`);
 				mirrored++;
 				continue;
 			}
+			// Nothing is mirrored unverified: an artifact whose checksum no
+			// longer matches must not be given a second, more durable home.
 			let bytes: Buffer;
 			try {
 				bytes = await fetchArtifact(primary);
