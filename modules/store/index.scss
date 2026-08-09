@@ -489,6 +489,12 @@
 	}
 }
 
+.spicetify-store-license {
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 13px;
+	margin-left: auto;
+}
+
 // The details dialog's meta row is outside the card scope, so give it the
 // same flex layout — and center-align so the icon pill lines up with the
 // text pills instead of sitting on a different baseline.
