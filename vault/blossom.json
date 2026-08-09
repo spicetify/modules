@@ -11,6 +11,12 @@
 			"providers": [],
 			"checksum": "sha256:6fa42ed73fdd22a10fb48bfd41ae66ae5bf5edeb97f12bf37c0029c8732904c3",
 			"updatedAt": "2026-08-04"
+		},
+		"0.1.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/blossom@0.1.2/blossom@0.1.2.zip"],
+			"providers": [],
+			"checksum": "sha256:aace5dfe00e1ec7e32996e7f799d8491597372503ec6d2eb34863feadffa10c2",
+			"updatedAt": "2026-08-09"
 		}
 	},
 	"metadata": {
@@ -22,6 +28,7 @@
 			}
 		],
 		"tags": ["theme"],
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
