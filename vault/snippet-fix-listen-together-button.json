@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Fix Listen Together Button",
+		"description": "Changes the button from the Listen Together extension to match the rest of the UI and theme.",
+		"authors": [
+			{
+				"name": "MigPro",
+				"github": "MigProPlayer"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Fix-Listen-Together-Button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "button[aria-label='Listen Together'] svg * { fill: currentColor !important; transform: scale(0.95) !important; transform-origin: center !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

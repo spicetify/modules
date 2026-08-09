@@ -1,0 +1,31 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/nightlight@0.1.0/nightlight@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:8e725905ec0126db63949aa3363f2de12d538db89f586d1349106b7c6ad65572",
+			"updatedAt": "2026-08-04"
+		},
+		"0.1.1": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/nightlight@0.1.1/nightlight@0.1.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:52a0d30db99698b9d03f3471311fa6d42ac8083409312210b6073686b83e3a87",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "nightlight",
+		"description": "Nightlight theme, migrated from the classic format",
+		"authors": [
+			{
+				"name": "iTenerai"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png"
+	}
+}

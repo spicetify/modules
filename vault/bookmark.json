@@ -1,0 +1,57 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.1.0/bookmark@0.1.0.zip"],
+			"providers": [],
+			"checksum": "sha256:a864f9aecff11cdfd2f1aff672e70996716b11fcbea6a52b0667decee1a27fed",
+			"updatedAt": "2026-08-03"
+		},
+		"0.1.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.1.1/bookmark@0.1.1.zip"],
+			"providers": [],
+			"checksum": "sha256:d22ec0b74028549ace3fe6e160f7b53dba00d387013ab453b249091a5b482583",
+			"updatedAt": "2026-08-03"
+		},
+		"0.1.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.1.2/bookmark@0.1.2.zip"],
+			"providers": [],
+			"checksum": "sha256:f743831cb8dbe79b9862330213d5c120a91b5258baf5694edbc0bd924f5ce279",
+			"updatedAt": "2026-08-03"
+		},
+		"0.2.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.2.0/bookmark@0.2.0.zip"],
+			"providers": [],
+			"checksum": "sha256:b4b52c46187b3352f6afc38f0f3161287232c9b92bf68e78e9b0ce0df5510025",
+			"updatedAt": "2026-08-04"
+		},
+		"0.3.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.3.0/bookmark@0.3.0.zip"],
+			"providers": [],
+			"checksum": "sha256:3e3f3a66b2eb5f90d5c4a03ce102a3b3991c49239c91d4b2735da460b2d0a9c2",
+			"updatedAt": "2026-08-04"
+		},
+		"0.3.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.3.1/bookmark@0.3.1.zip"],
+			"providers": [],
+			"checksum": "sha256:c0b0970d01edd4d2840776c1367034e13db1feabf53cdde040d74ea49e74788e",
+			"updatedAt": "2026-08-04"
+		},
+		"0.3.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.3.2/bookmark@0.3.2.zip"],
+			"providers": [],
+			"checksum": "sha256:f5c712e6181b38ce2f0b1dccf5d9164e83efb6e221be34b5cedb449183801ace",
+			"updatedAt": "2026-08-06"
+		}
+	},
+	"metadata": {
+		"name": "bookmark",
+		"description": "Bookmark pages, tracks, and tracks with a playback timestamp to revisit later from a topbar popup.",
+		"authors": [
+			{
+				"name": "spicetify"
+			}
+		],
+		"tags": ["extension"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
+	}
+}

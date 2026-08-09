@@ -1,0 +1,59 @@
+{
+	"v": {
+		"1.0.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.0.0/manager@1.0.0.zip"],
+			"providers": [],
+			"checksum": "sha256:2fc6ed8180a4911be8f9ca6e66631461546f8708f25a7fb7fc83584ef2aa897c",
+			"updatedAt": "2026-08-03",
+			"hidden": true
+		},
+		"1.0.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.0.1/manager@1.0.1.zip"],
+			"providers": [],
+			"checksum": "sha256:f97476dd13429138240af35e99fa9a5bf69aa1024647cf1ec552e24f67238cee",
+			"updatedAt": "2026-08-04",
+			"hidden": true
+		},
+		"1.0.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.0.2/manager@1.0.2.zip"],
+			"providers": [],
+			"checksum": "sha256:76755580089e5400c8d0a9fface4aa6510eeeb5050ce03f585cf20c4efca7af7",
+			"updatedAt": "2026-08-04",
+			"hidden": true
+		},
+		"1.0.3": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.0.3/manager@1.0.3.zip"],
+			"providers": [],
+			"checksum": "sha256:075bfe70c0c67bc642d0178f329056ddab8ece02730a9a8867ffbb9168a4296f",
+			"updatedAt": "2026-08-06",
+			"hidden": true
+		},
+		"1.1.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.1.0/manager@1.1.0.zip"],
+			"providers": [],
+			"checksum": "sha256:c58b149ccad2eae88f51e6f8dd5c2292726a63a051aa038610e18e7d05002dd4",
+			"updatedAt": "2026-08-06",
+			"hidden": true
+		},
+		"1.1.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.1.1/manager@1.1.1.zip"],
+			"providers": [],
+			"checksum": "sha256:ac858a0bb2e97396c523a3a2574113496a7d13af92e9a9d0c9c89343de5f6ec7",
+			"updatedAt": "2026-08-06",
+			"hidden": true
+		}
+	},
+	"metadata": {
+		"name": "manager",
+		"description": "Manage spicetify from inside Spotify",
+		"authors": [
+			{
+				"name": "spicetify"
+			},
+			{
+				"name": "Afonso Jorge Ramos"
+			}
+		],
+		"tags": ["manager", "tools"]
+	}
+}

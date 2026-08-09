@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide download button",
+		"description": "Hide download button in EPs and albums",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-download-button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".x-downloadButton-DownloadButton { display: none; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Switch Sidebars",
+		"description": "Move the navigation panel to the right and the information sidebar to the left. Drag to resize works in reverse or pre-switching context (drag off the application window to adjust).",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/switch-sidebars.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".Root__top-container .Root__nav-bar, .WBFaUw_oOfN2m4aTxggt { grid-area: right-sidebar !important;} .Root__top-container .Root__right-sidebar { grid-area: left-sidebar !important;} .Root__top-container .Root__nav-bar .os-scrollbar,.Root__top-container .Root__nav-bar .LayoutResizer__resize-bar, .WBFaUw_oOfN2m4aTxggt .os-scrollbar, .WBFaUw_oOfN2m4aTxggt .LayoutResizer__resize-bar { left: -4px !important; right: auto !important; } .Root__top-container .Root__right-sidebar .os-scrollbar, .Root__top-container .Root__right-sidebar .LayoutResizer__resize-bar {  right: -4px !important; left: auto !important; } .Root__top-container .Root__nav-bar .LayoutResizer__resize-bar, .WBFaUw_oOfN2m4aTxggt .LayoutResizer__resize-bar { transform: scaleX(-1); } .Root__top-container .Root__right-sidebar .LayoutResizer__resize-bar { transform: scaleX(-1); }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

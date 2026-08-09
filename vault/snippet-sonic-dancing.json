@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Sonic Dancing",
+		"description": "You get sonic dancing on your playback bar!",
+		"authors": [
+			{
+				"name": "uhalexz_",
+				"github": "uhAlexz"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/sonic-dancing.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".player-controls .playback-progressbar::before { content: ''; width: 32px; height: 32px; bottom: calc(100% - 7px); right: 10px; position: absolute; image-rendering: pixelated; background-size: 32px 32px; background-image: url('https://media.tenor.com/pWqGD2PHY3kAAAAj/fortnite-dance-sonic.gif'); }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

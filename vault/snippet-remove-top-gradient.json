@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Remove Top gradient",
+		"description": "Removes gradient from home page and playlist page",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-gradient.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-entityHeader-backgroundColor { display: none !important; } .main-actionBarBackground-background { display: none !important; } .main-home-homeHeader { display: none !important; } .playlist-playlist-actionBarBackground-background { display: none !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

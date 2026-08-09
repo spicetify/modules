@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "More Visible Unplayable Tracks",
+		"description": "Changes the background of unplayable tracks to make it easier to spot them in large playlists.",
+		"authors": [
+			{
+				"name": "NeoNyaa",
+				"github": "NeoNyaa"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/More-Visible-Unplayable-Tracks.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-trackList-disabled{background:#f004}.main-trackList-disabled:focus-within,.main-trackList-disabled:hover{background:#f005}.main-trackList-disabled.main-trackList-selected,.main-trackList-disabled.main-trackList-selected:hover{background:#f006}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

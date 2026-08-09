@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Remove Duplicated Fullscreen Button",
+		"description": "Removes the original fullscreen button when the Beautiful Lyrics extension is installed.",
+		"authors": [
+			{
+				"name": "MigPro",
+				"github": "MigProPlayer"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Duplicated-Fullscreen-Button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "[data-testid=\"fullscreen-mode-button\"]:not(#BeautifulLyricsFullscreenButton) { display: none !important;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

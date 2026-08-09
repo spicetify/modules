@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Small Video Button",
+		"description": "Makes the \"Switch to video\" button smaller and less intrusive, for consistency",
+		"authors": [
+			{
+				"name": "blok",
+				"github": "Theblockbuster1"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Small-Video-Button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".dcSY8Zom_VXgK71Lbym_ { position: absolute; opacity: 0.4; transition: opacity 0.5s; z-index: 999; } .dcSY8Zom_VXgK71Lbym_:hover { position: absolute; opacity: 1; } .dcSY8Zom_VXgK71Lbym_ .encore-text { display: none; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

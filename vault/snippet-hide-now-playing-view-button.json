@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide now playing view button",
+		"description": "Hides the now playing view button from the playbar",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-now-playing-view-button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "button:has(path[d='M11.196 8 6 5v6l5.196-3z']), button:has(path[d='M11.196 8 6 5v6z']) {display: none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

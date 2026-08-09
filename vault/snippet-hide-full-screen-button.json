@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide Full Screen Button",
+		"description": "Hides the Full Screen button.",
+		"authors": [
+			{
+				"name": "Rui Wang",
+				"github": "Ender-Wang"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Full-Screen-Button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "[data-testid=\"fullscreen-mode-button\"] {display: none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Centered Lyrics",
+		"description": "Centers the lyrics on the lyrics page",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/centered-lyrics.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".lyrics-lyrics-contentWrapper { text-align: center; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

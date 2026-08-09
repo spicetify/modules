@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide Sidebar ScrollBar",
+		"description": "Hides Sidebar ScrollBar near playlist section",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "#Desktop_LeftSidebar_Id .os-scrollbar-handle, .Root__nav-bar .os-scrollbar-handle, #Desktop_LeftSidebar_Id .os-scrollbar-track, .Root__nav-bar .os-scrollbar-track { visibility: hidden; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

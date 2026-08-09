@@ -1,0 +1,91 @@
+{
+	"v": {
+		"1.0.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.0.0/store@1.0.0.zip"],
+			"providers": [],
+			"checksum": "sha256:4d6dae7f0b88be502f44157c62383f1554e181787c0368f8f687c2145b10dd5d",
+			"updatedAt": "2026-08-03",
+			"hidden": true
+		},
+		"1.0.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.0.1/store@1.0.1.zip"],
+			"providers": [],
+			"checksum": "sha256:66c422fb526e250cb28ba405ece615fa801bdaba7da5a190c6aacdef7e3c888a",
+			"updatedAt": "2026-08-03",
+			"hidden": true
+		},
+		"1.0.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.0.2/store@1.0.2.zip"],
+			"providers": [],
+			"checksum": "sha256:0a03dcbdf6f4389712b1f24c1c386fb010da16320620267bada2292915503ace",
+			"updatedAt": "2026-08-03",
+			"hidden": true
+		},
+		"1.0.3": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.0.3/store@1.0.3.zip"],
+			"providers": [],
+			"checksum": "sha256:d4480b047d946e5b665a214df5bff3da4717ae53e27a3e43b4c0b3ebe30d020e",
+			"updatedAt": "2026-08-04",
+			"hidden": true
+		},
+		"1.1.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.1.0/store@1.1.0.zip"],
+			"providers": [],
+			"checksum": "sha256:904dac01a559cb5da337b336c71ccfed386eaf12e9034bf43b4c8c07a8a21a76",
+			"updatedAt": "2026-08-04",
+			"hidden": true
+		},
+		"1.2.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.2.0/store@1.2.0.zip"],
+			"providers": [],
+			"checksum": "sha256:51fbbec13a672f469d0b0c4b944df6a99d3235459f1fa254c342f4f1a284e21e",
+			"updatedAt": "2026-08-04",
+			"hidden": true
+		},
+		"1.2.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.2.1/store@1.2.1.zip"],
+			"providers": [],
+			"checksum": "sha256:596d4a8cc5857ab6d794508424c15dc4683ec9d27d8f1ff15b79257fd823d6d4",
+			"updatedAt": "2026-08-04",
+			"hidden": true
+		},
+		"1.2.4": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.2.4/store@1.2.4.zip"],
+			"providers": [],
+			"checksum": "sha256:752751cbd001f691201ed9e1832345a6f70852f42b40bd8b4594cb65f55b9154",
+			"updatedAt": "2026-08-05",
+			"hidden": true
+		},
+		"1.3.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.3.0/store@1.3.0.zip"],
+			"providers": [],
+			"checksum": "sha256:01d52dd76df5230f920534ec8705ffad1a4796ae8470a772e1628bb2e24697c0",
+			"updatedAt": "2026-08-06",
+			"hidden": true
+		},
+		"1.4.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.4.0/store@1.4.0.zip"],
+			"providers": [],
+			"checksum": "sha256:87d9fb997e8974cd800ee9dfcfef7fa1f428019830e1371eefe5ef5463863fdc",
+			"updatedAt": "2026-08-06",
+			"hidden": true
+		},
+		"1.4.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.4.1/store@1.4.1.zip"],
+			"providers": [],
+			"checksum": "sha256:098cac2b622c95168b2a9a1a4e9b12b00cedef6b5ba6432567e8730a33fcbab8",
+			"updatedAt": "2026-08-09",
+			"hidden": true
+		}
+	},
+	"metadata": {
+		"name": "store",
+		"description": "Browse, install, and manage v3 modules from vaults",
+		"authors": [
+			{
+				"name": "spicetify"
+			}
+		],
+		"tags": ["ui"]
+	}
+}

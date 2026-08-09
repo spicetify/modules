@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Minecraft progress bar",
+		"description": "Replaces the default progress bar with the minecraft XP bar",
+		"authors": [
+			{
+				"name": "1-MaX-7"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/XP-bar-pr.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".playback-bar .x-progressBar-progressBarBg { height: 80% !important; background-image: url(https://i.imgur.com/di9J4K0.png) !important; background-size: cover; background-position: center; } .playback-bar .x-progressBar-sliderArea { height: 100% !important; } .playback-bar .x-progressBar-fillColor { height: 100% !Important; background: none; background-image: url(https://i.imgur.com/c7NB133.png)!important; background-size: cover; background-position: center; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

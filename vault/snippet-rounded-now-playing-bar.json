@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Rounded 'Now Playing' Bar",
+		"description": "Adds rounded corners to the 'Now Playing' bar so it matches the rest of the User Interface.",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-now-playing.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ":root{ --border-radius-1: 8px; } .Root__now-playing-bar, .Root__now-playing-bar footer { border-radius: var(--border-radius-1) !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

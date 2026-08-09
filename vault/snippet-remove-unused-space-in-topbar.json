@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Remove Unused Space in Topbar",
+		"description": "Remove the unused space in topbar.",
+		"authors": [
+			{
+				"name": "Climax"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-unused-space.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".Kgjmt7IX5samBYUpbkBu, .OPsY6bKl1_FfA8jFpq1V { display: none !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

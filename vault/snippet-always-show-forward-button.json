@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Always show forward button",
+		"description": "The navigate forward button hides itself when the window width is smaller. This snipppet makes it so that it is always shown.",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/always-show-forward.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-topBar-historyButtons .main-topBar-forward {\n    display: inline-flex !important;\n}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

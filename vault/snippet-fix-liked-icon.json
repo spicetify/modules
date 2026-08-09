@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Fix 'Liked' Icon",
+		"description": "Fix the colours of the Liked icon in sidebar",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-icon.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-likedSongsButton-likedSongsIcon {\n  color: var(--spice-sidebar);\n  background: var(--spice-text);\n}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

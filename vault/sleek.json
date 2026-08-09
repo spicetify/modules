@@ -1,0 +1,33 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.0/sleek@0.1.0.zip"],
+			"providers": [],
+			"checksum": "sha256:3a679941694be6a837b9bc19bdff33ff830e57012733aab69379aa5a1937bb5d",
+			"updatedAt": "2026-08-04"
+		},
+		"0.1.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.1/sleek@0.1.1.zip"],
+			"providers": [],
+			"checksum": "sha256:1884b18531a472f84c819a33f105ca786fb00d6d3fbd2035c42080fef7ebac85",
+			"updatedAt": "2026-08-04"
+		},
+		"0.1.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.2/sleek@0.1.2.zip"],
+			"providers": [],
+			"checksum": "sha256:18bf8b626846fc7f12e277df14fc9b15f55ae97339944aae5d3e33a4f78081e7",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "sleek",
+		"description": "Sleek theme, migrated from the classic format",
+		"authors": [
+			{
+				"name": "harbassan"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png"
+	}
+}

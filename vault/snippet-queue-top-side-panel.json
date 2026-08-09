@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Queue Top Side Panel",
+		"description": "Moves the \"Next in queue\" section to the top of the Now Playing view",
+		"authors": [
+			{
+				"name": "blok",
+				"github": "Theblockbuster1"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-nowPlayingView-section:not(.main-nowPlayingView-queue) { order: 99; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

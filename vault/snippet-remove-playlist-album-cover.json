@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Remove Playlist Album Cover",
+		"description": "Remove the album cover from the playlist banner",
+		"authors": [
+			{
+				"name": "Duckyz95",
+				"github": "Duckyz95"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Playlist-Cover.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-entityHeader-imageContainer.main-entityHeader-imageContainerNew { display: none; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

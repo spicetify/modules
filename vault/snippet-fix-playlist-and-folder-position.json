@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Fix playlist and folder position",
+		"description": "Replaces the playlists section in the left side bar to align with all the other category icons for the new UI. Screenshot includes 'Playlist icons' snippet",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-and-folder-position.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".playlist-item__img.folder, .playlist-item__img { margin-right: 16px; } .main-rootlist-rootlist { --left-sidebar-item-height: 32px; --left-sidebar-item-indentation-width: 10px; } div.GlueDropTarget.personal-library > * { height: 32px !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

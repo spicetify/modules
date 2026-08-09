@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Remove liked and Episodes icon",
+		"description": "Removes the liked and episodes icon from the sidebar",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-ep-likes.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-collectionLinkButton-collectionLinkButton[href=\"/collection/tracks\"], .main-collectionLinkButton-collectionLinkButton[href=\"/collection/episodes\"] {display: none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

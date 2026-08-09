@@ -12,10 +12,11 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-const USAGE = "spicetify-kit vault add <dist-dir> --artifact <url> [--zip <file>] [--vault <path>]";
+const USAGE =
+	"spicetify-kit vault add <dist-dir> --artifact <url> [--zip <file>] [--vault <path>]\n  (default target: vault/<id>.json, the shape a store submission takes)";
 
 // Every author may carry their own GitHub username; plain names in
 // metadata.json normalize to { name }.
@@ -32,6 +33,9 @@ interface VaultMetadata {
 	preview?: string;
 	repository?: string;
 	readme?: string;
+	// SPDX identifier: the registry requires one, and the store shows it
+	// next to the install button.
+	license?: string;
 }
 
 const normalizeAuthors = (authors: unknown[]): VaultAuthor[] =>
@@ -53,6 +57,7 @@ const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
 	if (typeof meta.repository === "string" && meta.repository.startsWith("https://")) out.repository = meta.repository;
 	if (typeof meta.readme === "string" && meta.readme.startsWith("https://")) out.readme = meta.readme;
+	if (typeof meta.license === "string" && meta.license.trim()) out.license = meta.license.trim();
 	return out;
 };
 
@@ -87,25 +92,25 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 	const bytes = zip ? readFileSync(path.resolve(cwd, zip)) : await download(artifact);
 	const checksum = sha256(bytes);
 
-	const vaultPath = path.resolve(cwd, flag("vault") ?? "vault.json");
-	// KTD3 divergence: initialize an empty vault when the target is absent (the
-	// monorepo script assumes one already exists).
-	const vault: {
-		modules: Record<string, { metadata?: VaultMetadata; v: Record<string, unknown>; enabled?: string }>;
-	} = existsSync(vaultPath) ? JSON.parse(readFileSync(vaultPath, "utf8")) : { modules: {} };
-	vault.modules ??= {};
-	vault.modules[id] ??= { v: {} };
+	// One file per module, which is exactly what a submission to the
+	// registry is: vault/<id>.json holding this module and nothing else.
+	const vaultPath = path.resolve(cwd, flag("vault") ?? path.join("vault", `${id}.json`));
+	const module: { metadata?: VaultMetadata; v: Record<string, unknown>; enabled?: string } = existsSync(vaultPath)
+		? JSON.parse(readFileSync(vaultPath, "utf8"))
+		: { v: {} };
+	module.v ??= {};
 
-	// KTD3 divergence: abort on a checksum mismatch against an existing entry
-	// (the monorepo `add` overwrites unconditionally; only `refresh` verifies).
-	const existing = vault.modules[id].v[version] as { checksum?: string } | undefined;
+	// A published version is immutable: its checksum is what every install
+	// of it was verified against, so re-pointing it at different bytes is
+	// refused here as well as by the registry's validator.
+	const existing = module.v[version] as { checksum?: string } | undefined;
 	if (existing?.checksum && existing.checksum.toLowerCase() !== checksum.toLowerCase()) {
 		throw new Error(
 			`${id}@${version}: checksum mismatch (vault ${existing.checksum}, artifact ${checksum}); refusing to overwrite`,
 		);
 	}
 
-	vault.modules[id].v[version] = {
+	module.v[version] = {
 		artifacts: [artifact],
 		providers: [],
 		checksum,
@@ -115,7 +120,7 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 	// add records the newest release, so the card follows it. Curated
 	// per-author github attribution usually doesn't come from the
 	// artifact and must survive the rewrite (artifact-declared wins).
-	const prev = vault.modules[id].metadata;
+	const prev = module.metadata;
 	const next = metadataSubset(meta);
 	if (prev?.authors?.length && next.authors?.length) {
 		const curated = new Map(prev.authors.filter((a) => a.github).map((a) => [a.name, a.github as string]));
@@ -123,7 +128,8 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 			!a.github && curated.has(a.name) ? { ...a, github: curated.get(a.name) } : a,
 		);
 	}
-	vault.modules[id].metadata = next;
-	writeFileSync(vaultPath, `${JSON.stringify(vault, null, "\t")}\n`);
+	module.metadata = next;
+	mkdirSync(path.dirname(vaultPath), { recursive: true });
+	writeFileSync(vaultPath, `${JSON.stringify(module, null, "\t")}\n`);
 	console.log(`added ${id}@${version} to ${vaultPath}`);
 }

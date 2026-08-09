@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide 'Scroll through previews'",
+		"description": "Hides the 'Scroll through previews of tracks' button from albums/playlists",
+		"authors": [
+			{
+				"name": "Donald",
+				"github": "Donaldino7712"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-scroll-through-previews.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-actionBar-exploreButton { display: none !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

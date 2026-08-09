@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Circular shadow fix for album art",
+		"description": "Fixes the square shadow you get in some setups when you have any sort of circular album art snippet installed.",
+		"authors": [
+			{
+				"name": "sooperfish"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Circular-Shadow-fix-for-album-art.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-nowPlayingView-nowPlayingWidget > div > div:nth-child(1) > div { box-shadow: none !important; } .main-nowPlayingView-coverArt { border-radius: 192px; overflow: hidden; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

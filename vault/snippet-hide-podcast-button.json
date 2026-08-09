@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Hide Podcast Button",
+		"description": "Hides the Podcast button on the home page",
+		"authors": [
+			{
+				"name": "ririxi"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Podcast-Button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "button[aria-label='Podcasts'] {display:none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

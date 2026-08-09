@@ -48,7 +48,7 @@ test("vault add: embeds the metadata subset and a sha256 of the zip; re-adds cle
 		["add", dist, "--artifact", "https://example.com/demo.zip", "--zip", zip, "--vault", vaultPath],
 		root,
 	);
-	const mod = JSON.parse(readFileSync(vaultPath, "utf8")).modules.demo;
+	const mod = JSON.parse(readFileSync(vaultPath, "utf8"));
 	const entry = mod.v["1.0.0"];
 	assert.equal(entry.checksum, sha(zipBytes));
 	// Card metadata lives at the module level, not per version; plain
@@ -62,7 +62,7 @@ test("vault add: embeds the metadata subset and a sha256 of the zip; re-adds cle
 		["add", dist, "--artifact", "https://example.com/demo.zip", "--zip", zip, "--vault", vaultPath],
 		root,
 	);
-	assert.equal(Object.keys(JSON.parse(readFileSync(vaultPath, "utf8")).modules.demo.v).length, 1);
+	assert.equal(Object.keys(JSON.parse(readFileSync(vaultPath, "utf8")).v).length, 1);
 });
 
 test("vault add: a nonexistent --vault path is created with just the new entry", async () => {
@@ -73,17 +73,14 @@ test("vault add: a nonexistent --vault path is created with just the new entry",
 	const vaultPath = path.join(root, "new-vault.json");
 	assert.equal(existsSync(vaultPath), false);
 	await runVault(["add", dist, "--artifact", "u", "--zip", zip, "--vault", vaultPath], root);
-	assert.deepEqual(Object.keys(JSON.parse(readFileSync(vaultPath, "utf8")).modules), ["demo"]);
+	assert.deepEqual(Object.keys(JSON.parse(readFileSync(vaultPath, "utf8")).v), ["1.0.0"]);
 });
 
 test("vault add: a checksum mismatch against an existing entry aborts without writing", async () => {
 	const root = mk();
 	const dist = fixtureDist(root, { name: "demo", version: "1.0.0", description: "D", authors: ["a"], tags: [] });
 	const vaultPath = path.join(root, "vault.json");
-	writeFileSync(
-		vaultPath,
-		JSON.stringify({ modules: { demo: { v: { "1.0.0": { artifacts: ["u"], checksum: "sha256:deadbeef" } } } } }),
-	);
+	writeFileSync(vaultPath, JSON.stringify({ v: { "1.0.0": { artifacts: ["u"], checksum: "sha256:deadbeef" } } }));
 	const before = readFileSync(vaultPath, "utf8");
 	const zip = path.join(root, "art.zip");
 	writeFileSync(zip, Buffer.from("NEW"));

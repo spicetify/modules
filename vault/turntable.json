@@ -1,0 +1,21 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/turntable@0.1.0/turntable@0.1.0.zip"],
+			"providers": [],
+			"checksum": "sha256:5186cc1d38a71d24d499e4d5dd5a597992b5a66f6b52dc8180441ecfdf7b33d1",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "turntable",
+		"description": "Vinyl deck look whose round cover art spins while a track plays",
+		"authors": [
+			{
+				"name": "Grason Chan"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png"
+	}
+}

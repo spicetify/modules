@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Kirby Progress Bar",
+		"description": "Running Kirby on the progress bar",
+		"authors": [
+			{
+				"name": "Ray Vincent DS. Concepcion"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/kirby_progress_bar.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".player-controls .playback-progressbar::before { content: ''; width: 60px; height: 50px; bottom: calc(95%); right: -5px; position: absolute; background-size: 60px 50px; background-image: url('https://i.imgur.com/HKEnzIr.gif'); }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Declutter now playing bar",
+		"description": "Remove all extra elements from now playing bar except song details",
+		"authors": [
+			{
+				"name": "Toon (Anton)"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/declutter-now-playing-bar.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-nowPlayingView-section{ display:none; } .main-nowPlayingView-aboutArtistV2{ display:none; } .nw2W4ZMdICuBo08Tzxg9 { justify-content: center; height: 100%; width: 100%; } .Loading{ display:none !important; } .LoadingLyricsCard{ display:none !important; } .f6_Fu_ei4TIJWR0wzvTk{ display:none !important; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

@@ -1,0 +1,39 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.1.0/shuffle-plus@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:23a2dbf69162488b5251ebdf48207b463ff490ddd7a8fd4f3393c41b58f249c0",
+			"updatedAt": "2026-08-03"
+		},
+		"0.1.1": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.1.1/shuffle-plus@0.1.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:0a957322d8887b90d983a67ad6a87d305e5f80e2f50452134d81371d09c3588f",
+			"updatedAt": "2026-08-04"
+		},
+		"0.2.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.2.0/shuffle-plus@0.2.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:a78686848f1cc9689029b30c379b46c8326a43e3c1a61148241d6ba8d042cec3",
+			"updatedAt": "2026-08-06"
+		}
+	},
+	"metadata": {
+		"name": "shuffle-plus",
+		"description": "True Fisher-Yates shuffle of any context or queue, with context-menu entries to play playlists, albums, artists and more shuffled without bias.",
+		"authors": [
+			{
+				"name": "spicetify"
+			}
+		],
+		"tags": ["extension"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png"
+	}
+}

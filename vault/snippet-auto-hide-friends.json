@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Auto-hide Friends",
+		"description": "Collapse the friends activity sidebar on small screens",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/auto-hide-friends.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".Root__right-sidebar {\n  transition: width 0.3s;\n}\n@media screen and (max-width: 1200px) {\n  .Root__right-sidebar {\n    width: 0;\n  }\n  .Root__right-sidebar .LayoutResizer__resize-bar {\n    display: none;\n  }\n}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

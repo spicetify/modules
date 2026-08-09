@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Pokémon Adventure",
+		"description": "Adds Ash and Pikachu to your playback bar!",
+		"authors": [
+			{
+				"name": "Aradhana Nayak"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".player-controls .playback-progressbar::before { content: ''; width: 42px ; height: 42px; bottom: calc(100% - 7px); right: 10px; position: absolute; image-rendering: pixelated; background-size: 42px 42px ; background-image: url('https://i.giphy.com/mFYJZxzy2SFqC8YSWd.webp'); }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

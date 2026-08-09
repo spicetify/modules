@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Fix Liked Button",
+		"description": "Fixes Liked Button colors",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "#_R_G *:not([fill=\"none\"]) { fill: var(--spice-button) !important; } #_R_G *:not([stroke=\"none\"]) { stroke: var(--spice-button); } .main-addButton-button[aria-checked=\"false\"] { color: rgba(var(--spice-rgb-selected-row), 0.7); } .control-button-heart[aria-checked=\"true\"], .main-addButton-button, .main-addButton-active:focus, .main-addButton-active:hover { color: var(--spice-button); }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

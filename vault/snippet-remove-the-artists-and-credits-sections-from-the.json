@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Remove the Artists and Credits sections from the Sidebar",
+		"description": "It will only show the album cover and the next song",
+		"authors": [
+			{
+				"name": "FoxyLoon",
+				"github": "FoxyLoon"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".nw2W4ZMdICuBo08Tzxg9 { justify-content: center; height: 100%; width: 100%; } .main-nowPlayingView-section:not(.main-nowPlayingView-queue):not(.lyrics-npv-card) {display: none !important}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

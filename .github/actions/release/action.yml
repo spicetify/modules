@@ -21,7 +21,11 @@ runs:
             NAME="${TAG%@*}"
             VERSION="${TAG##*@}"
             git fetch origin main
-            git show origin/main:vault.json > /tmp/main-vault.json
+            # Published state comes from the per-module sources, not the
+            # built vault.json: the aggregate is rebuilt after a merge, so
+            # it can legitimately lag a source that landed moments ago.
+            rm -rf /tmp/main-vault && mkdir -p /tmp/main-vault
+            git archive origin/main vault | tar -x -C /tmp/main-vault || true
             node -e '
                const { readFileSync, readdirSync, existsSync } = require("fs");
                const [name, version] = process.argv.slice(1);
@@ -37,15 +41,18 @@ runs:
                if (meta.version !== version) {
                   throw new Error(`tag ${name}@${version}: ${dir}/metadata.json declares ${meta.version}`);
                }
-               const vault = JSON.parse(readFileSync("/tmp/main-vault.json", "utf8"));
-               const published = !!vault.modules?.[name]?.v?.[version];
+               const source = (id) => {
+                  const file = `/tmp/main-vault/vault/${id}.json`;
+                  return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null;
+               };
+               const published = !!source(name)?.v?.[version];
                // Ordering tripwire: legs run dependency-first only by observed
                // matrix behavior (release.yml), so enforce the invariant the
                // ordering exists for - the vault must never list a dependent
                // whose dependency is absent. A dependency published earlier in
                // this run is visible here because this step reads origin/main
                // fresh, after the vault commit of that leg.
-               const missing = Object.keys(meta.dependencies ?? {}).filter((d) => !vault.modules?.[d]);
+               const missing = Object.keys(meta.dependencies ?? {}).filter((d) => !source(d));
                if (!published && missing.length) {
                   throw new Error(`refusing to publish ${name}@${version}: dependencies not in the vault: ${missing.join(", ")} (dependency legs must publish first)`);
                }
@@ -134,9 +141,14 @@ runs:
             git fetch origin "${PUSH_BRANCH}"
             git checkout -b vault-update "origin/${PUSH_BRANCH}"
             URL="https://github.com/${{ github.repository }}/releases/download/${MODULE_TAG}/${MODULE_TAG}.zip"
-            node scripts/vault.ts add "dist/${MODULE_TAG}" --artifact "${URL}" --zip "dist/${MODULE_TAG}.zip" --skip-existing
+            # Modules built here are covered by the repository's own license,
+            # so the card can state it without every metadata.json repeating
+            # it. A module that declares its own keeps it.
+            node scripts/vault.ts add "dist/${MODULE_TAG}" --artifact "${URL}" --zip "dist/${MODULE_TAG}.zip" --license GPL-3.0-or-later --skip-existing
             rm -rf dist
-            git add vault.json
+            # The source file and the aggregate it feeds land together, so
+            # main is never a state where the two disagree.
+            git add vault vault.json
             if git diff --cached --quiet; then
                echo "vault unchanged"
                exit 0

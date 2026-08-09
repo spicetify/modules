@@ -1,0 +1,21 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/onepunch@0.1.0/onepunch@0.1.0.zip"],
+			"providers": [],
+			"checksum": "sha256:1dc33e064f4ecad44cfbeec6045ef1e61076c74d2e61e5a422806993290a7b06",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "onepunch",
+		"description": "A simple gruvbox-flavored theme, dark and light",
+		"authors": [
+			{
+				"name": "okarin001"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/onepunch.png"
+	}
+}

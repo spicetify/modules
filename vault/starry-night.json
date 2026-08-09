@@ -1,0 +1,26 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/starry-night@0.1.0/starry-night@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:46d7a4e27a60e5aa7f8fc6ad83ca966083f205395cac64a53d351329d2d241f1",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "starry-night",
+		"description": "Night sky backdrop with twinkling stars and shooting stars, in seven skies",
+		"authors": [
+			{
+				"name": "Brandon Chen"
+			},
+			{
+				"name": "Julissa Laignelet"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/starry-night.png"
+	}
+}

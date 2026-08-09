@@ -1,0 +1,64 @@
+{
+	"metadata": {
+		"name": "palette-manager",
+		"description": "Manager for theme color schemes",
+		"authors": [
+			{
+				"name": "spicetify"
+			},
+			{
+				"name": "harbassan"
+			},
+			{
+				"name": "Delusoire"
+			},
+			{
+				"name": "Afonso Jorge Ramos"
+			}
+		],
+		"tags": ["extension", "theming", "scheming"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png"
+	},
+	"v": {
+		"0.3.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.0/palette-manager@0.3.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:5479257f25751cf1e1b0518da18c6875bdc12c1191c319d3c246c8885792e21e",
+			"updatedAt": "2026-08-03"
+		},
+		"0.3.1": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.1/palette-manager@0.3.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:5267969b5f9d64c01842493e71e17fee20f8005443407a85d0644b60f2981c7c",
+			"updatedAt": "2026-08-03"
+		},
+		"0.3.2": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.2/palette-manager@0.3.2.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:3eca8ac979314a122f4f5baeee7d8eede700623de8b988fedef6fe7b2558a75b",
+			"updatedAt": "2026-08-03"
+		},
+		"0.3.3": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.3/palette-manager@0.3.3.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:ab693900f9fb641dbf0d5b6b5398e74f0e1086d8cbd4984716c23d63a947f93b",
+			"updatedAt": "2026-08-04"
+		},
+		"0.3.4": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.4/palette-manager@0.3.4.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:f7280c27440241e641b5cbd8e7bcc22647ac50c1d8f284f71ce99a03e039750a",
+			"updatedAt": "2026-08-06"
+		}
+	}
+}

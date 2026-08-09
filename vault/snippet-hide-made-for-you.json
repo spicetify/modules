@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide Made For YOU",
+		"description": "Hide the 'Made For YOU' section on the home page.",
+		"authors": [
+			{
+				"name": "Rui Wang",
+				"github": "Ender-Wang"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Made-For-YOU.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "section[aria-label^='Made For'] {\n  display: none;\n}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

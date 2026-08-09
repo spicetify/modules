@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Hide What's New Button",
+		"description": "Hides the What's New button",
+		"authors": [
+			{
+				"name": "ririxi"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "[aria-label=\"What's New\"] {display:none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

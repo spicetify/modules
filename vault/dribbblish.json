@@ -1,0 +1,26 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/dribbblish@0.1.0/dribbblish@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:d88b220007fbc04d1457f7ea8daeb076e675b1acdb63b310721b1ee4c97e3be9",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "dribbblish",
+		"description": "Compact card-based redesign with rounded art and nineteen schemes",
+		"authors": [
+			{
+				"name": "khanhas"
+			},
+			{
+				"name": "harbassan"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dribbblish.png"
+	}
+}

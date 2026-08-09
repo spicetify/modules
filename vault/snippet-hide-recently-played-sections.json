@@ -1,0 +1,22 @@
+{
+	"metadata": {
+		"name": "Hide Recently Played Sections",
+		"description": "Hides the Recently Played sections on the home page",
+		"authors": [
+			{
+				"name": "ririxi"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Recently-Played.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".view-homeShortcutsGrid-shortcuts, section[aria-label='Recently played'] {display:none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

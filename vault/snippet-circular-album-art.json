@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Circular Album Art",
+		"description": "Makes the now playing album art be circular (like a vinyl)",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/circular-album-art.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".cover-art-image { clip-path: circle(50% at 50% 50%); }.main-nowPlayingBar-left {border-radius: 50%;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

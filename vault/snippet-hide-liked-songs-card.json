@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide liked songs card",
+		"description": "Hides the sometimes unfitting liked Songs card in the Your Libary tab",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-likedSongs-card.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".collection-collectionEntityHeroCard-likedSongs{ display: none; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

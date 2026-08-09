@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Hide playing gif",
+		"description": "Hides the gif that shows the music playing",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-playing-gif.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-trackList-playingIcon{display: none}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

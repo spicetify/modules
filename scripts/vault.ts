@@ -27,11 +27,14 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const VAULT_PATH = path.join(process.cwd(), "vault.json");
+import { build, compose, serialize, SOURCE_DIR, sourcePath } from "./vault-build.ts";
+
+const VAULT_PATH = path.join(process.cwd(), SOURCE_DIR);
 
 interface VaultVersionEntry {
 	artifacts: string[];
@@ -71,6 +74,10 @@ interface VaultMetadata {
 	preview?: string;
 	repository?: string;
 	readme?: string;
+	// SPDX identifier, shown on the card. The store is the only channel
+	// for third-party code, so what a user is agreeing to install has to
+	// travel with the entry.
+	license?: string;
 }
 
 // metadata.json authors are plain names; author objects (with a github)
@@ -85,7 +92,7 @@ const normalizeAuthors = (authors: unknown[]): VaultAuthor[] =>
 		return [];
 	});
 
-const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
+export const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	const out: VaultMetadata = {};
 	if (typeof meta.name === "string") out.name = meta.name;
 	if (typeof meta.description === "string") out.description = meta.description;
@@ -98,6 +105,7 @@ const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
 	// anything else anyway.
 	if (typeof meta.repository === "string" && meta.repository.startsWith("https://")) out.repository = meta.repository;
 	if (typeof meta.readme === "string" && meta.readme.startsWith("https://")) out.readme = meta.readme;
+	if (typeof meta.license === "string" && meta.license.trim()) out.license = meta.license.trim();
 	return out;
 };
 
@@ -145,8 +153,11 @@ function metadataFromZip(zipBytes: Buffer): Record<string, unknown> {
 	}
 }
 
+// The vault is stored as one file per module under vault/; every writer
+// below still works on the aggregate shape, and saveVault splits it back
+// out. Two submissions therefore never touch the same file.
 function loadVault(): { modules: Record<string, VaultModule> } {
-	return JSON.parse(readFileSync(VAULT_PATH, "utf8"));
+	return compose() as { modules: Record<string, VaultModule> };
 }
 
 // Curated fields (per-author github attribution) usually don't come from
@@ -165,17 +176,22 @@ const withCurated = (next: VaultMetadata, prev?: VaultMetadata): VaultMetadata =
 
 const newestVersion = (versions: string[]): string | undefined => [...versions].sort(compareVersions).at(-1);
 
-function saveVault(vault: unknown): void {
-	writeFileSync(VAULT_PATH, `${JSON.stringify(vault, null, "\t")}\n`);
-	// oxfmt owns the repo's JSON style (inline primitive arrays);
-	// JSON.stringify alone rewrites the whole file's formatting and
-	// drowns every data change in whitespace churn. Best-effort: the
-	// file is valid JSON either way.
-	try {
-		execFileSync(path.join(process.cwd(), "node_modules", ".bin", "oxfmt"), [VAULT_PATH], { stdio: "ignore" });
-	} catch {
-		console.warn("warning: oxfmt unavailable; vault.json left in JSON.stringify formatting");
+// Writes only the module files whose content actually changed, so a
+// one-module add leaves a one-file diff, then rebuilds the aggregate the
+// store fetches. Source files are never deleted here: dropping a module
+// from the catalog is a deliberate act, not a side effect of an add.
+function saveVault(vault: { modules: Record<string, VaultModule> }): void {
+	mkdirSync(VAULT_PATH, { recursive: true });
+	let written = 0;
+	for (const [id, mod] of Object.entries(vault.modules)) {
+		const file = sourcePath(id);
+		const next = serialize(mod);
+		if (existsSync(file) && readFileSync(file, "utf8") === next) continue;
+		writeFileSync(file, next);
+		written++;
 	}
+	build();
+	if (written) console.log(`vault: ${written} module source(s) written`);
 }
 
 async function refresh(): Promise<void> {
@@ -210,7 +226,7 @@ async function add(
 	distDir: string,
 	artifactUrl: string,
 	zipFile?: string,
-	opts: { skipExisting?: boolean; force?: boolean; check?: boolean } = {},
+	opts: { skipExisting?: boolean; force?: boolean; check?: boolean; license?: string } = {},
 ): Promise<void> {
 	const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
 	const id: string = meta.name;
@@ -226,6 +242,10 @@ async function add(
 	const hidden = meta.hidden === true || existing?.hidden === true || undefined;
 
 	const metadata = metadataSubset(meta);
+	// A module built in this repo takes the repository's own license rather
+	// than restating it in every metadata.json; anything the artifact
+	// declares wins, so a third-party build is never overridden.
+	if (!metadata.license && opts.license) metadata.license = opts.license;
 	// Store cards are artwork-first; a previewless entry has no card.
 	if (!metadata.preview && !hidden) {
 		throw new Error(`${id}@${version}: metadata.preview (an https URL) is required by the store`);
@@ -418,13 +438,14 @@ async function main(): Promise<void> {
 		const check = has("check");
 		if (!distDir || (!artifact && !check)) {
 			throw new Error(
-				"usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>] [--skip-existing] [--force] [--check]",
+				"usage: vault.ts add <dist-dir> --artifact <url> [--zip <file>] [--license <spdx>] [--skip-existing] [--force] [--check]",
 			);
 		}
 		return add(distDir, artifact ?? "", flag("zip"), {
 			skipExisting: has("skip-existing"),
 			force: has("force"),
 			check,
+			license: flag("license"),
 		});
 	}
 	if (cmd === "snippet") {
@@ -451,7 +472,11 @@ async function main(): Promise<void> {
 	);
 }
 
-main().catch((e) => {
-	console.error(e.message ?? e);
-	process.exit(1);
-});
+// Guarded: validate-submission imports metadataSubset from here, and an
+// unguarded main would run the CLI on import.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	main().catch((e) => {
+		console.error(e.message ?? e);
+		process.exit(1);
+	});
+}

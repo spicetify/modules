@@ -50,6 +50,24 @@ jobs:
          -  name: Format
             run: pnpm fmt:check
 
+         # vault.json is generated from vault/<id>.json and rebuilt after a
+         # merge, so a PR that only adds a source file is expected to leave
+         # it stale. Touching the aggregate by hand is not: if this PR
+         # changed it, it must be exactly what the sources compose to.
+         -  name: Vault aggregate is generated
+            if: github.event_name != 'push'
+            run: |
+               set -e
+               # Full fetch: merge-base has to walk the base branch, which a
+               # shallow one cannot do once the base has moved ahead.
+               git fetch --no-tags origin "${GITHUB_BASE_REF:-main}"
+               BASE=$(git merge-base FETCH_HEAD HEAD)
+               if git diff --quiet "$BASE" HEAD -- vault.json; then
+                  echo "vault.json untouched by this change"
+                  exit 0
+               fi
+               node scripts/vault-build.ts --check
+
          # The full release build: module-standard error tier enforced,
          # every module must stitch. Runs before Check because the build
          # generates each module's classmap.d.ts, which tsc needs.

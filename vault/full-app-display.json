@@ -1,0 +1,47 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/full-app-display@0.1.0/full-app-display@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:11ab2b85e7c8c8e6f216eff9cdb6e981dcaaab15cbaa098652d6ba26e1c8d0e0",
+			"updatedAt": "2026-08-03"
+		},
+		"0.1.1": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/full-app-display@0.1.1/full-app-display@0.1.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:20be1669fc36c6c995c376607bb3d2056efbe912930df323de5952b9bf59a5d3",
+			"updatedAt": "2026-08-03"
+		},
+		"0.1.2": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/full-app-display@0.1.2/full-app-display@0.1.2.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:5778ed5e4eb0702228352b13c39453312ee5ebd7627b025fb746dbbd406dbb00",
+			"updatedAt": "2026-08-03"
+		},
+		"0.1.3": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/full-app-display@0.1.3/full-app-display@0.1.3.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:c16380aa6397d9c9d6c988377544413a89cc02769488e6ff7fb6c015fde4744f",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "full-app-display",
+		"description": "Fullscreen now-playing overlay with big artwork, track info, progress and controls.",
+		"authors": [
+			{
+				"name": "spicetify"
+			}
+		],
+		"tags": ["extension"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png"
+	}
+}

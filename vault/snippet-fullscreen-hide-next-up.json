@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Fullscreen hide next up",
+		"description": "Hides the next up card while in fullscreen view (appears shortly before switching to the next song)",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-next-up.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".npv-up-next.fade-in-and-out-transition-enter-done {display: none;}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

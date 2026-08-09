@@ -1,0 +1,31 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shark-blue@0.1.0/shark-blue@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:52ab12294f9baf5ddb773a8363190fa508de5a1c5c5c4285b936dc1fe558fd18",
+			"updatedAt": "2026-08-04"
+		},
+		"0.1.1": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shark-blue@0.1.1/shark-blue@0.1.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:2ad504d59c6f31ae6d1ccfa6f4052522188922275a47d6600c1e2422800a2010",
+			"updatedAt": "2026-08-04"
+		}
+	},
+	"metadata": {
+		"name": "shark-blue",
+		"description": "Deep blue accents on a clean dark layout",
+		"authors": [
+			{
+				"name": "MrBiscuit921"
+			}
+		],
+		"tags": ["theme"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png"
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "New Hover Panel",
+		"description": "A New Hover Panel that servers the same purpose as the legacy 'Hover Panels', but only for the left sidebar and without modifying any other elements.",
+		"authors": [
+			{
+				"name": "Rui Wang",
+				"github": "Ender-Wang"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/new-hover-panel.gif"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "#Desktop_LeftSidebar_Id {\n  position: absolute;\n  left: -280px;\n  width: 288px;\n  height: 100%;\n  background-color: black;\n  opacity: 0;\n  visibility: visible;\n  transition: left 0.5s ease, opacity 0.5s ease;\n  z-index: 12;\n}\n#Desktop_LeftSidebar_Id:hover {\n  left: 0;\n  opacity: 1;\n  visibility: visible;\n}\n:root {\n  margin-left: -8px;\n}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

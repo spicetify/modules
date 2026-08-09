@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Duotone Album Art",
+		"description": "Changes the album art into a duotone version with two colors of your choice",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ":root{--gmaa-base:#191414;--gmaa-bg-blend:lighten;--gmaa-blur:0;--gmaa-fg-blend:multiply;--gmaa-foreground:#1cb955;--gmaa-opacity:.74;--gmaa-spacing:0}.cover-art{background-color:var(--gmaa-base);display:flex;flex:1 1 100%;height:100%;overflow:hidden;position:relative}.cover-art img{filter:grayscale(100%) contrast(1) blur(var(--gmaa-blur));flex:1 0 100%;height:100%;max-width:100%;mix-blend-mode:var(--gmaa-bg-blend);object-fit:cover;opacity:var(--gmaa-opacity);position:relative;width:100%}.cover-art::before{background-color:var(--gmaa-foreground);bottom:0;content:'';height:100%;left:0;mix-blend-mode:var(--gmaa-fg-blend);position:absolute;right:0;top:0;width:100%;z-index:1}.cover-art-icon{display:none;visibility:hidden}"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

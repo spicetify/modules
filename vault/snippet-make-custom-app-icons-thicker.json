@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Make custom app icons thicker",
+		"description": "Gives icons from the sticky list a thicker border",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-sticky-list-icons.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": "#spicetify-sticky-list>li:nth-child(1n+1)>a>div.icon.collection-icon>svg:not(.lucide-crown) { stroke: currentcolor; stroke-width: 11px; } .collection-icon { color: unset; }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}

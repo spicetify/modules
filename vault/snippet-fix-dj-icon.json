@@ -1,0 +1,23 @@
+{
+	"metadata": {
+		"name": "Fix 'DJ' Icon",
+		"description": "Makes the DJ icon match themes better",
+		"authors": [
+			{
+				"name": "Isaac Maier",
+				"github": "itsmeow"
+			}
+		],
+		"tags": ["snippet"],
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-DJ-icon.png"
+	},
+	"v": {
+		"1.0.0": {
+			"artifacts": [],
+			"files": {
+				"index.css": ".main-collectionLinkButton-icon > div { background: var(--spice-text); color: var(--spice-sidebar); }"
+			},
+			"updatedAt": "2026-07-24"
+		}
+	}
+}
