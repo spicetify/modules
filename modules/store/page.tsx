@@ -20,6 +20,7 @@ import type * as KitClasses from "/modules/stdlib/lib/primitives-classes.ts";
 import type * as UIKit from "/modules/stdlib/lib/primitives.tsx";
 import type * as ReactExpose from "/modules/stdlib/src/expose/React.ts";
 
+import { isOwnedKey, isPrefKey, parseBackup, serializeBackup } from "./backup.ts";
 import {
 	type Catalog,
 	categoryOf,
@@ -378,6 +379,9 @@ function ModuleDetails(props: {
 						{repo.replace("https://", "")}
 					</a>
 				)}
+				{/* The terms the code arrives under belong next to the install
+				    button, not buried in a repository somewhere. */}
+				{mod.meta?.license && <span className="spicetify-store-license">{mod.meta.license}</span>}
 			</div>
 			{readme.kind === "loading" && <div className="spicetify-store-empty">loading readme…</div>}
 			{readme.kind === "loaded" && <Markdown md={readme.text} />}
@@ -387,36 +391,18 @@ function ModuleDetails(props: {
 
 // ---------- store data (backup / restore / reset) ----------
 
-const OWNED_PREFIXES = ["spicetify.modules.local.", "spicetify:scheme:"];
-// Endpoint overrides are deliberately excluded from backups: importing a
-// crafted file must never be able to repoint the vault, the CORS proxy,
-// or the installs API (which receives the session token). Setting those
-// stays a manual, deliberate act.
-const ENDPOINT_KEYS = ["spicetify:defaultVaultUrl", "spicetify:corsProxyTemplate", "spicetify:installsApiUrl"];
-const PREF_KEYS = ["spicetify:store:sort", "spicetify:store:tab"];
-
-const isBackupKey = (key: string) => PREF_KEYS.includes(key) || OWNED_PREFIXES.some((p) => key.startsWith(p));
-const isOwnedKey = (key: string) => isBackupKey(key) || ENDPOINT_KEYS.includes(key);
-
-function exportStoreData(): string {
-	const keys: Record<string, string> = {};
+function exportStoreData(installed: string[]): string {
+	const prefs: Record<string, string> = {};
 	for (let i = 0; i < localStorage.length; i++) {
 		const key = localStorage.key(i)!;
-		if (isBackupKey(key)) keys[key] = localStorage.getItem(key)!;
+		if (isPrefKey(key)) prefs[key] = localStorage.getItem(key)!;
 	}
-	return JSON.stringify({ format: "spicetify-store-backup", version: 1, keys }, null, "\t");
+	return serializeBackup(prefs, installed);
 }
 
-function importStoreData(text: string): number {
-	const data = JSON.parse(text) as { format?: string; keys?: Record<string, unknown> };
-	if (data.format !== "spicetify-store-backup" || !data.keys) throw new Error("not a store backup");
-	let written = 0;
-	for (const [key, value] of Object.entries(data.keys)) {
-		if (!isBackupKey(key) || typeof value !== "string") continue;
-		localStorage.setItem(key, value);
-		written++;
-	}
-	return written;
+function restorePrefs(prefs: Record<string, string>): number {
+	for (const [key, value] of Object.entries(prefs)) localStorage.setItem(key, value);
+	return Object.keys(prefs).length;
 }
 
 function resetStoreData(): number {
@@ -993,7 +979,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	};
 
 	const onExport = () => {
-		const data = exportStoreData();
+		const data = exportStoreData(installed.map((record) => record.metadata.identifier));
 		const blob = new Blob([data], { type: "application/json" });
 		const a = document.createElement("a");
 		a.href = URL.createObjectURL(blob);
@@ -1003,12 +989,34 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		setStatus("backup downloaded");
 	};
 
+	// Restore reinstalls from the vault rather than from the file: the file
+	// names modules, the catalog supplies the checksummed artifact. Anything
+	// the vault no longer carries is named instead of silently dropped.
 	const onImportFile = async (file: File) => {
 		try {
-			const written = importStoreData(await file.text());
-			setStatus(`imported ${written} entries — restart Spotify to load the modules`);
+			const plan = parseBackup(await file.text());
+			const restored = restorePrefs(plan.prefs);
+			const missing: string[] = [];
+			let reinstalled = 0;
+			for (const id of plan.modules) {
+				const mod = catalog.modules.find((m) => m.id === id);
+				if (!mod || catalog.revoked[id]) {
+					missing.push(id);
+					continue;
+				}
+				try {
+					await installModule(mod, setStatus);
+					reinstalled++;
+				} catch (e) {
+					missing.push(`${id} (${(e as Error).message})`);
+				}
+			}
+			const skipped = missing.length ? `; not in the vault: ${missing.join(", ")}` : "";
+			setStatus(`restored ${restored} preference(s), reinstalled ${reinstalled} module(s)${skipped}`);
 		} catch (e) {
 			setStatus(`import failed: ${(e as Error).message}`);
+		} finally {
+			refreshRegistry();
 		}
 	};
 
