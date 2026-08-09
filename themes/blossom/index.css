@@ -5,11 +5,6 @@
 	background-color: var(--spice-background);
 }
 
-.spotify__container--is-desktop .Root__top-container {
-	padding-top: calc(24px + 8px * 2);
-	--panel-gap: 0;
-}
-
 .LayoutResizer__inline-end {
 	inset-inline-end: 8px;
 }

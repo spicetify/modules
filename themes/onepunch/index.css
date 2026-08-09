@@ -567,9 +567,6 @@ input {
 	--panel-gap: 0 !important;
 	overflow: hidden;
 }
-.spotify__container--is-desktop .Root__top-container {
-	padding-top: 32px !important;
-}
 .main-nowPlayingBar-nowPlayingBar {
 	height: 90px;
 	padding: 0 16px !important;
@@ -594,7 +591,6 @@ input {
 	transition: none;
 }
 .spotify__container--is-desktop .Root__top-container {
-	padding-top: calc(24px + var(--panel-gap) -3);
 	background-color: var(--spice-main);
 }
 .main-yourLibraryX-navItems {
