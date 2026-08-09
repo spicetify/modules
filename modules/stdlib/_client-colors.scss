@@ -109,11 +109,46 @@ html.spicetify-themed {
 		color: var(--spice-text);
 	}
 
-	/* The nav bar's own background is a flat black literal rather than a
-	   token, so a light theme renders a black band across the top while the
-	   container behind it already carries the theme. */
+	/* The shell's four containers are each a flat black literal rather than a
+	   token, so on any theme whose surfaces are not black they show through as
+	   bands: one across the top above the nav, one down the library column,
+	   and one behind the playbar. Each takes the token for the surface it is,
+	   not a blanket --spice-main: blossom paints its player #282e33 against a
+	   #1e2226 background and means it, and both sidebar and player fall back
+	   to main for a theme that declares neither. */
+	.Root__top-container,
 	.Root__globalNav {
 		background-color: var(--spice-main);
+	}
+
+	.Root__nav-bar {
+		background-color: var(--spice-sidebar);
+	}
+
+	.Root__now-playing-bar {
+		background-color: var(--spice-player);
+	}
+
+	/* Home's shortcut cards print their title in a flat white, sized for the
+	   artwork thumbnail beside it rather than the card behind it. On a light
+	   theme that is white on a pale card - ziro renders it at about 1.1:1 -
+	   while the shelf headings a few pixels below resolve through a token and
+	   stay readable, which is what makes it look like a theme bug. */
+	.view-homeShortcutsGrid-shortcut .view-homeShortcutsGrid-main,
+	.view-homeShortcutsGrid-name {
+		color: var(--spice-text);
+	}
+
+	/* The Now Playing panel's own headings and controls are a flat white and a
+	   flat #b3b3b3, both chosen against a near-black panel. */
+	.main-nowPlayingView-sectionHeader,
+	.main-nowPlayingView-onTourItemTime {
+		color: var(--spice-subtext);
+	}
+
+	.main-nowPlayingView-actionButton,
+	.main-nowPlayingView-headerButton:hover {
+		color: var(--spice-text);
 	}
 
 	/* The settings page's section wrapper is `color: #fff`, and the heading
