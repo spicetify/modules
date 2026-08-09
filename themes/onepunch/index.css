@@ -564,7 +564,6 @@ input {
 
 /* ylx */
 .Root {
-	--panel-gap: 0 !important;
 	overflow: hidden;
 }
 .main-nowPlayingBar-nowPlayingBar {
