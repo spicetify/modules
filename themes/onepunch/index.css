@@ -590,7 +590,12 @@ input {
 .link-subtle {
 	transition: none;
 }
+/* --panel-gap is 0 across this theme by design, which also zeroes the inset
+   above the global nav and pins it to the window edge. Put that one gap back
+   at the client's default so the top matches every other theme, without
+   reintroducing gutters anywhere else. */
 .spotify__container--is-desktop .Root__top-container {
+	padding-top: 8px !important;
 	background-color: var(--spice-main);
 }
 .main-yourLibraryX-navItems {
