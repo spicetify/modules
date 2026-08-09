@@ -751,6 +751,14 @@
 					"providers": [],
 					"checksum": "sha256:1dc33e064f4ecad44cfbeec6045ef1e61076c74d2e61e5a422806993290a7b06",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/onepunch@0.1.1/onepunch@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:36761b96ba933dd3bb761afa7d4bbd0b1dfb522615d809179580d05d747fe994",
+					"updatedAt": "2026-08-09"
 				}
 			},
 			"metadata": {
@@ -762,7 +770,8 @@
 					}
 				],
 				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/onepunch.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/onepunch.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"palette-manager": {
