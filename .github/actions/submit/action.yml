@@ -1,0 +1,151 @@
+name: Submit to the spicetify store
+description: >
+   Pack a built module, checksum it, and open the vault pull request that
+   publishes it. Call this from your own release workflow.
+
+# Convenience, not authority: everything computed here is recomputed by the
+# validator on the receiving side, from the artifact rather than from the
+# pull request. Running without a token prints the exact vault entry to
+# submit by hand, so no one has to hold a credential to publish.
+inputs:
+   dist:
+      description: The built module directory (contains metadata.json).
+      required: true
+   artifact:
+      description: >
+         Public https URL the packed zip will be served from. Upload the zip
+         to your own release first, or pass release-tag to have this action
+         upload it for you.
+      required: false
+   release-tag:
+      description: >
+         When set, the packed zip is uploaded to this release in the calling
+         repository and the artifact URL is derived from it.
+      required: false
+   token:
+      description: >
+         A token with public_repo scope on your account, used to push the
+         submission branch to your fork of spicetify/modules and open the
+         pull request. Omit it to run in print-only mode.
+      required: false
+   registry:
+      description: The registry repository to submit to.
+      required: false
+      default: spicetify/modules
+
+outputs:
+   entry:
+      description: The vault entry this submission adds.
+      value: ${{ steps.pack.outputs.entry }}
+   checksum:
+      description: The sha256 of the packed artifact.
+      value: ${{ steps.pack.outputs.checksum }}
+
+runs:
+   using: composite
+   steps:
+      -  name: Pack and describe the entry
+         id: pack
+         shell: bash
+         env:
+            DIST: ${{ inputs.dist }}
+            ARTIFACT: ${{ inputs.artifact }}
+            RELEASE_TAG: ${{ inputs.release-tag }}
+            GH_TOKEN: ${{ github.token }}
+         run: |
+            set -euo pipefail
+            ID=$(node -p "require('./' + process.env.DIST + '/metadata.json').name")
+            VERSION=$(node -p "require('./' + process.env.DIST + '/metadata.json').version")
+            ZIP="${ID}@${VERSION}.zip"
+            (cd "$DIST" && zip -qr "${GITHUB_WORKSPACE}/${ZIP}" .)
+
+            if [ -n "$RELEASE_TAG" ]; then
+               gh release upload "$RELEASE_TAG" "$ZIP" --clobber
+               ARTIFACT="https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${ZIP}"
+            fi
+            if [ -z "$ARTIFACT" ]; then
+               echo "::error::pass either artifact (a public https URL) or release-tag" >&2
+               exit 1
+            fi
+
+            CHECKSUM="sha256:$(shasum -a 256 "$ZIP" | cut -d' ' -f1)"
+            export ARTIFACT VERSION CHECKSUM
+            {
+               echo "id=${ID}"
+               echo "version=${VERSION}"
+               echo "checksum=${CHECKSUM}"
+               echo "artifact=${ARTIFACT}"
+               echo "zip=${ZIP}"
+            } >> "$GITHUB_OUTPUT"
+
+            node -e '
+               const { readFileSync } = require("node:fs");
+               const meta = JSON.parse(readFileSync(process.env.DIST + "/metadata.json", "utf8"));
+               const pick = (k) => (typeof meta[k] === "string" && meta[k] ? { [k]: meta[k] } : {});
+               const authors = (meta.authors ?? []).map((a) => (typeof a === "string" ? { name: a } : a));
+               const entry = {
+                  metadata: {
+                     ...pick("name"), ...pick("description"),
+                     ...(authors.length ? { authors } : {}),
+                     ...(Array.isArray(meta.tags) ? { tags: meta.tags } : {}),
+                     ...pick("preview"), ...pick("repository"), ...pick("readme"), ...pick("license"),
+                  },
+                  v: {
+                     [process.env.VERSION]: {
+                        artifacts: [process.env.ARTIFACT],
+                        checksum: process.env.CHECKSUM,
+                        updatedAt: new Date().toISOString().slice(0, 10),
+                     },
+                  },
+               };
+               require("node:fs").writeFileSync("submission-entry.json", JSON.stringify(entry, null, "\t") + "\n");
+            '
+
+      -  name: Open the vault pull request
+         if: inputs.token != ''
+         shell: bash
+         env:
+            GH_TOKEN: ${{ inputs.token }}
+            REGISTRY: ${{ inputs.registry }}
+            ID: ${{ steps.pack.outputs.id }}
+            VERSION: ${{ steps.pack.outputs.version }}
+         run: |
+            set -euo pipefail
+            export WORK
+            WORK=$(mktemp -d)
+            gh repo fork "$REGISTRY" --clone=false --remote=false || true
+            FORK="$(gh api user --jq .login)/$(basename "$REGISTRY")"
+            git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${FORK}.git" "$WORK"
+
+            mkdir -p "$WORK/vault"
+            # A submission touches exactly one file: its own module's entry,
+            # merged over whatever the registry already has for that id.
+            node -e '
+               const { existsSync, readFileSync, writeFileSync } = require("node:fs");
+               const file = process.env.WORK + "/vault/" + process.env.ID + ".json";
+               const submission = JSON.parse(readFileSync("submission-entry.json", "utf8"));
+               const existing = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : { v: {} };
+               existing.metadata = submission.metadata;
+               existing.v = { ...existing.v, ...submission.v };
+               writeFileSync(file, JSON.stringify(existing, null, "\t") + "\n");
+            '
+
+            cd "$WORK"
+            git config user.name "${GITHUB_ACTOR}"
+            git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+            git checkout -b "submit/${ID}-${VERSION}"
+            git add "vault/${ID}.json"
+            git commit -m "Publish ${ID}@${VERSION}"
+            git push -f origin HEAD
+            gh pr create --repo "$REGISTRY" --head "$(gh api user --jq .login):submit/${ID}-${VERSION}" \
+               --title "Publish ${ID}@${VERSION}" \
+               --body "Submitted by the publish action from ${GITHUB_REPOSITORY}. The artifact is downloaded and re-hashed by the validator."
+
+      -  name: Print the entry to submit
+         if: inputs.token == ''
+         shell: bash
+         env:
+            ID: ${{ steps.pack.outputs.id }}
+         run: |
+            echo "No token given, so nothing was pushed. Add this as vault/${ID}.json in a pull request:"
+            cat submission-entry.json

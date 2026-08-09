@@ -1,0 +1,50 @@
+name: Submission
+
+# A vault entry is a URL plus a checksum for bytes this repo never wrote, so
+# the entry is a claim and this job is where it gets checked: the artifact is
+# downloaded and hashed here, and every rule (immutability, version order, id
+# ownership, card honesty, zip safety) is enforced against the artifact
+# rather than against what the pull request says about it.
+on:
+   pull_request:
+      paths:
+         - "vault/**"
+   merge_group:
+
+concurrency:
+   group: submission-${{ github.ref }}
+   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+   validate:
+      name: Validate vault submission
+      runs-on: ubuntu-latest
+      # Read-only: this job fetches attacker-supplied URLs, so it must not
+      # be able to write anything back.
+      permissions:
+         contents: read
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v4
+            with:
+               fetch-depth: 0
+
+         -  name: Setup pnpm
+            uses: pnpm/action-setup@v6
+
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               cache: pnpm
+
+         -  name: Install dependencies
+            run: pnpm install --frozen-lockfile
+
+         -  name: Validate
+            env:
+               BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+            run: |
+               set -e
+               git fetch --no-tags origin "$BASE_REF"
+               node scripts/validate-submission.ts --base "$(git merge-base FETCH_HEAD HEAD)"
