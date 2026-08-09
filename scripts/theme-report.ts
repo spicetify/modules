@@ -330,6 +330,15 @@ export function auditAll(themesDir: string, only: string[] = []): Audit {
 
 /* ---------------------------------------------------------- Pixel comparison */
 
+/**
+ * How far two consecutive captures may drift and still count as settled.
+ *
+ * Above the incidental motion the client always has (a playing-indicator
+ * equaliser is about 0.04% of a frame) and well below what an animated theme
+ * moves, which is a quarter of a percent and up.
+ */
+export const STABLE_EPSILON = 0.001;
+
 /** Per-pixel colour tolerance, 0-1. Absorbs anti-aliasing, not layout. */
 export const PIXEL_THRESHOLD = 0.1;
 
@@ -474,21 +483,31 @@ export class Cdp {
 	 * A theme that animates never settles. That is reported rather than waited
 	 * out, because a frame of an animation cannot be tracked over time and
 	 * saying so beats reporting it as a change every single run.
+	 *
+	 * Settled means "near enough", not byte-identical. Requiring exact equality
+	 * once marked 57 of 60 frames animated because the playing-indicator
+	 * equaliser on one card kept ticking over - 0.04% of the frame, enough to
+	 * poison every capture. Genuinely animated themes move an order of
+	 * magnitude more than that, so the two stay distinguishable.
 	 */
 	async shootStable(file: string, tries = 8, gapMs = 300): Promise<boolean> {
-		let previous: string | null = null;
+		let previous: Buffer | null = null;
 		for (let i = 0; i < tries; i++) {
 			const shot = await this.call("Page.captureScreenshot", { format: "png" });
-			if (previous === shot.data) {
-				mkdirSync(path.dirname(file), { recursive: true });
-				writeFileSync(file, Buffer.from(shot.data, "base64"));
-				return true;
+			const current = Buffer.from(shot.data, "base64");
+			if (previous) {
+				const drift = comparePng(previous, current);
+				if (!drift.mismatch && drift.changedRatio <= STABLE_EPSILON) {
+					mkdirSync(path.dirname(file), { recursive: true });
+					writeFileSync(file, current);
+					return true;
+				}
 			}
-			previous = shot.data;
+			previous = current;
 			await this.wait(gapMs);
 		}
 		mkdirSync(path.dirname(file), { recursive: true });
-		writeFileSync(file, Buffer.from(previous!, "base64"));
+		writeFileSync(file, previous!);
 		return false;
 	}
 
@@ -519,6 +538,11 @@ const STABILISE = `
       [data-testid="playback-position"], [data-testid="playback-duration"] { visibility: hidden !important; }
       [data-testid="playback-progressbar"] [data-testid="progress-bar"] > div > div { width: 0 !important; }
       [data-testid="playback-progressbar"] * { transition: none !important; animation: none !important; }
+      /* Equalisers, spinners and hover fades all tick while a capture is
+         being taken, and each one alone is enough to stop a frame settling.
+         Removed rather than paused: pausing freezes each one wherever it had
+         got to, which differs every run and diffs against itself. */
+      *, *::before, *::after { animation: none !important; transition: none !important; }
     \`;
     document.head.appendChild(s);
   }
@@ -674,8 +698,14 @@ export interface ShotChange {
 	deltaFile?: string;
 }
 
-/** Below this a frame counts as unchanged: text antialiasing alone moves pixels. */
-export const CHANGE_RATIO = 0.0005;
+/**
+ * Below this a frame counts as unchanged.
+ *
+ * Must sit above STABLE_EPSILON: a capture is allowed to settle while still
+ * drifting that much, so anything tighter would report the allowance itself as
+ * a change on every run.
+ */
+export const CHANGE_RATIO = 0.002;
 
 export function compareRun(currentDir: string, baselineDir: string, shots: LiveShot[], deltaDir: string): ShotChange[] {
 	return shots.map((shot) => {
