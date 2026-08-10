@@ -17,8 +17,9 @@
 			}
 		],
 		"kind": "extension",
+		"tags": ["extension"],
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png",
-		"tags": ["extension"]
+		"license": "GPL-3.0-or-later"
 	},
 	"v": {
 		"0.3.0": {
@@ -60,6 +61,14 @@
 			"providers": [],
 			"checksum": "sha256:f7280c27440241e641b5cbd8e7bcc22647ac50c1d8f284f71ce99a03e039750a",
 			"updatedAt": "2026-08-06"
+		},
+		"0.3.5": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.5/palette-manager@0.3.5.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:fb573d6b22e0c37a7f78efdd9d8ad6716f4a1bb4035b6ee448bc27a5e8fe3c1d",
+			"updatedAt": "2026-08-10"
 		}
 	}
 }
