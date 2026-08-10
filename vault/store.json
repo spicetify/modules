@@ -83,6 +83,13 @@
 			"checksum": "sha256:dab1b01e411e0122fa3b0f59e20dfd3ee33cb141c6be6915d6b7aa1b5392f6bb",
 			"updatedAt": "2026-08-10",
 			"hidden": true
+		},
+		"1.5.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.5.0/store@1.5.0.zip"],
+			"providers": [],
+			"checksum": "sha256:fd7588b56d62c05ff95167c855a629c13dc8bd65461ef1e78a4f8fe81f673200",
+			"updatedAt": "2026-08-10",
+			"hidden": true
 		}
 	},
 	"metadata": {
@@ -94,7 +101,7 @@
 			}
 		],
 		"kind": "app",
-		"license": "GPL-3.0-or-later",
-		"tags": ["app"]
+		"tags": ["app"],
+		"license": "GPL-3.0-or-later"
 	}
 }
