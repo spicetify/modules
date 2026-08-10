@@ -3306,8 +3306,8 @@
 					}
 				],
 				"kind": "lib",
-				"license": "GPL-3.0-or-later",
-				"tags": ["lib"]
+				"tags": ["lib"],
+				"license": "GPL-3.0-or-later"
 			},
 			"v": {
 				"1.0.0": {
@@ -3434,6 +3434,15 @@
 					"providers": [],
 					"checksum": "sha256:faae012366975bedd8437c54dab18d9d1b6b1dbdb1726f943bceb1454a4f4521",
 					"updatedAt": "2026-08-09",
+					"hidden": true
+				},
+				"1.4.5": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.4.5/stdlib@1.4.5.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:aa21e16664c0c2e17ce7e3877eac459ab494393ae5a3c22af39224c87d71f59b",
+					"updatedAt": "2026-08-10",
 					"hidden": true
 				}
 			}
