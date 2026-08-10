@@ -324,6 +324,9 @@ function ModuleDetails(props: {
 			{mod.meta?.preview && <img className="spicetify-store-detail-preview" src={mod.meta.preview} alt="" />}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
+				{/* The dialog has no tab around it to imply the kind, so it
+				    always states it. */}
+				<Badge>{kindOf(mod.meta)}</Badge>
 				{count !== undefined && count > 0 && (
 					<InstallsBadge count={count} className="spicetify-store-installs-inline" />
 				)}
@@ -518,6 +521,8 @@ function CatalogCard(props: {
 	installedVersion: string | undefined;
 	localInstall: boolean;
 	enabled: boolean;
+	// Only true when the grid is showing more than one kind at once.
+	showKind: boolean;
 	onOpenDetails: () => void;
 	onInstall: () => Promise<void>;
 	onRemove: () => Promise<void>;
@@ -615,12 +620,15 @@ function CatalogCard(props: {
 			{mod.meta?.description && <p className="spicetify-store-card-desc">{mod.meta.description}</p>}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
-				{/* Version only. Installs live on the artwork, and the kind is
-				    already how the toolbar tabs segment the grid, so repeating
-				    it on every card is noise. The vault host and checksum are
-				    not user-facing either (a mismatched download fails the
-				    install loudly, so a "checksum" badge only ever states the
-				    normal case). */}
+				{/* Only where it tells you something. On a filtered tab every
+				    card would repeat the tab's own name; on All the grid mixes
+				    themes, extensions, snippets and apps, and without this
+				    there is nothing on a card to tell them apart. Installs
+				    live on the artwork, and the vault host and checksum are
+				    not user-facing (a mismatched download fails the install
+				    loudly, so a "checksum" badge only ever states the normal
+				    case). */}
+				{props.showKind && <Badge>{kindOf(mod.meta)}</Badge>}
 			</div>
 		</article>
 	);
@@ -1183,6 +1191,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						installedVersion={installedVersions.get(mod.id)}
 						localInstall={localIds.has(mod.id)}
 						enabled={!!(states.get(mod.id) as { loaded?: boolean } | undefined)?.loaded}
+						showKind={activeTab === "all"}
 						onOpenDetails={() => openDetails(mod)}
 						onInstall={() => runInstall(mod)}
 						onRemove={() => runRemove(mod)}
