@@ -11,6 +11,12 @@
 			"providers": [],
 			"checksum": "sha256:3cb800bf2a09719c65719aca2ee6dc46faf80f24960fe58368c8179795446602",
 			"updatedAt": "2026-08-04"
+		},
+		"0.1.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/matte@0.1.2/matte@0.1.2.zip"],
+			"providers": [],
+			"checksum": "sha256:8fa492bdfcd036bfa506b91628c005da321bd1089f95adb33a783a54f6f8610b",
+			"updatedAt": "2026-08-10"
 		}
 	},
 	"metadata": {
@@ -22,6 +28,7 @@
 			}
 		],
 		"tags": ["theme"],
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/matte.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/matte.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
