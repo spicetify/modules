@@ -13,7 +13,7 @@ import type { Catalog, VaultModule } from "./catalog.ts";
 import { pendingUpdates } from "./updates.ts";
 
 type LocalRecord = {
-	metadata: { identifier: string; tags?: string[]; dependencies?: Record<string, string> };
+	metadata: { identifier: string; kind?: string; custom?: boolean; dependencies?: Record<string, string> };
 	sidecar?: { installed_version?: string };
 };
 
@@ -66,7 +66,10 @@ describe("pendingUpdates", () => {
 	it("never updates revoked or user-authored custom modules", () => {
 		locals = [
 			{ metadata: { identifier: "revoked-one" }, sidecar: { installed_version: "1.0.0" } },
-			{ metadata: { identifier: "mine", tags: ["custom"] }, sidecar: { installed_version: "0.1.0" } },
+			{
+				metadata: { identifier: "mine", kind: "snippet", custom: true },
+				sidecar: { installed_version: "0.1.0" },
+			},
 		];
 		const out = pendingUpdates(
 			catalog([entry("revoked-one", "1.1.0"), entry("mine", "0.2.0")], { "revoked-one": "bad" }),

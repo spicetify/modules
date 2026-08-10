@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
-	categoryOf,
+	kindOf,
 	compareVersions,
 	deriveRepository,
 	displayName,
@@ -63,18 +63,18 @@ describe("deriveRepository", () => {
 });
 
 describe("card derivations", () => {
-	it("searchHaystack folds id, name, description, authors and tags, lowercased", () => {
+	it("searchHaystack folds id, name, description, authors and kind, lowercased", () => {
 		const hay = searchHaystack(
 			mod({
 				meta: {
 					name: "Sample",
 					description: "Does Things",
 					authors: [{ name: "Alice" }, { name: "BOB" }],
-					tags: ["theme", "Retro"],
+					kind: "theme",
 				},
 			}),
 		);
-		for (const needle of ["sample", "does things", "alice", "bob", "theme", "retro"]) {
+		for (const needle of ["sample", "does things", "alice", "bob", "theme"]) {
 			assert.ok(hay.includes(needle), `missing ${needle}`);
 		}
 		assert.equal(hay, hay.toLowerCase());
@@ -85,10 +85,25 @@ describe("card derivations", () => {
 		assert.equal(displayName(mod({ meta: { name: "Nice Name" } })), "Nice Name");
 	});
 
-	it("categoryOf picks the single category tag and ignores the rest", () => {
-		assert.equal(categoryOf(["retro", "theme", "dark"]), "theme");
-		assert.equal(categoryOf(["lib"]), undefined);
-		assert.equal(categoryOf(undefined), undefined);
+	it("kindOf reads the declared kind", () => {
+		assert.equal(kindOf({ kind: "theme" }), "theme");
+		assert.equal(kindOf({ kind: "lib" }), "lib");
+	});
+
+	it("kindOf falls back to the pre-migration tag list", () => {
+		// Entries published before `kind` still have to categorise, or every
+		// theme in an older vault would stop offering Activate.
+		assert.equal(kindOf({ tags: ["retro", "theme", "dark"] }), "theme");
+		assert.equal(kindOf({ tags: ["snippet"] }), "snippet");
+	});
+
+	it("kindOf answers extension for anything it cannot place", () => {
+		// Never "theme" on a guess: that would enter the module into the
+		// single-theme contest and unload the user's real theme.
+		assert.equal(kindOf(undefined), "extension");
+		assert.equal(kindOf({}), "extension");
+		assert.equal(kindOf({ kind: "nonsense" }), "extension");
+		assert.equal(kindOf({ tags: ["retro", "dark"] }), "extension");
 	});
 
 	it("displayVersion strips the classmap build-metadata suffix", () => {

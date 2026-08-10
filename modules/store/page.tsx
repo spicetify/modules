@@ -23,11 +23,12 @@ import type * as ReactExpose from "/modules/stdlib/src/expose/React.ts";
 import { isOwnedKey, isPrefKey, parseBackup, serializeBackup } from "./backup.ts";
 import {
 	type Catalog,
-	categoryOf,
 	compareVersions,
 	deriveRepository,
 	displayName,
 	displayVersion,
+	kindOf,
+	type ModuleKind,
 	loadCatalog,
 	proxiedFetch,
 	searchHaystack,
@@ -229,7 +230,11 @@ function SnippetEditor(props: {
 				metadata: {
 					identifier: id,
 					name: trimmed,
-					tags: ["snippet", "custom"],
+					kind: "snippet",
+					// User-authored, so the vault never governs it: no update
+					// is ever offered against a catalog entry that happens to
+					// share the id, and it stays editable in place.
+					custom: true,
 					version: "0.0.0",
 					authors: [PLATFORM()?.username ?? "you"],
 					description: "Custom CSS snippet",
@@ -322,9 +327,6 @@ function ModuleDetails(props: {
 				{count !== undefined && count > 0 && (
 					<InstallsBadge count={count} className="spicetify-store-installs-inline" />
 				)}
-				{(mod.meta?.tags ?? []).map((tag) => (
-					<Badge key={tag}>{tag}</Badge>
-				))}
 			</div>
 			{mod.meta?.authors?.length ? (
 				<div className="spicetify-store-card-authors">
@@ -424,12 +426,14 @@ function resetStoreData(): number {
 // working without stdlib; the page is progressive enhancement.
 export const STORE_ROUTE = "/bespoke/store";
 
-const TABS: Array<{ key: string; label: string; tag?: string }> = [
+// The kind is how the catalog is segmented, which is why cards no longer
+// repeat it as a badge.
+const TABS: Array<{ key: string; label: string; kind?: ModuleKind }> = [
 	{ key: "all", label: "All" },
-	{ key: "extension", label: "Extensions", tag: "extension" },
-	{ key: "theme", label: "Themes", tag: "theme" },
-	{ key: "snippet", label: "Snippets", tag: "snippet" },
-	{ key: "app", label: "Apps", tag: "app" },
+	{ key: "extension", label: "Extensions", kind: "extension" },
+	{ key: "theme", label: "Themes", kind: "theme" },
+	{ key: "snippet", label: "Snippets", kind: "snippet" },
+	{ key: "app", label: "Apps", kind: "app" },
 ];
 
 const SORTS: Array<{ key: string; label: string }> = [
@@ -451,7 +455,7 @@ function visibleModules(catalog: Catalog, filter: string, activeTab: string, act
 		// preview-less entry (a non-conforming community vault) has no
 		// card to render.
 		if (!mod.meta?.preview) return false;
-		if (tab?.tag && !(mod.meta?.tags ?? []).includes(tab.tag)) return false;
+		if (tab?.kind && kindOf(mod.meta) !== tab.kind) return false;
 		return !q || searchHaystack(mod).includes(q);
 	});
 	const name = (m: VaultModule) => displayName(m).toLowerCase();
@@ -490,7 +494,7 @@ function installState(mod: VaultModule, installedVersion: string | undefined, lo
 	const current =
 		installedVersion !== undefined &&
 		(localInstall ? installedVersion === mod.version : compareVersions(mod.version, installedVersion) <= 0);
-	const canActivate = current && (mod.meta?.tags ?? []).includes("theme") && !enabled;
+	const canActivate = current && kindOf(mod.meta) === "theme" && !enabled;
 	const canRemove = current && !canActivate && localInstall && !PROTECTED.has(mod.id);
 	// stagedCurrent gates the install action everywhere (a reinstall would
 	// be shadowed); cliCurrent is the FAB's inert tell, which activation
@@ -536,9 +540,6 @@ function CatalogCard(props: {
 	);
 	const repo = deriveRepository(mod);
 	const count = installCounts[mod.id];
-	// The category (snippet/theme/extension/app) is the one badge worth
-	// carrying on the card; installs read as an icon+count over the artwork.
-	const category = categoryOf(mod.meta?.tags);
 
 	return (
 		// The whole card opens the details dialog (album-card pattern);
@@ -614,12 +615,12 @@ function CatalogCard(props: {
 			{mod.meta?.description && <p className="spicetify-store-card-desc">{mod.meta.description}</p>}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
-				{category && <Badge>{category}</Badge>}
-				{/* Installs live on the artwork; the vault host and checksum are
-				    not user-facing (a mismatched download fails the install
-				    loudly, so a "checksum" badge only ever states the normal
-				    case). Tag badges stay in the details dialog and in search,
-				    since the toolbar chips already segment the catalog by tag. */}
+				{/* Version only. Installs live on the artwork, and the kind is
+				    already how the toolbar tabs segment the grid, so repeating
+				    it on every card is noise. The vault host and checksum are
+				    not user-facing either (a mismatched download fails the
+				    install loudly, so a "checksum" badge only ever states the
+				    normal case). */}
 			</div>
 		</article>
 	);
@@ -737,9 +738,6 @@ function InstalledCard(props: {
 			<h3 className="spicetify-store-card-name">{record.metadata.name ?? id}</h3>
 			<div className="spicetify-store-card-meta">
 				{version && <Badge>{version}</Badge>}
-				{(record.metadata.tags ?? []).map((tag: string) => (
-					<Badge key={tag}>{tag}</Badge>
-				))}
 				<Badge tone={props.loaded ? "ok" : "neutral"}>{props.loaded ? "enabled" : "disabled"}</Badge>
 				{isProtected && <Badge>core</Badge>}
 				{!record.local && <Badge>cli</Badge>}
@@ -762,7 +760,7 @@ function InstalledCard(props: {
 						{props.loaded ? "Disable" : "Enable"}
 					</button>
 				)}
-				{(record.metadata.tags ?? []).includes("custom") && record.files?.["index.css"] !== undefined && (
+				{record.metadata.custom && record.files?.["index.css"] !== undefined && (
 					<Button
 						variant="secondary"
 						onClick={() =>
@@ -932,7 +930,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const pending = pendingUpdates(catalog);
 	const activeTheme = installed.find(
 		(r) =>
-			(r.metadata.tags ?? []).includes("theme") &&
+			kindOf(r.metadata) === "theme" &&
 			!!(states.get(r.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded,
 	);
 

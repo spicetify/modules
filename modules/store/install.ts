@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { proxiedFetch, type VaultModule } from "./catalog.ts";
+import { kindOf, type ModuleKind, proxiedFetch, type VaultModule } from "./catalog.ts";
 import { reportInstall } from "./counter.ts";
 import { M, toast } from "./runtime.ts";
 
@@ -70,9 +70,8 @@ export function installedRecords(): InstalledRecord[] {
 	return out;
 }
 
-export function tagsOfInstalled(id: string): string[] {
-	const record = installedRecords().find((r) => r.metadata.identifier === id);
-	return record?.metadata?.tags ?? [];
+export function kindOfInstalled(id: string): ModuleKind {
+	return kindOf(installedRecords().find((r) => r.metadata.identifier === id)?.metadata);
 }
 
 // The loader remembers the active theme by identifier. Removing that theme
@@ -141,10 +140,10 @@ export async function uninstallStaged(id: string, version: string): Promise<void
 // Themes fight over the same client chrome; enabling one disables the
 // others, marketplace-style.
 export async function enforceSingleTheme(id: string, status: (msg: string) => void): Promise<void> {
-	if (!tagsOfInstalled(id).includes("theme")) return;
+	if (kindOfInstalled(id) !== "theme") return;
 	for (const state of M().list() as Array<{ identifier: string; loaded: boolean }>) {
 		if (state.identifier === id || !state.loaded) continue;
-		if (tagsOfInstalled(state.identifier).includes("theme")) {
+		if (kindOfInstalled(state.identifier) === "theme") {
 			await M().disable(state.identifier);
 			status(`disabled ${state.identifier} (one theme at a time)`);
 		}
@@ -242,7 +241,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 
 	metadata ??= {
 		name: mod.meta?.name ?? mod.id,
-		tags: mod.meta?.tags ?? [],
+		kind: kindOf(mod.meta),
 		version: mod.version,
 		// The installed record mirrors metadata.json, where authors are
 		// plain names.

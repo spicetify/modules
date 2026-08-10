@@ -14,7 +14,7 @@ import { disposed, toast } from "./runtime.ts";
 // (custom) modules are never vault-managed, even if a vault entry happens to
 // share their id.
 export function pendingUpdates(catalog: Catalog): VaultModule[] {
-	const installed = installedRecords().filter((r) => !(r.metadata.tags ?? []).includes("custom"));
+	const installed = installedRecords().filter((r) => !r.metadata.custom);
 	const byId = new Map(installed.map((r) => [r.metadata.identifier, r]));
 	const dependedUpon = new Set(installed.flatMap((r) => Object.keys(r.metadata.dependencies ?? {})));
 	return catalog.modules

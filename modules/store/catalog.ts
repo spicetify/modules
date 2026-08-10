@@ -58,6 +58,8 @@ export type VaultModule = {
 		// Each author may carry their own GitHub username; the details
 		// dialog links those names to their profiles.
 		authors?: Array<{ name: string; github?: string }>;
+		kind?: ModuleKind;
+		/** Pre-`kind` vault entries; read through kindOf, never directly. */
 		tags?: string[];
 		preview?: string;
 		repository?: string;
@@ -146,7 +148,7 @@ export function searchHaystack(mod: VaultModule): string {
 		mod.meta?.name ?? "",
 		mod.meta?.description ?? "",
 		...(mod.meta?.authors ?? []).map((a) => a.name),
-		...(mod.meta?.tags ?? []),
+		kindOf(mod.meta),
 	]
 		.join(" ")
 		.toLowerCase();
@@ -154,10 +156,18 @@ export function searchHaystack(mod: VaultModule): string {
 
 export const displayName = (mod: VaultModule) => mod.meta?.name ?? mod.id;
 
-// A module's single category badge on cards, derived from its tags.
-// The full tag list stays in the details dialog and in search.
-const CATEGORY_TAGS = ["extension", "theme", "snippet", "app"];
-export const categoryOf = (tags: string[] | undefined) => CATEGORY_TAGS.find((tag) => (tags ?? []).includes(tag));
+// What a module is. One value, not a list of adjectives: it drives the
+// toolbar tabs and the single-theme rules, and nothing else needed saying.
+export type ModuleKind = "extension" | "theme" | "snippet" | "app" | "lib";
+const KINDS: ModuleKind[] = ["extension", "theme", "snippet", "app", "lib"];
+
+// Falls back to the pre-`kind` tag list so entries from an older vault (or a
+// record installed from one) still categorise. Unknown means extension, which
+// is inert: it never joins the single-theme contest.
+export const kindOf = (meta: { kind?: string; tags?: string[] } | undefined): ModuleKind => {
+	if (meta?.kind && (KINDS as string[]).includes(meta.kind)) return meta.kind as ModuleKind;
+	return KINDS.find((kind) => meta?.tags?.includes(kind)) ?? "extension";
+};
 
 // Vault version keys carry a "+cm-<classmap>-<hash>" build-metadata suffix
 // identifying which classmap the artifact was stitched against. That is an
