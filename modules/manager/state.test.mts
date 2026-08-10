@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
 	compareSpotifyVersions,
 	deriveStaleStaged,
+	describeAction,
 	effectiveSupport,
 	latestPublishedVersions,
 	updateAdvice,
@@ -145,5 +146,25 @@ describe("deriveStaleStaged", () => {
 			store: "1.1.0",
 		});
 		assert.deepEqual(out, []);
+	});
+});
+
+describe("describeAction", () => {
+	it("reports a plain success", () => {
+		assert.equal(describeAction("remove mod", undefined), "remove mod done");
+	});
+
+	it("names the version a revert-to-staged left running", () => {
+		assert.equal(
+			describeAction("remove hide-window-controls", { revertedTo: "0.1.0" }),
+			"remove hide-window-controls: reverted to the CLI-installed 0.1.0",
+		);
+	});
+
+	it("asks for a restart when the loader could not swap live", () => {
+		assert.equal(
+			describeAction("remove stdlib", { requiresRestart: true }),
+			"remove stdlib done — restart Spotify to finish",
+		);
 	});
 });

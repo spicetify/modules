@@ -8,6 +8,7 @@ import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
 	deriveStaleStaged,
+	describeAction,
 	effectiveSupport,
 	fetchPublishedVersions,
 	fetchSupportStatus,
@@ -184,8 +185,7 @@ export const ManagerPage = () => {
 		setStatus(`${label}…`);
 		void (async () => {
 			try {
-				await fn();
-				setStatus(`${label} done`);
+				setStatus(describeAction(label, await fn()));
 			} catch (e) {
 				setStatus(`${label} failed: ${(e as Error).message}`);
 			} finally {

@@ -109,6 +109,17 @@ export function deriveManagerState(): ManagerState {
 	};
 }
 
+// Some loader calls do less than their name suggests and say so in what they
+// resolve. removeLocal is the one that matters: when a CLI-staged copy sits
+// behind the record it deletes, the loader reverts to that copy and the module
+// keeps running, so reporting a bare "remove done" is a lie.
+export function describeAction(label: string, outcome: unknown): string {
+	const result = outcome as { revertedTo?: string; requiresRestart?: boolean } | null | undefined;
+	if (result?.revertedTo) return `${label}: reverted to the CLI-installed ${result.revertedTo}`;
+	if (result?.requiresRestart) return `${label} done — restart Spotify to finish`;
+	return `${label} done`;
+}
+
 export const show = (value: string | undefined): string => value ?? "unknown";
 
 export const showBool = (value: boolean | undefined): string =>
