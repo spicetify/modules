@@ -90,13 +90,12 @@ describe("pendingUpdates", () => {
 		assert.deepEqual(pendingUpdates(catalog([entry("ahead", "1.1.0")])), []);
 	});
 
-	it("still offers a local record any differing vault version", () => {
-		locals = [{ metadata: { identifier: "rollback" }, sidecar: { installed_version: "1.2.0" } }];
-		const out = pendingUpdates(catalog([entry("rollback", "1.1.0")]));
-		assert.deepEqual(
-			out.map((m) => m.id),
-			["rollback"],
-		);
+	it("never offers a local record an older vault version either", () => {
+		// A dev push, or a release that was pulled: the installed copy is
+		// ahead of the vault, and calling the older version an update would
+		// overwrite the running one with it.
+		locals = [{ metadata: { identifier: "ahead-locally" }, sidecar: { installed_version: "1.2.0" } }];
+		assert.deepEqual(pendingUpdates(catalog([entry("ahead-locally", "1.1.0")])), []);
 	});
 
 	it("follows the registry when a local record is shadowed by the staged copy", () => {

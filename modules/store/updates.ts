@@ -22,12 +22,14 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 			const record = byId.get(mod.id);
 			const version = record?.sidecar?.installed_version;
 			if (version === undefined || version === mod.version || catalog.revoked[mod.id]) return false;
-			// A local record converges on whatever the vault says, so any
-			// difference is actionable. A CLI-staged install can only be
-			// overridden by a strictly newer local copy (the loader's
-			// localWins rule); offering an older vault version would write a
-			// permanently shadowed record and the banner would never clear.
-			return record!.local || compareVersions(mod.version, version) > 0;
+			// Only a strictly newer vault version is an update, whichever way
+			// the module is installed. An installed copy can legitimately be
+			// ahead of the vault (a dev push, a release that was pulled), and
+			// offering the older vault version as an "update" either overwrites
+			// the running copy with an older one or, against a CLI-staged
+			// install, writes a record the loader's localWins rule will refuse
+			// forever while the banner never clears.
+			return compareVersions(mod.version, version) > 0;
 		})
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
