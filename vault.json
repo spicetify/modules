@@ -3158,6 +3158,14 @@
 					"providers": [],
 					"checksum": "sha256:ae070fd82931fcb6d564a95d66ce8ff588aef956d3cc7fe885e8b4fbfa1d1c96",
 					"updatedAt": "2026-08-10"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/starry-night@0.1.2/starry-night@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:4d366bfaf38fb17ef29571677754b40e13742eeebc20b7c6853d5d7305036d83",
+					"updatedAt": "2026-08-10"
 				}
 			},
 			"metadata": {
