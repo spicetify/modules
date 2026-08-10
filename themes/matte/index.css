@@ -4,7 +4,11 @@
 
 :root {
 	/* top bar vars */
-	--top-bar-padding-top: 45px;
+	/* The 45px is headroom for the macOS traffic lights, so it follows
+	   hide-window-controls' hook: 0 while they are hidden, the full reserve
+	   when they are back. Left as a literal it stacks on the inset above the
+	   nav and pushes this theme's buttons 45px below every other theme's. */
+	--top-bar-padding-top: var(--global-nav-margin-top, 45px);
 	--top-bar-padding-right: 20px;
 	--top-bar-padding-bottom: 5px;
 	--top-bar-padding-left: 20px;
