@@ -137,3 +137,22 @@ describe("pendingUpdates", () => {
 		);
 	});
 });
+
+describe("a maintainer rollback", () => {
+	it("is offered when the vault pins an older version, and is not when it merely lags", () => {
+		locals = [{ metadata: { identifier: "lyrics-plus" }, sidecar: { installed_version: "2.1.0" } }];
+
+		const pinned = { ...entry("lyrics-plus", "2.0.0"), pinned: true };
+		assert.deepEqual(
+			pendingUpdates(catalog([pinned])).map((m) => m.version),
+			["2.0.0"],
+			"a pin is the only signal users get that a release was withdrawn",
+		);
+
+		assert.deepEqual(
+			pendingUpdates(catalog([entry("lyrics-plus", "2.0.0")])),
+			[],
+			"an unpinned older vault entry stays a no-op, as before",
+		);
+	});
+});

@@ -29,7 +29,12 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 			// the running copy with an older one or, against a CLI-staged
 			// install, writes a record the loader's localWins rule will refuse
 			// forever while the banner never clears.
-			return compareVersions(mod.version, version) > 0;
+			if (compareVersions(mod.version, version) > 0) return true;
+			// The exception: a pinned version is a maintainer rolling a bad
+			// release back, and `validate-submission` forbids deleting the bad
+			// version, so the pin is the only signal users get. Without this,
+			// everyone who installed the broken build keeps running it.
+			return !!mod.pinned && compareVersions(mod.version, version) !== 0;
 		})
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }

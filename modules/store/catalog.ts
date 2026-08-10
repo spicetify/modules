@@ -52,6 +52,10 @@ export type VaultModule = {
 	// Infrastructure entries (stdlib) are installable/updatable but
 	// never render as store cards.
 	hidden?: boolean;
+	// The vault pinned this version with `enabled` rather than it simply
+	// being the highest. A pin is a maintainer's deliberate choice, which is
+	// the one case where moving backwards is the right thing to offer.
+	pinned?: boolean;
 	meta?: {
 		name?: string;
 		description?: string;
@@ -73,19 +77,57 @@ export type VaultModule = {
 // ok: the vault answered; a failed load must not latch an empty catalog.
 export type Catalog = { modules: VaultModule[]; revoked: Record<string, string>; ok: boolean };
 
-// Numeric semver-ish compare; plain string sort breaks at x.10.0.
+// Semver precedence. Held identical to scripts/validate-submission.ts by a
+// parity test: the registry decides what may be published with one copy and
+// the store decides what to install with the other, so a divergence means
+// the client resolves a different version than the one that was validated.
 export function compareVersions(a: string, b: string): number {
-	const parse = (v: string) =>
-		v
-			.split(/[+-]/)[0]
-			.split(".")
-			.map((n) => Number.parseInt(n, 10) || 0);
-	const [pa, pb] = [parse(a), parse(b)];
-	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+	const split = (v: string) => {
+		const [core, ...rest] = v.split("+")[0]!.split("-");
+		return { core: core!, pre: rest.join("-") };
+	};
+	const [va, vb] = [split(a), split(b)];
+	const nums = (core: string) => core.split(".").map((n) => Number.parseInt(n, 10) || 0);
+	const [na, nb] = [nums(va.core), nums(vb.core)];
+	for (let i = 0; i < Math.max(na.length, nb.length); i++) {
+		const d = (na[i] ?? 0) - (nb[i] ?? 0);
 		if (d) return d;
 	}
-	return a.localeCompare(b);
+	if (!va.pre && !vb.pre) return buildTiebreak(a, b);
+	// A missing prerelease is the release, which always wins.
+	if (!va.pre) return 1;
+	if (!vb.pre) return -1;
+	const [pa, pb] = [va.pre.split("."), vb.pre.split(".")];
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const x = pa[i];
+		const y = pb[i];
+		if (x === undefined) return -1;
+		if (y === undefined) return 1;
+		const [nx, ny] = [Number.parseInt(x, 10), Number.parseInt(y, 10)];
+		const numeric = /^\d+$/.test(x) && /^\d+$/.test(y);
+		if (numeric) {
+			if (nx !== ny) return nx - ny;
+			continue;
+		}
+		// Numeric identifiers rank below alphanumeric ones.
+		if (/^\d+$/.test(x)) return -1;
+		if (/^\d+$/.test(y)) return 1;
+		if (x !== y) return x < y ? -1 : 1;
+	}
+	return buildTiebreak(a, b);
+}
+
+/**
+ * Build metadata (`+cm-<classmap>`) is not part of semver precedence, so two
+ * keys that differ only there are equal by the spec. They still have to order
+ * deterministically: the store picks a version by sorting keys and taking the
+ * last, and an arbitrary tie would make that pick vary run to run.
+ */
+function buildTiebreak(a: string, b: string): number {
+	const meta = (v: string) => v.split("+")[1] ?? "";
+	const [ma, mb] = [meta(a), meta(b)];
+	if (ma === mb) return 0;
+	return ma < mb ? -1 : 1;
 }
 
 async function fetchJson(url: string) {
@@ -115,13 +157,15 @@ export async function loadCatalog(): Promise<Catalog> {
 		}
 		for (const [id, mod] of Object.entries<any>(data.modules ?? {})) {
 			const versions = Object.keys(mod.v ?? {}).sort(compareVersions);
-			const version = mod.enabled ?? versions[versions.length - 1];
+			const pinned = typeof mod.enabled === "string" && !!mod.enabled;
+			const version = pinned ? mod.enabled : versions[versions.length - 1];
 			const entry = mod.v?.[version];
 			if (!entry) continue;
 			if (!entry.artifacts?.length && !entry.files) continue;
 			out.push({
 				id,
 				version,
+				pinned,
 				artifacts: entry.artifacts ?? [],
 				files: entry.files,
 				checksum: entry.checksum,
