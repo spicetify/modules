@@ -1,6 +1,6 @@
 {
 	"name": "dribbblish",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.0",
 	"authors": ["khanhas", "harbassan"],
 	"description": "Compact card-based redesign with rounded art and nineteen schemes",

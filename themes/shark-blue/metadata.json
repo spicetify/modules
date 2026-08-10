@@ -1,6 +1,6 @@
 {
 	"name": "shark-blue",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.1",
 	"authors": ["MrBiscuit921"],
 	"description": "Deep blue accents on a clean dark layout",

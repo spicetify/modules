@@ -1,6 +1,6 @@
 {
 	"name": "text",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.3",
 	"authors": ["darkthemer"],
 	"description": "Mimics the terminal look of spotify-tui, with 21 schemes",

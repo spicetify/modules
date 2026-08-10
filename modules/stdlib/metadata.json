@@ -1,6 +1,6 @@
 {
 	"name": "stdlib",
-	"tags": ["lib"],
+	"kind": "lib",
 	"hidden": true,
 	"preview": "./assets/PREVIEW.png",
 	"version": "1.4.4",

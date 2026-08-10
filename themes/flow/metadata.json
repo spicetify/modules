@@ -1,6 +1,6 @@
 {
 	"name": "flow",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.2",
 	"authors": ["Victoria"],
 	"description": "Smooth rounded look with five pastel schemes",

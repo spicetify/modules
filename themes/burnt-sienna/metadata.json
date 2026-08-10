@@ -1,6 +1,6 @@
 {
 	"name": "burnt-sienna",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.1",
 	"authors": ["Paweł Jaśpiński"],
 	"description": "BurntSienna theme, migrated from the classic format",

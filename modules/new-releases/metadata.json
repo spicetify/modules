@@ -1,6 +1,6 @@
 {
 	"name": "new-releases",
-	"tags": ["app"],
+	"kind": "app",
 	"version": "0.1.2",
 	"authors": ["spicetify"],
 	"description": "New album releases, with a graceful fallback to what you have recently added.",

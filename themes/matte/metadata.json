@@ -1,6 +1,6 @@
 {
 	"name": "matte",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.2",
 	"authors": ["darkthemer"],
 	"description": "Distinct top bar, quick-to-edit variables, and ten color schemes",

@@ -1,6 +1,6 @@
 {
 	"name": "sleek",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.2",
 	"authors": ["harbassan"],
 	"description": "Sleek theme, migrated from the classic format",

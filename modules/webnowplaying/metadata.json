@@ -1,6 +1,6 @@
 {
 	"name": "webnowplaying",
-	"tags": ["extension"],
+	"kind": "extension",
 	"version": "0.1.1",
 	"authors": ["spicetify"],
 	"description": "Bridges now-playing info and controls to WebNowPlaying-Redux (Rainmeter, OBS, etc.) over a local WebSocket. Requires the companion adapter running on ws://localhost:8974.",

@@ -1,6 +1,6 @@
 {
 	"name": "keyboard-shortcut",
-	"tags": ["extension"],
+	"kind": "extension",
 	"version": "0.1.1",
 	"authors": ["spicetify"],
 	"description": "Vim-like keyboard navigation and shortcuts for the Spotify client.",

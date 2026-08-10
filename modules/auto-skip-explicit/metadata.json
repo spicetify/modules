@@ -1,6 +1,6 @@
 {
 	"name": "auto-skip-explicit",
-	"tags": ["extension"],
+	"kind": "extension",
 	"version": "0.1.2",
 	"authors": ["spicetify"],
 	"description": "Auto-skip explicit tracks. Toggle in Settings.",

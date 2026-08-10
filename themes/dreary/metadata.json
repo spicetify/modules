@@ -1,6 +1,6 @@
 {
 	"name": "dreary",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.0",
 	"authors": ["SaltNuggets"],
 	"description": "Muted, moody palettes with six schemes",

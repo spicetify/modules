@@ -1,6 +1,6 @@
 {
 	"name": "blossom",
-	"tags": ["theme"],
+	"kind": "theme",
 	"version": "0.1.2",
 	"authors": ["Robatortas"],
 	"description": "A little pink-accented theme for your Spotify client",

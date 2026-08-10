@@ -1,6 +1,6 @@
 {
 	"name": "bookmark",
-	"tags": ["extension"],
+	"kind": "extension",
 	"version": "0.3.2",
 	"authors": ["spicetify"],
 	"description": "Bookmark pages, tracks, and tracks with a playback timestamp to revisit later from a topbar popup.",
