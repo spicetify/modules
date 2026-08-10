@@ -419,6 +419,14 @@
 					"providers": [],
 					"checksum": "sha256:939c1f552713e5d565f15e724ab6fb30d61069b1ae8daad92ea1091ae33e8e58",
 					"updatedAt": "2026-08-06"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/hide-window-controls@0.1.1/hide-window-controls@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:59be653b8fdf6b5baa45bd3faef8d11f6f4533f8ae307307faac0792e5b267ee",
+					"updatedAt": "2026-08-10"
 				}
 			},
 			"metadata": {
@@ -430,7 +438,8 @@
 					}
 				],
 				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"keyboard-shortcut": {
