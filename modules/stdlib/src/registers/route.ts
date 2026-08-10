@@ -113,7 +113,8 @@ mountRegistryAnchor({
 					// sits above that and must keep showing.
 					zIndex: 2,
 					overflow: "auto",
-					background: "var(--spice-main, var(--background-base, #121212))",
+					// The opaque background lives in index.scss so a theme can
+					// restyle it without fighting an inline declaration.
 				},
 			},
 			(route.props.element ?? route.props.children) as never,

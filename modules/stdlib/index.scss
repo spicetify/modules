@@ -100,6 +100,14 @@ button.main-contextMenu-menuItemButton {
    never inherit color (the UA default is near-black), so every module UI on
    dark surfaces would repeat this fix otherwise. Buttons are left alone —
    they are usually component-styled. */
+/* Route pages cover the client's own view, which keeps rendering (empty)
+   underneath, so the default surface is opaque. A theme with a global
+   backdrop (a gradient, an animated sky) overrides this to transparent
+   the same way it punches out the client's own containers. */
+.spicetify-route-page {
+	background: var(--spice-main, var(--background-base, #121212));
+}
+
 .spicetify-root-children,
 .spicetify-popover,
 .spicetify-route-page,
