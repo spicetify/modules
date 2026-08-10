@@ -76,6 +76,13 @@
 			"checksum": "sha256:098cac2b622c95168b2a9a1a4e9b12b00cedef6b5ba6432567e8730a33fcbab8",
 			"updatedAt": "2026-08-09",
 			"hidden": true
+		},
+		"1.4.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.4.2/store@1.4.2.zip"],
+			"providers": [],
+			"checksum": "sha256:dab1b01e411e0122fa3b0f59e20dfd3ee33cb141c6be6915d6b7aa1b5392f6bb",
+			"updatedAt": "2026-08-10",
+			"hidden": true
 		}
 	},
 	"metadata": {
@@ -86,6 +93,7 @@
 				"name": "spicetify"
 			}
 		],
-		"tags": ["ui"]
+		"tags": ["ui"],
+		"license": "GPL-3.0-or-later"
 	}
 }
