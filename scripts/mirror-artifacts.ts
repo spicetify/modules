@@ -28,7 +28,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { build, readModule, sourceIds, sourcePath, serialize } from "./vault-build.ts";
+import { downloadCapped } from "./download.ts";
+import { build, readModule, serialize, sourceIds, sourcePath } from "./vault-build.ts";
 
 const MIRROR_REPO = process.env.MIRROR_REPO ?? "spicetify/modules";
 const MIRROR_HOST = `https://github.com/${MIRROR_REPO}/releases/download`;
@@ -54,11 +55,11 @@ const sha256 = (bytes: Buffer) => `sha256:${createHash("sha256").update(bytes).d
 
 const gh = (args: string[]) => execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
-async function fetchArtifact(url: string): Promise<Buffer> {
-	const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(120_000) });
-	if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-	return Buffer.from(await res.arrayBuffer());
-}
+// Same cap as the validator: these URLs are third-party too, and this job
+// runs on every push.
+const MAX_ARTIFACT_BYTES = 50 * 1024 * 1024;
+
+const fetchArtifact = (url: string): Promise<Buffer> => downloadCapped(url, MAX_ARTIFACT_BYTES);
 
 async function main(): Promise<void> {
 	const dryRun = process.argv.includes("--dry-run");

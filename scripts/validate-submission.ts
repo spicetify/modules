@@ -24,6 +24,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { downloadCapped } from "./download.ts";
 import { SOURCE_DIR, sourceIds, sourcePath, type VaultModule, type VaultVersionEntry } from "./vault-build.ts";
 import { metadataSubset } from "./vault.ts";
 
@@ -45,19 +46,61 @@ const git = (args: string[]) =>
 
 const sha256 = (bytes: Buffer) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 
-/** Numeric semver-ish compare; plain string sort breaks at x.10.0. */
+/**
+ * Semver precedence, enough of it for what the vault carries.
+ *
+ * The numeric core decides first; a release outranks its own prereleases
+ * (1.2.0 > 1.2.0-beta.1), which a plain string compare gets backwards and
+ * which would otherwise leave an author who shipped a beta unable to publish
+ * the release. Build metadata (+cm-<classmap>) is not part of precedence.
+ */
 export function compareVersions(a: string, b: string): number {
-	const parse = (v: string) =>
-		v
-			.split(/[+-]/)[0]
-			.split(".")
-			.map((n) => Number.parseInt(n, 10) || 0);
-	const [pa, pb] = [parse(a), parse(b)];
-	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-		const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+	const split = (v: string) => {
+		const [core, ...rest] = v.split("+")[0]!.split("-");
+		return { core: core!, pre: rest.join("-") };
+	};
+	const [va, vb] = [split(a), split(b)];
+	const nums = (core: string) => core.split(".").map((n) => Number.parseInt(n, 10) || 0);
+	const [na, nb] = [nums(va.core), nums(vb.core)];
+	for (let i = 0; i < Math.max(na.length, nb.length); i++) {
+		const d = (na[i] ?? 0) - (nb[i] ?? 0);
 		if (d) return d;
 	}
-	return a.localeCompare(b);
+	if (!va.pre && !vb.pre) return buildTiebreak(a, b);
+	// A missing prerelease is the release, which always wins.
+	if (!va.pre) return 1;
+	if (!vb.pre) return -1;
+	const [pa, pb] = [va.pre.split("."), vb.pre.split(".")];
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const x = pa[i];
+		const y = pb[i];
+		if (x === undefined) return -1;
+		if (y === undefined) return 1;
+		const [nx, ny] = [Number.parseInt(x, 10), Number.parseInt(y, 10)];
+		const numeric = /^\d+$/.test(x) && /^\d+$/.test(y);
+		if (numeric) {
+			if (nx !== ny) return nx - ny;
+			continue;
+		}
+		// Numeric identifiers rank below alphanumeric ones.
+		if (/^\d+$/.test(x)) return -1;
+		if (/^\d+$/.test(y)) return 1;
+		if (x !== y) return x < y ? -1 : 1;
+	}
+	return buildTiebreak(a, b);
+}
+
+/**
+ * Build metadata (`+cm-<classmap>`) is not part of semver precedence, so two
+ * keys that differ only there are equal by the spec. They still have to order
+ * deterministically: the store picks a version by sorting keys and taking the
+ * last, and an arbitrary tie would make that pick vary run to run.
+ */
+function buildTiebreak(a: string, b: string): number {
+	const meta = (v: string) => v.split("+")[1] ?? "";
+	const [ma, mb] = [meta(a), meta(b)];
+	if (ma === mb) return 0;
+	return ma < mb ? -1 : 1;
 }
 
 /**
@@ -95,15 +138,7 @@ function moduleAt(ref: string, id: string): VaultModule | null {
 	}
 }
 
-async function download(url: string): Promise<Buffer> {
-	const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(120_000) });
-	if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
-	const bytes = Buffer.from(await res.arrayBuffer());
-	if (bytes.length > MAX_ARTIFACT_BYTES) {
-		throw new Error(`${url} is ${bytes.length} bytes, over the ${MAX_ARTIFACT_BYTES} byte cap`);
-	}
-	return bytes;
-}
+const download = (url: string): Promise<Buffer> => downloadCapped(url, MAX_ARTIFACT_BYTES);
 
 type ZipInspection = { names: string[]; symlinks: string[] };
 
@@ -369,8 +404,31 @@ export async function validate(base: string): Promise<Problem[]> {
 			if (entry.files) validateInline(id, version, entry, problems);
 			else await validateArtifact(id, version, entry, head, knownIds, establishedOwner, problems);
 		}
+
+		// A change with no new version still changes what users see and what
+		// they install. The card is re-checked against the artifact it claims
+		// to describe, and a pin has to name a version that exists, so an
+		// already-published module cannot be repointed or relabelled after
+		// its review.
 		if (!added.length && JSON.stringify(before) !== JSON.stringify(head)) {
-			console.log(`${id}: metadata-only change, no new version`);
+			const newest = Object.keys(head.v).sort(compareVersions).at(-1);
+			const entry = newest ? head.v[newest] : undefined;
+			if (!newest || !entry) {
+				push("has no versions");
+			} else if (JSON.stringify(before?.metadata) !== JSON.stringify(head.metadata)) {
+				if (entry.files) {
+					console.log(`${id}: metadata-only change on an inline entry`);
+				} else {
+					await validateArtifact(id, newest, entry, head, knownIds, establishedOwner, problems);
+				}
+			}
+			if (head.enabled !== before?.enabled) {
+				if (head.enabled && !head.v[head.enabled]) {
+					push(`enabled pins ${head.enabled}, which is not a version of this module`);
+				} else if (head.enabled) {
+					console.log(`${id}: pinned to ${head.enabled}; a downgrade pin needs a maintainer's review`);
+				}
+			}
 		}
 	}
 	return problems;

@@ -44,6 +44,28 @@ describe("compareVersions", () => {
 		assert.ok(compareVersions("1.0.0", "1.0.1") < 0);
 		assert.equal(compareVersions("1.2.3", "1.2.3"), 0);
 	});
+
+	it("ranks a release above its own prereleases", () => {
+		// Getting this backwards leaves an author who shipped a beta unable
+		// to publish the release: every candidate reads as "not newer".
+		assert.ok(compareVersions("1.2.0", "1.2.0-beta.1") > 0);
+		assert.ok(compareVersions("1.2.0-beta.1", "1.2.0") < 0);
+		assert.ok(compareVersions("1.2.0-beta.2", "1.2.0-beta.1") > 0);
+		assert.ok(compareVersions("1.2.0-beta.10", "1.2.0-beta.2") > 0, "numeric identifiers compare numerically");
+		assert.ok(compareVersions("1.2.0-alpha", "1.2.0-beta") < 0);
+		assert.ok(compareVersions("1.2.0-beta", "1.2.0-beta.1") < 0, "fewer identifiers rank lower");
+	});
+
+	it("keeps build metadata out of precedence but orders it deterministically", () => {
+		// Not part of semver precedence, so it never outranks a real
+		// difference; it still has to break ties, because the store picks a
+		// version by sorting keys and taking the last one.
+		assert.ok(compareVersions("1.2.1+cm-a", "1.2.0+cm-z") > 0, "the core still decides");
+		assert.equal(compareVersions("1.2.0+cm-a", "1.2.0+cm-a"), 0);
+		const forward = compareVersions("1.2.0+cm-a", "1.2.0+cm-b");
+		assert.ok(forward !== 0, "a tie would make the store's pick vary run to run");
+		assert.equal(Math.sign(forward), -Math.sign(compareVersions("1.2.0+cm-b", "1.2.0+cm-a")));
+	});
 });
 
 describe("metadataMismatches", () => {
@@ -312,6 +334,28 @@ describe("validate against a fixture repo", () => {
 		git("add", "-A");
 		git("commit", "-m", "delete module");
 		assert.match(await report(), /removals need a maintainer's review/);
+	});
+
+	it("re-checks the card when a metadata-only change lands", async () => {
+		reset();
+		const mod = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		// No new version, so the old validator passed this with no checks at
+		// all and the card could claim anything about published code.
+		mod.metadata = cardFor({ description: "a description the code never declared" });
+		writeSource("mod", mod);
+		git("add", "-A");
+		git("commit", "-m", "relabel");
+		assert.match(await report(), /metadata\.description/);
+	});
+
+	it("refuses a pin at a version that does not exist", async () => {
+		reset();
+		const mod = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		mod.enabled = "9.9.9";
+		writeSource("mod", mod);
+		git("add", "-A");
+		git("commit", "-m", "bad pin");
+		assert.match(await report(), /enabled pins 9\.9\.9/);
 	});
 
 	it("passes when nothing in the vault changed", async () => {
