@@ -44,6 +44,17 @@
 	background: #00000000 !important;
 }
 
+/* The expanded library covers the main view at z-index 4 and relies on its
+   own opaque background to hide what it covers; with that background punched
+   out for the sky, whatever page sits underneath ghosts through the library.
+   The takeover is the only nav-bar state that carries a class beside
+   Root__nav-bar (collapsed and normal stay bare), so key on that and hide
+   the covered view. The sky is unaffected: it is drawn behind the library,
+   not inside the main view. */
+.Root__top-container:has(.Root__nav-bar:not([class="Root__nav-bar"])) .Root__main-view {
+	visibility: hidden;
+}
+
 /* The right-sidebar panel paints an opaque --background-base over the sky.
    Classic targeted its hashed class (main.panel.aside), which died with the
    client update that renamed it; the structural selector cannot rot. */
