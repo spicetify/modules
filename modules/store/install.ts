@@ -74,12 +74,22 @@ export function kindOfInstalled(id: string): ModuleKind {
 	return kindOf(installedRecords().find((r) => r.metadata.identifier === id)?.metadata);
 }
 
+// A user-authored snippet, which the vault never governs (no update is offered
+// against a catalog entry sharing its id, and it stays editable in place).
+// Newer records carry a `custom` boolean; every record written before that
+// carried the marker in the tag list, so both are honoured — dropping the tag
+// fallback stranded existing snippets, hiding their Edit button and exposing
+// them to a vault "update" that would overwrite the user's CSS.
+export function isCustomRecord(metadata: { custom?: boolean; tags?: string[] } | undefined): boolean {
+	return !!metadata?.custom || (metadata?.tags ?? []).includes("custom");
+}
+
 // The loader remembers the active theme by identifier. Removing that theme
 // leaves the preference naming a module that is no longer there, so every
 // later boot resolves it to nothing. Removing an override that a staged copy
 // shadows is not an uninstall, so the module has to be gone from the registry
 // before the preference is dropped.
-const ACTIVE_THEME_KEY = "spicetify:modules:activeTheme";
+export const ACTIVE_THEME_KEY = "spicetify:modules:activeTheme";
 
 export function forgetActiveThemeIfRemoved(id: string): void {
 	if (localStorage.getItem(ACTIVE_THEME_KEY) !== id) return;
@@ -137,14 +147,20 @@ export async function uninstallStaged(id: string, version: string): Promise<void
 	await api.uninstallStaged(id, version);
 }
 
-// Themes fight over the same client chrome; enabling one disables the
-// others, marketplace-style.
+// Themes fight over the same client chrome; enabling one turns the others
+// off, marketplace-style. This is enforcement, not the user disabling those
+// themes, so it unloads them transiently (M().unload) rather than persisting
+// a disable — otherwise activating a theme would durably disable every other
+// installed theme, and re-activating one later would leave the rest off for
+// good. M().unload is absent on a client applied by a pre-this-change loader;
+// there disable was itself transient, so fall back to it.
 export async function enforceSingleTheme(id: string, status: (msg: string) => void): Promise<void> {
 	if (kindOfInstalled(id) !== "theme") return;
+	const turnOff = (mid: string) => (M().unload ?? M().disable)(mid);
 	for (const state of M().list() as Array<{ identifier: string; loaded: boolean }>) {
 		if (state.identifier === id || !state.loaded) continue;
 		if (kindOfInstalled(state.identifier) === "theme") {
-			await M().disable(state.identifier);
+			await turnOff(state.identifier);
 			status(`disabled ${state.identifier} (one theme at a time)`);
 		}
 	}
@@ -257,15 +273,10 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	metadata.identifier = mod.id;
 
 	status("installing…");
-	// Re-installs must not stack a second live instance on the old one.
-	try {
-		await M().disable(mod.id);
-	} catch (e) {
-		// Nothing to disable on a first install, which is the common path;
-		// the install below is what actually has to succeed.
-		void e;
-	}
-	const result = await M().installLocal(mod.id, {
+	// installLocal unloads any prior live instance itself, transiently, so no
+	// pre-disable here: a persisted disable before the install would outlive a
+	// failure and silently skip the module on every later boot.
+	const result = (await M().installLocal(mod.id, {
 		metadata,
 		files,
 		sidecar: {
@@ -274,23 +285,32 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			allow_stale: false,
 			checksum: mod.checksum ?? "",
 		},
-	});
+	})) as { requiresRestart?: boolean; disabled?: boolean } | boolean | null;
+	const name = metadata?.name ?? mod.id;
 	// Tree modules (stdlib-style) apply on the next boot; the loader keeps
 	// the running code and says so instead of pretending a live swap.
-	if (result && typeof result === "object" && (result as { requiresRestart?: boolean }).requiresRestart) {
+	if (result && typeof result === "object" && result.requiresRestart) {
 		status("");
-		toast(`${metadata?.name ?? mod.id} installed; restart Spotify to apply it`, "success");
+		toast(`${name} installed; restart Spotify to apply it`, "success");
+		reportInstall(mod);
+		return;
+	}
+	// Updating a module the user had turned off: the new files are in, but the
+	// loader left it off on purpose. Say so rather than "failed to enable".
+	if (result && typeof result === "object" && result.disabled) {
+		status("");
+		toast(`${name} updated; still disabled`, "success");
 		reportInstall(mod);
 		return;
 	}
 	if (result) {
 		status("");
-		toast(`${metadata?.name ?? mod.id} installed and enabled`, "success");
+		toast(`${name} installed and enabled`, "success");
 		await enforceSingleTheme(mod.id, status);
 		reportInstall(mod);
 	} else {
 		const reason = M().report?.failed?.[mod.id] ?? "unknown reason";
 		status("");
-		toast(`${metadata?.name ?? mod.id} installed but failed to enable: ${reason}`, "error");
+		toast(`${name} installed but failed to enable: ${reason}`, "error");
 	}
 }

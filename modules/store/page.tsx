@@ -36,11 +36,13 @@ import {
 } from "./catalog.ts";
 import { fetchInstallCounts, installCounts } from "./counter.ts";
 import {
+	ACTIVE_THEME_KEY,
 	canUninstallStaged,
 	enforceSingleTheme,
 	type InstalledRecord,
 	installedRecords,
 	installModule,
+	isCustomRecord,
 	localRecords,
 	removeLocalRecord,
 	uninstallStaged,
@@ -768,7 +770,7 @@ function InstalledCard(props: {
 						{props.loaded ? "Disable" : "Enable"}
 					</button>
 				)}
-				{record.metadata.custom && record.files?.["index.css"] !== undefined && (
+				{isCustomRecord(record.metadata) && record.files?.["index.css"] !== undefined && (
 					<Button
 						variant="secondary"
 						onClick={() =>
@@ -1058,6 +1060,9 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const onImportFile = async (file: File) => {
 		try {
 			const plan = parseBackup(await file.text());
+			// Prefs first, so the restored disabled set is in place before the
+			// reinstalls: installLocal reads it and leaves those modules off
+			// instead of force-enabling them.
 			const restored = restorePrefs(plan.prefs);
 			const missing: string[] = [];
 			let reinstalled = 0;
@@ -1072,6 +1077,23 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					reinstalled++;
 				} catch (e) {
 					missing.push(`${id} (${(e as Error).message})`);
+				}
+			}
+			// Each theme reinstall calls activeThemePref.set, so the last one
+			// installed, not the backed-up one, ends up active. Re-assert the
+			// backup's choice and bring it up live so persisted and running
+			// state both match it.
+			const activeTheme = plan.prefs[ACTIVE_THEME_KEY];
+			if (
+				activeTheme &&
+				kindOf(installedRecords().find((r) => r.metadata.identifier === activeTheme)?.metadata) === "theme"
+			) {
+				localStorage.setItem(ACTIVE_THEME_KEY, activeTheme);
+				try {
+					await M().enable(activeTheme);
+					await enforceSingleTheme(activeTheme, setStatus);
+				} catch (e) {
+					void e;
 				}
 			}
 			const skipped = missing.length ? `; not in the vault: ${missing.join(", ")}` : "";

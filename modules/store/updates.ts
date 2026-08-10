@@ -4,7 +4,7 @@
  */
 
 import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
-import { installedRecords } from "./install.ts";
+import { installedRecords, isCustomRecord } from "./install.ts";
 import { disposed, toast } from "./runtime.ts";
 
 // Installed modules (localStorage or CLI-staged) the catalog has a different
@@ -14,7 +14,7 @@ import { disposed, toast } from "./runtime.ts";
 // (custom) modules are never vault-managed, even if a vault entry happens to
 // share their id.
 export function pendingUpdates(catalog: Catalog): VaultModule[] {
-	const installed = installedRecords().filter((r) => !r.metadata.custom);
+	const installed = installedRecords().filter((r) => !isCustomRecord(r.metadata));
 	const byId = new Map(installed.map((r) => [r.metadata.identifier, r]));
 	const dependedUpon = new Set(installed.flatMap((r) => Object.keys(r.metadata.dependencies ?? {})));
 	return catalog.modules

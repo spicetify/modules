@@ -9,7 +9,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
-import { installedRecords, removeLocalRecord } from "./install.ts";
+import { installedRecords, isCustomRecord, removeLocalRecord } from "./install.ts";
 
 type LocalRecord = {
 	metadata: { identifier: string; version?: string; tags?: string[] };
@@ -120,5 +120,24 @@ describe("removeLocalRecord", () => {
 		removeResult = { revertedTo: "0.1.0" };
 		await removeLocalRecord("theme", "Theme");
 		assert.equal(store.get("spicetify:modules:activeTheme"), "theme", "the staged theme still runs");
+	});
+});
+
+describe("isCustomRecord", () => {
+	it("recognises the new custom boolean", () => {
+		assert.equal(isCustomRecord({ custom: true }), true);
+	});
+
+	it("recognises the legacy custom tag, so pre-migration snippets are still user-authored", () => {
+		// Every snippet created before the custom-boolean migration carries the
+		// marker in the tag list; dropping this fallback hid their Edit button
+		// and exposed them to vault-driven updates over the user's own CSS.
+		assert.equal(isCustomRecord({ tags: ["snippet", "custom"] }), true);
+	});
+
+	it("is false for a vault-managed module", () => {
+		assert.equal(isCustomRecord({ kind: "extension", tags: ["extension"] } as never), false);
+		assert.equal(isCustomRecord(undefined), false);
+		assert.equal(isCustomRecord({}), false);
 	});
 });
