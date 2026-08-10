@@ -3266,6 +3266,14 @@
 					"providers": [],
 					"checksum": "sha256:46d7a4e27a60e5aa7f8fc6ad83ca966083f205395cac64a53d351329d2d241f1",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/starry-night@0.1.1/starry-night@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:ae070fd82931fcb6d564a95d66ce8ff588aef956d3cc7fe885e8b4fbfa1d1c96",
+					"updatedAt": "2026-08-10"
 				}
 			},
 			"metadata": {
@@ -3280,8 +3288,9 @@
 					}
 				],
 				"kind": "theme",
+				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/starry-night.png",
-				"tags": ["theme"]
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"stdlib": {
