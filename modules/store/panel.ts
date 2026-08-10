@@ -4,7 +4,7 @@
  */
 
 import { type Catalog, displayVersion, loadCatalog, searchHaystack } from "./catalog.ts";
-import { installModule } from "./install.ts";
+import { installModule, removeLocalRecord } from "./install.ts";
 import { el, M } from "./runtime.ts";
 
 // ---------- fallback popover panel (standalone survival) ----------
@@ -77,7 +77,10 @@ export function createPanel() {
 			const remove = el("button", "spicetify-store-danger", "Remove");
 			remove.addEventListener("click", async () => {
 				try {
-					await M().removeLocal(id);
+					// Same helper the main page uses, so a revert-to-staged is
+					// reported as such here too rather than looking like Remove
+					// silently re-added the module.
+					status.textContent = await removeLocalRecord(id, record.metadata.name ?? id);
 				} catch (e) {
 					status.textContent = `failed: ${(e as Error).message}`;
 				}
