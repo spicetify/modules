@@ -25,7 +25,16 @@ export const OWNED_PREFIXES = [LOCAL_PREFIX, "spicetify:scheme:"];
 // the installs API (which receives the session token). Setting those stays a
 // manual, deliberate act.
 export const ENDPOINT_KEYS = ["spicetify:defaultVaultUrl", "spicetify:corsProxyTemplate", "spicetify:installsApiUrl"];
-const PREF_KEYS = ["spicetify:store:sort", "spicetify:store:tab"];
+// The loader's own persisted choices live here too: which theme is active and
+// which modules the user turned off. They are preferences, so a backup carries
+// them and a reset clears them — a reset that deletes every theme record but
+// keeps the active-theme pointer leaves it naming a theme that is gone.
+const PREF_KEYS = [
+	"spicetify:store:sort",
+	"spicetify:store:tab",
+	"spicetify:modules:activeTheme",
+	"spicetify:modules:disabled",
+];
 
 export const BACKUP_FORMAT = "spicetify-store-backup";
 export const BACKUP_VERSION = 2;
