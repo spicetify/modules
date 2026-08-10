@@ -637,7 +637,15 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 	try {
 		if (opts.includeUnthemed && known.active) {
 			const before = await mainColour(cdp);
-			await cdp.eval(`await window.Spicetify.Modules.disable(${JSON.stringify(known.active)}); return true;`);
+			// Transient unload, not disable: disable now writes the persisted
+			// disabled set, so a crash before the finally-restore would leave
+			// the user's theme off on the next boot (with no theme loading at
+			// all). unload just stops it for this capture. Fall back to disable
+			// on a client whose loader predates unload, where disable was itself
+			// transient.
+			await cdp.eval(
+				`const M = window.Spicetify.Modules; await (M.unload ?? M.disable).call(M, ${JSON.stringify(known.active)}); return true;`,
+			);
 			await settle(cdp, before);
 			await tour(UNTHEMED, null, await mainColour(cdp));
 		}
