@@ -71,7 +71,7 @@ Commit that one file and open the PR. Automate it from your own release
 workflow with the publish action instead:
 
 ```yaml
-- uses: spicetify/modules/.github/actions/submit@main
+- uses: spicetify/actions/publish@v1
   with:
       dist: dist/my-module@1.0.0
       release-tag: ${{ github.ref_name }}
