@@ -35,12 +35,14 @@ import {
 } from "./catalog.ts";
 import { fetchInstallCounts, installCounts } from "./counter.ts";
 import {
+	canUninstallStaged,
 	enforceSingleTheme,
-	forgetActiveThemeIfRemoved,
 	type InstalledRecord,
 	installedRecords,
 	installModule,
 	localRecords,
+	removeLocalRecord,
+	uninstallStaged,
 } from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged, toast } from "./runtime.ts";
 import { pendingUpdates } from "./updates.ts";
@@ -672,6 +674,7 @@ function InstalledCard(props: {
 	record: InstalledRecord;
 	loaded: boolean;
 	revokedReason: string | undefined;
+	daemonReady: boolean;
 	status: (msg: string) => void;
 	refresh: () => void;
 	onEdit: (existing: { id: string; name: string; css: string }) => void;
@@ -697,12 +700,36 @@ function InstalledCard(props: {
 
 	const remove = async () => {
 		try {
-			await M().removeLocal(id);
-			forgetActiveThemeIfRemoved(id);
+			props.status(await removeLocalRecord(id, record.metadata.name ?? id));
 		} catch (e) {
 			props.status(`failed: ${(e as Error).message}`);
 		}
 		props.refresh();
+	};
+
+	// Uninstalling a disk install runs an apply, which restarts Spotify, so it
+	// is armed first rather than fired from a single click. Same two-step
+	// shape as the page's Reset.
+	const [uninstallArmed, setUninstallArmed] = React.useState(false);
+	React.useEffect(() => {
+		if (!uninstallArmed) return;
+		const timer = setTimeout(() => setUninstallArmed(false), 4000);
+		return () => clearTimeout(timer);
+	}, [uninstallArmed]);
+
+	const uninstallFromDisk = async () => {
+		if (!uninstallArmed) {
+			setUninstallArmed(true);
+			return;
+		}
+		setUninstallArmed(false);
+		try {
+			props.status(`uninstalling ${id} and re-applying — Spotify will restart…`);
+			await uninstallStaged(id, version);
+		} catch (e) {
+			props.status(`failed: ${(e as Error).message}`);
+			props.refresh();
+		}
 	};
 
 	return (
@@ -716,10 +743,16 @@ function InstalledCard(props: {
 				<Badge tone={props.loaded ? "ok" : "neutral"}>{props.loaded ? "enabled" : "disabled"}</Badge>
 				{isProtected && <Badge>core</Badge>}
 				{!record.local && <Badge>cli</Badge>}
+				{record.shadowedLocal && <Badge>shadowed</Badge>}
 				{props.revokedReason && <Badge>revoked</Badge>}
 			</div>
 			{props.revokedReason && (
 				<p className="spicetify-store-card-desc">{`Revoked by the vault: ${props.revokedReason}`}</p>
+			)}
+			{record.shadowedLocal && (
+				<p className="spicetify-store-card-desc">
+					{`Store copy ${record.shadowedLocal} will never run — the CLI install of ${version} wins.`}
+				</p>
 			)}
 			<div className="spicetify-store-card-actions">
 				{/* Protected modules can be re-enabled if somehow down, but never
@@ -739,11 +772,24 @@ function InstalledCard(props: {
 						Edit
 					</Button>
 				)}
-				{/* CLI-staged installs live on disk, out of removeLocal's reach;
-				    removal stays a CLI act (spicetify pkg), so no Remove here. */}
 				{!isProtected && record.local && (
 					<button type="button" className="spicetify-store-danger" onClick={() => void remove()}>
 						Remove
+					</button>
+				)}
+				{/* An inert record removeLocal can delete without touching what
+				    is running, so it is not the danger action Remove is. */}
+				{record.shadowedLocal && (
+					<Button variant="secondary" onClick={() => void remove()}>
+						Discard copy
+					</Button>
+				)}
+				{/* CLI-staged installs live on disk, out of removeLocal's reach.
+				    The daemon can do the real uninstall; without it this stays a
+				    terminal act (spicetify pkg delete) and no button is offered. */}
+				{!isProtected && !record.local && props.daemonReady && (
+					<button type="button" className="spicetify-store-danger" onClick={() => void uninstallFromDisk()}>
+						{uninstallArmed ? "Confirm — restarts Spotify" : "Uninstall"}
 					</button>
 				)}
 			</div>
@@ -779,6 +825,9 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	// actions); bumping the epoch re-reads live registry state, the React
 	// equivalent of the old renderAll().
 	const [registryEpoch, setRegistryEpoch] = React.useState(0);
+	// Probed once per mount: the daemon is optional, and a disk uninstall is
+	// only offered when it can actually be carried out.
+	const [daemonReady, setDaemonReady] = React.useState(false);
 	// The initial install-count fetch re-sorts the grid once it lands.
 	const [sortEpoch, setSortEpoch] = React.useState(0);
 	// Later count updates only need a re-render so badges re-read
@@ -827,6 +876,16 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	React.useEffect(() => {
 		void load();
 	}, [load]);
+
+	React.useEffect(() => {
+		let live = true;
+		void canUninstallStaged().then((ready) => {
+			if (live) setDaemonReady(ready);
+		});
+		return () => {
+			live = false;
+		};
+	}, []);
 
 	// A revisit re-renders from live registry state, retries the catalog
 	// when no vault has answered yet, and refreshes a stale catalog in
@@ -939,9 +998,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 	const runRemove = async (mod: VaultModule) => {
 		try {
-			await M().removeLocal(mod.id);
-			forgetActiveThemeIfRemoved(mod.id);
-			setStatus(`${displayName(mod)} removed`);
+			setStatus(await removeLocalRecord(mod.id, displayName(mod)));
 		} catch (e) {
 			setStatus(`failed: ${(e as Error).message}`);
 		} finally {
@@ -1150,6 +1207,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						record={record}
 						loaded={!!(states.get(record.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded}
 						revokedReason={catalog.revoked[record.metadata.identifier]}
+						daemonReady={daemonReady}
 						status={setStatus}
 						refresh={refreshRegistry}
 						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}

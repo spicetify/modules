@@ -367,8 +367,12 @@
 			font-size: 12px;
 		}
 
+		// A card can carry three actions (toggle, discard a shadowed record,
+		// uninstall from disk). Without wrapping they compress until their
+		// labels break mid-word and the pills render as circles.
 		.spicetify-store-card-actions {
 			display: flex;
+			flex-wrap: wrap;
 			gap: 8px;
 			margin-top: auto;
 		}

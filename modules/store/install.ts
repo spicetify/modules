@@ -25,6 +25,12 @@ export type InstalledRecord = {
 	// false: staged on disk by the CLI (pkg install/enable + apply), so it has
 	// no localStorage record and removeLocal cannot touch it.
 	local: boolean;
+	// Set on a staged record when a localStorage record for the same module
+	// exists that the loader refused (localWins said the staged copy wins).
+	// The record is inert but real: it costs storage, it is what an "update"
+	// would be written into, and until it is deleted nothing in the UI would
+	// otherwise admit it exists.
+	shadowedLocal?: string;
 };
 
 // Everything installed, one record per module, describing the copy that is
@@ -42,9 +48,13 @@ export function installedRecords(): InstalledRecord[] {
 		((M().manifest?.modules ?? []) as Array<{ identifier: string }>).map((m) => [m.identifier, m]),
 	);
 	const out: InstalledRecord[] = [];
+	const shadowed = new Map<string, string>();
 	for (const record of localRecords()) {
 		const state = stateById.get(record.metadata.identifier);
-		if (state && !state.local) continue;
+		if (state && !state.local) {
+			shadowed.set(record.metadata.identifier, record.sidecar?.installed_version ?? record.metadata.version);
+			continue;
+		}
 		out.push({ ...record, local: true });
 	}
 	const have = new Set(out.map((record) => record.metadata.identifier));
@@ -54,6 +64,7 @@ export function installedRecords(): InstalledRecord[] {
 			metadata: metaById.get(state.identifier) ?? { identifier: state.identifier, version: state.version },
 			sidecar: { installed_version: state.version },
 			local: false,
+			...(shadowed.has(state.identifier) ? { shadowedLocal: shadowed.get(state.identifier) } : {}),
 		});
 	}
 	return out;
@@ -75,6 +86,56 @@ export function forgetActiveThemeIfRemoved(id: string): void {
 	if (localStorage.getItem(ACTIVE_THEME_KEY) !== id) return;
 	const stillPresent = (M().list() as Array<{ identifier: string }>).some((s) => s.identifier === id);
 	if (!stillPresent) localStorage.removeItem(ACTIVE_THEME_KEY);
+}
+
+// What the loader reports back from removeLocal. `revertedTo` means the
+// record it deleted was overriding a copy the CLI staged on disk, so that
+// copy took over and the module is still installed and running.
+type RemovalOutcome = { revertedTo?: string; requiresRestart?: boolean };
+
+// One removal path for both surfaces, so neither can describe the outcome
+// differently. removeLocal owns localStorage records and nothing else;
+// calling a revert-to-staged a removal is what made "Remove" look like it
+// re-added the module.
+export async function removeLocalRecord(id: string, name: string): Promise<string> {
+	const outcome = (await M().removeLocal(id)) as RemovalOutcome | null | undefined;
+	forgetActiveThemeIfRemoved(id);
+	if (outcome?.revertedTo) {
+		return `${name}: store copy removed, still installed via the CLI at ${outcome.revertedTo}`;
+	}
+	if (outcome?.requiresRestart) return `${name} removed — restart Spotify to finish`;
+	return `${name} removed`;
+}
+
+// ---------- daemon-backed removal (disk installs) ----------
+
+type DaemonApi = {
+	available: () => Promise<boolean>;
+	uninstallStaged?: (id: string, version: string) => Promise<unknown>;
+};
+
+const daemonApi = (): DaemonApi | null =>
+	(globalThis as never as { Spicetify?: { Daemon?: DaemonApi } }).Spicetify?.Daemon ?? null;
+
+// Whether a CLI-staged module can be uninstalled from in here. Both halves
+// have to hold: the daemon must be up, and this client's wrapper must be new
+// enough to carry the call (an older payload has the Daemon object without it).
+export async function canUninstallStaged(): Promise<boolean> {
+	const api = daemonApi();
+	if (!api?.uninstallStaged) return false;
+	try {
+		return await api.available();
+	} catch {
+		return false;
+	}
+}
+
+// Drops the module from disk and re-applies. The apply restarts Spotify, so
+// this never resolves into a UI the user is still looking at.
+export async function uninstallStaged(id: string, version: string): Promise<void> {
+	const api = daemonApi();
+	if (!api?.uninstallStaged) throw new Error("this client cannot reach the daemon");
+	await api.uninstallStaged(id, version);
 }
 
 // Themes fight over the same client chrome; enabling one disables the
