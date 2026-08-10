@@ -24,27 +24,55 @@ jobs:
       permissions:
          contents: read
       steps:
-         -  name: Clone repository
+         # The submission itself, checked out where nothing runs from it.
+         -  name: Clone the submission
             uses: actions/checkout@v4
             with:
                fetch-depth: 0
+               path: submission
 
-         -  name: Setup pnpm
-            uses: pnpm/action-setup@v6
+         # The validator, taken from the base branch. Running it from the
+         # pull request's own tree would let a submission edit the gate that
+         # polices it (or add a postinstall that rewrites it), and report
+         # itself green.
+         -  name: Clone the validator from the base branch
+            uses: actions/checkout@v4
+            with:
+               ref: ${{ github.event.pull_request.base.sha || github.sha }}
+               path: validator
 
          -  name: Setup Node
             uses: actions/setup-node@v6
             with:
                node-version: "24"
-               cache: pnpm
 
-         -  name: Install dependencies
-            run: pnpm install --frozen-lockfile
-
-         -  name: Validate
+         # Defence in depth: a submission is one or more files under vault/,
+         # and nothing else. A PR that also touches scripts, workflows or
+         # package.json is a repository change that belongs in its own review,
+         # not something this job should be validating.
+         -  name: Submission touches only vault/
+            working-directory: submission
             env:
-               BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+               BASE_SHA: ${{ github.event.pull_request.base.sha }}
             run: |
                set -e
-               git fetch --no-tags origin "$BASE_REF"
-               node scripts/validate-submission.ts --base "$(git merge-base FETCH_HEAD HEAD)"
+               BASE=${BASE_SHA:-$(git rev-parse HEAD~1)}
+               outside=$(git diff --name-only "$BASE...HEAD" -- . ':(exclude)vault/**')
+               if [ -n "$outside" ]; then
+                  echo "::error::a vault submission must touch only vault/; this PR also changes:"
+                  echo "$outside"
+                  exit 1
+               fi
+
+         # The validator resolves sources and runs git against the working
+         # directory, so cwd is the submission while the code is the base
+         # branch's. It imports only node builtins and its own siblings, so
+         # no dependency install is needed here.
+         -  name: Validate
+            working-directory: submission
+            env:
+               BASE_SHA: ${{ github.event.pull_request.base.sha }}
+            run: |
+               set -e
+               BASE=${BASE_SHA:-$(git rev-parse HEAD~1)}
+               node "$GITHUB_WORKSPACE/validator/scripts/validate-submission.ts" --base "$BASE"
