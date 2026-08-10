@@ -154,14 +154,14 @@ export async function uninstallStaged(id: string, version: string): Promise<void
 // installed theme, and re-activating one later would leave the rest off for
 // good. M().unload is absent on a client applied by a pre-this-change loader;
 // there disable was itself transient, so fall back to it.
-export async function enforceSingleTheme(id: string, status: (msg: string) => void): Promise<void> {
+export async function enforceSingleTheme(id: string): Promise<void> {
 	if (kindOfInstalled(id) !== "theme") return;
 	const turnOff = (mid: string) => (M().unload ?? M().disable)(mid);
 	for (const state of M().list() as Array<{ identifier: string; loaded: boolean }>) {
 		if (state.identifier === id || !state.loaded) continue;
 		if (kindOfInstalled(state.identifier) === "theme") {
 			await turnOff(state.identifier);
-			status(`disabled ${state.identifier} (one theme at a time)`);
+			toast(`disabled ${state.identifier} (one theme at a time)`);
 		}
 	}
 }
@@ -177,7 +177,8 @@ export async function installModule(mod: VaultModule, status: (msg: string) => v
 	try {
 		await installModuleInner(mod, status);
 	} catch (e) {
-		// Surface failures as a native toast too (callers still show inline detail).
+		// The toast is the only failure surface; callers just clear their
+		// progress line.
 		toast(`Failed to install ${mod.id}: ${(e as Error).message}`, "error");
 		throw e;
 	} finally {
@@ -306,7 +307,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	if (result) {
 		status("");
 		toast(`${name} installed and enabled`, "success");
-		await enforceSingleTheme(mod.id, status);
+		await enforceSingleTheme(mod.id);
 		reportInstall(mod);
 	} else {
 		const reason = M().report?.failed?.[mod.id] ?? "unknown reason";

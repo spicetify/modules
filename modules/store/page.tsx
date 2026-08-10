@@ -203,7 +203,6 @@ const slugify = (name: string) =>
 function SnippetEditor(props: {
 	existing: { id: string; name: string; css: string } | null;
 	onSaved: () => void;
-	status: (msg: string) => void;
 	onClose: () => void;
 }): ReactElement {
 	const { existing } = props;
@@ -254,11 +253,11 @@ function SnippetEditor(props: {
 				files: { "index.css": css },
 				sidecar: { installed_version: "0.0.0", classmap_base: "", allow_stale: false, checksum: "" },
 			});
-			props.status(`${trimmed} applied ✓`);
+			toast(`${trimmed} applied`, "success");
 			props.onClose();
 			props.onSaved();
 		} catch (e) {
-			props.status(`snippet failed: ${(e as Error).message}`);
+			toast(`snippet failed: ${(e as Error).message}`, "error");
 			setSaving(false);
 		}
 	};
@@ -646,11 +645,7 @@ function CatalogCard(props: {
 // Themes are exclusive (enforceSingleTheme), so the one active theme gets
 // a persistent full-width bar above the results instead of hiding its
 // controls down in the Installed section.
-function ActiveThemeBar(props: {
-	record: InstalledRecord;
-	status: (msg: string) => void;
-	refresh: () => void;
-}): ReactElement {
+function ActiveThemeBar(props: { record: InstalledRecord; refresh: () => void }): ReactElement {
 	const id = props.record.metadata.identifier;
 	const schemes = M().schemes?.(id) as { active: string; names: string[] } | null;
 	// The pick is mirrored locally so the select reflects it immediately.
@@ -659,9 +654,9 @@ function ActiveThemeBar(props: {
 	const disable = async () => {
 		try {
 			await M().disable(id);
-			props.status(`${id} disabled`);
+			toast(`${id} disabled`, "success");
 		} catch (e) {
-			props.status(`failed: ${(e as Error).message}`);
+			toast(`failed: ${(e as Error).message}`, "error");
 		}
 		props.refresh();
 	};
@@ -677,7 +672,7 @@ function ActiveThemeBar(props: {
 					onChange={(name) => {
 						M().setScheme(id, name);
 						setSchemePick(name);
-						props.status(`${id}: ${name} scheme applied`);
+						toast(`${id}: ${name} scheme applied`, "success");
 					}}
 				/>
 			)}
@@ -693,7 +688,6 @@ function InstalledCard(props: {
 	loaded: boolean;
 	revokedReason: string | undefined;
 	daemonReady: boolean;
-	status: (msg: string) => void;
 	refresh: () => void;
 	onEdit: (existing: { id: string; name: string; css: string }) => void;
 }): ReactElement {
@@ -708,19 +702,19 @@ function InstalledCard(props: {
 				await M().disable(id);
 			} else {
 				await M().enable(id);
-				await enforceSingleTheme(id, props.status);
+				await enforceSingleTheme(id);
 			}
 		} catch (e) {
-			props.status(`failed: ${(e as Error).message}`);
+			toast(`failed: ${(e as Error).message}`, "error");
 		}
 		props.refresh();
 	};
 
 	const remove = async () => {
 		try {
-			props.status(await removeLocalRecord(id, record.metadata.name ?? id));
+			toast(await removeLocalRecord(id, record.metadata.name ?? id), "success");
 		} catch (e) {
-			props.status(`failed: ${(e as Error).message}`);
+			toast(`failed: ${(e as Error).message}`, "error");
 		}
 		props.refresh();
 	};
@@ -742,10 +736,10 @@ function InstalledCard(props: {
 		}
 		setUninstallArmed(false);
 		try {
-			props.status(`uninstalling ${id} and re-applying — Spotify will restart…`);
+			toast(`uninstalling ${id} and re-applying; Spotify will restart…`);
 			await uninstallStaged(id, version);
 		} catch (e) {
-			props.status(`failed: ${(e as Error).message}`);
+			toast(`failed: ${(e as Error).message}`, "error");
 			props.refresh();
 		}
 	};
@@ -973,13 +967,13 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			void M()
 				.disable(id)
 				.then(() => {
-					setStatus(`${id} disabled: revoked by the vault`);
+					toast(`${id} disabled: revoked by the vault`, "error");
 					refreshRegistry();
 				})
 				.catch((e: Error) => {
 					// Unlatch so the next render retries.
 					autoDisabledRevoked.current.delete(id);
-					setStatus(`${id}: failed to disable revoked module: ${e.message}`);
+					toast(`${id}: failed to disable revoked module: ${e.message}`, "error");
 				});
 		}
 	}, [catalog, registryEpoch]);
@@ -987,8 +981,9 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const runInstall = async (mod: VaultModule) => {
 		try {
 			await installModule(mod, setStatus);
-		} catch (e) {
-			setStatus(`failed: ${(e as Error).message}`);
+		} catch {
+			// installModule already toasted the failure; just clear the progress line.
+			setStatus("");
 		} finally {
 			refreshRegistry();
 		}
@@ -1002,7 +997,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const runActivate = async (mod: VaultModule) => {
 		try {
 			await M().enable(mod.id);
-			await enforceSingleTheme(mod.id, setStatus);
+			await enforceSingleTheme(mod.id);
 			toast(`${displayName(mod)} is now the active theme`, "success");
 		} catch (e) {
 			toast(`Failed to activate ${displayName(mod)}: ${(e as Error).message}`, "error");
@@ -1013,9 +1008,9 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 	const runRemove = async (mod: VaultModule) => {
 		try {
-			setStatus(await removeLocalRecord(mod.id, displayName(mod)));
+			toast(await removeLocalRecord(mod.id, displayName(mod)), "success");
 		} catch (e) {
-			setStatus(`failed: ${(e as Error).message}`);
+			toast(`failed: ${(e as Error).message}`, "error");
 		} finally {
 			refreshRegistry();
 		}
@@ -1027,7 +1022,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			try {
 				await installModule(mod, setStatus);
 			} catch (e) {
-				setStatus(`update failed for ${mod.id}: ${(e as Error).message}`);
+				toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
 			}
 		}
 		setUpdatingAll(false);
@@ -1075,7 +1070,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		a.download = "spicetify-store-backup.json";
 		a.click();
 		URL.revokeObjectURL(a.href);
-		setStatus("backup downloaded");
+		toast("backup downloaded", "success");
 	};
 
 	// Restore reinstalls from the vault rather than from the file: the file
@@ -1143,18 +1138,19 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				localStorage.setItem(ACTIVE_THEME_KEY, activeTheme);
 				try {
 					await M().enable(activeTheme);
-					await enforceSingleTheme(activeTheme, setStatus);
+					await enforceSingleTheme(activeTheme);
 				} catch (e) {
 					void e;
 				}
 			}
 			const skipped = missing.length ? `; not in the vault: ${missing.join(", ")}` : "";
 			const snippetNote = snippetsRestored ? `, ${snippetsRestored} snippet(s)` : "";
-			setStatus(
+			toast(
 				`restored ${restored} preference(s), reinstalled ${reinstalled} module(s)${snippetNote}${skipped}`,
+				"success",
 			);
 		} catch (e) {
-			setStatus(`import failed: ${(e as Error).message}`);
+			toast(`import failed: ${(e as Error).message}`, "error");
 		} finally {
 			refreshRegistry();
 		}
@@ -1167,7 +1163,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			resetTimer.current = null;
 			setResetArmed(false);
 			const removed = resetStoreData();
-			setStatus(`removed ${removed} entries — restart Spotify to finish`);
+			toast(`removed ${removed} entries; restart Spotify to finish`);
 			refreshRegistry();
 			return;
 		}
@@ -1237,12 +1233,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				</button>
 			</div>
 			{activeTheme && (
-				<ActiveThemeBar
-					key={activeTheme.metadata.identifier}
-					record={activeTheme}
-					status={setStatus}
-					refresh={refreshRegistry}
-				/>
+				<ActiveThemeBar key={activeTheme.metadata.identifier} record={activeTheme} refresh={refreshRegistry} />
 			)}
 			<div className="spicetify-store-updates" style={pending.length ? undefined : { display: "none" }}>
 				{pending.length > 0 && (
@@ -1292,7 +1283,6 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						loaded={!!(states.get(record.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded}
 						revokedReason={catalog.revoked[record.metadata.identifier]}
 						daemonReady={daemonReady}
-						status={setStatus}
 						refresh={refreshRegistry}
 						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
 					/>
@@ -1334,12 +1324,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				/>
 			)}
 			{overlay?.kind === "snippet" && (
-				<SnippetEditor
-					existing={overlay.existing}
-					onSaved={refreshRegistry}
-					status={setStatus}
-					onClose={() => setOverlay(null)}
-				/>
+				<SnippetEditor existing={overlay.existing} onSaved={refreshRegistry} onClose={() => setOverlay(null)} />
 			)}
 		</div>
 	);

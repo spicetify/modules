@@ -6,9 +6,9 @@
 export const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
 export const PLATFORM = () => (globalThis as never as Record<string, any>).Spicetify?.Platform;
 
-// Native Spotify toast (Encore Snackbar) for install outcomes, with a
-// showNotification fallback for older clients. Progress still shows inline in
-// the store's own status line; the terminal result is a proper client toast.
+// Native Spotify toast (Encore Snackbar) for every terminal outcome, with a
+// showNotification fallback for older clients. The store's inline status line
+// only carries transient page state (catalog loading, install progress).
 export function toast(message: string, variant: "success" | "error" | "default" = "default"): void {
 	const S = (globalThis as never as Record<string, any>).Spicetify;
 	try {
