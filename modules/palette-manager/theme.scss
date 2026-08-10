@@ -24,10 +24,17 @@ a {
 .link-subtle {
 	color: var(--spice-tab);
 
+	/* --spice-tab-active is a *background* in the canonical vocabulary: the
+	   loader derives it from card, then main. Reading it as a foreground here
+	   painted the icon in exactly the colour behind it, so hovering Home, New
+	   Releases or the store made the glyph vanish on any theme that did not
+	   happen to define the palette vocabulary this file was written for.
+	   --spice-tab-active-text is a foreground wherever a theme declares one,
+	   and --spice-text is a foreground everywhere else. */
 	&:hover,
 	&:active,
 	&:active > svg {
-		color: var(--spice-tab-active);
+		color: var(--spice-tab-active-text, var(--spice-text));
 	}
 }
 
