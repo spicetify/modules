@@ -10,7 +10,7 @@
 				"name": "Delusoire"
 			}
 		],
-		"tags": ["lib"],
+		"kind": "lib",
 		"license": "GPL-3.0-or-later"
 	},
 	"v": {

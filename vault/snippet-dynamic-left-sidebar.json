@@ -8,7 +8,7 @@
 				"github": "Ender-Wang"
 			}
 		],
-		"tags": ["snippet"],
+		"kind": "snippet",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Dynamic-Left-Sidebar.gif"
 	},
 	"v": {

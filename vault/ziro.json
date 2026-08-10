@@ -21,7 +21,7 @@
 				"name": "schnensch0"
 			}
 		],
-		"tags": ["theme"],
+		"kind": "theme",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg"
 	}
 }

@@ -57,7 +57,7 @@
 				"name": "spicetify"
 			}
 		],
-		"tags": ["extension"],
+		"kind": "extension",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
 	}
 }

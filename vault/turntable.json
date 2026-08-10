@@ -15,7 +15,7 @@
 				"name": "Grason Chan"
 			}
 		],
-		"tags": ["theme"],
+		"kind": "theme",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png"
 	}
 }

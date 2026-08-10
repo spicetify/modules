@@ -57,8 +57,9 @@
 						"name": "veryboringhwl"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg",
+				"tags": ["extension"]
 			}
 		},
 		"auto-skip-explicit": {
@@ -96,8 +97,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg",
+				"tags": ["extension"]
 			}
 		},
 		"auto-skip-video": {
@@ -135,8 +137,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg",
+				"tags": ["extension"]
 			}
 		},
 		"blossom": {
@@ -174,9 +177,10 @@
 						"name": "Robatortas"
 					}
 				],
-				"tags": ["theme"],
+				"kind": "theme",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png",
-				"license": "GPL-3.0-or-later"
+				"license": "GPL-3.0-or-later",
+				"tags": ["theme"]
 			}
 		},
 		"bookmark": {
@@ -246,8 +250,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png",
+				"tags": ["extension"]
 			}
 		},
 		"burnt-sienna": {
@@ -277,8 +282,9 @@
 						"name": "Paweł Jaśpiński"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png",
+				"tags": ["theme"]
 			}
 		},
 		"dreary": {
@@ -300,8 +306,9 @@
 						"name": "SaltNuggets"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dreary.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dreary.png",
+				"tags": ["theme"]
 			}
 		},
 		"dribbblish": {
@@ -326,8 +333,9 @@
 						"name": "harbassan"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dribbblish.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dribbblish.png",
+				"tags": ["theme"]
 			}
 		},
 		"flow": {
@@ -359,8 +367,9 @@
 						"name": "Victoria"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png",
+				"tags": ["theme"]
 			}
 		},
 		"full-app-display": {
@@ -406,8 +415,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png",
+				"tags": ["extension"]
 			}
 		},
 		"hide-window-controls": {
@@ -437,9 +447,10 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
+				"kind": "extension",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg",
-				"license": "GPL-3.0-or-later"
+				"license": "GPL-3.0-or-later",
+				"tags": ["extension"]
 			}
 		},
 		"keyboard-shortcut": {
@@ -469,8 +480,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png",
+				"tags": ["extension"]
 			}
 		},
 		"loopy-loop": {
@@ -500,8 +512,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png",
+				"tags": ["extension"]
 			}
 		},
 		"lyrics-plus": {
@@ -579,8 +592,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["app"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
+				"kind": "app",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png",
+				"tags": ["app"]
 			}
 		},
 		"manager": {
@@ -651,7 +665,8 @@
 						"name": "Afonso Jorge Ramos"
 					}
 				],
-				"tags": ["manager", "tools"]
+				"kind": "app",
+				"tags": ["app"]
 			}
 		},
 		"matte": {
@@ -683,9 +698,10 @@
 						"name": "darkthemer"
 					}
 				],
-				"tags": ["theme"],
+				"kind": "theme",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/matte.png",
-				"license": "GPL-3.0-or-later"
+				"license": "GPL-3.0-or-later",
+				"tags": ["theme"]
 			}
 		},
 		"new-releases": {
@@ -723,8 +739,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["app"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png"
+				"kind": "app",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png",
+				"tags": ["app"]
 			}
 		},
 		"nightlight": {
@@ -754,8 +771,9 @@
 						"name": "iTenerai"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png",
+				"tags": ["theme"]
 			}
 		},
 		"onepunch": {
@@ -785,9 +803,10 @@
 						"name": "okarin001"
 					}
 				],
-				"tags": ["theme"],
+				"kind": "theme",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/onepunch.png",
-				"license": "GPL-3.0-or-later"
+				"license": "GPL-3.0-or-later",
+				"tags": ["theme"]
 			}
 		},
 		"palette-manager": {
@@ -808,8 +827,9 @@
 						"name": "Afonso Jorge Ramos"
 					}
 				],
-				"tags": ["extension", "theming", "scheming"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png",
+				"tags": ["extension"]
 			},
 			"v": {
 				"0.3.0": {
@@ -913,8 +933,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png",
+				"tags": ["extension"]
 			}
 		},
 		"shark-blue": {
@@ -944,8 +965,9 @@
 						"name": "MrBiscuit921"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png",
+				"tags": ["theme"]
 			}
 		},
 		"shuffle-plus": {
@@ -983,8 +1005,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png",
+				"tags": ["extension"]
 			}
 		},
 		"sleek": {
@@ -1016,8 +1039,9 @@
 						"name": "harbassan"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png",
+				"tags": ["theme"]
 			}
 		},
 		"snippet-always-show-forward-button": {
@@ -1030,8 +1054,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/always-show-forward.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/always-show-forward.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1053,8 +1078,9 @@
 						"github": "samuel2793"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/amogus-dancing.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/amogus-dancing.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1076,8 +1102,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/auto-hide-friends.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/auto-hide-friends.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1099,8 +1126,9 @@
 						"github": "PasttaTypo"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/be-square.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/be-square.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1122,8 +1150,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/better-lyrics-style.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/better-lyrics-style.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1145,8 +1174,9 @@
 						"github": "JamieeCG"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1168,8 +1198,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/centered-lyrics.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/centered-lyrics.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1191,8 +1222,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/circular-album-art.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/circular-album-art.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1213,8 +1245,9 @@
 						"name": "sooperfish"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Circular-Shadow-fix-for-album-art.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Circular-Shadow-fix-for-album-art.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1236,8 +1269,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dark-lyrics.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dark-lyrics.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1258,8 +1292,9 @@
 						"name": "Toon (Anton)"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/declutter-now-playing-bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/declutter-now-playing-bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1281,8 +1316,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/default-progress-bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/default-progress-bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1304,8 +1340,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/disable-recommendations.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/disable-recommendations.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1327,8 +1364,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duck.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duck.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1350,8 +1388,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1373,8 +1412,9 @@
 						"github": "Ender-Wang"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Dynamic-Left-Sidebar.gif"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Dynamic-Left-Sidebar.gif",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1396,8 +1436,9 @@
 						"github": "Ender-Wang"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dynamic-search-bar.gif"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dynamic-search-bar.gif",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1419,8 +1460,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-DJ-icon.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-DJ-icon.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1442,8 +1484,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fixed-episodes-icon.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fixed-episodes-icon.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1465,8 +1508,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1488,8 +1532,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-icon.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-icon.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1511,8 +1556,9 @@
 						"github": "MigProPlayer"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Fix-Listen-Together-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Fix-Listen-Together-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1534,8 +1580,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-listening-on.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-listening-on.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1557,8 +1604,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-main-view-width.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-main-view-width.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1580,8 +1628,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-now-playing-icon.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-now-playing-icon.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1603,8 +1652,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-and-folder-position.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-and-folder-position.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1626,8 +1676,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-hover.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-hover.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1649,8 +1700,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-progress-bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-progress-bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1672,8 +1724,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-next-up.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-next-up.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1695,8 +1748,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-playing-from.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-playing-from.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1718,8 +1772,9 @@
 						"github": "Mythicsoul"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/giga_npv_canvas.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/giga_npv_canvas.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1741,8 +1796,9 @@
 						"github": "vincenzomy03"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dancing-hamster.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dancing-hamster.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1763,8 +1819,9 @@
 						"name": "ririxi"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Audiobooks-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Audiobooks-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1786,8 +1843,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-download-button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-download-button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1809,8 +1867,9 @@
 						"github": "Donaldino7712"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-friend-activity-button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-friend-activity-button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1832,8 +1891,9 @@
 						"github": "Ender-Wang"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Full-Screen-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Full-Screen-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1855,8 +1915,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-likedSongs-card.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-likedSongs-card.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1878,8 +1939,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-lyrics-button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-lyrics-button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1901,8 +1963,9 @@
 						"github": "Ender-Wang"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Made-For-YOU.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Made-For-YOU.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1924,8 +1987,9 @@
 						"github": "Ender-Wang"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Mini-Player-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Mini-Player-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1947,8 +2011,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-now-playing-view-button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-now-playing-view-button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1970,8 +2035,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-play-count.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-play-count.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -1993,8 +2059,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-playing-gif.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-playing-gif.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2015,8 +2082,9 @@
 						"name": "ririxi"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Podcast-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Podcast-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2038,8 +2106,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2061,8 +2130,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-recent-searches.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-recent-searches.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2083,8 +2153,9 @@
 						"name": "ririxi"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Recently-Played.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Recently-Played.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2106,8 +2177,9 @@
 						"github": "Donaldino7712"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-scroll-through-previews.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-scroll-through-previews.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2129,8 +2201,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2151,8 +2224,9 @@
 						"name": "ririxi"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2174,8 +2248,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hover-panels.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hover-panels.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2197,8 +2272,9 @@
 						"github": "Arteeed"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/jumping-zerotwo.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/jumping-zerotwo.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2219,8 +2295,9 @@
 						"name": "Ray Vincent DS. Concepcion"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/kirby_progress_bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/kirby_progress_bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2242,8 +2319,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/left-aligned-heart-icons.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/left-aligned-heart-icons.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2265,8 +2343,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-sticky-list-icons.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-sticky-list-icons.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2287,8 +2366,9 @@
 						"name": "1-MaX-7"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/XP-bar-pr.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/XP-bar-pr.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2310,8 +2390,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/modern-scrollbar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/modern-scrollbar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2333,8 +2414,9 @@
 						"github": "NeoNyaa"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/More-Visible-Unplayable-Tracks.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/More-Visible-Unplayable-Tracks.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2356,8 +2438,9 @@
 						"github": "JamieeCG"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/minecraft-bee-snippet.gif"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/minecraft-bee-snippet.gif",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2379,8 +2462,9 @@
 						"github": "Ender-Wang"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/new-hover-panel.gif"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/new-hover-panel.gif",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2402,8 +2486,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/nyan-cat-progress-bar.gif"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/nyan-cat-progress-bar.gif",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2425,8 +2510,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/oneko.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/oneko.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2447,8 +2533,9 @@
 						"name": "Enno"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Pill-Player-Bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Pill-Player-Bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2470,8 +2557,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pointer.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pointer.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2492,8 +2580,9 @@
 						"name": "Aradhana Nayak"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2515,8 +2604,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pretty-lyrics.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pretty-lyrics.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2538,8 +2628,9 @@
 						"github": "Theblockbuster1"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2561,8 +2652,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-connect-bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-connect-bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2584,8 +2676,9 @@
 						"github": "MigProPlayer"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Duplicated-Fullscreen-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Duplicated-Fullscreen-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2607,8 +2700,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-ep-likes.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-ep-likes.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2630,8 +2724,9 @@
 						"github": "Duckyz95"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Playlist-Cover.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Playlist-Cover.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2653,8 +2748,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2676,8 +2772,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-recently-played.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-recently-played.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2699,8 +2796,9 @@
 						"github": "FoxyLoon"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2722,8 +2820,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-gradient.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-gradient.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2745,8 +2844,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-top-spacing.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-top-spacing.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2767,8 +2867,9 @@
 						"name": "Climax"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-unused-space.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-unused-space.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2790,8 +2891,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/right-cover-art.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/right-cover-art.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2813,8 +2915,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rotating-coverart.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rotating-coverart.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2835,8 +2938,9 @@
 						"name": "Climax"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-buttons.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-buttons.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2858,8 +2962,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-images.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-images.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2881,8 +2986,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-now-playing.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-now-playing.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2903,8 +3009,9 @@
 						"name": "Climax"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Rounded-Thicker-Bars.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Rounded-Thicker-Bars.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2926,8 +3033,9 @@
 						"github": "Theblockbuster1"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Small-Video-Button.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Small-Video-Button.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2948,8 +3056,9 @@
 						"name": "Climax"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smaller-right-sidebar-cover.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smaller-right-sidebar-cover.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2971,8 +3080,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-progress-bar.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-progress-bar.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -2994,8 +3104,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-playlist-reveal-gradient.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-playlist-reveal-gradient.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3017,8 +3128,9 @@
 						"github": "uhAlexz"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/sonic-dancing.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/sonic-dancing.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3040,8 +3152,9 @@
 						"github": "uboaaaa"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Spinning-CD-Cover-Art.jpg"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Spinning-CD-Cover-Art.jpg",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3063,8 +3176,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/switch-sidebars.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/switch-sidebars.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3086,8 +3200,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-bars.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-bars.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3109,8 +3224,9 @@
 						"github": "itsmeow"
 					}
 				],
-				"tags": ["snippet"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thin-library-sidebar-rows.png"
+				"kind": "snippet",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thin-library-sidebar-rows.png",
+				"tags": ["snippet"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3144,8 +3260,9 @@
 						"name": "Julissa Laignelet"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/starry-night.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/starry-night.png",
+				"tags": ["theme"]
 			}
 		},
 		"stdlib": {
@@ -3160,8 +3277,9 @@
 						"name": "Delusoire"
 					}
 				],
-				"tags": ["lib"],
-				"license": "GPL-3.0-or-later"
+				"kind": "lib",
+				"license": "GPL-3.0-or-later",
+				"tags": ["lib"]
 			},
 			"v": {
 				"1.0.0": {
@@ -3387,8 +3505,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["ui"],
-				"license": "GPL-3.0-or-later"
+				"kind": "app",
+				"license": "GPL-3.0-or-later",
+				"tags": ["app"]
 			}
 		},
 		"text": {
@@ -3426,8 +3545,9 @@
 						"name": "darkthemer"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png",
+				"tags": ["theme"]
 			}
 		},
 		"trashbin": {
@@ -3465,8 +3585,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png",
+				"tags": ["extension"]
 			}
 		},
 		"turntable": {
@@ -3488,8 +3609,9 @@
 						"name": "Grason Chan"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png",
+				"tags": ["theme"]
 			}
 		},
 		"webnowplaying": {
@@ -3519,8 +3641,9 @@
 						"name": "spicetify"
 					}
 				],
-				"tags": ["extension"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg"
+				"kind": "extension",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg",
+				"tags": ["extension"]
 			}
 		},
 		"ziro": {
@@ -3546,8 +3669,9 @@
 						"name": "schnensch0"
 					}
 				],
-				"tags": ["theme"],
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg"
+				"kind": "theme",
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg",
+				"tags": ["theme"]
 			}
 		}
 	}

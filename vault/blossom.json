@@ -27,7 +27,7 @@
 				"name": "Robatortas"
 			}
 		],
-		"tags": ["theme"],
+		"kind": "theme",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png",
 		"license": "GPL-3.0-or-later"
 	}

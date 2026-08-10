@@ -20,7 +20,7 @@
 				"name": "Julissa Laignelet"
 			}
 		],
-		"tags": ["theme"],
+		"kind": "theme",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/starry-night.png"
 	}
 }

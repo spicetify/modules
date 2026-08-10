@@ -27,7 +27,7 @@ A module file looks like this:
 		"name": "My Module",
 		"description": "…",
 		"authors": [{ "name": "…", "github": "…" }],
-		"tags": ["extension"],
+		"kind": "extension", // extension | theme | snippet | app | lib
 		"preview": "https://…/preview.png", // required: cards are artwork-first
 		"repository": "https://github.com/you/my-module",
 		"license": "MIT", // SPDX, shown on the card
@@ -46,6 +46,13 @@ Card data sits at the module level: one identity per module, however many
 releases it carries. `enabled` pins a version; without it the highest wins.
 `files` replaces `artifacts` for inline css snippets, and `hidden` marks
 infrastructure (stdlib) that installs but never renders a card.
+
+`kind` is the one classification, and it is load-bearing rather than
+decorative: `theme` enters the module into the single-active-theme rule, so
+enabling it unloads whatever theme was on. It also picks the toolbar tab the
+card appears under. Anything unrecognised reads as `extension`. The built
+`vault.json` still carries a matching one-element `tags` list so store
+versions predating `kind` keep working; do not write `tags` by hand.
 
 ---
 

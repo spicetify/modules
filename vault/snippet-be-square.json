@@ -8,7 +8,7 @@
 				"github": "PasttaTypo"
 			}
 		],
-		"tags": ["snippet"],
+		"kind": "snippet",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/be-square.png"
 	},
 	"v": {

@@ -69,10 +69,25 @@ export function readModule(id: string, root = process.cwd()): VaultModule {
 	return parsed as VaultModule;
 }
 
+/**
+ * Sources declare `kind`; the built aggregate also carries the equivalent
+ * one-element `tags` list. Store builds published before the `kind` migration
+ * read `meta.tags` to categorise and to decide whether a module can be
+ * activated as a theme, so dropping it outright would take the Themes tab and
+ * every Activate button away from anyone who has not updated their store
+ * module yet. Derived here rather than duplicated in the sources, so the
+ * reviewable unit stays free of it. Delete once those versions are gone.
+ */
+function withLegacyTags(module: VaultModule): VaultModule {
+	const kind = module.metadata?.kind;
+	if (typeof kind !== "string" || module.metadata?.tags) return module;
+	return { ...module, metadata: { ...module.metadata, tags: [kind] } };
+}
+
 /** The aggregate the store fetches, composed from the per-module sources. */
 export function compose(root = process.cwd()): Vault {
 	const modules: Record<string, VaultModule> = {};
-	for (const id of sourceIds(root)) modules[id] = readModule(id, root);
+	for (const id of sourceIds(root)) modules[id] = withLegacyTags(readModule(id, root));
 
 	const revokedPath = path.join(root, REVOKED_FILE);
 	if (!existsSync(revokedPath)) return { modules };

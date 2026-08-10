@@ -93,7 +93,7 @@
 				"name": "spicetify"
 			}
 		],
-		"tags": ["ui"],
+		"kind": "app",
 		"license": "GPL-3.0-or-later"
 	}
 }

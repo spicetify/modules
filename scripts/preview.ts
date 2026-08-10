@@ -56,7 +56,7 @@ const prettify = (id: string) =>
 		.map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
 		.join(" ");
 
-const CATEGORY_TAGS = ["extension", "theme", "snippet", "app"];
+const KINDS = ["extension", "theme", "snippet", "app", "lib"];
 
 function render(id: string, title: string, category: string, icon: string, accent: string): string {
 	const paths = ICONS[icon] ?? ICONS.bolt;
@@ -97,7 +97,8 @@ function main(): void {
 			accent: FALLBACK_ACCENTS[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % FALLBACK_ACCENTS.length],
 		};
 		const title = style.title ?? prettify(meta.name ?? id);
-		const category = CATEGORY_TAGS.find((t) => (meta.tags ?? []).includes(t)) ?? "module";
+		const category =
+			(KINDS.includes(meta.kind) ? meta.kind : KINDS.find((k) => (meta.tags ?? []).includes(k))) ?? "module";
 		const out = path.join("previews", `${id}.svg`);
 		writeFileSync(out, render(id, title, category, style.icon, style.accent));
 		meta.preview = `${REPO_RAW}/${id}.svg`;

@@ -2,7 +2,7 @@
 /**
  * vault - maintain vault.json for the module store.
  *
- * Rich card data (name, description, authors, tags) lives in each
+ * Rich card data (name, description, authors, kind) lives in each
  * artifact's metadata.json; the store cannot download every zip just to
  * render a list. This tool embeds a metadata subset at the module level
  * (one card identity per module, tracking the newest version's artifact)
@@ -66,10 +66,19 @@ interface VaultAuthor {
 	github?: string;
 }
 
+const KINDS = ["extension", "theme", "snippet", "app", "lib"] as const;
+export type VaultKind = (typeof KINDS)[number];
+
 interface VaultMetadata {
 	name?: string;
 	description?: string;
 	authors?: VaultAuthor[];
+	kind?: VaultKind;
+	/**
+	 * Emitted alongside `kind` purely so store builds published before the
+	 * `kind` migration keep categorising and keep offering Activate on
+	 * themes. Drop it once those versions are out of circulation.
+	 */
 	tags?: string[];
 	preview?: string;
 	repository?: string;
@@ -79,6 +88,16 @@ interface VaultMetadata {
 	// travel with the entry.
 	license?: string;
 }
+
+// A submission may declare `kind` or, if it predates the migration, the old
+// `tags` list; either way the vault records exactly one kind.
+export const kindOfMeta = (meta: Record<string, unknown>): VaultKind | undefined => {
+	if (typeof meta.kind === "string" && (KINDS as readonly string[]).includes(meta.kind)) {
+		return meta.kind as VaultKind;
+	}
+	const tags = Array.isArray(meta.tags) ? (meta.tags as string[]) : [];
+	return KINDS.find((kind) => tags.includes(kind));
+};
 
 // metadata.json authors are plain names; author objects (with a github)
 // pass through, so an artifact may declare either.
@@ -97,7 +116,11 @@ export const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => 
 	if (typeof meta.name === "string") out.name = meta.name;
 	if (typeof meta.description === "string") out.description = meta.description;
 	if (Array.isArray(meta.authors)) out.authors = normalizeAuthors(meta.authors);
-	if (Array.isArray(meta.tags)) out.tags = meta.tags as string[];
+	const kind = kindOfMeta(meta);
+	if (kind) {
+		out.kind = kind;
+		out.tags = [kind];
+	}
 	// Previews inside the zip are not hotlinkable; only absolute URLs are
 	// useful to the store.
 	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
@@ -321,6 +344,7 @@ function addSnippet(
 		name,
 		description: opts.description ?? prevMeta?.description ?? "",
 		authors: withCurated({ authors }, prevMeta).authors,
+		kind: "snippet",
 		tags: ["snippet"],
 		preview,
 	};
@@ -389,6 +413,7 @@ function importSnippets(snippetsPath: string, base: string): void {
 			// git history, github attribution riding on each author) with
 			// the fallback.
 			authors: prevMeta?.authors ?? [{ name: "spicetify" }],
+			kind: "snippet",
 			tags: ["snippet"],
 		};
 		metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;

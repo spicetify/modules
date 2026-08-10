@@ -8,7 +8,7 @@
 				"github": "Theblockbuster1"
 			}
 		],
-		"tags": ["snippet"],
+		"kind": "snippet",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png"
 	},
 	"v": {

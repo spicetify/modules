@@ -8,7 +8,7 @@
 				"github": "itsmeow"
 			}
 		],
-		"tags": ["snippet"],
+		"kind": "snippet",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png"
 	},
 	"v": {

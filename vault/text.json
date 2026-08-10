@@ -33,7 +33,7 @@
 				"name": "darkthemer"
 			}
 		],
-		"tags": ["theme"],
+		"kind": "theme",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
 	}
 }

@@ -7,7 +7,7 @@
 				"name": "ririxi"
 			}
 		],
-		"tags": ["snippet"],
+		"kind": "snippet",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png"
 	},
 	"v": {
