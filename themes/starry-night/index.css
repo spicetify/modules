@@ -36,6 +36,14 @@
 	background-color: #00000000 !important;
 }
 
+/* Module route pages (the store, settings-style pages) default to an opaque
+   --spice-main surface; the sky should show through them like every other
+   container. Nothing renders underneath: the client draws an empty view for
+   routes it does not know. */
+.spicetify-route-page {
+	background: #00000000 !important;
+}
+
 /* The right-sidebar panel paints an opaque --background-base over the sky.
    Classic targeted its hashed class (main.panel.aside), which died with the
    client update that renamed it; the structural selector cannot rot. */
