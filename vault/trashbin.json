@@ -28,6 +28,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png",
+		"tags": ["extension"]
 	}
 }

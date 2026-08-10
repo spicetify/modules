@@ -9,7 +9,8 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png",
+		"tags": ["snippet"]
 	},
 	"v": {
 		"1.0.0": {

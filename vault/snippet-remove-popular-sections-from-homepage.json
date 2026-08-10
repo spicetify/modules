@@ -9,7 +9,8 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png",
+		"tags": ["snippet"]
 	},
 	"v": {
 		"1.0.0": {

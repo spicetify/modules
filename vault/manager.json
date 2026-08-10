@@ -41,6 +41,13 @@
 			"checksum": "sha256:ac858a0bb2e97396c523a3a2574113496a7d13af92e9a9d0c9c89343de5f6ec7",
 			"updatedAt": "2026-08-06",
 			"hidden": true
+		},
+		"1.1.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.1.2/manager@1.1.2.zip"],
+			"providers": [],
+			"checksum": "sha256:283bb97124eab7f876a202bfdfbd38f9aca7a46a5aec1af6b9d1fa1274b9fe01",
+			"updatedAt": "2026-08-10",
+			"hidden": true
 		}
 	},
 	"metadata": {
@@ -54,6 +61,8 @@
 				"name": "Afonso Jorge Ramos"
 			}
 		],
-		"kind": "app"
+		"kind": "app",
+		"tags": ["app"],
+		"license": "GPL-3.0-or-later"
 	}
 }

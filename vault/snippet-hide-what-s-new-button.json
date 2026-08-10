@@ -8,7 +8,8 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png",
+		"tags": ["snippet"]
 	},
 	"v": {
 		"1.0.0": {

@@ -27,6 +27,7 @@
 		],
 		"kind": "extension",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg",
-		"license": "GPL-3.0-or-later"
+		"license": "GPL-3.0-or-later",
+		"tags": ["extension"]
 	}
 }

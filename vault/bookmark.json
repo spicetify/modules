@@ -52,6 +52,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png",
+		"tags": ["extension"]
 	}
 }

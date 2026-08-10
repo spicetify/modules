@@ -34,6 +34,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg",
+		"tags": ["extension"]
 	}
 }

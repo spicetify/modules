@@ -8,7 +8,8 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png",
+		"tags": ["snippet"]
 	},
 	"v": {
 		"1.0.0": {

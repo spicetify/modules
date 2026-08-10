@@ -46,6 +46,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg",
+		"tags": ["extension"]
 	}
 }

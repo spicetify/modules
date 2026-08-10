@@ -58,6 +58,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png",
+		"tags": ["extension"]
 	}
 }

@@ -74,6 +74,7 @@
 			}
 		],
 		"kind": "app",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png",
+		"tags": ["app"]
 	}
 }

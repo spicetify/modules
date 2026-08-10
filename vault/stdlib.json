@@ -11,7 +11,8 @@
 			}
 		],
 		"kind": "lib",
-		"license": "GPL-3.0-or-later"
+		"license": "GPL-3.0-or-later",
+		"tags": ["lib"]
 	},
 	"v": {
 		"1.0.0": {

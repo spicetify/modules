@@ -22,6 +22,7 @@
 			}
 		],
 		"kind": "theme",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg",
+		"tags": ["theme"]
 	}
 }

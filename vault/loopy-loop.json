@@ -26,6 +26,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png",
+		"tags": ["extension"]
 	}
 }
