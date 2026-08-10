@@ -20,7 +20,14 @@ import type * as KitClasses from "/modules/stdlib/lib/primitives-classes.ts";
 import type * as UIKit from "/modules/stdlib/lib/primitives.tsx";
 import type * as ReactExpose from "/modules/stdlib/src/expose/React.ts";
 
-import { isOwnedKey, isPrefKey, parseBackup, serializeBackup } from "./backup.ts";
+import {
+	type BackupSnippet,
+	isOwnedKey,
+	isPrefKey,
+	parseBackup,
+	serializeBackup,
+	USER_SNIPPET_PREFIX,
+} from "./backup.ts";
 import {
 	type Catalog,
 	compareVersions,
@@ -400,13 +407,13 @@ function ModuleDetails(props: {
 
 // ---------- store data (backup / restore / reset) ----------
 
-function exportStoreData(installed: string[]): string {
+function exportStoreData(installed: string[], snippets: BackupSnippet[]): string {
 	const prefs: Record<string, string> = {};
 	for (let i = 0; i < localStorage.length; i++) {
 		const key = localStorage.key(i)!;
 		if (isPrefKey(key)) prefs[key] = localStorage.getItem(key)!;
 	}
-	return serializeBackup(prefs, installed);
+	return serializeBackup(prefs, installed, snippets);
 }
 
 function restorePrefs(prefs: Record<string, string>): number {
@@ -1044,7 +1051,24 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	};
 
 	const onExport = () => {
-		const data = exportStoreData(installed.map((record) => record.metadata.identifier));
+		// What a restore can actually put back: registry modules by id, and
+		// user-written snippets by content. A CLI-staged module is on disk and
+		// stays there, and reinstalling it through the store would only turn a
+		// disk install into a localStorage record the loader then shadows;
+		// stdlib, store and manager are likewise never reinstalled from a file.
+		const restorable = installed
+			.filter((record) => record.local)
+			.map((record) => record.metadata.identifier)
+			.filter((id) => !PROTECTED.has(id) && !id.startsWith(USER_SNIPPET_PREFIX));
+		const snippets: BackupSnippet[] = localRecords()
+			.filter((record) => String(record.metadata?.identifier ?? "").startsWith(USER_SNIPPET_PREFIX))
+			.map((record) => ({
+				id: record.metadata.identifier as string,
+				name: record.metadata?.name as string | undefined,
+				css: String(record.files?.["index.css"] ?? ""),
+			}))
+			.filter((snippet) => snippet.css);
+		const data = exportStoreData(restorable, snippets);
 		const blob = new Blob([data], { type: "application/json" });
 		const a = document.createElement("a");
 		a.href = URL.createObjectURL(blob);
@@ -1079,6 +1103,34 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					missing.push(`${id} (${(e as Error).message})`);
 				}
 			}
+			// User snippets are not in any registry, so the file's own
+			// stylesheet is the only copy there is. Restored the way the
+			// editor saves them, and only ever as CSS.
+			let snippetsRestored = 0;
+			for (const snippet of plan.snippets) {
+				try {
+					await M().installLocal(snippet.id, {
+						metadata: {
+							identifier: snippet.id,
+							name: snippet.name ?? snippet.id.slice(USER_SNIPPET_PREFIX.length),
+							kind: "snippet",
+							custom: true,
+							version: "0.0.0",
+							authors: [PLATFORM()?.username ?? "you"],
+							description: "Custom CSS snippet",
+							entries: { css: "index.css" },
+							hasMixins: false,
+							dependencies: {},
+						},
+						files: { "index.css": snippet.css },
+						sidecar: { installed_version: "0.0.0", classmap_base: "", allow_stale: false, checksum: "" },
+					});
+					snippetsRestored++;
+				} catch (e) {
+					missing.push(`${snippet.id} (${(e as Error).message})`);
+				}
+			}
+
 			// Each theme reinstall calls activeThemePref.set, so the last one
 			// installed, not the backed-up one, ends up active. Re-assert the
 			// backup's choice and bring it up live so persisted and running
@@ -1097,7 +1149,10 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				}
 			}
 			const skipped = missing.length ? `; not in the vault: ${missing.join(", ")}` : "";
-			setStatus(`restored ${restored} preference(s), reinstalled ${reinstalled} module(s)${skipped}`);
+			const snippetNote = snippetsRestored ? `, ${snippetsRestored} snippet(s)` : "";
+			setStatus(
+				`restored ${restored} preference(s), reinstalled ${reinstalled} module(s)${snippetNote}${skipped}`,
+			);
 		} catch (e) {
 			setStatus(`import failed: ${(e as Error).message}`);
 		} finally {

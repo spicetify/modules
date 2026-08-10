@@ -45,10 +45,21 @@ export const isPrefKey = (key: string) => PREF_KEYS.includes(key) || key.startsW
 export const isOwnedKey = (key: string) =>
 	isPrefKey(key) || ENDPOINT_KEYS.includes(key) || OWNED_PREFIXES.some((p) => key.startsWith(p));
 
-export type BackupPlan = { prefs: Record<string, string>; modules: string[] };
+// A snippet a user wrote in the store's editor exists only in localStorage
+// and is in no registry, so an id alone cannot restore it. Its stylesheet
+// travels with the backup; nothing executable does, which is what keeps an
+// imported file from being an installer.
+export type BackupSnippet = { id: string; name?: string; css: string };
+export type BackupPlan = { prefs: Record<string, string>; modules: string[]; snippets: BackupSnippet[] };
 
-export function serializeBackup(prefs: Record<string, string>, modules: string[]): string {
-	return JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, prefs, modules }, null, "\t");
+export const USER_SNIPPET_PREFIX = "snippet-user-";
+
+export function serializeBackup(
+	prefs: Record<string, string>,
+	modules: string[],
+	snippets: BackupSnippet[] = [],
+): string {
+	return JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, prefs, modules, snippets }, null, "\t");
 }
 
 /**
@@ -62,6 +73,7 @@ export function parseBackup(text: string): BackupPlan {
 		format?: string;
 		prefs?: Record<string, unknown>;
 		modules?: unknown;
+		snippets?: unknown;
 		keys?: Record<string, unknown>;
 	};
 	if (data.format !== BACKUP_FORMAT) throw new Error("not a store backup");
@@ -75,8 +87,39 @@ export function parseBackup(text: string): BackupPlan {
 	for (const id of Array.isArray(data.modules) ? data.modules : []) {
 		if (typeof id === "string" && id) modules.add(id);
 	}
-	for (const key of Object.keys(data.keys ?? {})) {
-		if (key.startsWith(LOCAL_PREFIX)) modules.add(key.slice(LOCAL_PREFIX.length));
+
+	const snippets: BackupSnippet[] = [];
+	const seen = new Set<string>();
+	const takeSnippet = (id: string, name: unknown, css: unknown) => {
+		// Only stylesheets, and only under the user-snippet prefix: a crafted
+		// file must not be able to hand the loader anything it would execute.
+		if (!id.startsWith(USER_SNIPPET_PREFIX) || typeof css !== "string" || seen.has(id)) return;
+		seen.add(id);
+		snippets.push({ id, ...(typeof name === "string" ? { name } : {}), css });
+	};
+	for (const s of Array.isArray(data.snippets) ? data.snippets : []) {
+		const entry = s as { id?: unknown; name?: unknown; css?: unknown };
+		if (typeof entry?.id === "string") takeSnippet(entry.id, entry.name, entry.css);
 	}
-	return { prefs, modules: [...modules] };
+	// A version 1 file carries whole module records. Its user snippets are
+	// recoverable from the inline stylesheet; everything else in the record
+	// is discarded, and only the id survives.
+	for (const [key, value] of Object.entries(data.keys ?? {})) {
+		if (!key.startsWith(LOCAL_PREFIX)) continue;
+		const id = key.slice(LOCAL_PREFIX.length);
+		if (id.startsWith(USER_SNIPPET_PREFIX)) {
+			try {
+				const record = JSON.parse(String(value)) as {
+					metadata?: { name?: unknown };
+					files?: Record<string, unknown>;
+				};
+				takeSnippet(id, record?.metadata?.name, record?.files?.["index.css"]);
+			} catch {
+				/* an unreadable record is simply not restorable */
+			}
+			continue;
+		}
+		modules.add(id);
+	}
+	return { prefs, modules: [...modules], snippets };
 }
