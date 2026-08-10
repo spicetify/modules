@@ -37,8 +37,6 @@ export type ModuleKind = "extension" | "theme" | "snippet" | "app" | "lib";
 export interface ModuleMetadata {
 	name: string;
 	kind?: ModuleKind;
-	/** Legacy classification; sources use `kind`, builds re-emit both (see below). */
-	tags?: string[];
 	version: string;
 	authors: string[];
 	description: string;
@@ -46,18 +44,6 @@ export interface ModuleMetadata {
 	hasMixins: boolean;
 	dependencies: Record<string, string>;
 	tree?: boolean;
-}
-
-// Sources declare a single `kind`; the built metadata.json re-emits the
-// equivalent one-element `tags` list. A loader payload published before `kind`
-// resolves a module's kind by scanning `tags` (isTheme reads tags.includes
-// "theme"), so an artifact staged by such a loader would drop out of the
-// single-active-theme rule without this. kindOf reads `kind` first, so newer
-// loaders ignore the shim. Mirrors withLegacyTags in scripts/vault-build.ts.
-// Drop once no pre-`kind` loader is in circulation.
-function withLegacyTags(meta: ModuleMetadata): ModuleMetadata {
-	if (!meta.kind || meta.tags) return meta;
-	return { ...meta, tags: [meta.kind] };
 }
 
 const EXTERNALS = [/^https?:\/\//];
@@ -252,7 +238,7 @@ export async function buildModule(
 	const classmap = JSON.parse(readFileSync(resolved.path!, "utf8"));
 	writeFileSync(path.join(inputDir, "classmap.d.ts"), generateClassmapDts(classmap));
 
-	writeFileSync(path.join(outputDir, "metadata.json"), JSON.stringify(withLegacyTags(metadata), null, 2) + "\n");
+	writeFileSync(path.join(outputDir, "metadata.json"), JSON.stringify(metadata, null, 2) + "\n");
 	writeFileSync(
 		path.join(outputDir, "spicetify-module.json"),
 		JSON.stringify(

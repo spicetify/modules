@@ -74,12 +74,6 @@ interface VaultMetadata {
 	description?: string;
 	authors?: VaultAuthor[];
 	kind?: VaultKind;
-	/**
-	 * Emitted alongside `kind` purely so store builds published before the
-	 * `kind` migration keep categorising and keep offering Activate on
-	 * themes. Drop it once those versions are out of circulation.
-	 */
-	tags?: string[];
 	preview?: string;
 	repository?: string;
 	readme?: string;
@@ -117,10 +111,7 @@ export const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => 
 	if (typeof meta.description === "string") out.description = meta.description;
 	if (Array.isArray(meta.authors)) out.authors = normalizeAuthors(meta.authors);
 	const kind = kindOfMeta(meta);
-	if (kind) {
-		out.kind = kind;
-		out.tags = [kind];
-	}
+	if (kind) out.kind = kind;
 	// Previews inside the zip are not hotlinkable; only absolute URLs are
 	// useful to the store.
 	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
@@ -345,7 +336,6 @@ function addSnippet(
 		description: opts.description ?? prevMeta?.description ?? "",
 		authors: withCurated({ authors }, prevMeta).authors,
 		kind: "snippet",
-		tags: ["snippet"],
 		preview,
 	};
 	const unchanged = existing?.files?.["index.css"] === css;
@@ -414,7 +404,6 @@ function importSnippets(snippetsPath: string, base: string): void {
 			// the fallback.
 			authors: prevMeta?.authors ?? [{ name: "spicetify" }],
 			kind: "snippet",
-			tags: ["snippet"],
 		};
 		metadata.preview = /^https?:\/\//.test(snippet.preview) ? snippet.preview : `${base}${snippet.preview}`;
 		const unchanged = existing?.files?.["index.css"] === snippet.code;
