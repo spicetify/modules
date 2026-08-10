@@ -58,8 +58,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg"
 			}
 		},
 		"auto-skip-explicit": {
@@ -98,8 +97,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg"
 			}
 		},
 		"auto-skip-video": {
@@ -138,8 +136,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg"
 			}
 		},
 		"blossom": {
@@ -179,8 +176,7 @@
 				],
 				"kind": "theme",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/blossom.png",
-				"license": "GPL-3.0-or-later",
-				"tags": ["theme"]
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"bookmark": {
@@ -251,8 +247,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
 			}
 		},
 		"burnt-sienna": {
@@ -283,8 +278,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png"
 			}
 		},
 		"dreary": {
@@ -307,8 +301,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dreary.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dreary.png"
 			}
 		},
 		"dribbblish": {
@@ -334,8 +327,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dribbblish.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dribbblish.png"
 			}
 		},
 		"flow": {
@@ -368,8 +360,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png"
 			}
 		},
 		"full-app-display": {
@@ -416,8 +407,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png"
 			}
 		},
 		"hide-window-controls": {
@@ -449,8 +439,7 @@
 				],
 				"kind": "extension",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/hide-window-controls.svg",
-				"license": "GPL-3.0-or-later",
-				"tags": ["extension"]
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"keyboard-shortcut": {
@@ -481,8 +470,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png"
 			}
 		},
 		"loopy-loop": {
@@ -513,8 +501,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png"
 			}
 		},
 		"lyrics-plus": {
@@ -593,8 +580,7 @@
 					}
 				],
 				"kind": "app",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png",
-				"tags": ["app"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
 			}
 		},
 		"manager": {
@@ -675,7 +661,6 @@
 					}
 				],
 				"kind": "app",
-				"tags": ["app"],
 				"license": "GPL-3.0-or-later"
 			}
 		},
@@ -710,8 +695,7 @@
 				],
 				"kind": "theme",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/matte.png",
-				"license": "GPL-3.0-or-later",
-				"tags": ["theme"]
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"new-releases": {
@@ -750,8 +734,7 @@
 					}
 				],
 				"kind": "app",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png",
-				"tags": ["app"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png"
 			}
 		},
 		"nightlight": {
@@ -782,8 +765,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/nightlight.png"
 			}
 		},
 		"onepunch": {
@@ -815,8 +797,7 @@
 				],
 				"kind": "theme",
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/onepunch.png",
-				"license": "GPL-3.0-or-later",
-				"tags": ["theme"]
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"palette-manager": {
@@ -838,7 +819,6 @@
 					}
 				],
 				"kind": "extension",
-				"tags": ["extension"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png",
 				"license": "GPL-3.0-or-later"
 			},
@@ -953,8 +933,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
 			}
 		},
 		"shark-blue": {
@@ -985,8 +964,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png"
 			}
 		},
 		"shuffle-plus": {
@@ -1025,8 +1003,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png"
 			}
 		},
 		"sleek": {
@@ -1059,8 +1036,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png"
 			}
 		},
 		"snippet-always-show-forward-button": {
@@ -1074,8 +1050,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/always-show-forward.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/always-show-forward.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1098,8 +1073,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/amogus-dancing.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/amogus-dancing.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1122,8 +1096,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/auto-hide-friends.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/auto-hide-friends.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1146,8 +1119,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/be-square.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/be-square.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1170,8 +1142,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/better-lyrics-style.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/better-lyrics-style.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1194,8 +1165,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/bmo-dancing.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1218,8 +1188,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/centered-lyrics.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/centered-lyrics.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1242,8 +1211,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/circular-album-art.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/circular-album-art.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1265,8 +1233,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Circular-Shadow-fix-for-album-art.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Circular-Shadow-fix-for-album-art.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1289,8 +1256,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dark-lyrics.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dark-lyrics.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1312,8 +1278,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/declutter-now-playing-bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/declutter-now-playing-bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1336,8 +1301,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/default-progress-bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/default-progress-bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1360,8 +1324,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/disable-recommendations.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/disable-recommendations.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1384,8 +1347,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duck.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duck.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1408,8 +1370,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1432,8 +1393,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Dynamic-Left-Sidebar.gif",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Dynamic-Left-Sidebar.gif"
 			},
 			"v": {
 				"1.0.0": {
@@ -1456,8 +1416,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dynamic-search-bar.gif",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dynamic-search-bar.gif"
 			},
 			"v": {
 				"1.0.0": {
@@ -1480,8 +1439,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-DJ-icon.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-DJ-icon.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1504,8 +1462,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fixed-episodes-icon.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fixed-episodes-icon.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1528,8 +1485,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1552,8 +1508,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-icon.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-liked-icon.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1576,8 +1531,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Fix-Listen-Together-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Fix-Listen-Together-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1600,8 +1554,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-listening-on.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-listening-on.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1624,8 +1577,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-main-view-width.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-main-view-width.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1648,8 +1600,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-now-playing-icon.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-now-playing-icon.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1672,8 +1623,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-and-folder-position.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-and-folder-position.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1696,8 +1646,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-hover.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-playlist-hover.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1720,8 +1669,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-progress-bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fix-progress-bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1744,8 +1692,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-next-up.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-next-up.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1768,8 +1715,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-playing-from.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/fullscreen-hide-playing-from.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1792,8 +1738,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/giga_npv_canvas.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/giga_npv_canvas.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1816,8 +1761,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dancing-hamster.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/dancing-hamster.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1839,8 +1783,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Audiobooks-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Audiobooks-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1863,8 +1806,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-download-button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-download-button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1887,8 +1829,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-friend-activity-button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-friend-activity-button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1911,8 +1852,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Full-Screen-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Full-Screen-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1935,8 +1875,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-likedSongs-card.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-likedSongs-card.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1959,8 +1898,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-lyrics-button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-lyrics-button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -1983,8 +1921,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Made-For-YOU.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Made-For-YOU.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2007,8 +1944,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Mini-Player-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Mini-Player-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2031,8 +1967,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-now-playing-view-button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-now-playing-view-button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2055,8 +1990,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-play-count.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-play-count.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2079,8 +2013,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-playing-gif.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-playing-gif.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2102,8 +2035,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Podcast-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Podcast-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2126,8 +2058,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2150,8 +2081,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-recent-searches.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-recent-searches.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2173,8 +2103,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Recently-Played.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Recently-Played.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2197,8 +2126,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-scroll-through-previews.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-scroll-through-previews.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2221,8 +2149,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2244,8 +2171,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Hide-Whats-New-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2268,8 +2194,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hover-panels.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hover-panels.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2292,8 +2217,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/jumping-zerotwo.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/jumping-zerotwo.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2315,8 +2239,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/kirby_progress_bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/kirby_progress_bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2339,8 +2262,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/left-aligned-heart-icons.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/left-aligned-heart-icons.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2363,8 +2285,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-sticky-list-icons.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-sticky-list-icons.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2386,8 +2307,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/XP-bar-pr.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/XP-bar-pr.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2410,8 +2330,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/modern-scrollbar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/modern-scrollbar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2434,8 +2353,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/More-Visible-Unplayable-Tracks.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/More-Visible-Unplayable-Tracks.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2458,8 +2376,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/minecraft-bee-snippet.gif",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/minecraft-bee-snippet.gif"
 			},
 			"v": {
 				"1.0.0": {
@@ -2482,8 +2399,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/new-hover-panel.gif",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/new-hover-panel.gif"
 			},
 			"v": {
 				"1.0.0": {
@@ -2506,8 +2422,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/nyan-cat-progress-bar.gif",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/nyan-cat-progress-bar.gif"
 			},
 			"v": {
 				"1.0.0": {
@@ -2530,8 +2445,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/oneko.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/oneko.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2553,8 +2467,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Pill-Player-Bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Pill-Player-Bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2577,8 +2490,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pointer.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pointer.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2600,8 +2512,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pokemon-adventure.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2624,8 +2535,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pretty-lyrics.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/pretty-lyrics.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2648,8 +2558,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Queue-Top-Side-Panel.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2672,8 +2581,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-connect-bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-connect-bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2696,8 +2604,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Duplicated-Fullscreen-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Duplicated-Fullscreen-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2720,8 +2627,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-ep-likes.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-ep-likes.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2744,8 +2650,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Playlist-Cover.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Remove-Playlist-Cover.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2768,8 +2673,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-popular.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2792,8 +2696,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-recently-played.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-recently-played.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2816,8 +2719,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2840,8 +2742,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-gradient.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-gradient.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2864,8 +2765,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-top-spacing.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-top-spacing.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2887,8 +2787,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-unused-space.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-unused-space.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2911,8 +2810,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/right-cover-art.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/right-cover-art.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2935,8 +2833,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rotating-coverart.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rotating-coverart.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2958,8 +2855,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-buttons.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-buttons.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -2982,8 +2878,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-images.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-images.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3006,8 +2901,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-now-playing.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/rounded-now-playing.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3029,8 +2923,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Rounded-Thicker-Bars.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Rounded-Thicker-Bars.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3053,8 +2946,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Small-Video-Button.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Small-Video-Button.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3076,8 +2968,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smaller-right-sidebar-cover.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smaller-right-sidebar-cover.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3100,8 +2991,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-progress-bar.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-progress-bar.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3124,8 +3014,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-playlist-reveal-gradient.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/smooth-playlist-reveal-gradient.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3148,8 +3037,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/sonic-dancing.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/sonic-dancing.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3172,8 +3060,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Spinning-CD-Cover-Art.jpg",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/Spinning-CD-Cover-Art.jpg"
 			},
 			"v": {
 				"1.0.0": {
@@ -3196,8 +3083,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/switch-sidebars.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/switch-sidebars.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3220,8 +3106,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-bars.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thicker-bars.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3244,8 +3129,7 @@
 					}
 				],
 				"kind": "snippet",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thin-library-sidebar-rows.png",
-				"tags": ["snippet"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/thin-library-sidebar-rows.png"
 			},
 			"v": {
 				"1.0.0": {
@@ -3288,7 +3172,6 @@
 					}
 				],
 				"kind": "theme",
-				"tags": ["theme"],
 				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/starry-night.png",
 				"license": "GPL-3.0-or-later"
 			}
@@ -3306,7 +3189,6 @@
 					}
 				],
 				"kind": "lib",
-				"tags": ["lib"],
 				"license": "GPL-3.0-or-later"
 			},
 			"v": {
@@ -3564,7 +3446,6 @@
 					}
 				],
 				"kind": "app",
-				"tags": ["app"],
 				"license": "GPL-3.0-or-later"
 			}
 		},
@@ -3604,8 +3485,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
 			}
 		},
 		"trashbin": {
@@ -3644,8 +3524,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
 			}
 		},
 		"turntable": {
@@ -3668,8 +3547,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png"
 			}
 		},
 		"webnowplaying": {
@@ -3700,8 +3578,7 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg",
-				"tags": ["extension"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg"
 			}
 		},
 		"ziro": {
@@ -3728,8 +3605,7 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg",
-				"tags": ["theme"]
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg"
 			}
 		}
 	}

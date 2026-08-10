@@ -23,7 +23,6 @@
 		],
 		"kind": "theme",
 		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/onepunch.png",
-		"license": "GPL-3.0-or-later",
-		"tags": ["theme"]
+		"license": "GPL-3.0-or-later"
 	}
 }

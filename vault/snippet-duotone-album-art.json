@@ -9,8 +9,7 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png",
-		"tags": ["snippet"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/duotone-album-art.png"
 	},
 	"v": {
 		"1.0.0": {

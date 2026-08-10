@@ -26,7 +26,6 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png",
-		"tags": ["extension"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png"
 	}
 }

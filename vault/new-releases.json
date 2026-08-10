@@ -34,7 +34,6 @@
 			}
 		],
 		"kind": "app",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png",
-		"tags": ["app"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png"
 	}
 }

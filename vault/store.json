@@ -115,7 +115,6 @@
 			}
 		],
 		"kind": "app",
-		"tags": ["app"],
 		"license": "GPL-3.0-or-later"
 	}
 }

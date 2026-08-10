@@ -9,8 +9,7 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png",
-		"tags": ["snippet"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-sidebar-scrollbar.png"
 	},
 	"v": {
 		"1.0.0": {

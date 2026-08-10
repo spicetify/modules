@@ -9,8 +9,7 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png",
-		"tags": ["snippet"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/hide-profile-username.png"
 	},
 	"v": {
 		"1.0.0": {

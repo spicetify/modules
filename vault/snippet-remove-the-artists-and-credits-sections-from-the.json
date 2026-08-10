@@ -9,8 +9,7 @@
 			}
 		],
 		"kind": "snippet",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png",
-		"tags": ["snippet"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/snippets/remove-the-artists-and-credits-sections-from-the-sidebar.png"
 	},
 	"v": {
 		"1.0.0": {

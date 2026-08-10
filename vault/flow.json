@@ -28,7 +28,6 @@
 			}
 		],
 		"kind": "theme",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png",
-		"tags": ["theme"]
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png"
 	}
 }
