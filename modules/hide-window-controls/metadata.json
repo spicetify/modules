@@ -1,7 +1,7 @@
 {
 	"name": "hide-window-controls",
 	"kind": "extension",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"authors": ["spicetify"],
 	"description": "Hide the native window controls (macOS traffic lights). Toggle in Settings.",
 	"entries": {

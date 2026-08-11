@@ -13,5 +13,5 @@
 export const STORAGE_KEY = "spicetify:hide-window-controls";
 
 export function shouldHide(stored: string | null): boolean {
-	return stored === "1";
+	return stored !== "0";
 }

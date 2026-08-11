@@ -10,8 +10,8 @@ import { test } from "node:test";
 
 import { shouldHide } from "./logic.ts";
 
-test("shouldHide is on only for the explicit opt-in value", () => {
+test("shouldHide defaults on and stays off only for an explicit opt-out", () => {
 	assert.equal(shouldHide("1"), true);
 	assert.equal(shouldHide("0"), false);
-	assert.equal(shouldHide(null), false);
+	assert.equal(shouldHide(null), true);
 });
