@@ -3,7 +3,7 @@
 	"kind": "lib",
 	"hidden": true,
 	"preview": "./assets/PREVIEW.png",
-	"version": "1.4.6",
+	"version": "1.5.0",
 	"compat": ["0.3.0"],
 	"authors": ["spicetify", "Delusoire"],
 	"description": "The standard library",

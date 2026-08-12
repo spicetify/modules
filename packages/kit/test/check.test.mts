@@ -66,4 +66,22 @@ describe("checkSource", () => {
 		const line = 'export const MENU_ITEM_CLASS = "main-contextMenu-menuItemButton";';
 		assert.deepEqual(checkSource("lib/primitives-classes.ts", line), []);
 	});
+
+	it("nudges runtime code away from the ambient Spicetify global", () => {
+		const findings = checkSource("mod.ts", "Spicetify.Player.next();");
+		assert.equal(findings[0]?.rule, "client-capabilities");
+	});
+
+	it("allows the stdlib client adapter and ignores explanatory comments", () => {
+		assert.deepEqual(checkSource("src/client.ts", "return globalThis.Spicetify?.Player;"), []);
+		assert.deepEqual(checkSource("mod.ts", "// Spicetify.Player is adapted by stdlib"), []);
+	});
+
+	it("accepts the imported client capability surface", () => {
+		assert.deepEqual(checkSource("mod.ts", "client.player.next();"), []);
+	});
+
+	it("can exempt recovery and non-extension modules from the ambient-global advisory", () => {
+		assert.deepEqual(checkSource("runtime.ts", "Spicetify.Modules.report;", { clientCapabilities: false }), []);
+	});
 });

@@ -62,28 +62,28 @@ function modTemplate(template: Template, name: string, header: string): string {
 	const route = `/bespoke/${name}`;
 	if (template === "extension") {
 		return `${header}
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { nowPlaying } from "./logic.ts";
 
 // Extensions add behavior (and optionally small UI via a register). The
 // golden rules: subscribe to client state yourself, and undo everything on
 // unload via ctx.defer — a module that lingers after a reload is a bug.
-// \`Spicetify\` is a fully typed global here (no import, no cast). Testable
-// logic lives in ./logic.ts (mod.tsx injects the client objects into it).
+// The typed client capability surface keeps the ambient wrapper behind one
+// stdlib boundary. Testable logic lives in ./logic.ts and receives plain data.
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const onSongChange = () => {
 		// Runs on every track change. Replace with your behavior.
-		console.log("[${name}]", nowPlaying(Spicetify.Player.data?.item));
+		console.log("[${name}]", nowPlaying(client.player.data?.item));
 	};
-	Spicetify.Player.addEventListener("songchange", onSongChange);
-	ctx.defer(() => Spicetify.Player.removeEventListener("songchange", onSongChange));
+	client.player.addEventListener("songchange", onSongChange);
+	ctx.defer(() => client.player.removeEventListener("songchange", onSongChange));
 }
 `;
 	}
 	if (template === "app") {
 		return `${header}
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
@@ -97,7 +97,7 @@ const Page = () => (
 	<div className="${name}-page">
 		<h1>${name}</h1>
 		<p>A full page at ${route}. Build it from the React primitives (lib/primitives).</p>
-		<p>Now playing: {nowPlaying(Spicetify.Player.data?.item)}</p>
+		<p>Now playing: {nowPlaying(client.player.data?.item)}</p>
 		<Button variant="secondary" onClick={() => {}}>A kit button</Button>
 	</div>
 );
@@ -110,7 +110,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 `;
 	}
 	return `${header}
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
@@ -124,7 +124,7 @@ const Page = () => (
 	<div className="${name}-page">
 		<h1>${name}</h1>
 		<p>Hello from ${name}. Edit mod.tsx and run the dev command to iterate live.</p>
-		<p>Now playing: {nowPlaying(Spicetify.Player.data?.item)}</p>
+		<p>Now playing: {nowPlaying(client.player.data?.item)}</p>
 	</div>
 );
 
@@ -140,14 +140,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 `;
 }
 
-// Pure, client-free logic — unit-testable. mod.tsx injects Spicetify.* into
-// these functions, so a test exercises them without a running client.
+// Pure, client-free logic — unit-testable. mod.tsx passes plain capability
+// values into these functions, so a test exercises them without a client.
 function logicTemplate(header: string): string {
 	return `${header}
 /**
  * Pure, client-free module logic. Keep functions here dependency-free (no
- * /modules/* or client imports) so they are unit-testable; mod.tsx passes the
- * client objects (Spicetify.*) into them. Starter tests import this file,
+ * /modules/* or client imports) so they are unit-testable; mod.tsx passes
+ * plain values into them. Starter tests import this file,
  * never mod.tsx.
  */
 

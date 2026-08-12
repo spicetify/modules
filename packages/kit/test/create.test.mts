@@ -76,6 +76,16 @@ test("extension scaffold (no css) still ships a testable logic.ts", async () => 
 	assert.match(logic, /export function nowPlaying/);
 });
 
+test("JavaScript scaffolds use the stdlib client capability boundary", async () => {
+	for (const template of ["basic", "extension", "app"] as const) {
+		const root = freshRoot();
+		await runCreate([`demo-client-${template}`, "--template", template], root);
+		const source = readFileSync(path.join(root, `demo-client-${template}`, "mod.tsx"), "utf8");
+		assert.match(source, /\bclient\.player\b/);
+		assert.doesNotMatch(source, /\bSpicetify\./);
+	}
+});
+
 test("theme template: passes checkModule with zero findings (css-only skip)", async () => {
 	const root = freshRoot();
 	await runCreate(["demo-theme", "--template", "theme"], root);

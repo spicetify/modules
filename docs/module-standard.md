@@ -24,8 +24,8 @@ walkthrough (scaffold, registrars, `placeButton`, the typed surface), see the
    `Spicetify.Modules.removeLocal` drops the override.
 3. `npm run check` and `npm run test` — typecheck plus happy-dom unit tests.
    Testable behavior lives in a dependency-free `logic.ts` (no `/modules/*` or
-   client imports); `mod.tsx` injects the client objects (`Spicetify.*`) into
-   it. Starter tests import `logic.ts` and the local `test/setup.mts` harness,
+   client imports); `mod.tsx` passes values from stdlib's typed `client`
+   capability boundary into it. Starter tests import `logic.ts` and the local `test/setup.mts` harness,
    never `mod.tsx` — JSX and `/modules/*` runtime URLs do not resolve in Node,
    so client-coupled UI is verified live through the dev loop instead.
 4. Release by landing a version bump on `main`. The release workflow
@@ -89,6 +89,12 @@ give you all of them for free when you follow the standard — do not opt out.
   and log a targeted warning; hostile client exports are already handled).
   Never top-level-destructure a needle result — one dead needle then takes the
   whole file down.
+
+- **One client boundary.** Import the typed `client` capability surface from
+  stdlib instead of reading the ambient `Spicetify` global throughout module
+  code. Recovery-tier modules that cannot depend on stdlib at startup keep
+  wrapper access inside one local `client.ts` adapter. This gives each runtime
+  capability one replaceable, testable boundary rather than many call sites.
 
 - **Ship MAP-intact.** Reference client classes as `MAP.a.b.c`. The CLI remaps
   them at apply/install time against the _exact_ installed classmap, so one
@@ -226,8 +232,8 @@ The repo ships two ported modules that exercise the whole standard end to end:
   `Platform.LibraryAPI`, and the page always renders real, playable content
   instead of an error.
 
-That fallback is the general lesson for module data: **reach for the client's
-own `Spicetify.Platform.*API` before any external HTTP call.** The native APIs
+That fallback is the general lesson for module data: **reach for
+`client.platform.*API` before any external HTTP call.** The native APIs
 are authenticated, same-origin, and stable; external endpoints (`api.spotify.com`
 via `CosmosAsync`, or a cors-proxied third party like the classic reddit app's
 feed) are rate-limited or CORS-blocked from module code and must never be the

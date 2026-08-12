@@ -99,7 +99,7 @@ disappear quietly, not take the client with it.
 ## Fetching
 
 - Fetch CORS-friendly hosts directly.
-- For hosts that block you, use `Spicetify.CORSProxy.fetch`, which tries the
+- For hosts that block you, use `client.corsProxy.fetch`, which tries the
   local daemon first and falls back to the hosted proxy. Do not hardcode either
   endpoint.
 - `CosmosAsync` reaches Spotify's own authed endpoints; do not use it as a

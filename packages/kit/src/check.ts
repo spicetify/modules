@@ -82,11 +82,28 @@ function readSources(dir: string): Array<{ file: string; text: string }> {
 }
 
 // checkSource runs the heuristic, per-file rules. Warnings only.
-export function checkSource(rel: string, text: string): Finding[] {
+export function checkSource(rel: string, text: string, options: { clientCapabilities?: boolean } = {}): Finding[] {
 	const out: Finding[] = [];
 	const lines = text.split("\n");
 	lines.forEach((line, i) => {
 		const at = `${rel}:${i + 1}`;
+		const trimmed = line.trimStart();
+		const isComment = trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*");
+		const isClientAdapter = /(^|\/)client\.ts$/.test(rel);
+		if (
+			options.clientCapabilities !== false &&
+			!isComment &&
+			!isClientAdapter &&
+			/\b(?:globalThis\.)?Spicetify(?:\?\.|\.)/.test(line)
+		) {
+			out.push({
+				severity: "warn",
+				rule: "client-capabilities",
+				message:
+					"import the typed client capability surface from stdlib instead of reading the ambient Spicetify global",
+				file: at,
+			});
+		}
 		// A second React instance breaks hooks/context identity (one-React
 		// rule). expose/React.ts is stdlib's sanctioned single source and is
 		// exempt.
@@ -227,7 +244,7 @@ export function checkStructure(dir: string, meta: { entries?: { js?: string } })
 		});
 	}
 
-	const clientRef = /\bSpicetify\.|\bMAP\./;
+	const clientRef = /\b(?:Spicetify|client)\.|\bMAP\./;
 	const hasPureFile = sources.some(({ text }) => !clientRef.test(text));
 	if (!hasPureFile) {
 		out.push({
@@ -269,8 +286,9 @@ export function checkModule(dir: string): Finding[] {
 	findings.push(...checkMetadata(meta));
 	findings.push(...checkEntryShim(dir, meta as { entries?: { js?: string }; tree?: boolean }));
 	findings.push(...checkStructure(dir, meta as { entries?: { js?: string } }));
+	const enforceClientBoundary = (meta as { kind?: string }).kind === "extension";
 	for (const { file, text } of readSources(dir)) {
-		findings.push(...checkSource(path.relative(dir, file), text));
+		findings.push(...checkSource(path.relative(dir, file), text, { clientCapabilities: enforceClientBoundary }));
 	}
 	return findings;
 }

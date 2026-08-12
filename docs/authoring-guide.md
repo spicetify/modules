@@ -37,8 +37,7 @@ mount goes through a registrar, which disposes all of it when the module
 unloads.
 
 ```ts
-import { createRegistrar } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
@@ -82,7 +81,7 @@ component, and it gives you ordering and native anchoring for free.
 ```ts
 registrar.placeButton("topbar-right", {
 	label: "Popup Lyrics",
-	icon: Spicetify.SVGIcons.lyrics,
+	icon: client.icons.lyrics,
 	onClick: () => togglePip(),
 });
 ```
@@ -128,22 +127,33 @@ button up by aria-label under `.spicetify-topbar-right-buttons`.
 
 ---
 
-## 5. The typed surface
+## 5. The typed client surface
 
-`Spicetify` is typed by default. There is no `const Spicetify = (globalThis as
-any)` cast; use the bare global and you get autocomplete on the client helpers a
-module actually reaches for: `Player`, `Platform`, `URI`, `SVGIcons`,
-`CosmosAsync`, `GraphQL`, `React`, `Menu` / `ContextMenu`, `PopupModal`,
-`Mousetrap`, `LocalStorage`, and the rest.
+Import `client` from stdlib instead of reading the ambient wrapper global. It
+is the v3 capability boundary for `player`, `platform`, `uri`, `icons`,
+`cosmos`, `graphQL`, `keyboard`, `contextMenu`, `popupModal`, `storage`, and
+the remaining client services:
 
-`Spicetify.Platform.<API>` autocompletes member names (`LibraryAPI`, `History`,
-`PlayerAPI`, `ClipboardAPI`, and so on). Method calls stay permissive on
-purpose: the client's generated method signatures have unreliable argument
-counts, so the types surface which members exist without turning correct calls
-into false errors. Reach for a native `Platform.*API` before any external HTTP
-call (see the standard for why).
+```ts
+import { client } from "/modules/stdlib/mod.ts";
 
-Icons: `Spicetify.SVGIcons.<name>` returns inner SVG markup, ready to drop into
+client.player.next();
+client.platform.History.push("/search");
+client.notify("Done");
+```
+
+The getters resolve lazily, so capabilities attached later in client startup
+remain visible. stdlib currently adapts the compatibility wrapper internally;
+keeping that access behind one boundary lets it replace or harden a capability
+without changing every module. `spicetify-kit check` warns when ordinary module
+source reaches for the ambient global directly.
+
+`client.platform.<API>` autocompletes members such as `LibraryAPI`, `History`,
+`PlayerAPI`, and `ClipboardAPI`. Method calls stay permissive because Spotify's
+generated method signatures have unreliable argument counts. Reach for a
+native platform API before an external HTTP call (see the standard for why).
+
+Icons: `client.icons.<name>` returns inner SVG markup ready for
 `placeButton`'s `icon`.
 
 ---
