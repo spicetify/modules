@@ -432,6 +432,14 @@
 					"providers": [],
 					"checksum": "sha256:c16380aa6397d9c9d6c988377544413a89cc02769488e6ff7fb6c015fde4744f",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/full-app-display@0.1.4/full-app-display@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:741032712d1958abe7babb9323e570768b21812221d60e3f84fe7388686995ff",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -443,7 +451,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/full-app-display.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"hide-window-controls": {
