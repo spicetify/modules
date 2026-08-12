@@ -552,6 +552,14 @@
 					"providers": [],
 					"checksum": "sha256:52bf14060953444c32e5fe7f321db0990e00452645cee37a207b97689956cefe",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/loopy-loop@0.1.2/loopy-loop@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:b612ce76cd485c1c2a72594968d71bb2670b69e15389b30e0a609782ccdd9ff1",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -563,7 +571,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/loopy-loop.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"lyrics-plus": {
