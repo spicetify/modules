@@ -29,6 +29,12 @@
 			"providers": [],
 			"checksum": "sha256:922609ec10ca12173cb1f235978718c97b896782dcf65200b2ba45120aaa4e97",
 			"updatedAt": "2026-08-07"
+		},
+		"0.1.5": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/adblock@0.1.5/adblock@0.1.5.zip"],
+			"providers": [],
+			"checksum": "sha256:d3b7f69853bb9d00a811e542d43eb1091ca1d5979f8c1caf076ae2311b69b38d",
+			"updatedAt": "2026-08-12"
 		}
 	},
 	"metadata": {
@@ -46,6 +52,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/adblock.svg",
+		"license": "GPL-3.0-or-later"
 	}
 }
