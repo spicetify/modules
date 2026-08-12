@@ -1080,6 +1080,14 @@
 					"providers": [],
 					"checksum": "sha256:a78686848f1cc9689029b30c379b46c8326a43e3c1a61148241d6ba8d042cec3",
 					"updatedAt": "2026-08-06"
+				},
+				"0.2.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.2.2/shuffle-plus@0.2.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:e10ca96868ebb024c8c4e631523489d232a72dc121960f632d3e59a15c5f8164",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -1091,7 +1099,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"sleek": {
