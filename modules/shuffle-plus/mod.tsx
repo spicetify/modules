@@ -72,8 +72,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 						}}
 					/>
 				</SettingsRow>
-				<SettingsRow label="Chosen artist must be included">
+				<SettingsRow label="Chosen artist must be included" htmlFor="shuffle-plus-artist-name-must">
 					<Toggle
+						id="shuffle-plus-artist-name-must"
 						value={artistNameMust}
 						onChange={(value) => {
 							setArtistNameMust(value);
@@ -81,8 +82,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 						}}
 					/>
 				</SettingsRow>
-				<SettingsRow label="Show the Shuffle+ queue button in the playbar">
+				<SettingsRow label="Show the Shuffle+ queue button in the playbar" htmlFor="shuffle-plus-queue-button">
 					<Toggle
+						id="shuffle-plus-queue-button"
 						value={queueButton}
 						onChange={(value) => {
 							setQueueButton(value);

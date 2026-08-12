@@ -1,7 +1,7 @@
 {
 	"name": "trashbin",
 	"kind": "extension",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"authors": ["spicetify"],
 	"description": "Throw songs and artists in the trashbin and never hear them again.",
 	"entries": {

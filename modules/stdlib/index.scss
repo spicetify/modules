@@ -336,10 +336,9 @@ button.main-contextMenu-menuItemButton {
 	background: var(--spice-card, #202020);
 }
 
-/* Settings toggle. Sized to sit on the client's own settings row baseline;
-   accent-color keeps it themed without re-implementing a switch. */
-/* Settings toggle, drawn as the client's pill switch. A checkbox underneath so
-   the control keeps native keyboard and screen-reader behaviour. */
+/* Deprecated standalone toggle contract. The React Toggle primitive now uses
+   Spotify's x-toggle-* structure, but patch releases keep this class working
+   for consumers that imported TOGGLE_CLASS directly. */
 .spicetify-toggle {
 	appearance: none;
 	-webkit-appearance: none;

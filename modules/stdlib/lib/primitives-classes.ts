@@ -43,4 +43,24 @@ export const SETTINGS_SECTION_CLASS = "x-settings-section";
 export const SETTINGS_ROW_CLASS = "x-settings-row";
 export const SETTINGS_ROW_LABEL_CLASS = "x-settings-firstColumn";
 export const SETTINGS_ROW_CONTROL_CLASS = "x-settings-secondColumn";
+export const TOGGLE_CLASSES = {
+	wrapper: "x-toggle-wrapper",
+	input: "x-toggle-input",
+	indicatorWrapper: "x-toggle-indicatorWrapper",
+	indicator: "x-toggle-indicator",
+} as const;
+
+/** @deprecated Use TOGGLE_CLASSES with the native switch structure. */
 export const TOGGLE_CLASS = "spicetify-toggle";
+
+export function activateToggleOnKeyDown(event: {
+	key: string;
+	currentTarget: { click: () => void };
+	preventDefault: () => void;
+	stopPropagation: () => void;
+}): void {
+	if (event.key !== " " && event.key !== "Enter") return;
+	event.preventDefault();
+	event.stopPropagation();
+	event.currentTarget.click();
+}

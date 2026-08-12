@@ -20,7 +20,8 @@
 
 import { React, ReactDOM } from "../src/expose/React.ts";
 import {
-	TOGGLE_CLASS,
+	activateToggleOnKeyDown,
+	TOGGLE_CLASSES,
 	SETTINGS_ROW_CLASS,
 	SETTINGS_ROW_CONTROL_CLASS,
 	SETTINGS_ROW_LABEL_CLASS,
@@ -149,22 +150,40 @@ export const SettingsSection: React.FC<{ title?: React.ReactNode; children: Reac
 // One labelled row. `label` fills the client's first column and `children`
 // the control column, so a toggle or select lines up with the native rows
 // above and below it.
-export const SettingsRow: React.FC<{ label: React.ReactNode; children: React.ReactNode }> = (props) => (
+export const SettingsRow: React.FC<{ label: React.ReactNode; htmlFor?: string; children: React.ReactNode }> = (
+	props,
+) => (
 	<div className={SETTINGS_ROW_CLASS}>
-		<div className={SETTINGS_ROW_LABEL_CLASS}>{props.label}</div>
+		<div className={SETTINGS_ROW_LABEL_CLASS}>
+			{props.htmlFor === undefined ? props.label : <label htmlFor={props.htmlFor}>{props.label}</label>}
+		</div>
 		<div className={SETTINGS_ROW_CONTROL_CLASS}>{props.children}</div>
 	</div>
 );
 
-// A boolean control for a settings row. A native checkbox rather than a
-// re-implemented switch, so keyboard and screen-reader behaviour comes free.
-export const Toggle: React.FC<{ value: boolean; onChange: (value: boolean) => void }> = (props) => (
-	<input
-		type="checkbox"
-		className={TOGGLE_CLASS}
-		checked={props.value}
-		onChange={(e) => props.onChange((e.target as HTMLInputElement).checked)}
-	/>
+// The client's own switch structure around a native checkbox. Its semantic
+// classes are recreated by the CLI css-map, so Spotify and themes style this
+// exactly like the adjacent settings controls.
+export const Toggle: React.FC<{
+	id?: string;
+	ariaLabel?: string;
+	value: boolean;
+	onChange: (value: boolean) => void;
+}> = (props) => (
+	<label className={TOGGLE_CLASSES.wrapper}>
+		<input
+			type="checkbox"
+			className={TOGGLE_CLASSES.input}
+			id={props.id}
+			aria-label={props.ariaLabel}
+			checked={props.value}
+			onKeyDown={activateToggleOnKeyDown}
+			onChange={(e) => props.onChange((e.target as HTMLInputElement).checked)}
+		/>
+		<span className={TOGGLE_CLASSES.indicatorWrapper} aria-hidden="true">
+			<span className={TOGGLE_CLASSES.indicator} />
+		</span>
+	</label>
 );
 
 // The "module with one boolean setting" pattern as a single row for the
@@ -176,10 +195,12 @@ export const SettingsToggleRow: React.FC<{
 	getValue: () => boolean;
 	onChange: (value: boolean) => void;
 }> = (props) => {
+	const id = React.useId();
 	const [value, setValue] = React.useState(props.getValue);
 	return (
-		<SettingsRow label={props.label}>
+		<SettingsRow label={props.label} htmlFor={id}>
 			<Toggle
+				id={id}
 				value={value}
 				onChange={(v) => {
 					setValue(v);

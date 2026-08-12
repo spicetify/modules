@@ -187,8 +187,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		return (
 			<SettingsSection title="Trashbin">
-				<SettingsRow label="Enabled">
+				<SettingsRow label="Enabled" htmlFor="trashbin-enabled">
 					<Toggle
+						id="trashbin-enabled"
 						value={enabled}
 						onChange={(value) => {
 							setEnabled(value);
@@ -197,8 +198,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 						}}
 					/>
 				</SettingsRow>
-				<SettingsRow label="Show the playbar button">
+				<SettingsRow label="Show the playbar button" htmlFor="trashbin-widget-enabled">
 					<Toggle
+						id="trashbin-widget-enabled"
 						value={widget}
 						onChange={(value) => {
 							setWidget(value);
