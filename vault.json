@@ -143,6 +143,14 @@
 					"providers": [],
 					"checksum": "sha256:2a3c9cfaa656d2d0be5e5c84879a0c09d78dd4f31d1b82519fdbb6e0c949e645",
 					"updatedAt": "2026-08-06"
+				},
+				"0.1.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-video@0.1.3/auto-skip-video@0.1.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:dec0575d5ab3a27f754847c335a5893fc0fa4fd5ffa463505ad81a43c6f4f198",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -154,7 +162,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-video.svg",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"blossom": {
