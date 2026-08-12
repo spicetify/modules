@@ -15,6 +15,14 @@
 			"providers": [],
 			"checksum": "sha256:ec9ae9099bde777035a3c9f96286a3e28c3d80f84a80a8c165dc7168b0ca5991",
 			"updatedAt": "2026-08-04"
+		},
+		"0.1.2": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/webnowplaying@0.1.2/webnowplaying@0.1.2.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:1255d7ab03df2a54fe37da5728852475e1a30144469231834324912d2cf4b064",
+			"updatedAt": "2026-08-12"
 		}
 	},
 	"metadata": {
@@ -26,6 +34,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg",
+		"license": "GPL-3.0-or-later"
 	}
 }
