@@ -5,6 +5,7 @@
 
 import { warn } from "../logger.ts";
 import { postWebpackRequireHooks, WebpackModule, WebpackRequire, webpackRequire } from "../wpunpk.mix.ts";
+import { createCaptureReadiness } from "./capture-readiness.ts";
 
 export let modules: Array<[PropertyKey, WebpackModule]>;
 export let exports: Array<Record<string, any>>;
@@ -127,6 +128,21 @@ postWebpackRequireHooks.push((wpr: any) => {
 // pre-capture — the Fragment/react-shim class of bug).
 let captured = false;
 const captureSubscribers: Array<() => void> = [];
+const webpackCaptureReadiness = createCaptureReadiness({
+	// Registry quiescence caps at about 10.1s. Leave room for its last tick,
+	// then release degraded so a changed runtime cannot deadlock all modules.
+	timeoutMs: 12000,
+	onTimeout: () => warn("[stdlib] capture health: webpack capture timed out; module surfaces will be degraded"),
+});
+
+// Module preload uses this boundary to keep every later module out of the
+// gap between capturing webpack's require function and finishing the export
+// analysis. It settles on failure too: a degraded stdlib must not hang the
+// loader forever.
+export function waitForWebpackCapture(): Promise<void> {
+	return webpackCaptureReadiness.wait();
+}
+
 export function onWebpackCaptured(cb: () => void): void {
 	if (captured) {
 		cb();
@@ -136,38 +152,35 @@ export function onWebpackCaptured(cb: () => void): void {
 }
 
 CHUNKS.xpui.promise.then(() => {
-	// A single throwing client-module factory must not abort the whole
-	// capture: with no capture, every live binding in the react shims stays
-	// undefined for the session and the failure surfaces as nothing but an
-	// unhandled rejection.
-	let analysis: ReturnType<typeof analyzeWebpackRequire>;
-	try {
-		analysis = analyzeWebpackRequire(webpackRequire);
-	} catch (e) {
-		// warn() also lands in the diagnostics buffer the manager renders, so
-		// this failure is visible without the devtools console.
-		warn("[stdlib] capture health: webpack capture analysis failed; module surfaces will be degraded:", e);
-		return;
-	}
-	modules = analysis.modules;
-	exports = analysis.exports;
-	exported = analysis.exported;
-	exportedFunctions = analysis.exportedFunctions;
-	exportedReactObjects = analysis.exportedReactObjects;
-	exportedContexts = analysis.exportedContexts;
-	exportedForwardRefs = analysis.exportedForwardRefs;
-	exportedMemos = analysis.exportedMemos;
-	captured = true;
-	if (!analysis.exported.length) {
-		warn(
-			"[stdlib] capture health: the webpack capture yielded no exports — every needle-backed surface is degraded",
-		);
-	}
-	for (const cb of captureSubscribers.splice(0)) {
-		try {
-			cb();
-		} catch (e) {
-			console.error("[stdlib] capture subscriber failed:", e);
-		}
-	}
+	webpackCaptureReadiness.run(
+		() => {
+			// A single throwing client-module factory must not abort the whole
+			// capture: with no capture, every live binding in the react shims stays
+			// undefined for the session and the failure surfaces as nothing but an
+			// unhandled rejection.
+			const analysis = analyzeWebpackRequire(webpackRequire);
+			modules = analysis.modules;
+			exports = analysis.exports;
+			exported = analysis.exported;
+			exportedFunctions = analysis.exportedFunctions;
+			exportedReactObjects = analysis.exportedReactObjects;
+			exportedContexts = analysis.exportedContexts;
+			exportedForwardRefs = analysis.exportedForwardRefs;
+			exportedMemos = analysis.exportedMemos;
+			captured = true;
+			if (!analysis.exported.length) {
+				warn(
+					"[stdlib] capture health: the webpack capture yielded no exports — every needle-backed surface is degraded",
+				);
+			}
+			for (const cb of captureSubscribers.splice(0)) {
+				try {
+					cb();
+				} catch (e) {
+					console.error("[stdlib] capture subscriber failed:", e);
+				}
+			}
+		},
+		(e) => warn("[stdlib] capture health: webpack capture analysis failed; module surfaces will be degraded:", e),
+	);
 });
