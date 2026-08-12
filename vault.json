@@ -512,6 +512,14 @@
 					"providers": [],
 					"checksum": "sha256:2b467341221a9d13d541c87c873a90d30dc9650cfce87ed024ce5306cd1a8298",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/keyboard-shortcut@0.1.2/keyboard-shortcut@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:d44fdffef177d681b0d482fc204c1658aa29852fcaeaeb3a8323098b48b65e3a",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -523,7 +531,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/keyboard-shortcut.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"loopy-loop": {
