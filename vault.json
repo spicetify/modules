@@ -95,6 +95,14 @@
 					"providers": [],
 					"checksum": "sha256:f2aa5aa58248ff474936122871ef1d6defa6a0fc200a3cad06f6fa5608782d4f",
 					"updatedAt": "2026-08-06"
+				},
+				"0.1.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-explicit@0.1.3/auto-skip-explicit@0.1.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:8e078bdfdbdcae0285720775c8d302021f3d99351b9f0262e74eadb67248027b",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -106,7 +114,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/auto-skip-explicit.svg",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"auto-skip-video": {
