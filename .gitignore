@@ -1,4 +1,5 @@
 .swc/
+.DS_Store
 
 /dist/
 /classmap.json
