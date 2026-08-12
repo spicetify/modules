@@ -3,6 +3,15 @@
 	"version": "0.1.0",
 	"description": "Scaffold a spicetify v3 module (delegates to @spicetify/kit)",
 	"license": "GPL-3.0-or-later",
+	"homepage": "https://github.com/spicetify/modules#readme",
+	"bugs": {
+		"url": "https://github.com/spicetify/modules/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/spicetify/modules.git",
+		"directory": "packages/create-spicetify-module"
+	},
 	"type": "module",
 	"bin": {
 		"create-spicetify-module": "bin/create-spicetify-module.js"
@@ -12,6 +21,9 @@
 	],
 	"engines": {
 		"node": ">=22"
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"dependencies": {
 		"@spicetify/kit": "^0.1.0"

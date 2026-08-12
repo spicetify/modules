@@ -49,8 +49,11 @@ cpSync(path.join(REPO, "spicetify.d.ts"), path.join(shims, "spicetify.d.ts"));
 // Vendor the newest verified classmap so a standalone author's first build
 // resolves one offline (U5). Copy only the classmap json under <key>/.
 let vendoredClassmap = "none";
-const classmapsSrc = path.join(WORKSPACE, "classmaps");
-if (existsSync(classmapsSrc)) {
+// Local development keeps classmaps beside this repository; CI checks it out
+// inside the repository because actions/checkout paths cannot escape the
+// GitHub workspace. Prefer the CI layout when both happen to exist.
+const classmapsSrc = [path.join(REPO, "classmaps"), path.join(WORKSPACE, "classmaps")].find(existsSync);
+if (classmapsSrc) {
 	const keys = readdirSync(classmapsSrc)
 		.filter((d) => /^\d{7}$/.test(d) && statSync(path.join(classmapsSrc, d)).isDirectory())
 		.sort();

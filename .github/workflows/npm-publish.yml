@@ -1,0 +1,91 @@
+name: Publish npm package
+
+on:
+   push:
+      tags:
+         - "npm-kit@*"
+         - "npm-create-spicetify-module@*"
+
+# npm exchanges GitHub's short-lived OIDC identity directly. There is no
+# NODE_AUTH_TOKEN or other long-lived publishing credential in this workflow.
+permissions:
+   contents: read
+   id-token: write
+
+jobs:
+   publish:
+      name: Publish ${{ github.ref_name }}
+      runs-on: ubuntu-latest
+      environment: npm
+
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v6
+            with:
+               fetch-depth: 0
+               persist-credentials: false
+
+         -  name: Clone classmaps
+            if: startsWith(github.ref_name, 'npm-kit@')
+            uses: actions/checkout@v6
+            with:
+               repository: spicetify/classmaps
+               path: classmaps
+               persist-credentials: false
+
+         -  name: Setup pnpm
+            uses: pnpm/action-setup@v6
+
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               registry-url: "https://registry.npmjs.org"
+               # Release builds must not restore a writable dependency cache.
+               package-manager-cache: false
+
+         -  name: Resolve and verify package
+            id: package
+            env:
+               RELEASE_TAG: ${{ github.ref_name }}
+            run: |
+               case "$RELEASE_TAG" in
+                  npm-kit@*)
+                     directory="packages/kit"
+                     prefix="npm-kit"
+                     ;;
+                  npm-create-spicetify-module@*)
+                     directory="packages/create-spicetify-module"
+                     prefix="npm-create-spicetify-module"
+                     ;;
+                  *)
+                     echo "unsupported npm release tag: $RELEASE_TAG" >&2
+                     exit 1
+                     ;;
+               esac
+
+               version=$(node -p "require('./$directory/package.json').version")
+               expected="$prefix@$version"
+               if [ "$RELEASE_TAG" != "$expected" ]; then
+                  echo "tag $RELEASE_TAG does not match $directory version $version (expected $expected)" >&2
+                  exit 1
+               fi
+
+               if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+                  echo "refusing to publish a commit that has not landed on main" >&2
+                  exit 1
+               fi
+
+               echo "directory=$directory" >> "$GITHUB_OUTPUT"
+
+         -  name: Install dependencies
+            run: pnpm install --frozen-lockfile
+
+         -  name: Test kit
+            run: pnpm --dir packages/kit test
+
+         -  name: Inspect package contents
+            run: npm pack --dry-run --json "${{ steps.package.outputs.directory }}"
+
+         -  name: Publish package
+            run: npm publish "${{ steps.package.outputs.directory }}"
