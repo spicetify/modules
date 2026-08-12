@@ -843,17 +843,23 @@ form .main-topBar-searchBar:placeholder-shown {
 	margin: 0;
 	position: relative;
 }
-/* music video badge: icon only, placed beside the save button
-   (64px clears the 8px gap + 44px hide/save wrapper + 12px button pitch) */
+/* music video badge: icon only, placed one 32px control pitch after save */
 .main-nowPlayingWidget-trackInfo .main-trackInfo-xsmallBadges {
 	grid-area: 1 / 1 / -1 / -1;
 	position: absolute;
-	inset-inline-start: calc(100% + 64px);
+	inset-inline-start: calc(100% + 40px);
 	top: 50%;
 	transform: translateY(-50%);
 }
+.main-nowPlayingWidget-trackInfo .main-trackInfo-xsmallBadges [data-encore-id="icon"] {
+	--encore-icon-height: 16px !important;
+	--encore-icon-width: 16px !important;
+}
 .main-nowPlayingWidget-trackInfo .main-trackInfo-xsmallBadges span:not([class*="icon-wrapper"]) {
 	display: none;
+}
+.main-nowPlayingWidget-trackInfo .main-trackList-enhanced:not(:empty) ~ .main-trackInfo-artists {
+	grid-column-start: badges;
 }
 
 /* volume bar */
