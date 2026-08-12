@@ -17,6 +17,12 @@
 			"providers": [],
 			"checksum": "sha256:9e720f2f1cead18a487c2c96c1fc496b642469daaf3bb38f14e1a4a38b54b056",
 			"updatedAt": "2026-08-06"
+		},
+		"0.2.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/trashbin@0.2.2/trashbin@0.2.2.zip"],
+			"providers": [],
+			"checksum": "sha256:3f2fad4e0269cb2789119ffd9d209a32dc48912c2a691d34aa5c7d4de2b5e8aa",
+			"updatedAt": "2026-08-12"
 		}
 	},
 	"metadata": {
@@ -28,6 +34,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/trashbin.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
