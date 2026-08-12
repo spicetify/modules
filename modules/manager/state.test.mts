@@ -7,6 +7,7 @@ import {
 	describeAction,
 	effectiveSupport,
 	latestPublishedVersions,
+	spotifyVersionLine,
 	updateAdvice,
 	type ManagerModuleRow,
 } from "./state.ts";
@@ -23,9 +24,18 @@ describe("compareSpotifyVersions", () => {
 		assert.equal(
 			compareSpotifyVersions("1.2.94", "1.2.94.583"),
 			0,
-			"the CLI stamps a three-part semver, so a truncated read of the running build must not rank below it",
+			"older manifests can carry a three-part version, so a less precise read must not rank below it",
 		);
 		assert.ok(compareSpotifyVersions("1.2.93", "1.2.94.583") < 0, "a genuinely older build still compares older");
+		assert.equal(compareSpotifyVersions("1.2.96.518", "1.2.96.999"), 0);
+	});
+});
+
+describe("spotifyVersionLine", () => {
+	it("always discards the fourth component", () => {
+		assert.equal(spotifyVersionLine("1.2.96.518"), "1.2.96");
+		assert.equal(spotifyVersionLine("1.2.96"), "1.2.96");
+		assert.equal(spotifyVersionLine("not-a-version"), undefined);
 	});
 });
 
@@ -55,7 +65,7 @@ describe("updateAdvice", () => {
 	it("is unsupported when installed is newer than the newest supported build", () => {
 		const a = updateAdvice("1.2.95.100", { latestSpotify: "1.2.95.100", supportedSpotify: "1.2.94.583" });
 		assert.equal(a.kind, "unsupported");
-		assert.ok(a.message.includes("1.2.95.100"));
+		assert.ok(a.message.includes("1.2.95"));
 	});
 
 	it("does not raise a false unsupported alarm when the feed is unavailable", () => {
@@ -65,28 +75,93 @@ describe("updateAdvice", () => {
 });
 
 describe("effectiveSupport", () => {
-	it("takes supported from the manifest (local applicability) and latest from the live feed", () => {
+	it("takes support from the classmaps index and availability from the live feed", () => {
 		const merged = effectiveSupport(
-			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.90.0" },
-			{ supportedSpotify: "1.2.96.0", latestSpotify: "1.2.95.100" },
+			{
+				spotifyVersion: "1.2.94.583",
+				classmapSpotify: "1.2.94.583",
+				classmapVerified: true,
+				supportedSpotify: "1.2.95.100",
+			},
+			{ latestSpotify: "1.2.96.10" },
 		);
-		assert.equal(merged?.supportedSpotify, "1.2.94.583"); // manifest wins for supported
-		assert.equal(merged?.latestSpotify, "1.2.95.100"); // feed wins for latest
+		assert.equal(merged?.installedSupported, true);
+		assert.equal(merged?.supportedSpotify, "1.2.95");
+		assert.equal(merged?.latestSpotify, "1.2.96");
 	});
 
-	it("falls back to the manifest for latest when the feed is unavailable", () => {
-		const merged = effectiveSupport({ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" }, null);
-		assert.equal(merged?.supportedSpotify, "1.2.94.583");
-		assert.equal(merged?.latestSpotify, "1.2.95.100");
+	it("uses verified classmaps as availability evidence when the feed is unavailable", () => {
+		const merged = effectiveSupport(
+			{
+				spotifyVersion: "1.2.94.583",
+				classmapSpotify: "1.2.94.583",
+				classmapVerified: true,
+				supportedSpotify: "1.2.95.100",
+			},
+			null,
+		);
+		assert.equal(merged?.installedSupported, true);
+		assert.equal(merged?.latestSpotify, "1.2.95");
 	});
 
-	it("falls back to the feed for supported when the manifest lacks it (older CLI)", () => {
+	it("does not infer verification from an exact map in an older manifest", () => {
+		const merged = effectiveSupport({ spotifyVersion: "1.2.96.518" }, { latestSpotify: "1.2.94.583" });
+		assert.equal(merged?.installedSupported, undefined);
+		assert.equal(merged?.supportedSpotify, undefined);
+		assert.equal(merged?.latestSpotify, "1.2.96", "available cannot predate the installed build");
+	});
+
+	it("marks a fallback classmap as not supporting the installed build", () => {
 		const merged = effectiveSupport(
-			{ latestSpotify: "1.2.90.0" },
-			{ supportedSpotify: "1.2.94.583", latestSpotify: "1.2.95.100" },
+			{
+				spotifyVersion: "1.2.96.518",
+				classmapSpotify: "1.2.94.583",
+				classmapVerified: false,
+				supportedSpotify: "1.2.94.583",
+			},
+			null,
 		);
-		assert.equal(merged?.supportedSpotify, "1.2.94.583");
-		assert.equal(merged?.latestSpotify, "1.2.95.100");
+		assert.equal(merged?.installedSupported, false);
+		assert.equal(updateAdvice("1.2.96.518", merged).kind, "unsupported");
+	});
+
+	it("marks a current-CLI exact but unverified classmap as unsupported", () => {
+		const merged = effectiveSupport(
+			{
+				spotifyVersion: "1.2.97.10",
+				classmapVerified: false,
+				supportedSpotify: "1.2.96.518",
+			},
+			null,
+		);
+		assert.equal(merged?.installedSupported, false);
+		assert.equal(updateAdvice("1.2.97.10", merged).kind, "unsupported");
+	});
+
+	it("rejects an unverified selected map even when its build is indexed as supported", () => {
+		const merged = effectiveSupport(
+			{
+				spotifyVersion: "1.2.96.518",
+				classmapVerified: false,
+				supportedSpotify: "1.2.96.518",
+			},
+			null,
+		);
+		assert.equal(merged?.installedSupported, false);
+		assert.equal(updateAdvice("1.2.96.518", merged).kind, "unsupported");
+	});
+
+	it("can declare a future Spotify update ready before it is installed", () => {
+		const merged = effectiveSupport(
+			{
+				spotifyVersion: "1.2.96.518",
+				classmapSpotify: "1.2.96.518",
+				classmapVerified: true,
+				supportedSpotify: "1.2.97.10",
+			},
+			{ latestSpotify: "1.2.97.10" },
+		);
+		assert.equal(updateAdvice("1.2.96.518", merged).kind, "ready");
 	});
 
 	it("returns the feed unchanged when there is nothing to merge", () => {

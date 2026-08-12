@@ -16,8 +16,9 @@ import {
 	showBool,
 	updateAdvice,
 	type ManagerModuleRow,
-	type SpotifySupportStatus,
+	type SpotifyAvailabilityStatus,
 } from "./state.ts";
+import { retryNotice } from "./notice.ts";
 
 const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
 
@@ -128,7 +129,7 @@ export const ManagerPage = () => {
 	const [filter, setFilter] = React.useState("");
 	const [status, setStatus] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
-	const [support, setSupport] = React.useState<SpotifySupportStatus | null>(null);
+	const [support, setSupport] = React.useState<SpotifyAvailabilityStatus | null>(null);
 	const [daemon, setDaemon] = React.useState<DaemonApi | null>(null);
 
 	React.useEffect(() => {
@@ -151,27 +152,28 @@ export const ManagerPage = () => {
 	);
 
 	// Nudge the user once when they are on a version we do not yet support, so
-	// degraded chrome is explained rather than mysterious. Driven by the
-	// authoritative live feed only: on first render `support` is null and the
-	// manifest snapshot could be stale, so waiting avoids a false alarm before
-	// the feed resolves. The flag latches only after a real enqueue, so an
-	// early boot with no Snackbar yet retries once it registers. Best-effort:
-	// the persistent panel notice below still shows either way.
+	// degraded chrome is explained rather than mysterious. Support comes from
+	// the local manifest, so an unavailable availability feed cannot suppress
+	// the warning. Snackbar registers asynchronously; retry briefly instead of
+	// requiring an unrelated state change to make the one-shot effect run again.
 	React.useEffect(() => {
-		if (!support) return;
-		const advice = updateAdvice(state.spotifyVersion, support);
-		if (advice.kind === "unsupported" && !unsupportedNoticeShown) {
+		const advice = updateAdvice(state.spotifyVersion, effectiveSupport(state, support));
+		if (advice.kind !== "unsupported" || unsupportedNoticeShown) return;
+		const notify = () => {
 			const enqueue = (globalThis as never as Record<string, any>).Spicetify?.Snackbar?.enqueueSnackbar;
 			if (typeof enqueue === "function") {
 				try {
 					enqueue(advice.message, { variant: "warning" });
 					unsupportedNoticeShown = true;
+					return true;
 				} catch {
 					/* toast is best-effort */
 				}
 			}
-		}
-	}, [state.spotifyVersion, support]);
+			return false;
+		};
+		return retryNotice(notify);
+	}, [state.spotifyVersion, state.classmapSpotify, state.classmapVerified, state.supportedSpotify, support]);
 
 	// Diagnostics and module state arrive asynchronously; a light poll keeps
 	// the page honest while it is mounted.

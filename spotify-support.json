@@ -1,6 +1,5 @@
 {
-	"latestSpotify": "1.2.94.583",
-	"supportedSpotify": "1.2.94.583",
-	"updatedAt": "2026-07-24",
-	"note": "Maintained alongside classmap releases: latestSpotify is the newest known Spotify desktop build; supportedSpotify is the newest build with a verified classmap."
+	"latestSpotify": "1.2.96",
+	"updatedAt": "2026-08-13",
+	"note": "The newest Spotify desktop build observed by the project. Support is derived from the verified classmaps index during apply."
 }

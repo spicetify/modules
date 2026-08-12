@@ -28,6 +28,8 @@ export interface ManagerState {
 	classmapKey?: string;
 	cliVersion?: string;
 	updatesBlocked?: boolean;
+	classmapSpotify?: string;
+	classmapVerified?: boolean;
 	supportedSpotify?: string;
 	latestSpotify?: string;
 	classmapFallback?: boolean;
@@ -65,6 +67,8 @@ type Manifest = {
 	classmapKey?: string;
 	cliVersion?: string;
 	updatesBlocked?: boolean;
+	classmapSpotify?: string;
+	classmapVerified?: boolean;
 	supportedSpotify?: string;
 	latestSpotify?: string;
 	classmapFallback?: boolean;
@@ -90,16 +94,17 @@ export function deriveManagerState(): ManagerState {
 		dependencies: manifestById.get(s.identifier)?.dependencies ?? {},
 	}));
 
-	// The client reports its full four-part build ("1.2.94.583"); the manifest
-	// carries only the three-part semver the CLI derives the classmap key from,
-	// which the update feed's four-part version always compares as newer.
+	// The desktop client's fourth build component does not affect classmap
+	// compatibility. Keep every Manager surface on the three-part line.
 	return {
-		spotifyVersion: g.Spicetify?.Platform?.version ?? manifest?.spotifyVersion,
+		spotifyVersion: spotifyVersionLine(g.Spicetify?.Platform?.version ?? manifest?.spotifyVersion),
 		classmapKey: manifest?.classmapKey,
 		cliVersion: manifest?.cliVersion,
 		updatesBlocked: manifest?.updatesBlocked,
-		supportedSpotify: manifest?.supportedSpotify,
-		latestSpotify: manifest?.latestSpotify,
+		classmapSpotify: spotifyVersionLine(manifest?.classmapSpotify),
+		classmapVerified: manifest?.classmapVerified,
+		supportedSpotify: spotifyVersionLine(manifest?.supportedSpotify),
+		latestSpotify: spotifyVersionLine(manifest?.latestSpotify),
 		classmapFallback: manifest?.classmapFallback,
 		transformsEnabled: g.__SPICETIFY_APPLY_TRANSFORMS__ === true,
 		modules,
@@ -131,6 +136,12 @@ export const showBool = (value: boolean | undefined): string =>
 export interface SpotifySupportStatus {
 	latestSpotify?: string;
 	supportedSpotify?: string;
+	installedSupported?: boolean;
+	updatedAt?: string;
+}
+
+export interface SpotifyAvailabilityStatus {
+	latestSpotify?: string;
 	updatedAt?: string;
 }
 
@@ -138,31 +149,37 @@ const SUPPORT_URL = () =>
 	globalThis.localStorage?.getItem("spicetify:supportUrl") ??
 	"https://raw.githubusercontent.com/spicetify/modules/main/spotify-support.json";
 
-let supportCache: SpotifySupportStatus | undefined;
+let supportCache: SpotifyAvailabilityStatus | undefined;
 
 // Successful responses are cached for the session; failures are not, so a
 // transient 404 or offline boot does not lock "unknown" until restart.
-export async function fetchSupportStatus(): Promise<SpotifySupportStatus | null> {
+export async function fetchSupportStatus(): Promise<SpotifyAvailabilityStatus | null> {
 	if (supportCache !== undefined) return supportCache;
 	try {
 		const res = await fetch(SUPPORT_URL());
 		if (!res.ok) return null;
-		supportCache = (await res.json()) as SpotifySupportStatus;
+		const body = (await res.json()) as SpotifyAvailabilityStatus;
+		supportCache = { latestSpotify: spotifyVersionLine(body.latestSpotify), updatedAt: body.updatedAt };
 		return supportCache;
 	} catch {
 		return null;
 	}
 }
 
-// Numeric dotted-prefix compare ("1.2.95.120" vs "1.2.94.583.g..."): git
-// suffixes are ignored, and only the segments both sides carry are compared.
-// A shorter version is a less precise reading of the same build, not an older
-// one: padding "1.2.94" with a zero would rank it below "1.2.94.583" and
-// report an update that does not exist.
+export function spotifyVersionLine(version: string | undefined): string | undefined {
+	if (!version) return undefined;
+	const parts = version.split(".").slice(0, 3);
+	if (parts.length !== 3 || parts.some((part) => !/^\d+$/.test(part))) return undefined;
+	return parts.map((part) => String(Number(part))).join(".");
+}
+
+// Classmap compatibility is major.minor.patch. Spotify's fourth desktop build
+// component and git suffix are deliberately ignored everywhere.
 export function compareSpotifyVersions(a: string, b: string): number {
 	const parse = (v: string) =>
 		v
 			.split(".")
+			.slice(0, 3)
 			.map((part) => parseInt(part, 10))
 			.filter((n) => !Number.isNaN(n));
 	const pa = parse(a);
@@ -174,22 +191,44 @@ export function compareSpotifyVersions(a: string, b: string): number {
 	return 0;
 }
 
-// Each field has one authoritative source, so they are never blended
-// incorrectly:
-//   supported = what THIS install can actually apply. The CLI derives it from
-//     the local classmaps and stamps it on the manifest, so the manifest is
-//     authoritative; the feed is only a fallback for an older CLI that did not
-//     stamp it.
-//   latest = the newest build that exists, which only the live feed knows;
-//     the manifest snapshot is the offline fallback.
+// Each field has one authoritative source:
+//   installedSupported = whether the selected, index-verified classmap names
+//     this exact installed build.
+//   supported = the newest verified build in the cached classmaps index.
+//   latest = the newest build observed by either the availability feed or the
+//     verified classmaps index. Installed is also a hard lower bound because
+//     either remote source can temporarily lag reality.
 export function effectiveSupport(
-	state: Pick<ManagerState, "supportedSpotify" | "latestSpotify">,
-	feed: SpotifySupportStatus | null,
+	state: Pick<
+		ManagerState,
+		"spotifyVersion" | "classmapSpotify" | "classmapVerified" | "supportedSpotify" | "latestSpotify"
+	>,
+	feed: SpotifyAvailabilityStatus | null,
 ): SpotifySupportStatus | null {
-	const supportedSpotify = state.supportedSpotify ?? feed?.supportedSpotify;
-	const latestSpotify = feed?.latestSpotify ?? state.latestSpotify;
-	if (!supportedSpotify && !latestSpotify) return feed;
-	return { supportedSpotify, latestSpotify, updatedAt: feed?.updatedAt };
+	const spotifyVersion = spotifyVersionLine(state.spotifyVersion);
+	const classmapSpotify = spotifyVersionLine(state.classmapSpotify);
+	const supportedSpotify = spotifyVersionLine(state.supportedSpotify);
+	const stateLatest = spotifyVersionLine(state.latestSpotify);
+	const feedLatest = spotifyVersionLine(feed?.latestSpotify);
+	const installedSupported =
+		state.classmapVerified === false
+			? false
+			: state.classmapVerified === true
+				? !!spotifyVersion && !!classmapSpotify && compareSpotifyVersions(spotifyVersion, classmapSpotify) === 0
+				: undefined;
+	const latestSpotify = [spotifyVersion, supportedSpotify, stateLatest, feedLatest]
+		.filter((version): version is string => !!version)
+		.reduce<string | undefined>(
+			(latest, version) => (!latest || compareSpotifyVersions(version, latest) > 0 ? version : latest),
+			undefined,
+		);
+	if (!supportedSpotify && !latestSpotify && installedSupported === undefined) return feed;
+	return {
+		supportedSpotify,
+		latestSpotify,
+		installedSupported,
+		updatedAt: feed?.updatedAt,
+	};
 }
 
 // "Is the staged set behind the vault?" — a stale staged module keeps
@@ -260,32 +299,38 @@ export type UpdateAdvice =
 	| { kind: "unsupported"; message: string };
 
 export function updateAdvice(installed: string | undefined, support: SpotifySupportStatus | null): UpdateAdvice {
-	// Unsupported takes precedence: running a build newer than the newest
-	// verified one means chrome may already be degraded. Only assert it when
-	// supportedSpotify is actually known, so a failed feed fetch never raises
-	// a false alarm. Assumes the feed publishes full version strings
-	// (compareSpotifyVersions zero-pads missing segments, so a line-level
-	// "1.2.94" would read every patch on that line as unsupported).
-	if (installed && support?.supportedSpotify && compareSpotifyVersions(installed, support.supportedSpotify) > 0) {
+	const installedLine = spotifyVersionLine(installed);
+	const supportedLine = spotifyVersionLine(support?.supportedSpotify);
+	const latestLine = spotifyVersionLine(support?.latestSpotify);
+	// Unsupported takes precedence. A selected verified classmap is definitive;
+	// without that provenance, being newer than the newest verified index entry
+	// is still enough to say the current build is unsupported.
+	if (
+		installedLine &&
+		(support?.installedSupported === false ||
+			(support?.installedSupported !== true &&
+				supportedLine &&
+				compareSpotifyVersions(installedLine, supportedLine) > 0))
+	) {
 		return {
 			kind: "unsupported",
-			message: `Spotify ${installed} isn't fully supported yet — some features may be off until Spicetify catches up`,
+			message: `Spotify ${installedLine} isn't fully supported yet — some features may be off until Spicetify catches up`,
 		};
 	}
-	if (!installed || !support?.latestSpotify) {
+	if (!installedLine || !latestLine) {
 		return { kind: "unknown", message: "Spotify update status unknown" };
 	}
-	if (compareSpotifyVersions(support.latestSpotify, installed) <= 0) {
-		return { kind: "current", message: `Spotify is up to date (latest known: ${support.latestSpotify})` };
+	if (compareSpotifyVersions(latestLine, installedLine) <= 0) {
+		return { kind: "current", message: `Spotify is up to date (latest known: ${latestLine})` };
 	}
-	if (support.supportedSpotify && compareSpotifyVersions(support.supportedSpotify, support.latestSpotify) >= 0) {
+	if (supportedLine && compareSpotifyVersions(supportedLine, latestLine) >= 0) {
 		return {
 			kind: "ready",
-			message: `Spotify ${support.latestSpotify} is available and spicetify supports it — update via the CLI`,
+			message: `Spotify ${latestLine} is available and spicetify supports it — update via the CLI`,
 		};
 	}
 	return {
 		kind: "waiting",
-		message: `Spotify ${support.latestSpotify} is available but held — waiting for spicetify support`,
+		message: `Spotify ${latestLine} is available but held — waiting for spicetify support`,
 	};
 }
