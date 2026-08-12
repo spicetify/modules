@@ -41,6 +41,12 @@
 			"providers": [],
 			"checksum": "sha256:f5c712e6181b38ce2f0b1dccf5d9164e83efb6e221be34b5cedb449183801ace",
 			"updatedAt": "2026-08-06"
+		},
+		"0.3.3": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/bookmark@0.3.3/bookmark@0.3.3.zip"],
+			"providers": [],
+			"checksum": "sha256:6dd0001c64e16e4b8742a9d5ac0dc7aac6edacca0a3f112d804cfd0397e17d96",
+			"updatedAt": "2026-08-12"
 		}
 	},
 	"metadata": {
@@ -52,6 +58,7 @@
 			}
 		],
 		"kind": "extension",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/bookmark.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
