@@ -1001,6 +1001,14 @@
 					"providers": [],
 					"checksum": "sha256:8472a53effd7863c47b52d1688c743293bbe75b0692d74d6ffbce8c8b99f5456",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.6": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/popup-lyrics@0.1.6/popup-lyrics@0.1.6.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:4845cbcf469815e2ffc8bdbb36f785038110287ad7e5dbaa1968f2bdac3d4b0e",
+					"updatedAt": "2026-08-12"
 				}
 			},
 			"metadata": {
@@ -1012,7 +1020,8 @@
 					}
 				],
 				"kind": "extension",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"shark-blue": {
