@@ -18,6 +18,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { KIT_DEPENDENCY_RANGE } from "./version.ts";
+
 // The stdlib range a fresh module declares tracks the stdlib it will compile
 // against: the vendored copy in a published kit, the workspace copy in the
 // monorepo. A hardcoded literal here went stale once (^0.3.0 outlived the
@@ -308,7 +310,7 @@ notification       = 1C1C30
 						dev: "spicetify-kit dev .",
 						check: "spicetify-kit check .",
 					},
-					devDependencies: { "@spicetify/kit": "^0.1.0" },
+					devDependencies: { "@spicetify/kit": KIT_DEPENDENCY_RANGE },
 				},
 				null,
 				"\t",
@@ -447,7 +449,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 						test: 'node --test "test/*.test.mts"',
 					},
 					devDependencies: {
-						"@spicetify/kit": "^0.1.0",
+						"@spicetify/kit": KIT_DEPENDENCY_RANGE,
 						"@types/react": "^18",
 						"@types/react-dom": "^18",
 						"happy-dom": "^20",

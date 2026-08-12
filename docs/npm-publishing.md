@@ -5,13 +5,17 @@ The repository publishes two public npm packages:
 - `@spicetify/kit` owns the CLI, checker, builder, and scaffolding implementation.
 - `create-spicetify-module` is the small `npm create`/`npx` launcher that delegates to the kit.
 
-The launcher does not need a release for every kit change. Its `^0.1.0` dependency automatically selects newer compatible
-kit releases. Publish the launcher again only when its wrapper, metadata, or kit compatibility range changes.
+The launcher does not need a release for every compatible kit change. Release Please's Node workspace plugin updates and
+releases it when its wrapper changes or when a new kit version falls outside the declared dependency range.
 
-## Bootstrap the packages manually
+## Bootstrap status
 
-npm cannot configure a package-level trusted publisher until the package exists. Publish `0.1.0` manually, in dependency
-order, from a clean checkout using Node 24:
+Both `0.1.0` packages were published manually because npm cannot configure a package-level trusted publisher before the
+package exists. Their initial versions are recorded in [`.release-please-manifest.json`](../.release-please-manifest.json).
+The bootstrap commit in [`release-please-config.json`](../release-please-config.json) keeps earlier repository history out of
+the first generated changelog.
+
+For reference, the manual bootstrap used Node 24 and these commands:
 
 ```sh
 command pnpm install --frozen-lockfile
@@ -65,20 +69,34 @@ After one successful OIDC release, set each package's npm **Publishing access** 
 disallow tokens**, then revoke any automation publishing token. OIDC publishing continues to work because it uses a
 short-lived workflow identity rather than an npm token.
 
-## Publish later versions
+## Automated releases
 
-Bump and commit the relevant package version, let that commit land on `main`, then push the matching tag:
+[`npm-publish.yml`](../.github/workflows/npm-publish.yml) runs Release Please in manifest mode on every push to `main`.
+Conventional commits under a package path determine its next version:
 
 ```sh
-# @spicetify/kit 0.1.1
-git tag npm-kit@0.1.1
-git push origin npm-kit@0.1.1
-
-# create-spicetify-module 0.1.1, only when the launcher itself changed
-git tag npm-create-spicetify-module@0.1.1
-git push origin npm-create-spicetify-module@0.1.1
+fix(kit): correct generated configuration       # patch
+feat(kit): add a module authoring command        # minor
+feat(kit)!: remove a command                     # major
 ```
 
-[`npm-publish.yml`](../.github/workflows/npm-publish.yml) verifies that the tag matches `package.json`, refuses commits that
-have not landed on `main`, runs on Node 24 without a dependency cache, tests and inspects the package, and publishes through
-OIDC. npm adds provenance automatically for public packages published from this public repository.
+Release Please maintains one combined release PR. That PR updates package versions, package changelogs, the manifest, the
+kit version embedded in generated projects, and any launcher dependency that needs to move. Merging it creates the GitHub
+release(s), then the same workflow verifies and publishes the affected package(s) through OIDC. If both packages release,
+the kit is always published first. npm adds provenance automatically for public packages published from this repository.
+
+The kit vendors the stdlib authoring surface. When bumping `modules/stdlib/metadata.json`, also update
+`packages/kit/package.json` → `spicetify.stdlibVersion`. That package-local provenance change makes the kit part of the
+release PR, and prepack refuses to publish when the two versions disagree.
+
+There are no manual version edits or tag pushes. Review and merge the generated release PR when its CI passes, then approve
+the protected `npm` environment deployment if approval is enabled.
+
+### Repository setting
+
+Under **Settings → Actions → General → Workflow permissions**, enable **Allow GitHub Actions to create and approve pull
+requests**. Release Please uses the scoped `GITHUB_TOKEN`; no PAT is required. GitHub suppresses recursive workflow events
+created by that token, so the release workflow explicitly dispatches `ci.yml` for the generated PR branch.
+
+The publish job runs on Node 24, disables dependency caching, has only `contents: read` and `id-token: write`, and receives
+the `npm` environment only when Release Please has actually created a release.

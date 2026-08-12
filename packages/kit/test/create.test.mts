@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { after, test } from "node:test";
 
 import { runCreate } from "../src/create.ts";
+import { KIT_DEPENDENCY_RANGE, KIT_VERSION } from "../src/version.ts";
 
 const KIT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const REPO = path.dirname(path.dirname(KIT));
@@ -66,7 +67,13 @@ test("scaffold package.json: escaped-double-quote test script, happy-dom devDep,
 	const pkg = JSON.parse(readFileSync(path.join(root, "demo-pkg", "package.json"), "utf8"));
 	assert.equal(pkg.scripts.test, 'node --test "test/*.test.mts"');
 	assert.ok(pkg.devDependencies["happy-dom"], "happy-dom is a devDependency");
+	assert.equal(pkg.devDependencies["@spicetify/kit"], KIT_DEPENDENCY_RANGE);
 	assert.match(pkg.engines.node, />=22/);
+});
+
+test("release-managed kit version matches package.json", () => {
+	const pkg = JSON.parse(readFileSync(path.join(KIT, "package.json"), "utf8"));
+	assert.equal(KIT_VERSION, pkg.version);
 });
 
 test("extension scaffold (no css) still ships a testable logic.ts", async () => {
@@ -100,6 +107,7 @@ test("theme template: check-only scripts, no TypeScript or React devDeps, no tes
 	const project = path.join(root, "demo-theme");
 	const pkg = JSON.parse(readFileSync(path.join(project, "package.json"), "utf8"));
 	assert.equal(pkg.scripts.check, "spicetify-kit check .");
+	assert.equal(pkg.devDependencies["@spicetify/kit"], KIT_DEPENDENCY_RANGE);
 	assert.equal(pkg.scripts.test, undefined);
 	const dd = Object.keys(pkg.devDependencies ?? {});
 	assert.ok(!dd.includes("typescript") && !dd.some((d) => d.includes("react")), `unexpected devDeps: ${dd}`);

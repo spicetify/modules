@@ -16,6 +16,8 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { KIT_DEPENDENCY_RANGE } from "./version.ts";
+
 const USAGE = 'spicetify-kit from-theme <classic-theme-dir> [--name <id>] [--author "..."] [--bare]';
 
 export async function runFromTheme(argv: string[], cwd = process.cwd()): Promise<void> {
@@ -92,7 +94,7 @@ export async function runFromTheme(argv: string[], cwd = process.cwd()): Promise
 						dev: "spicetify-kit dev .",
 					},
 					devDependencies: {
-						"@spicetify/kit": "^0.1.0",
+						"@spicetify/kit": KIT_DEPENDENCY_RANGE,
 					},
 				},
 				null,

@@ -38,6 +38,9 @@
 	"publishConfig": {
 		"access": "public"
 	},
+	"spicetify": {
+		"stdlibVersion": "1.5.0"
+	},
 	"scripts": {
 		"build": "../../node_modules/.bin/tsc -p tsconfig.build.json",
 		"test": "node --test \"test/*.test.mts\"",

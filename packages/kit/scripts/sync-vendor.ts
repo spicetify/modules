@@ -6,7 +6,7 @@
  * are generated artifacts, never edited.
  */
 
-import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,6 +34,14 @@ function copyTsTree(from: string, to: string): number {
 }
 
 rmSync(VENDOR, { recursive: true, force: true });
+
+const kitPackage = JSON.parse(readFileSync(path.join(KIT, "package.json"), "utf8"));
+const stdlibMetadata = JSON.parse(readFileSync(path.join(REPO, "modules", "stdlib", "metadata.json"), "utf8"));
+if (kitPackage.spicetify?.stdlibVersion !== stdlibMetadata.version) {
+	throw new Error(
+		`kit expects stdlib ${kitPackage.spicetify?.stdlibVersion ?? "unset"}, but the workspace contains ${stdlibMetadata.version}; update package.json before releasing`,
+	);
+}
 
 const stdlib = copyTsTree(path.join(REPO, "modules", "stdlib"), path.join(VENDOR, "stdlib"));
 // The scaffold derives a fresh module's stdlib range from this version.

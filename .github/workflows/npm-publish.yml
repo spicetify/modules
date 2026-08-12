@@ -1,32 +1,77 @@
-name: Publish npm package
+name: Release npm packages
 
 on:
    push:
-      tags:
-         - "npm-kit@*"
-         - "npm-create-spicetify-module@*"
+      branches:
+         - main
+   workflow_dispatch:
 
-# npm exchanges GitHub's short-lived OIDC identity directly. There is no
-# NODE_AUTH_TOKEN or other long-lived publishing credential in this workflow.
-permissions:
-   contents: read
-   id-token: write
+concurrency:
+   group: npm-release
+   cancel-in-progress: false
 
 jobs:
+   release:
+      name: Prepare release
+      runs-on: ubuntu-latest
+      permissions:
+         actions: write
+         contents: write
+         issues: write
+         pull-requests: write
+      outputs:
+         kit_released: ${{ steps.release.outputs['packages/kit--release_created'] }}
+         launcher_released: ${{ steps.release.outputs['packages/create-spicetify-module--release_created'] }}
+
+      steps:
+         -  name: Create or update release pull request
+            id: release
+            # v5.0.0; pinned because this job can create pull requests, tags,
+            # and releases with write access to the repository.
+            uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7
+            with:
+               token: ${{ secrets.GITHUB_TOKEN }}
+               config-file: release-please-config.json
+               manifest-file: .release-please-manifest.json
+
+         # Events created with GITHUB_TOKEN do not recursively start another
+         # workflow. Explicit dispatch gives the generated release PR the same
+         # required CI check as an ordinary contributor PR without a PAT.
+         -  name: Run CI for release pull request
+            if: steps.release.outputs.prs_created == 'true'
+            env:
+               GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: |
+               gh pr list \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --state open \
+                  --label "autorelease: pending" \
+                  --json headRefName \
+                  --jq '.[].headRefName' |
+               while IFS= read -r branch; do
+                  if [ -n "$branch" ]; then
+                     gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+                  fi
+               done
+
    publish:
-      name: Publish ${{ github.ref_name }}
+      name: Publish released packages
+      needs: release
+      if: needs.release.outputs.kit_released == 'true' || needs.release.outputs.launcher_released == 'true'
       runs-on: ubuntu-latest
       environment: npm
+      permissions:
+         contents: read
+         id-token: write
 
       steps:
          -  name: Clone repository
             uses: actions/checkout@v6
             with:
-               fetch-depth: 0
                persist-credentials: false
 
          -  name: Clone classmaps
-            if: startsWith(github.ref_name, 'npm-kit@')
+            if: needs.release.outputs.kit_released == 'true'
             uses: actions/checkout@v6
             with:
                repository: spicetify/classmaps
@@ -44,48 +89,29 @@ jobs:
                # Release builds must not restore a writable dependency cache.
                package-manager-cache: false
 
-         -  name: Resolve and verify package
-            id: package
-            env:
-               RELEASE_TAG: ${{ github.ref_name }}
-            run: |
-               case "$RELEASE_TAG" in
-                  npm-kit@*)
-                     directory="packages/kit"
-                     prefix="npm-kit"
-                     ;;
-                  npm-create-spicetify-module@*)
-                     directory="packages/create-spicetify-module"
-                     prefix="npm-create-spicetify-module"
-                     ;;
-                  *)
-                     echo "unsupported npm release tag: $RELEASE_TAG" >&2
-                     exit 1
-                     ;;
-               esac
-
-               version=$(node -p "require('./$directory/package.json').version")
-               expected="$prefix@$version"
-               if [ "$RELEASE_TAG" != "$expected" ]; then
-                  echo "tag $RELEASE_TAG does not match $directory version $version (expected $expected)" >&2
-                  exit 1
-               fi
-
-               if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
-                  echo "refusing to publish a commit that has not landed on main" >&2
-                  exit 1
-               fi
-
-               echo "directory=$directory" >> "$GITHUB_OUTPUT"
-
          -  name: Install dependencies
             run: pnpm install --frozen-lockfile
 
-         -  name: Test kit
-            run: pnpm --dir packages/kit test
+         -  name: Verify repository
+            run: |
+               pnpm check
+               pnpm test
+               pnpm --dir packages/kit test
 
-         -  name: Inspect package contents
-            run: npm pack --dry-run --json "${{ steps.package.outputs.directory }}"
+         # Dependency order is intentional: when both versions change, the
+         # launcher must never point at a kit version that is not live yet.
+         -  name: Inspect kit package
+            if: needs.release.outputs.kit_released == 'true'
+            run: npm pack --dry-run --json ./packages/kit
 
-         -  name: Publish package
-            run: npm publish "${{ steps.package.outputs.directory }}"
+         -  name: Publish kit package
+            if: needs.release.outputs.kit_released == 'true'
+            run: npm publish ./packages/kit
+
+         -  name: Inspect launcher package
+            if: needs.release.outputs.launcher_released == 'true'
+            run: npm pack --dry-run --json ./packages/create-spicetify-module
+
+         -  name: Publish launcher package
+            if: needs.release.outputs.launcher_released == 'true'
+            run: npm publish ./packages/create-spicetify-module

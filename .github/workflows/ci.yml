@@ -6,6 +6,10 @@ name: CI
 on:
    pull_request:
    merge_group:
+   # Release Please creates its PR with GITHUB_TOKEN, which does not emit a
+   # pull_request workflow run. npm-publish.yml explicitly dispatches CI at
+   # that PR's head commit instead.
+   workflow_dispatch:
    push:
       branches:
          - main
