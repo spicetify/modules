@@ -78,10 +78,8 @@ export const TopbarRightButton: TopbarRightButtonFactory = (props) => (
 			aria-label={props.label}
 			onClick={props.onClick}
 			size="small"
-			condensedAll
+			iconOnly={() => props.icon && createIconComponent({ icon: props.icon, iconSize: 16 })}
 			className={MAP.main.topbar.right.button_t.wrapper}
-		>
-			{props.icon && createIconComponent({ icon: props.icon, iconSize: 16 })}
-		</UI.ButtonTertiary>
+		/>
 	</Tooltip>
 );
