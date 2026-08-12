@@ -1,7 +1,7 @@
 {
 	"name": "webnowplaying",
 	"kind": "extension",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"authors": ["spicetify"],
 	"description": "Bridges now-playing info and controls to WebNowPlaying-Redux (Rainmeter, OBS, etc.) over a local WebSocket. Requires the companion adapter running on ws://localhost:8974.",
 	"entries": {
@@ -9,7 +9,7 @@
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.0.0"
+		"stdlib": "^1.5.0"
 	},
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/webnowplaying.svg"
 }

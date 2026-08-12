@@ -2,7 +2,7 @@
 	"name": "palette-manager",
 	"kind": "extension",
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/palette-manager.png",
-	"version": "0.3.5",
+	"version": "0.3.6",
 	"authors": ["spicetify", "harbassan", "Delusoire", "Afonso Jorge Ramos"],
 	"description": "Manager for theme color schemes",
 	"readme": "./assets/README.md",
@@ -11,6 +11,6 @@
 		"css": "index.css"
 	},
 	"dependencies": {
-		"stdlib": "^1.0.0"
+		"stdlib": "^1.5.0"
 	}
 }

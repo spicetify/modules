@@ -9,7 +9,7 @@
  * Playbar.Widget no longer mounts in the restructured playbar).
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import { Button, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { collectArtistUris, shouldSkipTrack, targetMatchesCurrent, toggleEntry } from "./logic.ts";
@@ -25,7 +25,7 @@ const UNTHROW_TEXT = "Remove from Trashbin";
 
 const initValue = <T,>(item: string, defaultValue: T): T => {
 	try {
-		const value = JSON.parse(Spicetify.LocalStorage.get(item));
+		const value = JSON.parse(client.storage.get(item));
 		return value ?? defaultValue;
 	} catch {
 		return defaultValue;
@@ -53,24 +53,24 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const refreshButtons = () => refreshers.forEach((f) => f());
 
 	const putDataLocal = () => {
-		Spicetify.LocalStorage.set("TrashSongList", JSON.stringify(trashSongList));
-		Spicetify.LocalStorage.set("TrashArtistList", JSON.stringify(trashArtistList));
+		client.storage.set("TrashSongList", JSON.stringify(trashSongList));
+		client.storage.set("TrashArtistList", JSON.stringify(trashArtistList));
 	};
 
-	const isTrackUri = (uri: string) => Spicetify.URI.fromString(uri).type === Spicetify.URI.Type.TRACK;
+	const isTrackUri = (uri: string) => client.uri.fromString(uri).type === client.uri.Type.TRACK;
 
 	const shouldSkipCurrentTrack = (uri: string, type: string): boolean => {
-		const curTrack = Spicetify.Player.data?.item;
+		const curTrack = client.player.data?.item;
 		if (!curTrack) return false;
-		if (type !== Spicetify.URI.Type.TRACK && type !== Spicetify.URI.Type.ARTIST) return false;
-		return targetMatchesCurrent(uri, type === Spicetify.URI.Type.ARTIST, {
+		if (type !== client.uri.Type.TRACK && type !== client.uri.Type.ARTIST) return false;
+		return targetMatchesCurrent(uri, type === client.uri.Type.ARTIST, {
 			uri: curTrack.uri,
 			artistUris: collectArtistUris(curTrack.metadata),
 		});
 	};
 
 	const watchChange = () => {
-		const data = Spicetify.Player.data;
+		const data = client.player.data;
 		if (!data) return;
 		refreshButtons();
 
@@ -80,7 +80,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 		const item = { uri: data.item.uri, artistUris: collectArtistUris(data.item.metadata) };
 		if (shouldSkipTrack(item, trashSongList, trashArtistList)) {
-			Spicetify.Player.next();
+			client.player.next();
 		}
 	};
 
@@ -93,25 +93,25 @@ export default async function (ctx: ModuleRuntimeContext) {
 		trashbinStatus = state;
 		if (state) {
 			skipBackBtn?.addEventListener("click", onSkipBack);
-			Spicetify.Player.addEventListener("songchange", watchChange);
+			client.player.addEventListener("songchange", watchChange);
 			watchChange();
 		} else {
 			skipBackBtn?.removeEventListener("click", onSkipBack);
-			Spicetify.Player.removeEventListener("songchange", watchChange);
+			client.player.removeEventListener("songchange", watchChange);
 		}
 		refreshButtons();
 	};
 
 	const toggleCurrent = () => {
-		const uri = Spicetify.Player.data?.item?.uri;
+		const uri = client.player.data?.item?.uri;
 		if (!uri) return;
 		const { next, added } = toggleEntry(trashSongList, uri);
 		trashSongList = next;
 		if (added) {
-			Spicetify.Player.next();
-			Spicetify.showNotification("Song added to trashbin");
+			client.player.next();
+			client.notify("Song added to trashbin");
 		} else {
-			Spicetify.showNotification("Song removed from trashbin");
+			client.notify("Song removed from trashbin");
 		}
 		putDataLocal();
 		refreshButtons();
@@ -123,13 +123,13 @@ export default async function (ctx: ModuleRuntimeContext) {
 		React.useEffect(() => {
 			const on = () => force();
 			refreshers.add(force);
-			Spicetify.Player.addEventListener("songchange", on);
+			client.player.addEventListener("songchange", on);
 			return () => {
 				refreshers.delete(force);
-				Spicetify.Player.removeEventListener("songchange", on);
+				client.player.removeEventListener("songchange", on);
 			};
 		}, []);
-		const item = Spicetify.Player.data?.item;
+		const item = client.player.data?.item;
 		if (!enableWidget || !trashbinStatus || !item || !isTrackUri(item.uri)) return null;
 		const active = !!trashSongList[item.uri];
 		return (
@@ -146,16 +146,16 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// ----- context menu: toggle a track or artist -----
 	const toggleThrow = (uris: string[]) => {
 		const uri = uris[0];
-		const type = Spicetify.URI.fromString(uri).type;
-		const isTrack = type === Spicetify.URI.Type.TRACK;
+		const type = client.uri.fromString(uri).type;
+		const isTrack = type === client.uri.Type.TRACK;
 		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri);
 		if (isTrack) trashSongList = next;
 		else trashArtistList = next;
 		if (added) {
-			if (shouldSkipCurrentTrack(uri, type)) Spicetify.Player.next();
-			Spicetify.showNotification(isTrack ? "Song added to trashbin" : "Artist added to trashbin");
+			if (shouldSkipCurrentTrack(uri, type)) client.player.next();
+			client.notify(isTrack ? "Song added to trashbin" : "Artist added to trashbin");
 		} else {
-			Spicetify.showNotification(isTrack ? "Song removed from trashbin" : "Artist removed from trashbin");
+			client.notify(isTrack ? "Song removed from trashbin" : "Artist removed from trashbin");
 		}
 		putDataLocal();
 		refreshButtons();
@@ -163,19 +163,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	const shouldAddContextMenu = (uris: string[]): boolean => {
 		if (uris.length > 1 || !trashbinStatus) return false;
-		const type = Spicetify.URI.fromString(uris[0]).type;
-		if (type === Spicetify.URI.Type.TRACK) {
+		const type = client.uri.fromString(uris[0]).type;
+		if (type === client.uri.Type.TRACK) {
 			cntxMenu.name = trashSongList[uris[0]] ? UNTHROW_TEXT : THROW_TEXT;
 			return true;
 		}
-		if (type === Spicetify.URI.Type.ARTIST) {
+		if (type === client.uri.Type.ARTIST) {
 			cntxMenu.name = trashArtistList[uris[0]] ? UNTHROW_TEXT : THROW_TEXT;
 			return true;
 		}
 		return false;
 	};
 
-	const cntxMenu = new Spicetify.ContextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, ICON_SVG);
+	const cntxMenu = new client.contextMenu.Item(THROW_TEXT, toggleThrow, shouldAddContextMenu, ICON_SVG);
 	cntxMenu.register();
 
 	// ----- settings modal (profile menu) -----
@@ -193,7 +193,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 						value={enabled}
 						onChange={(value) => {
 							setEnabled(value);
-							Spicetify.LocalStorage.set("trashbin-enabled", String(value));
+							client.storage.set("trashbin-enabled", String(value));
 							refreshEventListeners(value);
 						}}
 					/>
@@ -205,7 +205,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 						onChange={(value) => {
 							setWidget(value);
 							enableWidget = value;
-							Spicetify.LocalStorage.set("TrashbinWidgetIcon", String(value));
+							client.storage.set("TrashbinWidgetIcon", String(value));
 							refreshButtons();
 						}}
 					/>
@@ -214,10 +214,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 					<Button
 						variant="secondary"
 						onClick={() => {
-							Spicetify.Platform.ClipboardAPI.copy(
+							client.platform.ClipboardAPI.copy(
 								JSON.stringify({ songs: trashSongList, artists: trashArtistList }),
 							);
-							Spicetify.showNotification("Copied to clipboard");
+							client.notify("Copied to clipboard");
 						}}
 					>
 						Copy
@@ -241,7 +241,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 							trashArtistList = {};
 							putDataLocal();
 							refreshButtons();
-							Spicetify.showNotification("Trashbin cleared!");
+							client.notify("Trashbin cleared!");
 						}}
 					>
 						Clear
@@ -261,9 +261,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 			const writable = await handle.createWritable();
 			await writable.write(JSON.stringify(data));
 			await writable.close();
-			Spicetify.showNotification("Backup saved successfully.");
+			client.notify("Backup saved successfully.");
 		} catch {
-			Spicetify.showNotification("Failed to save. Copy the trashbin contents to clipboard instead.");
+			client.notify("Failed to save. Copy the trashbin contents to clipboard instead.");
 		}
 	}
 
@@ -282,9 +282,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 					trashArtistList = data.artists;
 					putDataLocal();
 					refreshButtons();
-					Spicetify.showNotification("File Import Successful!");
+					client.notify("File Import Successful!");
 				} catch (err) {
-					Spicetify.showNotification("File Import Failed!", true);
+					client.notify("File Import Failed!", true);
 					console.error(err);
 				}
 			};
@@ -302,7 +302,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// ----- teardown -----
 	ctx.defer(() => {
 		skipBackBtn?.removeEventListener("click", onSkipBack);
-		Spicetify.Player.removeEventListener("songchange", watchChange);
+		client.player.removeEventListener("songchange", watchChange);
 		cntxMenu.deregister();
 	});
 }

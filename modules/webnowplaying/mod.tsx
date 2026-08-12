@@ -22,7 +22,7 @@
  * Teardown routes through ctx.defer.
  */
 
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, type ModuleRuntimeContext, type PlayerState } from "/modules/stdlib/mod.ts";
 
 import {
 	nextRepeatState,
@@ -61,8 +61,8 @@ class WNPReduxWebSocket {
 	connectionTimeout: number | null = null;
 	reconnectTimeout: number | null = null;
 	isClosed = false;
-	onSongChange: (e: { data: Spicetify.PlayerState }) => void;
-	onPlayPause: (e: { data: Spicetify.PlayerState }) => void;
+	onSongChange: (e: { data: PlayerState }) => void;
+	onPlayPause: (e: { data: PlayerState }) => void;
 	spicetifyInfo: SpicetifyInfo = {
 		player: "Spotify Desktop",
 		state: "STOPPED",
@@ -84,11 +84,11 @@ class WNPReduxWebSocket {
 
 		this.onSongChange = ({ data }) => this.updateSpicetifyInfo(data);
 		this.onPlayPause = ({ data }) => this.updateSpicetifyInfo(data);
-		Spicetify.Player.addEventListener("songchange", this.onSongChange as any);
-		Spicetify.Player.addEventListener("onplaypause", this.onPlayPause as any);
+		client.player.addEventListener("songchange", this.onSongChange as any);
+		client.player.addEventListener("onplaypause", this.onPlayPause as any);
 	}
 
-	updateSpicetifyInfo(data: Spicetify.PlayerState) {
+	updateSpicetifyInfo(data: PlayerState) {
 		if (!data?.item?.metadata) return;
 		const meta = data.item.metadata as Record<string, string>;
 		this.spicetifyInfo.title = meta.title;
@@ -105,7 +105,7 @@ class WNPReduxWebSocket {
 		}
 		if (!this.spicetifyInfo.artist) this.spicetifyInfo.artist = meta.album_title; // Podcast
 
-		Spicetify.Platform.LibraryAPI.contains(data.item.uri).then(([added]: [boolean]) => {
+		client.platform.LibraryAPI.contains(data.item.uri).then(([added]: [boolean]) => {
 			this.spicetifyInfo.rating = added ? 5 : 0;
 		});
 
@@ -225,37 +225,37 @@ function OnMessageLegacy(self: WNPReduxWebSocket, message: string) {
 		const [type, data] = message.toUpperCase().split(" ");
 		switch (type) {
 			case "PLAYPAUSE": {
-				Spicetify.Player.togglePlay();
+				client.player.togglePlay();
 				self.spicetifyInfo.state = togglePlayingState(self.spicetifyInfo.state);
 				break;
 			}
 			case "NEXT":
-				Spicetify.Player.next();
+				client.player.next();
 				break;
 			case "PREVIOUS":
-				Spicetify.Player.back();
+				client.player.back();
 				break;
 			case "SETPOSITION": {
 				// Example string: SetPosition 34:SetProgress 0,100890207715134:
 				const [, positionPercentage] = message.toUpperCase().split(":")[1].split("SETPROGRESS ");
-				Spicetify.Player.seek(Number.parseFloat(positionPercentage.replace(",", ".")));
+				client.player.seek(Number.parseFloat(positionPercentage.replace(",", ".")));
 				break;
 			}
 			case "SETVOLUME":
-				Spicetify.Player.setVolume(Number.parseInt(data) / 100);
+				client.player.setVolume(Number.parseInt(data) / 100);
 				break;
 			case "REPEAT": {
-				Spicetify.Player.toggleRepeat();
+				client.player.toggleRepeat();
 				self.spicetifyInfo.repeat = nextRepeatState(self.spicetifyInfo.repeat);
 				break;
 			}
 			case "SHUFFLE": {
-				Spicetify.Player.toggleShuffle();
+				client.player.toggleShuffle();
 				self.spicetifyInfo.shuffle = !self.spicetifyInfo.shuffle;
 				break;
 			}
 			case "TOGGLETHUMBSUP": {
-				Spicetify.Player.toggleHeart();
+				client.player.toggleHeart();
 				self.spicetifyInfo.rating = self.spicetifyInfo.rating === 5 ? 0 : 5;
 				break;
 			}
@@ -264,8 +264,8 @@ function OnMessageLegacy(self: WNPReduxWebSocket, message: string) {
 			case "RATING": {
 				const rating = Number.parseInt(data);
 				const isLiked = self.spicetifyInfo.rating > 3;
-				if (rating >= 3 && !isLiked) Spicetify.Player.toggleHeart();
-				else if (rating < 3 && isLiked) Spicetify.Player.toggleHeart();
+				if (rating >= 3 && !isLiked) client.player.toggleHeart();
+				else if (rating < 3 && isLiked) client.player.toggleHeart();
 				self.spicetifyInfo.rating = rating;
 				break;
 			}
@@ -277,14 +277,14 @@ function OnMessageLegacy(self: WNPReduxWebSocket, message: string) {
 }
 
 function SendUpdateLegacy(self: WNPReduxWebSocket) {
-	if (!Spicetify.Player.data && self.cache.get("state") !== 0) {
+	if (!client.player.data && self.cache.get("state") !== 0) {
 		self.cache.set("state", 0);
 		self.send("STATE:0");
 		return;
 	}
 
-	self.spicetifyInfo.position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
-	self.spicetifyInfo.volume = Math.round(Spicetify.Player.getVolume() * 100);
+	self.spicetifyInfo.position = timeInSecondsToString(Math.round(client.player.getProgress() / 1000));
+	self.spicetifyInfo.volume = Math.round(client.player.getVolume() * 100);
 
 	for (const key of Object.keys(self.spicetifyInfo)) {
 		try {
@@ -316,35 +316,35 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 	try {
 		switch (type) {
 			case "TOGGLE_PLAYING": {
-				Spicetify.Player.togglePlay();
+				client.player.togglePlay();
 				self.spicetifyInfo.state = togglePlayingState(self.spicetifyInfo.state);
 				break;
 			}
 			case "NEXT":
-				Spicetify.Player.next();
+				client.player.next();
 				break;
 			case "PREVIOUS":
-				Spicetify.Player.back();
+				client.player.back();
 				break;
 			case "SET_POSITION": {
-				Spicetify.Player.seek(parsePositionPercentage(data));
+				client.player.seek(parsePositionPercentage(data));
 				break;
 			}
 			case "SET_VOLUME":
-				Spicetify.Player.setVolume(Number.parseInt(data) / 100);
+				client.player.setVolume(Number.parseInt(data) / 100);
 				break;
 			case "TOGGLE_REPEAT": {
-				Spicetify.Player.toggleRepeat();
+				client.player.toggleRepeat();
 				self.spicetifyInfo.repeat = nextRepeatState(self.spicetifyInfo.repeat);
 				break;
 			}
 			case "TOGGLE_SHUFFLE": {
-				Spicetify.Player.toggleShuffle();
+				client.player.toggleShuffle();
 				self.spicetifyInfo.shuffle = !self.spicetifyInfo.shuffle;
 				break;
 			}
 			case "TOGGLE_THUMBS_UP": {
-				Spicetify.Player.toggleHeart();
+				client.player.toggleHeart();
 				self.spicetifyInfo.rating = self.spicetifyInfo.rating === 5 ? 0 : 5;
 				break;
 			}
@@ -352,7 +352,7 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 			// case 'TOGGLE_THUMBS_DOWN': break
 			case "SET_RATING": {
 				const rating = Number.parseInt(data);
-				if (ratingShouldToggleHeart(rating, self.spicetifyInfo.rating)) Spicetify.Player.toggleHeart();
+				if (ratingShouldToggleHeart(rating, self.spicetifyInfo.rating)) client.player.toggleHeart();
 				self.spicetifyInfo.rating = rating;
 				break;
 			}
@@ -364,14 +364,14 @@ function OnMessageRev1(self: WNPReduxWebSocket, message: string) {
 }
 
 function SendUpdateRev1(self: WNPReduxWebSocket) {
-	if (!Spicetify.Player.data && self.cache.get("state") !== "STOPPED") {
+	if (!client.player.data && self.cache.get("state") !== "STOPPED") {
 		self.cache.set("state", "STOPPED");
 		self.send("STATE STOPPED");
 		return;
 	}
 
-	self.spicetifyInfo.position = timeInSecondsToString(Math.round(Spicetify.Player.getProgress() / 1000));
-	self.spicetifyInfo.volume = Math.round(Spicetify.Player.getVolume() * 100);
+	self.spicetifyInfo.position = timeInSecondsToString(Math.round(client.player.getProgress() / 1000));
+	self.spicetifyInfo.volume = Math.round(client.player.getVolume() * 100);
 
 	for (const key of Object.keys(self.spicetifyInfo)) {
 		try {
@@ -391,7 +391,7 @@ function SendUpdateRev1(self: WNPReduxWebSocket) {
 }
 
 export default function (ctx: ModuleRuntimeContext) {
-	if (!Spicetify.CosmosAsync || !Spicetify.Platform?.LibraryAPI) return;
+	if (!client.cosmos || !client.platform?.LibraryAPI) return;
 
 	const socket = new WNPReduxWebSocket();
 	const onBeforeUnload = () => socket.close();
@@ -399,8 +399,8 @@ export default function (ctx: ModuleRuntimeContext) {
 
 	ctx.defer(() => {
 		window.removeEventListener("beforeunload", onBeforeUnload);
-		Spicetify.Player.removeEventListener("songchange", socket.onSongChange as any);
-		Spicetify.Player.removeEventListener("onplaypause", socket.onPlayPause as any);
+		client.player.removeEventListener("songchange", socket.onSongChange as any);
+		client.player.removeEventListener("onplaypause", socket.onPlayPause as any);
 		socket.close();
 	});
 }

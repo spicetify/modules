@@ -10,10 +10,15 @@
  * <style> tag moved into index.scss and all teardown routes through ctx.defer.
  */
 
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { findActiveZone, moveEnd, moveStart, moveZoneEdge, parseStoredState, restartThresholds } from "./logic.ts";
 
 import type { SkipZone } from "./logic.ts";
+
+interface PlaybarButtonHandle {
+	element: HTMLElement;
+	deregister(): void;
+}
 
 export default async function (ctx: ModuleRuntimeContext) {
 	let disposed = false;
@@ -134,19 +139,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	function saveState() {
-		const uri = Spicetify.Player.data?.item?.uri;
+		const uri = client.player.data?.item?.uri;
 		if (!uri) return;
-		Spicetify.LocalStorage.set(`loopyLoop:${uri}`, JSON.stringify({ start, end, skipZones }));
+		client.storage.set(`loopyLoop:${uri}`, JSON.stringify({ start, end, skipZones }));
 	}
 
 	function loadState() {
-		const uri = Spicetify.Player.data?.item?.uri;
+		const uri = client.player.data?.item?.uri;
 		start = null;
 		end = null;
 		skipZones = [];
 		pendingSkipStart = null;
 		if (!uri) return;
-		const parsed = parseStoredState(Spicetify.LocalStorage.get(`loopyLoop:${uri}`));
+		const parsed = parseStoredState(client.storage.get(`loopyLoop:${uri}`));
 		start = parsed.start;
 		end = parsed.end;
 		skipZones = parsed.skipZones;
@@ -223,7 +228,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	document.body.append(moveSubmenu);
 
 	function applyMoveAdjustment(deltaSeconds: number) {
-		const durationMs = Spicetify.Player.getDuration();
+		const durationMs = client.player.getDuration();
 		if (!durationMs) return;
 		const delta = (deltaSeconds * 1000) / durationMs;
 		if (activeMarkerType === "start" && start !== null) {
@@ -258,21 +263,21 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// Skip zone seeking + song start/end enforcement
 	const onProgress = (event?: Event) => {
 		const ts = event?.timeStamp ?? performance.now();
-		const percent = Spicetify.Player.getProgressPercent();
+		const percent = client.player.getProgressPercent();
 
 		// Repeat-mode restart: song restarted from 0 after hitting ], seek to [
 		if (seekStartPendingUri !== null && percent < 0.05) {
-			const currentUri = Spicetify.Player.data?.item?.uri;
+			const currentUri = client.player.data?.item?.uri;
 			if (currentUri === seekStartPendingUri && start !== null) {
 				seekStartPendingUri = null;
-				Spicetify.Player.seek(start);
+				client.player.seek(start);
 				return;
 			}
 			seekStartPendingUri = null;
 		}
 
 		// Detect prev button press: jump to ~0 from past Spotify's 3-second restart threshold
-		const durationMs = Spicetify.Player.getDuration() || 0;
+		const durationMs = client.player.getDuration() || 0;
 		const { threeSecFrac, nearZeroFrac } = restartThresholds(durationMs);
 		if (prevProgressPercent > threeSecFrac && percent < nearZeroFrac) {
 			if (prevPressedAt > 0 && ts - prevPressedAt < 1500) {
@@ -283,13 +288,13 @@ export default async function (ctx: ModuleRuntimeContext) {
 				setT(() => {
 					navigatingBack = false;
 				}, 2000);
-				Spicetify.Player.back();
+				client.player.back();
 				return;
 			}
 			// First press — go to [ (or stay at 0 if no start set)
 			prevPressedAt = ts;
 			prevProgressPercent = percent;
-			if (start !== null) Spicetify.Player.seek(start);
+			if (start !== null) client.player.seek(start);
 			return;
 		}
 		prevProgressPercent = percent;
@@ -299,23 +304,23 @@ export default async function (ctx: ModuleRuntimeContext) {
 			if (navigatingBack) return;
 			if (ts - lastStartEnforce > 500) {
 				lastStartEnforce = ts;
-				Spicetify.Player.seek(start);
+				client.player.seek(start);
 			}
 			return;
 		}
 
 		// Song end enforcement: at ], either loop back (repeat-one) or advance to next track
 		if (end !== null && percent >= end) {
-			// Spicetify.Player.getRepeat(): 0 = off, 1 = repeat context, 2 = repeat track
-			if (Spicetify.Player.getRepeat() === 2) {
+			// client.player.getRepeat(): 0 = off, 1 = repeat context, 2 = repeat track
+			if (client.player.getRepeat() === 2) {
 				if (ts - lastEndLoopSeek > 500) {
 					lastEndLoopSeek = ts;
-					Spicetify.Player.seek(start ?? 0);
+					client.player.seek(start ?? 0);
 				}
 			} else if (ts - lastNextCall > 2000) {
 				lastNextCall = ts;
-				seekStartPendingUri = Spicetify.Player.data?.item?.uri ?? null;
-				Spicetify.Player.next();
+				seekStartPendingUri = client.player.data?.item?.uri ?? null;
+				client.player.next();
 			}
 			return;
 		}
@@ -328,16 +333,16 @@ export default async function (ctx: ModuleRuntimeContext) {
 			} else if (i !== lastSkippedZoneIdx || ts - lastSkipSeek > 500) {
 				lastSkipSeek = ts;
 				lastSkippedZoneIdx = i;
-				Spicetify.Player.seek(skipZones[i].end);
+				client.player.seek(skipZones[i].end);
 			}
 		}
 	};
-	Spicetify.Player.addEventListener("onprogress", onProgress);
+	client.player.addEventListener("onprogress", onProgress);
 
 	const onSongChange = () => {
 		navigatingBack = false;
 		// Clear seekStartPendingUri only when the new song differs — preserves repeat-one seek-to-[ behavior
-		if (Spicetify.Player.data?.item?.uri !== seekStartPendingUri) seekStartPendingUri = null;
+		if (client.player.data?.item?.uri !== seekStartPendingUri) seekStartPendingUri = null;
 		loadState();
 		drawOnBar();
 		drawSkipMarkers();
@@ -349,7 +354,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		lastSkipSeek = 0;
 		lastSkippedZoneIdx = -1;
 	};
-	Spicetify.Player.addEventListener("songchange", onSongChange);
+	client.player.addEventListener("songchange", onSongChange);
 
 	// Context menu
 	function createMenuItem(title: string, callback?: () => void): HTMLLIElement {
@@ -370,7 +375,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	const startBtn = createMenuItem("Set song start", () => {
 		if (end !== null && mouseOnBarPercent >= end) {
-			Spicetify.showNotification("Song start must be before song end");
+			client.notify("Song start must be before song end");
 			return;
 		}
 		start = mouseOnBarPercent;
@@ -379,7 +384,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	});
 	const endBtn = createMenuItem("Set song end", () => {
 		if (start !== null && mouseOnBarPercent <= start) {
-			Spicetify.showNotification("Song end must be after song start");
+			client.notify("Song end must be after song start");
 			return;
 		}
 		end = mouseOnBarPercent;
@@ -400,7 +405,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	});
 	const skipEndBtn = createMenuItem("Set section skip end", () => {
 		if (pendingSkipStart === null) {
-			Spicetify.showNotification("No section skip start selected!");
+			client.notify("No section skip start selected!");
 			return;
 		}
 		const s = Math.min(pendingSkipStart, mouseOnBarPercent);
@@ -411,7 +416,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				saveState();
 				drawSkipMarkers();
 			} else {
-				Spicetify.showNotification("Maximum 10 skip zones reached");
+				client.notify("Maximum 10 skip zones reached");
 			}
 		}
 		pendingSkipStart = null;
@@ -579,7 +584,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// Retry until the player has track data (uri may be null immediately after init).
 	function tryLoadInitialState(attemptsLeft: number) {
 		if (disposed) return;
-		if (Spicetify.Player.data?.item?.uri) {
+		if (client.player.data?.item?.uri) {
 			loadState();
 			drawOnBar();
 			drawSkipMarkers();
@@ -590,11 +595,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 	tryLoadInitialState(10);
 
 	// Toolbar button
-	let toolbarBtn: Spicetify.Playbar.Button | null = null;
+	let toolbarBtn: PlaybarButtonHandle | null = null;
 	try {
 		const markerIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" height="16" width="16"><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="3" y="3" width="2" height="10" rx="1"/><rect x="11" y="3" width="2" height="10" rx="1"/><rect x="6" y="5" width="1.5" height="6" rx="0.75"/><rect x="8.5" y="5" width="1.5" height="6" rx="0.75"/></svg>`;
-		toolbarBtn = new Spicetify.Playbar.Button("Loopy Loop", markerIcon, (self) => {
-			mouseOnBarPercent = Spicetify.Player.getProgressPercent();
+		toolbarBtn = new client.playbar.Button("Loopy Loop", markerIcon, (self) => {
+			mouseOnBarPercent = client.player.getProgressPercent();
 			setupActiveMarker(null, -1);
 			const rect = self.element.getBoundingClientRect();
 			openContextMenu(rect.left, rect.top);
@@ -604,8 +609,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	// ----- teardown -----
 	cleanups.push(() => {
-		Spicetify.Player.removeEventListener("onprogress", onProgress);
-		Spicetify.Player.removeEventListener("songchange", onSongChange);
+		client.player.removeEventListener("onprogress", onProgress);
+		client.player.removeEventListener("songchange", onSongChange);
 		window.removeEventListener("click", onWindowClick);
 		document.removeEventListener("contextmenu", onContextMenu, true);
 		cancelMoveHide();

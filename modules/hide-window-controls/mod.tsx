@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 
@@ -15,8 +15,8 @@ const isEnabled = () => shouldHide(localStorage.getItem(STORAGE_KEY));
 // chrome; showButtons:false removes the macOS traffic lights (and the shell's
 // window buttons on other platforms, where the shell draws them).
 const setButtonsVisible = async (visible: boolean) => {
-	const client = Spicetify.Platform?.ControlMessageAPI?._updateUiClient;
-	await client?.setButtonsVisibility?.({ showButtons: visible });
+	const updateUiClient = client.platform?.ControlMessageAPI?._updateUiClient;
+	await updateUiClient?.setButtonsVisibility?.({ showButtons: visible });
 };
 
 // The client parks an empty 52px div at the head of the nav's history buttons

@@ -6,7 +6,7 @@
 /**
  * Pure, client-free module logic. Keep functions here dependency-free (no
  * /modules/* or client imports) so they are unit-testable; mod.tsx passes the
- * client objects (Spicetify.*) into them. Starter tests import this file,
+ * client capabilities into them. Starter tests import this file,
  * never mod.tsx.
  */
 

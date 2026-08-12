@@ -10,7 +10,7 @@
  * binding, listener, interval and DOM node is torn down in ctx.defer.
  */
 
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { KEY_LIST, isOutOfView, keyLabelAt, labelPosition, rotateIndex, stepLabel } from "./logic.ts";
 
 const SCROLL_STEP = 25;
@@ -49,7 +49,7 @@ function createVimBind(): VimBind {
 	vimOverlay.append(tippyOverlay);
 	document.body.append(vimOverlay);
 
-	const mousetrap = new Spicetify.Mousetrap(document);
+	const mousetrap = new client.mousetrap(document);
 	mousetrap.bind(KEY_LIST, listenToKeys, "keypress");
 	// Pause mousetrap event emitter until the overlay is activated.
 	const orgStopCallback = mousetrap.stopCallback;
@@ -180,7 +180,7 @@ function createVimBind(): VimBind {
 	}
 
 	function setCancelKey(key: string) {
-		mousetrap.bind(Spicetify.Keyboard.KEYS[key as Spicetify.Keyboard.ValidKey], () => deactivate());
+		mousetrap.bind(client.keyboard.KEYS[key as keyof typeof client.keyboard.KEYS], () => deactivate());
 	}
 
 	function destroy() {
@@ -238,7 +238,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function findActiveIndex(allItems: NodeListOf<Element>): number {
 		const activeLink = document.querySelector(".main-yourLibraryX-navLinkActive");
-		const historyURI = Spicetify.Platform.History.location.pathname.replace(/^\//, "spotify:").replace(/\//g, ":");
+		const historyURI = client.platform.History.location.pathname.replace(/^\//, "spotify:").replace(/\//g, ":");
 		const activePage = document.querySelector(`[aria-describedby="onClickHint${historyURI}"]`);
 
 		if (!activeLink && !activePage) {
@@ -267,9 +267,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 		// Shutdown Spotify using Ctrl+Q
 		"ctrl+q": {
 			callback: () =>
-				Spicetify.CosmosAsync.post(
+				client.cosmos.post(
 					"sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown",
-				) && Spicetify.CosmosAsync.post("sp://desktop/v1/shutdown"),
+				) && client.cosmos.post("sp://desktop/v1/shutdown"),
 		},
 
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab
@@ -289,22 +289,22 @@ export default async function (ctx: ModuleRuntimeContext) {
 		"shift+g": { callback: () => scrollToPosition(1) },
 
 		// Shift + H and Shift + L to go back and forward page
-		"shift+h": { callback: () => Spicetify.Platform.History.goBack() },
-		"shift+l": { callback: () => Spicetify.Platform.History.goForward() },
+		"shift+h": { callback: () => client.platform.History.goBack() },
+		"shift+l": { callback: () => client.platform.History.goForward() },
 
 		// M to Like/Unlike track
-		m: { callback: () => Spicetify.Player.toggleHeart() },
+		m: { callback: () => client.player.toggleHeart() },
 
 		// Forward Slash to open search page
-		"/": { callback: () => Spicetify.Platform.History.replace("/search") },
+		"/": { callback: () => client.platform.History.replace("/search") },
 
 		// CTRL + Arrow Left Previous, CTRL + Arrow Right Next Song
-		"ctrl+left": { callback: () => Spicetify.Player.back() },
-		"ctrl+right": { callback: () => Spicetify.Player.next() },
+		"ctrl+left": { callback: () => client.player.back() },
+		"ctrl+right": { callback: () => client.player.next() },
 
 		// CTRL + Arrow Up Increase Volume, CTRL + Arrow Down Decrease Volume
-		"ctrl+up": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() + 0.05) },
-		"ctrl+down": { callback: () => Spicetify.Player.setVolume(Spicetify.Player.getVolume() - 0.05) },
+		"ctrl+up": { callback: () => client.player.setVolume(client.player.getVolume() + 0.05) },
+		"ctrl+down": { callback: () => client.player.setVolume(client.player.getVolume() - 0.05) },
 
 		// Activate Vim mode and set cancel key to 'ESCAPE'
 		f: {
@@ -319,7 +319,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const boundKeys: string[] = [];
 	for (const [key, { staticCondition, callback }] of Object.entries(binds)) {
 		if (typeof staticCondition === "undefined" || staticCondition) {
-			Spicetify.Mousetrap.bind(key, (event: KeyboardEvent) => {
+			client.mousetrap.bind(key, (event: KeyboardEvent) => {
 				event.preventDefault();
 				if (!vim.isActive) {
 					callback(event);
@@ -345,7 +345,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	ctx.defer(() => {
 		for (const key of boundKeys) {
-			Spicetify.Mousetrap.unbind(key);
+			client.mousetrap.unbind(key);
 		}
 		window.removeEventListener("resize", onResize, true);
 		window.removeEventListener("mousedown", onMouseDown, true);

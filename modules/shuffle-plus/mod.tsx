@@ -10,22 +10,22 @@
  */
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import { Select, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
 
 import { buildNextTracks, matchesArtistFilter, parseStoredConfig, searchFolder, shuffle } from "./logic.ts";
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const { React } = Spicetify;
+	const React = client.react;
 	const { useState } = React;
-	const { Type } = Spicetify.URI;
+	const { Type } = client.uri;
 
 	let playbarButton: any = null;
 
 	function getConfig(): any {
-		const parsed = parseStoredConfig(Spicetify.LocalStorage.get("shufflePlus:settings"));
+		const parsed = parseStoredConfig(client.storage.get("shufflePlus:settings"));
 		if (parsed) return parsed;
-		Spicetify.LocalStorage.set("shufflePlus:settings", "{}");
+		client.storage.set("shufflePlus:settings", "{}");
 		return {
 			artistMode: "all",
 			artistNameMust: false,
@@ -37,7 +37,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	saveConfig();
 
 	function saveConfig() {
-		Spicetify.LocalStorage.set("shufflePlus:settings", JSON.stringify(CONFIG));
+		client.storage.set("shufflePlus:settings", JSON.stringify(CONFIG));
 	}
 
 	const ARTIST_MODES = [
@@ -102,7 +102,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function shouldAddShufflePlus(uri: string[]) {
 		if (uri.length === 1) {
-			const uriObj = Spicetify.URI.fromString(uri[0]);
+			const uriObj = client.uri.fromString(uri[0]);
 			switch (uriObj.type) {
 				case Type.PLAYLIST:
 				case Type.PLAYLIST_V2:
@@ -119,8 +119,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	function shouldAddShufflePlusLiked(uri: string[]) {
-		const uriObj = Spicetify.URI.fromString(uri[0]);
-		if (Spicetify.Platform.History.location.pathname === "/collection/tracks") {
+		const uriObj = client.uri.fromString(uri[0]);
+		if (client.platform.History.location.pathname === "/collection/tracks") {
 			switch (uriObj.type) {
 				case Type.TRACK:
 					return true;
@@ -130,8 +130,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	function shouldAddShufflePlusLocal(uri: string[]) {
-		const uriObj = Spicetify.URI.fromString(uri[0]);
-		if (Spicetify.Platform.History.location.pathname === "/collection/local-files") {
+		const uriObj = client.uri.fromString(uri[0]);
+		if (client.platform.History.location.pathname === "/collection/local-files") {
 			switch (uriObj.type) {
 				case Type.TRACK:
 				case Type.LOCAL_TRACK:
@@ -142,7 +142,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	const contextMenuItems = [
-		new Spicetify.ContextMenu.Item(
+		new client.contextMenu.Item(
 			"Play with Shuffle+",
 			async (uri: string[]) => {
 				if (uri.length === 1) {
@@ -154,7 +154,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			shouldAddShufflePlus,
 			"shuffle",
 		),
-		new Spicetify.ContextMenu.Item(
+		new client.contextMenu.Item(
 			"Shuffle+ Liked Songs",
 			async (uri: string[]) => {
 				await fetchAndPlay(uri[0]);
@@ -162,7 +162,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			shouldAddShufflePlusLiked,
 			"heart-active",
 		),
-		new Spicetify.ContextMenu.Item(
+		new client.contextMenu.Item(
 			"Shuffle+ Local Files",
 			async (uri: string[]) => {
 				await fetchAndPlay(uri[0]);
@@ -175,7 +175,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function renderQueuePlaybarButton() {
 		if (!playbarButton) {
-			playbarButton = new Spicetify.Playbar.Button(
+			playbarButton = new client.playbar.Button(
 				"Shuffle+ Queue Tracks",
 				"enhance",
 				async () => {
@@ -192,14 +192,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 	renderQueuePlaybarButton();
 
 	async function fetchPlaylistTracks(uri: string) {
-		const res = await Spicetify.Platform.PlaylistAPI.getContents(`spotify:playlist:${uri}`, {
+		const res = await client.platform.PlaylistAPI.getContents(`spotify:playlist:${uri}`, {
 			limit: 9999999,
 		});
 		return res.items.filter((track: any) => track.isPlayable).map((track: any) => track.uri);
 	}
 
 	async function fetchFolderTracks(uri: string) {
-		const res = await Spicetify.Platform.RootlistAPI.getContents();
+		const res = await client.platform.RootlistAPI.getContents();
 
 		const requestFolder = searchFolder(res.items, uri);
 		if (!requestFolder) throw "Cannot find folder";
@@ -210,7 +210,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 			for (const i of folder.items) {
 				if (i.type === "playlist") {
-					const uriObj = Spicetify.URI.fromString(i.uri) as any;
+					const uriObj = client.uri.fromString(i.uri) as any;
 					const uri = uriObj._base62Id ?? uriObj.id;
 					requestPlaylists.push(await fetchPlaylistTracks(uri));
 				} else if (i.type === "folder") await fetchNested(i);
@@ -223,8 +223,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	async function fetchAlbumTracks(uri: string, includeMetadata = false) {
-		const { queryAlbumTracks } = Spicetify.GraphQL.Definitions;
-		const { data, errors } = await Spicetify.GraphQL.Request(queryAlbumTracks, {
+		const { queryAlbumTracks } = client.graphQL.Definitions;
+		const { data, errors } = await client.graphQL.Request(queryAlbumTracks, {
 			uri,
 			offset: 0,
 			limit: 100,
@@ -254,7 +254,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 
 			artistFetchTypeCount[type]++;
-			Spicetify.showNotification(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
+			client.notify(`${artistFetchTypeCount[type]} / ${res.length} ${type}s`);
 
 			for (const track of albumRes) {
 				if (matchesArtistFilter(track, artistName, CONFIG.artistNameMust)) allTracks.push(track.uri);
@@ -279,7 +279,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			value: null,
 		};
 
-		const discography = await Spicetify.GraphQL.Request(queryArtistDiscographyAll, {
+		const discography = await client.graphQL.Request(queryArtistDiscographyAll, {
 			uri,
 			offset: 0,
 			// Limit 100 since GraphQL has resource limit
@@ -287,9 +287,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 		});
 		if (discography.errors) throw discography.errors[0].message;
 
-		const overview = await Spicetify.GraphQL.Request(queryArtistOverview, {
+		const overview = await client.graphQL.Request(queryArtistOverview, {
 			uri,
-			locale: Spicetify.Locale.getLocale(),
+			locale: client.locale.getLocale(),
 			includePrerelease: false,
 		});
 		if (overview.errors) throw overview.errors[0].message;
@@ -313,7 +313,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	async function fetchArtistLikedTracks(uri: string) {
-		const artistRes = await Spicetify.CosmosAsync.get(
+		const artistRes = await client.cosmos.get(
 			`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`,
 		);
 
@@ -325,10 +325,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	async function fetchArtistTopTenTracks(uri: string) {
-		const { queryArtistOverview } = Spicetify.GraphQL.Definitions;
-		const { data, errors } = await Spicetify.GraphQL.Request(queryArtistOverview, {
+		const { queryArtistOverview } = client.graphQL.Definitions;
+		const { data, errors } = await client.graphQL.Request(queryArtistOverview, {
 			uri,
-			locale: Spicetify.Locale.getLocale(),
+			locale: client.locale.getLocale(),
 			includePrerelease: false,
 		});
 		if (errors) throw errors[0].message;
@@ -337,19 +337,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	async function fetchLikedTracks() {
 		const limit = 9999999;
-		const res = await Spicetify.Platform.LibraryAPI.getTracks({ limit });
+		const res = await client.platform.LibraryAPI.getTracks({ limit });
 
 		return res.items.filter((track: any) => track.isPlayable).map((track: any) => track.uri);
 	}
 
 	async function fetchLocalTracks() {
-		const res = await Spicetify.Platform.LocalFilesAPI.getTracks();
+		const res = await client.platform.LocalFilesAPI.getTracks();
 
 		return res.map((track: any) => track.uri);
 	}
 
 	function fetchQueue() {
-		const { _queueState } = Spicetify.Platform.PlayerAPI._queue;
+		const { _queueState } = client.platform.PlayerAPI._queue;
 		const nextUp = _queueState.nextUp.map((track: any) => track.uri);
 		const queued = _queueState.queued.map((track: any) => track.uri);
 		const array = [...new Set([...nextUp, ...queued])];
@@ -360,7 +360,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	async function fetchCollection(uriObj: any) {
 		const { category, type } = uriObj;
-		const { pathname } = Spicetify.Platform.History.location;
+		const { pathname } = client.platform.History.location;
 
 		switch (type) {
 			case Type.TRACK:
@@ -383,7 +383,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	async function fetchShows(uri: string) {
-		const res = await Spicetify.CosmosAsync.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
+		const res = await client.cosmos.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
 		return res.items
 			.filter((track: any) => track.episodePlayState.isPlayable)
 			.map((track: any) => track.episodeMetadata.link);
@@ -395,7 +395,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		// Delimits the end of our list, as Spotify may add new context tracks to the queue
 		list.push("spotify:delimiter");
 
-		const { _queue, _client } = Spicetify.Platform.PlayerAPI._queue;
+		const { _queue, _client } = client.platform.PlayerAPI._queue;
 		const { prevTracks, queueRevision } = _queue;
 
 		// Format tracks with default values
@@ -409,43 +409,39 @@ export default async function (ctx: ModuleRuntimeContext) {
 		});
 
 		if (context) {
-			const { sessionId } = Spicetify.Platform.PlayerAPI.getState();
-			Spicetify.Platform.PlayerAPI.updateContext(sessionId, {
+			const { sessionId } = client.platform.PlayerAPI.getState();
+			client.platform.PlayerAPI.updateContext(sessionId, {
 				uri: context,
 				url: `context://${context}`,
 			});
 		}
 
-		Spicetify.Player.next();
+		client.player.next();
 
 		switch (type) {
 			case Type.ARTIST:
 				if (CONFIG.artistMode === "topTen") {
-					Spicetify.showNotification(`Shuffled Top ${count} Songs`);
+					client.notify(`Shuffled Top ${count} Songs`);
 					break;
 				}
 				if (CONFIG.artistMode === "likedSongArtist") {
-					Spicetify.showNotification(`Shuffled ${count} Liked Songs`);
+					client.notify(`Shuffled ${count} Liked Songs`);
 					break;
 				}
 				if (CONFIG.artistMode === "single") {
-					Spicetify.showNotification(
-						`Shuffled ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`,
-					);
+					client.notify(`Shuffled ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`);
 					break;
 				}
 				if (CONFIG.artistMode === "album") {
-					Spicetify.showNotification(
-						`Shuffled ${artistFetchTypeCount.album} Albums, Total of ${count} Songs`,
-					);
+					client.notify(`Shuffled ${artistFetchTypeCount.album} Albums, Total of ${count} Songs`);
 					break;
 				}
-				Spicetify.showNotification(
+				client.notify(
 					`Shuffled ${artistFetchTypeCount.album} Albums, ${artistFetchTypeCount.single} Singles, Total of ${count} Songs`,
 				);
 				break;
 			default:
-				Spicetify.showNotification(`Shuffled ${count} Songs`);
+				client.notify(`Shuffled ${count} Songs`);
 		}
 
 		artistFetchTypeCount.album = 0;
@@ -466,7 +462,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				list = rawUri;
 				context = null;
 			} else {
-				const uriObj = Spicetify.URI.fromString(rawUri) as any;
+				const uriObj = client.uri.fromString(rawUri) as any;
 				type = uriObj.type;
 				uri = uriObj._base62Id ?? uriObj.id;
 
@@ -503,7 +499,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				}
 
 				if (!list?.length) {
-					Spicetify.showNotification("Nothing to play", true);
+					client.notify("Nothing to play", true);
 					return;
 				}
 
@@ -515,7 +511,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 			await Queue(shuffle(list!), context, type);
 		} catch (error) {
-			Spicetify.showNotification(String(error), true);
+			client.notify(String(error), true);
 			console.error(error);
 		}
 	}

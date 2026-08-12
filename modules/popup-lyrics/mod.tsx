@@ -22,7 +22,7 @@
  *     is CORS-enabled and keeps using plain fetch.
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 import {
@@ -49,7 +49,7 @@ interface ParagraphOptions {
 }
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const { Player, CosmosAsync, LocalStorage } = Spicetify;
+	const { player: Player, cosmos: CosmosAsync, storage: LocalStorage } = client;
 	if (!CosmosAsync || !LocalStorage) return;
 
 	let CACHE: Record<string, LyricResult> = {};
@@ -219,7 +219,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 			const body = await fetch(finalURL, {
 				headers: {
-					"x-user-agent": `spicetify v${Spicetify.Config.version} (https://github.com/spicetify/cli)`,
+					"x-user-agent": `spicetify v${client.config.version} (https://github.com/spicetify/cli)`,
 				},
 			});
 
@@ -393,7 +393,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		const meta = Player.data.item.metadata;
 
-		if (!Spicetify.URI.isTrack(Player.data.item.uri) && !Spicetify.URI.isLocalTrack(Player.data.item.uri)) {
+		if (!client.uri.isTrack(Player.data.item.uri) && !client.uri.isLocalTrack(Player.data.item.uri)) {
 			return;
 		}
 
@@ -931,7 +931,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				serviceContainer,
 			);
 		}
-		Spicetify.PopupModal.display({
+		client.popupModal.display({
 			title: "Popup Lyrics",
 			content: configContainer,
 		});
@@ -944,7 +944,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	<label class="col description">${name}</label>
 	<div class="col action"><button class="switch">
 		<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-			${Spicetify.SVGIcons.check}
+			${client.icons.check}
 		</svg>
 	</button></div>
 </div>`;
@@ -1100,13 +1100,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 			button.innerHTML = "Refreshing token...";
 			button.disabled = true;
 
-			Spicetify.CosmosAsync.get(
-				"https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0",
-				null,
-				{
+			client.cosmos
+				.get("https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0", null, {
 					authority: "apic-desktop.musixmatch.com",
-				},
-			)
+				})
 				.then(({ message: response }: any) => {
 					if (response.header.status_code === 200 && response.body.user_token) {
 						button.innerHTML = "Token refreshed";
@@ -1153,17 +1150,17 @@ export default async function (ctx: ModuleRuntimeContext) {
 	<div class="col action">
 		<button class="switch small">
 			<svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
-				${Spicetify.SVGIcons["chart-up"]}
+				${client.icons["chart-up"]}
 			</svg>
 		</button>
 		<button class="switch small">
 			<svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
-				${Spicetify.SVGIcons["chart-down"]}
+				${client.icons["chart-down"]}
 			</svg>
 		</button>
 		<button class="switch">
 			<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-				${Spicetify.SVGIcons.check}
+				${client.icons.check}
 			</svg>
 		</button>
 	</div>

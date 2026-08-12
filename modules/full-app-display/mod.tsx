@@ -10,11 +10,11 @@
  * modal is now built as scoped DOM instead of an inline <style> element.
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
 
-// Spicetify.Mousetrap is a client value whose runtime bind/unbind surface is
+// client.mousetrap is a client value whose runtime bind/unbind surface is
 // richer than the ambient .d.ts captures. Narrow the member value locally; this
 // never casts the Spicetify global itself.
 type MousetrapInstance = { bind(keys: string, cb: () => void): void; unbind(keys: string): void };
@@ -27,19 +27,19 @@ type MousetrapStatic = {
 const CONFIG_KEY = "full-app-display-config";
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const { React: react, ReactDOM: reactDOM } = Spicetify;
+	const { react, reactDOM } = client;
 	const { useState, useEffect, useRef } = react;
-	const Mousetrap = Spicetify.Mousetrap as unknown as MousetrapStatic;
+	const Mousetrap = client.mousetrap as unknown as MousetrapStatic;
 
 	function getConfig(): Record<string, any> {
-		const parsed = parseConfig(Spicetify.LocalStorage.get(CONFIG_KEY));
+		const parsed = parseConfig(client.storage.get(CONFIG_KEY));
 		if (parsed) return parsed;
-		Spicetify.LocalStorage.set(CONFIG_KEY, "{}");
+		client.storage.set(CONFIG_KEY, "{}");
 		return {};
 	}
 
 	function saveConfig() {
-		Spicetify.LocalStorage.set(CONFIG_KEY, JSON.stringify(CONFIG));
+		client.storage.set(CONFIG_KEY, JSON.stringify(CONFIG));
 	}
 
 	const CONFIG = getConfig();
@@ -48,7 +48,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function checkLyricsPlus(): boolean {
 		return (
-			Spicetify.Config?.custom_apps?.includes("lyrics-plus") || !!document.querySelector("a[href='/lyrics-plus']")
+			client.config?.custom_apps?.includes("lyrics-plus") || !!document.querySelector("a[href='/lyrics-plus']")
 		);
 	}
 
@@ -93,8 +93,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 
 	const ProgressBar = () => {
-		const [progress, setProgress] = useState(Spicetify.Player.getProgress());
-		const duration = (Spicetify.Platform.PlayerAPI as any)._state.duration;
+		const [progress, setProgress] = useState(client.player.getProgress());
+		const duration = (client.platform.PlayerAPI as any)._state.duration;
 
 		const progressDivRef = useRef(null);
 		const [isDragging, setIsDragging] = useState(false);
@@ -105,8 +105,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 
 			const update = ({ data }: any) => setProgress(data);
-			Spicetify.Player.addEventListener("onprogress", update);
-			return () => Spicetify.Player.removeEventListener("onprogress", update);
+			client.player.addEventListener("onprogress", update);
+			return () => client.player.removeEventListener("onprogress", update);
 		}, [isDragging]);
 
 		// Handle click on progress bar to set progress
@@ -118,7 +118,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 			const containerRect = container.getBoundingClientRect();
 			const newProgress = progressFromPointer(e.clientX, containerRect.left, containerRect.width, duration);
-			Spicetify.Player.seek(newProgress);
+			client.player.seek(newProgress);
 			setProgress(newProgress);
 		};
 
@@ -138,7 +138,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				return;
 			}
 
-			Spicetify.Player.seek(progress);
+			client.player.seek(progress);
 			setIsDragging(false);
 		};
 
@@ -164,7 +164,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		return react.createElement(
 			"div",
 			{ id: "fad-progress-container" },
-			react.createElement("span", { id: "fad-elapsed" }, Spicetify.Player.formatTime(progress)),
+			react.createElement("span", { id: "fad-elapsed" }, client.player.formatTime(progress)),
 			react.createElement(
 				"div",
 				{
@@ -184,31 +184,31 @@ export default async function (ctx: ModuleRuntimeContext) {
 					}),
 				),
 			),
-			react.createElement("span", { id: "fad-duration" }, Spicetify.Player.formatTime(duration)),
+			react.createElement("span", { id: "fad-duration" }, client.player.formatTime(duration)),
 		);
 	};
 
 	const PlayerControls = () => {
-		const [value, setValue] = useState(Spicetify.Player.isPlaying());
+		const [value, setValue] = useState(client.player.isPlaying());
 		useEffect(() => {
 			const update = ({ data }: any) => setValue(!data.isPaused);
-			Spicetify.Player.addEventListener("onplaypause", update);
-			return () => Spicetify.Player.removeEventListener("onplaypause", update);
+			client.player.addEventListener("onplaypause", update);
+			return () => client.player.removeEventListener("onplaypause", update);
 		});
 		return react.createElement(
 			"div",
 			{ id: "fad-controls" },
 			react.createElement(ButtonIcon, {
-				icon: Spicetify.SVGIcons["skip-back"],
-				onClick: Spicetify.Player.back,
+				icon: client.icons["skip-back"],
+				onClick: client.player.back,
 			}),
 			react.createElement(ButtonIcon, {
-				icon: Spicetify.SVGIcons[value ? "pause" : "play"],
-				onClick: Spicetify.Player.togglePlay,
+				icon: client.icons[value ? "pause" : "play"],
+				onClick: client.player.togglePlay,
 			}),
 			react.createElement(ButtonIcon, {
-				icon: Spicetify.SVGIcons["skip-forward"],
-				onClick: Spicetify.Player.next,
+				icon: client.icons["skip-forward"],
+				onClick: client.player.next,
 			}),
 		);
 	};
@@ -232,7 +232,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 				album: "",
 				releaseDate: "",
 				cover: "",
-				heart: Spicetify.Player.getHeart(),
+				heart: client.player.getHeart(),
 			};
 			this.currTrackImg = new Image();
 			this.nextTrackImg = new Image();
@@ -240,10 +240,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		async getAlbumDate(uri: string) {
-			const { getAlbum } = Spicetify.GraphQL.Definitions;
-			const { errors, data } = await Spicetify.GraphQL.Request(getAlbum, {
+			const { getAlbum } = client.graphQL.Definitions;
+			const { errors, data } = await client.graphQL.Request(getAlbum, {
 				uri,
-				locale: Spicetify.Locale.getLocale(),
+				locale: client.locale.getLocale(),
 				offset: 0,
 				limit: 10,
 			});
@@ -267,7 +267,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		async fetchInfo() {
-			const meta = Spicetify.Player.data.item.metadata as any;
+			const meta = client.player.data.item.metadata as any;
 
 			// prepare title
 			let rawTitle = meta.title;
@@ -310,7 +310,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 					artist: artistName || "",
 					album: albumText || "",
 					releaseDate: releaseDate || "",
-					heart: Spicetify.Player.getHeart(),
+					heart: client.player.getHeart(),
 				});
 				return;
 			}
@@ -329,7 +329,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 					album: albumText || "",
 					releaseDate: releaseDate || "",
 					cover: bgImage,
-					heart: Spicetify.Player.getHeart(),
+					heart: client.player.getHeart(),
 				});
 			};
 			this.currTrackImg.onerror = () => {
@@ -390,7 +390,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			fadComponent = this;
 
 			this.updateInfo = this.fetchInfo.bind(this);
-			Spicetify.Player.addEventListener("songchange", this.updateInfo);
+			client.player.addEventListener("songchange", this.updateInfo);
 			this.updateInfo();
 
 			updateVisual = () => {
@@ -424,14 +424,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 				updateVisual?.();
 			};
 
-			(Spicetify.Platform.PlayerAPI as any)._events.addListener("queue_update", this.onQueueChange);
+			(client.platform.PlayerAPI as any)._events.addListener("queue_update", this.onQueueChange);
 			this.mousetrap.bind("esc", deactivate);
 			window.dispatchEvent(new Event("fad-request"));
 		}
 
 		componentWillUnmount() {
-			if (this.updateInfo) Spicetify.Player.removeEventListener("songchange", this.updateInfo);
-			(Spicetify.Platform.PlayerAPI as any)._events.removeListener("queue_update", this.onQueueChange);
+			if (this.updateInfo) client.player.removeEventListener("songchange", this.updateInfo);
+			(client.platform.PlayerAPI as any)._events.removeListener("queue_update", this.onQueueChange);
 			this.mousetrap.unbind("esc");
 			updateVisual = undefined;
 			fadComponent = null;
@@ -492,12 +492,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 										{
 											id: "fad-heart",
 											onClick: () => {
-												Spicetify.Player.toggleHeart();
+												client.player.toggleHeart();
 												this.setState({ heart: !this.state.heart });
 											},
 										},
 										react.createElement(DisplayIcon, {
-											icon: Spicetify.SVGIcons[this.state.heart ? "heart-active" : "heart"],
+											icon: client.icons[this.state.heart ? "heart-active" : "heart"],
 											size: 50,
 										}),
 									),
@@ -514,19 +514,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 							react.createElement(SubInfo, {
 								id: "fad-artist",
 								text: this.state.artist,
-								icon: Spicetify.SVGIcons.artist,
+								icon: client.icons.artist,
 							}),
 							CONFIG.showAlbum &&
 								react.createElement(SubInfo, {
 									id: "fad-album",
 									text: this.state.album,
-									icon: Spicetify.SVGIcons.album,
+									icon: client.icons.album,
 								}),
 							CONFIG.showReleaseDate &&
 								react.createElement(SubInfo, {
 									id: "fad-release-date",
 									text: this.state.releaseDate,
-									icon: Spicetify.SVGIcons.clock,
+									icon: client.icons.clock,
 								}),
 							react.createElement(
 								"div",
@@ -604,7 +604,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	}
 
 	async function activate() {
-		if (!Spicetify.Player.data) return;
+		if (!client.player.data) return;
 
 		await toggleFullscreen();
 
@@ -626,7 +626,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		window.dispatchEvent(new Event("fad-request"));
 
 		if (lastApp && lastApp !== "/lyrics-plus") {
-			Spicetify.Platform.History.push(lastApp);
+			client.platform.History.push(lastApp);
 		}
 	}
 
@@ -640,9 +640,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function requestLyricsPlus() {
 		if (CONFIG.lyricsPlus && checkLyricsPlus()) {
-			lastApp = Spicetify.Platform.History.location.pathname;
+			lastApp = client.platform.History.location.pathname;
 			if (lastApp !== "/lyrics-plus") {
-				Spicetify.Platform.History.push("/lyrics-plus");
+				client.platform.History.push("/lyrics-plus");
 			}
 		}
 		window.dispatchEvent(new Event("fad-request"));
@@ -668,7 +668,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			const btn = document.createElement("button");
 			btn.className = "switch";
 			btn.disabled = disabled;
-			btn.innerHTML = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.check}</svg>`;
+			btn.innerHTML = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${client.icons.check}</svg>`;
 			btn.classList.toggle("disabled", !CONFIG[field]);
 			btn.onclick = () => {
 				const state = !CONFIG[field];
@@ -708,14 +708,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function openConfig(event: MouseEvent) {
 		event.preventDefault();
-		Spicetify.PopupModal.display({
+		client.popupModal.display({
 			title: "Full App Display",
 			content: buildConfig(),
 		});
 	}
 
 	// Add activator on top bar. placeButton mounts through the stdlib
-	// topbar-right register (the classic Spicetify.Topbar.Button no longer
+	// topbar-right register (the classic wrapper Topbar.Button no longer
 	// mounts in v3's restructured top bar) and is torn down with the module.
 	const registrar = createRegistrar(ctx);
 	// 1.5 round stroke matches the native encore topbar icons (the classic

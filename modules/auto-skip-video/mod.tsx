@@ -6,7 +6,7 @@
  * extension by khanhas.
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 
@@ -32,8 +32,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// Self-subscribe to the player and dispose the listener on unload.
 	const onSongChange = () => {
 		if (!isEnabled()) return;
-		if (isSkippableVideo(Spicetify?.Player?.data?.item)) Spicetify?.Player?.next?.();
+		if (isSkippableVideo(client.player?.data?.item)) client.player?.next?.();
 	};
-	Spicetify?.Player?.addEventListener("songchange", onSongChange);
-	ctx.defer(() => Spicetify?.Player?.removeEventListener("songchange", onSongChange));
+	client.player?.addEventListener("songchange", onSongChange);
+	ctx.defer(() => client.player?.removeEventListener("songchange", onSongChange));
 }

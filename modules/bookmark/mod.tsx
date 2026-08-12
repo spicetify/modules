@@ -10,7 +10,7 @@
  * element name cannot be re-registered on module reload).
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import {
 	clampMenuPosition,
 	filterBookmarks,
@@ -38,7 +38,7 @@ const BUTTON_ICON_PATH =
 const BUTTON_ICON = `<svg role="img" height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${BUTTON_ICON_PATH}</svg>`;
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const { CosmosAsync, Player, LocalStorage, URI } = Spicetify;
+	const { cosmos: CosmosAsync, player: Player, storage: LocalStorage, uri: URI } = client;
 	const registrar = createRegistrar(ctx);
 
 	// The popup is rebuilt from scratch on every apply(); the React roots behind
@@ -48,7 +48,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const tippyInstances: any[] = [];
 
 	function disposeMenuItems() {
-		for (const wrapper of menuItemWrappers) Spicetify.ReactDOM.unmountComponentAtNode(wrapper);
+		for (const wrapper of menuItemWrappers) client.reactDOM.unmountComponentAtNode(wrapper);
 		menuItemWrappers.length = 0;
 	}
 
@@ -235,12 +235,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 		removeBtn.className = "bookmark-controls";
 		removeBtn.setAttribute("data-tippy-content", REMOVE_TEXT);
 		// SVGIcons.x is a trusted client constant.
-		removeBtn.innerHTML = `<svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${Spicetify.SVGIcons.x}</svg>`;
+		removeBtn.innerHTML = `<svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${client.icons.x}</svg>`;
 		inner.appendChild(removeBtn);
 
 		card.appendChild(inner);
 
-		const instances = Spicetify.Tippy(card.querySelectorAll("[data-tippy-content]"), Spicetify.TippyProps);
+		const instances = client.tippy(card.querySelectorAll("[data-tippy-content]"), client.tippyProps);
 		if (Array.isArray(instances)) tippyInstances.push(...instances);
 		else if (instances) tippyInstances.push(instances);
 		if (isPlayable) {
@@ -266,7 +266,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	const LIST = new BookmarkCollection();
 
-	// The classic Spicetify.Topbar.Button no longer mounts in v3's restructured
+	// The classic wrapper Topbar.Button no longer mounts in v3's restructured
 	// topbar (same reason trashbin abandoned Playbar.Widget), so the entry point
 	// goes through registrar.placeButton("topbar-right", ...). placeButton gives
 	// no element handle, so the popup is positioned off the mounted button looked
@@ -325,11 +325,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 		let description: string;
 		let contextUri: any;
 
-		const context = Spicetify.Platform.History.location.pathname;
+		const context = client.platform.History.location.pathname;
 		try {
-			contextUri = Spicetify.URI.fromString(context);
+			contextUri = client.uri.fromString(context);
 		} catch (e) {
-			Spicetify.showNotification("Cannot bookmark this page", true);
+			client.notify("Cannot bookmark this page", true);
 			return;
 		}
 		const uri = contextUri.toURI();
@@ -378,7 +378,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	function getTrackMeta() {
 		const item = Player.data?.item;
 		if (!item?.uri) {
-			Spicetify.showNotification("No track is currently playing", true);
+			client.notify("No track is currently playing", true);
 			return null;
 		}
 		const meta: any = {
@@ -391,7 +391,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		} else {
 			meta.description = item.metadata?.artist_name;
 		}
-		const playerState: any = Spicetify.Player.data;
+		const playerState: any = client.player.data;
 		const rawContextUri = playerState.context_uri ?? playerState.context?.uri;
 		const contextUri = rawContextUri ? URI.fromString(rawContextUri) : undefined;
 		if (
@@ -439,11 +439,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 	 */
 	async function onLinkClick(info: any) {
 		if (info.context?.startsWith("/")) {
-			Spicetify.Platform.History.push(info.context);
+			client.platform.History.push(info.context);
 			return;
 		}
-		const url = Spicetify.URI.fromString(info.uri).toURLPath(true);
-		Spicetify.Platform.History.push(url);
+		const url = client.uri.fromString(info.uri).toURLPath(true);
+		client.platform.History.push(url);
 	}
 
 	function onPlayClick(info: any) {
@@ -461,14 +461,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 		}
 
-		Spicetify.Player.playUri(uri, {}, options);
+		client.player.playUri(uri, {}, options);
 	}
 
 	const fetchAlbum = async (uri: string) => {
-		const { getAlbum } = Spicetify.GraphQL.Definitions;
-		const { data } = await Spicetify.GraphQL.Request(getAlbum, {
+		const { getAlbum } = client.graphQL.Definitions;
+		const { data } = await client.graphQL.Request(getAlbum, {
 			uri,
-			locale: Spicetify.Locale.getLocale(),
+			locale: client.locale.getLocale(),
 			offset: 0,
 			limit: 10,
 		});
@@ -495,10 +495,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 
 	const fetchArtist = async (uri: string) => {
-		const { queryArtistOverview } = Spicetify.GraphQL.Definitions;
-		const { data } = await Spicetify.GraphQL.Request(queryArtistOverview, {
+		const { queryArtistOverview } = client.graphQL.Definitions;
+		const { data } = await client.graphQL.Request(queryArtistOverview, {
 			uri,
-			locale: Spicetify.Locale.getLocale(),
+			locale: client.locale.getLocale(),
 			includePrerelease: false,
 		});
 		const res = data.artistUnion;
@@ -516,8 +516,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const base62 = uri.split(":")[2];
 		const res = await CosmosAsync.get(`https://api.spotify.com/v1/tracks/${base62}`);
 		let newContext: string | undefined;
-		if (context && uid && Spicetify.URI.isPlaylistV1OrV2(context)) {
-			newContext = `${Spicetify.URI.fromString(context).toURLPath(true)}?uid=${uid}`;
+		if (context && uid && client.uri.isPlaylistV1OrV2(context)) {
+			newContext = `${client.uri.fromString(context).toURLPath(true)}?uid=${uid}`;
 		}
 		return {
 			uri,
@@ -540,7 +540,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 
 	const fetchPlaylist = async (uri: string) => {
-		const res = await Spicetify.CosmosAsync.get(`sp://core-playlist/v1/playlist/${uri}/metadata`, {
+		const res = await client.cosmos.get(`sp://core-playlist/v1/playlist/${uri}/metadata`, {
 			policy: { picture: true, name: true },
 		});
 		return {
@@ -551,29 +551,29 @@ export default async function (ctx: ModuleRuntimeContext) {
 		};
 	};
 
-	const contextMenuItem = new Spicetify.ContextMenu.Item(
+	const contextMenuItem = new client.contextMenu.Item(
 		"Bookmark",
 		async ([uri], [uid] = [], context = undefined) => {
 			const type = uri.split(":")[1];
 			let meta: any;
 			switch (type) {
-				case Spicetify.URI.Type.TRACK:
+				case client.uri.Type.TRACK:
 					meta = await fetchTrack(uri, uid, context);
 					break;
-				case Spicetify.URI.Type.ALBUM:
+				case client.uri.Type.ALBUM:
 					meta = await fetchAlbum(uri);
 					break;
-				case Spicetify.URI.Type.ARTIST:
+				case client.uri.Type.ARTIST:
 					meta = await fetchArtist(uri);
 					break;
-				case Spicetify.URI.Type.SHOW:
+				case client.uri.Type.SHOW:
 					meta = await fetchShow(uri);
 					break;
-				case Spicetify.URI.Type.EPISODE:
+				case client.uri.Type.EPISODE:
 					meta = await fetchEpisode(uri);
 					break;
-				case Spicetify.URI.Type.PLAYLIST:
-				case Spicetify.URI.Type.PLAYLIST_V2:
+				case client.uri.Type.PLAYLIST:
+				case client.uri.Type.PLAYLIST_V2:
 					meta = await fetchPlaylist(uri);
 					break;
 			}
@@ -582,13 +582,13 @@ export default async function (ctx: ModuleRuntimeContext) {
 		([uri]) => {
 			const type = uri.split(":")[1];
 			switch (type) {
-				case Spicetify.URI.Type.TRACK:
-				case Spicetify.URI.Type.ALBUM:
-				case Spicetify.URI.Type.ARTIST:
-				case Spicetify.URI.Type.SHOW:
-				case Spicetify.URI.Type.EPISODE:
-				case Spicetify.URI.Type.PLAYLIST:
-				case Spicetify.URI.Type.PLAYLIST_V2:
+				case client.uri.Type.TRACK:
+				case client.uri.Type.ALBUM:
+				case client.uri.Type.ARTIST:
+				case client.uri.Type.SHOW:
+				case client.uri.Type.EPISODE:
+				case client.uri.Type.PLAYLIST:
+				case client.uri.Type.PLAYLIST_V2:
 					return true;
 			}
 			return false;

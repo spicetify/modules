@@ -3,6 +3,7 @@
  */
 
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
+import { client } from "/modules/stdlib/mod.ts";
 import { Palette, PaletteManager } from "./palette.ts";
 import { createIconComponent } from "/modules/stdlib/src/createIconComponent.tsx";
 import { startCase } from "/modules/stdlib/deps.ts";
@@ -38,7 +39,7 @@ const MenuRow = (props: {
 const CHECK_ICON =
 	'<path d="M15.53 2.47a.75.75 0 0 1 0 1.06L4.907 14.153.47 9.716a.75.75 0 0 1 1.06-1.06l3.377 3.376L14.47 2.47a.75.75 0 0 1 1.06 0z"/>';
 
-const Modules = () => (globalThis as any).Spicetify?.Modules;
+const Modules = () => client.modules;
 
 // Theme modules ship switchable schemes (color.ini sections); the
 // loader owns the state, this block is just the switcher UI.

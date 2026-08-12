@@ -5,7 +5,7 @@
  * Ported from veryboringhwl's `adblock` module (MIT).
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
 import {
@@ -31,7 +31,7 @@ const AD_STYLE_ID = "spicetify-adblock-surfaces";
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
 
-	const managers = (): Record<string, any> => Spicetify.Platform?.AdManagers ?? {};
+	const managers = (): Record<string, any> => client.platform?.AdManagers ?? {};
 
 	// Remembers which surfaces this module actually turned off, so unloading
 	// restores the client rather than force-enabling things the user's account
@@ -75,26 +75,26 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// moving past it as soon as it starts.
 	const skipIfAd = () => {
 		if (!enabled) return;
-		if (!isAdItem(Spicetify.Player?.data?.item)) return;
+		if (!isAdItem(client.player?.data?.item)) return;
 		void skipAd(managers().audio?.inStreamApi?.adsCoreConnector);
 	};
 
 	const startSkipping = () => {
 		stopSkipping();
 		onSongChange = () => skipIfAd();
-		Spicetify.Player?.addEventListener?.("songchange", onSongChange);
+		client.player?.addEventListener?.("songchange", onSongChange);
 		skipIfAd();
 	};
 
 	const stopSkipping = () => {
-		if (onSongChange) Spicetify.Player?.removeEventListener?.("songchange", onSongChange);
+		if (onSongChange) client.player?.removeEventListener?.("songchange", onSongChange);
 		onSongChange = null;
 	};
 
 	// Upsell chrome is remote-config gated rather than manager-owned. A failure
 	// here must not take the rest of the module down.
 	const applyRemoteConfig = async () => {
-		const api = Spicetify.Platform?.RemoteConfigDebugAPI;
+		const api = client.platform?.RemoteConfigDebugAPI;
 		if (typeof api?.setOverride !== "function") return;
 		for (const [name, value] of Object.entries(REMOTE_CONFIG_OVERRIDES)) {
 			try {
@@ -105,11 +105,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 	};
 
-	const readEnabled = (): boolean => Spicetify.LocalStorage.get(STORAGE_KEY) !== "false";
+	const readEnabled = (): boolean => client.storage.get(STORAGE_KEY) !== "false";
 	let enabled = readEnabled();
 
 	let removeUpsellStyle: (() => void) | null = null;
-	let hideUpsells = Spicetify.LocalStorage.get(UPSELL_KEY) !== "false";
+	let hideUpsells = client.storage.get(UPSELL_KEY) !== "false";
 
 	const applyUpsells = (value: boolean) => {
 		removeUpsellStyle?.();
@@ -130,7 +130,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			getValue={readEnabled}
 			onChange={(value) => {
 				enabled = value;
-				Spicetify.LocalStorage.set(STORAGE_KEY, String(value));
+				client.storage.set(STORAGE_KEY, String(value));
 				if (value) {
 					applyBlocking();
 					startSkipping();
@@ -149,7 +149,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			getValue={() => hideUpsells}
 			onChange={(value) => {
 				hideUpsells = value;
-				Spicetify.LocalStorage.set(UPSELL_KEY, String(value));
+				client.storage.set(UPSELL_KEY, String(value));
 				applyUpsells(value);
 			}}
 		/>,
