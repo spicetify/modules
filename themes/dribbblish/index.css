@@ -212,6 +212,13 @@ html.spicetify-themed .Root__top-container {
 	flex-direction: row;
 }
 
+/* Spotify exposes no stable semantic class for this one icon; keep the SVG
+ * signature scoped to the library header so neighbouring actions stay intact. */
+.main-yourLibraryX-headerContent
+	button[data-encore-id="buttonTertiary"]:has(> span > svg[viewBox="0 0 16 16"] > path[d^="M6.53 9.47a.75.75"]) {
+	display: none !important;
+}
+
 @keyframes dribbblish-library-reveal {
 	from {
 		opacity: 0;

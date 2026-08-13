@@ -67,6 +67,14 @@ describe("dribbblish frame", () => {
 		);
 	});
 
+	it("removes the wide-library control from the Dribbblish sidebar", () => {
+		assert.match(
+			css,
+			/\.main-yourLibraryX-headerContent\s+button\[data-encore-id="buttonTertiary"\]:has\([^{]*path\[d\^="M6\.53 9\.47a\.75\.75"\][^{]*\)\s*\{[^}]*display:\s*none\s*!important\s*;/s,
+		);
+		assert.doesNotMatch(css, /\.main-yourLibraryX-headerContent\s*>\s*:last-child/);
+	});
+
 	it("lays registered nav links out in the green rail and reserves their measured space", () => {
 		assert.match(css, /#dribbblish-navlinks-rail\s*\{[^}]*position:\s*absolute\s*;/s);
 		assert.match(
