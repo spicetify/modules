@@ -200,6 +200,13 @@ div:has(> .main-entityHeader-container) {
 }
 
 /* fullscreen */
+.Root__cinema-view {
+	outline-color: var(--spice-main) !important;
+	border-radius: var(--border-radius) !important;
+}
+.Root__cinema-view > .main-actionBar-ActionBarContainer {
+	border-radius: var(--border-radius) !important;
+}
 .spotifyinternal-artistnpv .npv-what-is-playing .npv-cover-art,
 .spotifyinternal-artistnpv .npv-what-is-playing .npv-track {
 	bottom: 18em;

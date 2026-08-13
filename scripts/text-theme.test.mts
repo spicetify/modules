@@ -40,3 +40,18 @@ describe("text theme track info", () => {
 		);
 	});
 });
+
+describe("text theme expanded now playing view", () => {
+	it("uses the theme surface instead of Spotify's black cinema gutter", () => {
+		const css = readFileSync(TEXT_THEME_CSS, "utf8");
+
+		assert.match(
+			css,
+			/\.Root__cinema-view\s*\{[^}]*outline-color:\s*var\(--spice-main\)\s*!important\s*;[^}]*border-radius:\s*var\(--border-radius\)\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__cinema-view\s*>\s*\.main-actionBar-ActionBarContainer\s*\{[^}]*border-radius:\s*var\(--border-radius\)\s*!important\s*;/s,
+		);
+	});
+});
