@@ -9,9 +9,10 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { SettingsRow, Toggle } from "/modules/stdlib/lib/primitives.js";
 
 import {
-	createStateReconciler,
+	createSharedStateReconciler,
 	HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE,
 	resolveHiddenState,
+	type SharedReconcilerState,
 	STORAGE_KEY,
 } from "./logic.ts";
 
@@ -39,6 +40,7 @@ const SPACER_CSS = `.spotify__os--is-macos .main-globalNav-historyButtonsWrapper
 }`;
 
 const SPACER_STYLE_ID = "spicetify-hide-window-controls-spacer";
+const SHARED_RECONCILER_KEY = "__spicetifyHideWindowControlsReconciler";
 
 const setSpacerCollapsed = (collapsed: boolean) => {
 	const existing = document.getElementById(SPACER_STYLE_ID);
@@ -65,7 +67,15 @@ const apply = async (hidden: boolean) => {
 };
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const reconciler = createStateReconciler(apply);
+	const runtime = globalThis as typeof globalThis & {
+		[SHARED_RECONCILER_KEY]?: SharedReconcilerState;
+	};
+	const shared = (runtime[SHARED_RECONCILER_KEY] ??= {
+		generation: 0,
+		desired: false,
+		transition: Promise.resolve(),
+	});
+	const reconciler = createSharedStateReconciler(apply, shared);
 
 	const RequirementLockedToggle = () => {
 		const id = React.useId();
@@ -117,9 +127,13 @@ export default async function (ctx: ModuleRuntimeContext) {
 		attributeFilter: [HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE],
 	});
 
-	await syncRequirement();
 	ctx.defer(async () => {
 		requirementObserver.disconnect();
 		await reconciler.stop(false);
 	});
+	try {
+		await syncRequirement();
+	} catch (error) {
+		console.warn("[hide-window-controls] could not apply the initial window state", error);
+	}
 }

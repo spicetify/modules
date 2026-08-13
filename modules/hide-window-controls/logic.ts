@@ -44,3 +44,32 @@ export function createStateReconciler(apply: (hidden: boolean) => Promise<void>)
 		},
 	};
 }
+
+export interface SharedReconcilerState {
+	generation: number;
+	desired: boolean;
+	transition: Promise<void>;
+}
+
+export function createSharedStateReconciler(apply: (hidden: boolean) => Promise<void>, shared: SharedReconcilerState) {
+	const generation = ++shared.generation;
+	let active = true;
+	const enqueue = () => {
+		shared.transition = shared.transition.catch(() => undefined).then(() => apply(shared.desired));
+		return shared.transition;
+	};
+
+	return {
+		request(hidden: boolean) {
+			if (!active || shared.generation !== generation) return shared.transition;
+			shared.desired = hidden;
+			return enqueue();
+		},
+		stop(finalState: boolean) {
+			if (!active || shared.generation !== generation) return shared.transition;
+			active = false;
+			shared.desired = finalState;
+			return enqueue();
+		},
+	};
+}
