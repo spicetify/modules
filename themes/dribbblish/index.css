@@ -139,11 +139,6 @@ html.spicetify-themed .Root__top-container {
 	border-radius: 50%;
 }
 
-#dribbblish-navlinks-rail .dribbblish-native-navlink > button:hover,
-#dribbblish-navlinks-rail .dribbblish-native-navlink > button[aria-expanded="true"] {
-	background-color: var(--spice-tab-active);
-}
-
 .Root__globalNav .main-globalNav-searchSection.dribbblish-search-host {
 	position: fixed;
 	z-index: 20;
@@ -208,6 +203,36 @@ html.spicetify-themed .Root__top-container {
 
 .Root__right-sidebar:not(:has(> aside)) {
 	padding-left: 0;
+}
+
+/* Turn Spotify's clipped black NPV peek into a real right-side theme rail. */
+.ylx .Root__top-container:has(> .Root__right-sidebar [inert] .main-nowPlayingView-container) {
+	grid-template-columns: var(--dribbblish-sidebar-width, 72px) minmax(0, 1fr) 72px 0 !important;
+}
+
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container),
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div,
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div,
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div > div:last-child {
+	width: 72px !important;
+	margin: 0 !important;
+	background-color: var(--spice-sidebar) !important;
+	border-radius: 0 !important;
+}
+
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) {
+	overflow: hidden;
+}
+
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) [inert] {
+	display: none !important;
+}
+
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div > div:last-child > button {
+	width: 48px;
+	height: 48px;
+	padding: 16px;
+	color: var(--spice-sidebar-text) !important;
 }
 
 .Root__nav-bar {

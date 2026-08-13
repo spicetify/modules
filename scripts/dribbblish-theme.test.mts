@@ -37,6 +37,25 @@ describe("dribbblish frame", () => {
 		assert.match(css, /\.Root__right-sidebar\s*\{[^}]*background-color:\s*var\(--spice-main\)\s*!important\s*;/s);
 	});
 
+	it("turns the minimized Now Playing peek into a reserved green rail", () => {
+		assert.match(
+			css,
+			/\.ylx\s+\.Root__top-container:has\(>\s*\.Root__right-sidebar\s+\[inert\]\s+\.main-nowPlayingView-container\)\s*\{[^}]*grid-template-columns:\s*var\(--dribbblish-sidebar-width,\s*72px\)\s+minmax\(0,\s*1fr\)\s+72px\s+0\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*\{[^}]*width:\s*72px\s*!important\s*;[^}]*background-color:\s*var\(--spice-sidebar\)\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)\s+\[inert\]\s*\{[^}]*display:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*>\s*div:last-child\s*>\s*button\s*\{[^}]*width:\s*48px\s*;[^}]*height:\s*48px\s*;/s,
+		);
+	});
+
 	it("lays registered nav links out in the green rail and reserves their measured space", () => {
 		assert.match(css, /#dribbblish-navlinks-rail\s*\{[^}]*position:\s*absolute\s*;/s);
 		assert.match(
@@ -84,6 +103,13 @@ describe("dribbblish frame", () => {
 		assert.match(
 			css,
 			/\.main-globalNav-searchSection\.dribbblish-search-host\s*\{[^}]*position:\s*fixed\s*;[^}]*z-index:\s*20\s*;/s,
+		);
+	});
+
+	it("lets Home and Search use the same native hover surface as registered rail buttons", () => {
+		assert.doesNotMatch(
+			css,
+			/#dribbblish-navlinks-rail[^{}]*(?::hover|\[aria-expanded)[^{}]*\{[^}]*background(?:-color)?\s*:/s,
 		);
 	});
 
