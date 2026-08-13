@@ -19,3 +19,15 @@ export function relocateElement(element: Element, target: Element): () => void {
 		}
 	};
 }
+
+const NAVLINK_PITCH = 54;
+const NAVLINK_FIRST_ROW_OVERLAP = 28;
+const EXPANDED_RAIL_LEFT_PADDING = 18;
+
+export function navlinkRailLayout(width: number, buttonCount: number) {
+	const expanded = width >= EXPANDED_RAIL_LEFT_PADDING + buttonCount * NAVLINK_PITCH;
+	return {
+		expanded,
+		reserve: expanded ? 0 : Math.max(0, (buttonCount - 1) * NAVLINK_PITCH - NAVLINK_FIRST_ROW_OVERLAP),
+	};
+}

@@ -13,13 +13,11 @@
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
-import { relocateElement } from "./logic.ts";
+import { navlinkRailLayout, relocateElement } from "./logic.ts";
 
 // Horizontal padding the tooltip keeps from either end of the progress bar.
 const TOOLTIP_EDGE_GAP = 12;
 const HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE = "data-spicetify-hide-window-controls-required";
-const NAVLINK_PITCH = 54;
-const NAVLINK_FIRST_ROW_OVERLAP = 28;
 
 export default async function (ctx: ModuleRuntimeContext) {
 	let disposed = false;
@@ -103,17 +101,21 @@ export default async function (ctx: ModuleRuntimeContext) {
 		topContainer.append(rail);
 		const restoreNavlinks = relocateElement(navlinks, rail);
 
-		const syncRailReserve = () => {
+		const syncRailLayout = () => {
 			const count = rail.querySelectorAll("button").length;
-			const reserve = Math.max(0, (count - 1) * NAVLINK_PITCH - NAVLINK_FIRST_ROW_OVERLAP);
+			const { expanded, reserve } = navlinkRailLayout(rail.clientWidth, count);
+			rail.classList.toggle("dribbblish-navlinks-rail--expanded", expanded);
 			topContainer.style.setProperty("--dribbblish-navlinks-reserve", `${reserve}px`);
 		};
-		const railObserver = new MutationObserver(syncRailReserve);
+		const railObserver = new MutationObserver(syncRailLayout);
 		railObserver.observe(rail, { childList: true, subtree: true });
-		syncRailReserve();
+		const railResizeObserver = new ResizeObserver(syncRailLayout);
+		railResizeObserver.observe(rail);
+		syncRailLayout();
 
 		ctx.defer(() => {
 			railObserver.disconnect();
+			railResizeObserver.disconnect();
 			topContainer.style.removeProperty("--dribbblish-navlinks-reserve");
 			restoreNavlinks();
 			rail.remove();

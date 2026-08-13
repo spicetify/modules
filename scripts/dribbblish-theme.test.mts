@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import { relocateElement } from "../themes/dribbblish/logic.ts";
+import { navlinkRailLayout, relocateElement } from "../themes/dribbblish/logic.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const THEME_DIR = path.join(HERE, "..", "themes", "dribbblish");
@@ -37,6 +37,22 @@ describe("dribbblish frame", () => {
 		assert.match(css, /\.Root__nav-bar\s*\{[^}]*padding-top:\s*var\(--dribbblish-navlinks-reserve,\s*0px\)\s*;/s);
 		assert.match(mod, /relocateElement\(navlinks,\s*rail\)/);
 		assert.match(mod, /--dribbblish-navlinks-reserve/);
+	});
+
+	it("uses the title strip for a horizontal rail when the library is expanded", () => {
+		assert.deepEqual(navlinkRailLayout(72, 3), { expanded: false, reserve: 80 });
+		assert.deepEqual(navlinkRailLayout(179, 3), { expanded: false, reserve: 80 });
+		assert.deepEqual(navlinkRailLayout(180, 3), { expanded: true, reserve: 0 });
+		assert.deepEqual(navlinkRailLayout(397, 3), { expanded: true, reserve: 0 });
+		assert.deepEqual(navlinkRailLayout(397, 8), { expanded: false, reserve: 350 });
+		assert.match(
+			css,
+			/#dribbblish-navlinks-rail\.dribbblish-navlinks-rail--expanded\s*\{[^}]*justify-content:\s*flex-start\s*;[^}]*padding-left:\s*18px\s*;/s,
+		);
+		assert.match(
+			css,
+			/#dribbblish-navlinks-rail\.dribbblish-navlinks-rail--expanded\s+\.spicetify-navlinks-anchor\s*\{[^}]*flex-direction:\s*row\s*;/s,
+		);
 	});
 
 	it("restores registered nav links to their exact sibling position", () => {

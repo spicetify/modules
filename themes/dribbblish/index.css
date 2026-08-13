@@ -110,6 +110,7 @@ html.spicetify-themed .Root__top-container {
 	position: absolute;
 	inset: var(--main-gap) auto auto 0;
 	width: var(--dribbblish-sidebar-width, 72px);
+	box-sizing: border-box;
 	z-index: 11;
 	display: flex;
 	justify-content: center;
@@ -129,6 +130,15 @@ html.spicetify-themed .Root__top-container {
 
 #dribbblish-navlinks-rail button {
 	color: var(--spice-sidebar-text) !important;
+}
+
+#dribbblish-navlinks-rail.dribbblish-navlinks-rail--expanded {
+	justify-content: flex-start;
+	padding-left: 18px;
+}
+
+#dribbblish-navlinks-rail.dribbblish-navlinks-rail--expanded .spicetify-navlinks-anchor {
+	flex-direction: row;
 }
 
 .main-home-filterChipsSection {
