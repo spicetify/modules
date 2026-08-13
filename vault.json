@@ -887,6 +887,14 @@
 					"providers": [],
 					"checksum": "sha256:3b410098defc7adf56cdf946b9d71e3edcf10efe37e5a3e4eeb1f82b1beeef9a",
 					"updatedAt": "2026-08-06"
+				},
+				"0.2.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/new-releases@0.2.0/new-releases@0.2.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:206b12ee3c202997ce5a23f81cef0c5a8653f2ea50730de85cf6698ae79a76ca",
+					"updatedAt": "2026-08-13"
 				}
 			},
 			"metadata": {
@@ -898,7 +906,8 @@
 					}
 				],
 				"kind": "app",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/new-releases.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"nightlight": {
