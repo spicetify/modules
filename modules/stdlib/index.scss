@@ -108,8 +108,48 @@ button.main-contextMenu-menuItemButton {
 	background: var(--spice-main, var(--background-base, #121212));
 }
 
-.spicetify-settings-page {
+.spicetify-settings-page.x-settings-container {
 	min-height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	max-width: 900px;
+	margin: 0 auto;
+	padding: 32px;
+}
+
+/* Spotify ships these rules in the lazy /preferences chunk. The standalone
+   Spicetify route can be the first settings surface opened in a session, so
+   keep an exact scoped copy instead of depending on a prior native-route visit. */
+.spicetify-settings-page .x-settings-headerContainer {
+	display: flex;
+}
+
+.spicetify-settings-page .x-settings-header {
+	flex: 1 1 0%;
+}
+
+.spicetify-settings-page .x-settings-section {
+	display: grid;
+	gap: 8px;
+}
+
+.spicetify-settings-page .x-settings-row {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 8px 24px;
+}
+
+.spicetify-settings-page .x-settings-firstColumn {
+	display: flex;
+	align-items: center;
+}
+
+.spicetify-settings-page .x-settings-secondColumn {
+	display: flex;
+	position: relative;
+	align-items: center;
+	justify-content: flex-end;
 }
 
 .spicetify-root-children,

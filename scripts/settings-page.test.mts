@@ -26,7 +26,10 @@ describe("standalone Spicetify Settings", () => {
 		assert.match(classes, /encore-text-title-medium/);
 		assert.match(classes, /encore-text-body-medium-bold/);
 		assert.match(classes, /encore-text-body-small/);
-		assert.doesNotMatch(styles, /\.spicetify-settings-page[^}]*1200px/s);
+		assert.match(styles, /\.spicetify-settings-page\.x-settings-container\s*\{[^}]*max-width:\s*900px/s);
+		assert.match(styles, /\.spicetify-settings-page\.x-settings-container\s*\{[^}]*padding:\s*32px/s);
+		assert.match(styles, /\.spicetify-settings-page\s+\.x-settings-row\s*\{[^}]*grid-template-columns:\s*2fr 1fr/s);
+		assert.match(styles, /\.spicetify-settings-page\s+\.x-settings-section\s*\{[^}]*gap:\s*8px/s);
 	});
 
 	it("renders ordinary settings before footer actions", () => {
