@@ -14,8 +14,11 @@ import { describe, it } from "node:test";
 import {
 	captureInlineStyles,
 	floatingSearchLayout,
+	mirrorRailButton,
 	navlinkRailLayout,
+	railTooltipPosition,
 	relocateElement,
+	removeStaleRailMirrors,
 	restoreInlineStyles,
 	SEARCH_HOST_CLASS,
 	SEARCH_HOST_OPEN_CLASS,
@@ -119,6 +122,111 @@ describe("dribbblish frame", () => {
 			css,
 			/#dribbblish-navlinks-rail[^{}]*(?::hover|\[aria-expanded)[^{}]*\{[^}]*background(?:-color)?\s*:/s,
 		);
+	});
+
+	it("mirrors registered buttons without their React tooltip handlers", async () => {
+		const parent = document.createElement("div");
+		const source = document.createElement("button");
+		source.className = "main-globalNav-navLink";
+		source.id = "react-owned-button";
+		source.setAttribute("aria-label", "Module Store");
+		source.innerHTML = '<svg data-icon="outline"></svg>';
+		let clicks = 0;
+		source.addEventListener("click", () => clicks++);
+		parent.append(source);
+
+		const mirror = mirrorRailButton(source);
+		assert.equal(source.hasAttribute("data-dribbblish-rail-source"), true);
+		assert.equal(source.style.getPropertyValue("display"), "none");
+		assert.equal(source.style.getPropertyPriority("display"), "important");
+		assert.equal(mirror.button.classList.contains("dribbblish-rail-button"), true);
+		assert.equal(mirror.button.getAttribute("aria-label"), "Module Store");
+		assert.equal(mirror.button.hasAttribute("id"), false);
+		mirror.button.click();
+		assert.equal(clicks, 1);
+
+		source.classList.add("main-globalNav-navLinkActive");
+		source.disabled = true;
+		source.innerHTML = '<svg data-icon="filled"></svg>';
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		assert.equal(mirror.button.classList.contains("main-globalNav-navLinkActive"), true);
+		assert.equal(mirror.button.disabled, true);
+		assert.equal(mirror.button.querySelector("svg")?.getAttribute("data-icon"), "filled");
+
+		mirror.button.dispatchEvent(new Event("pointerenter"));
+		const tooltip = document.querySelector<HTMLElement>(".dribbblish-rail-tooltip");
+		assert.equal(tooltip?.textContent, "Module Store");
+		assert.equal(mirror.button.getAttribute("aria-describedby"), tooltip?.id);
+		assert.equal(tooltip?.hasAttribute("data-visible"), true);
+		mirror.button.dispatchEvent(new Event("pointerleave"));
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		tooltip?.dispatchEvent(new Event("pointerenter"));
+		await new Promise((resolve) => setTimeout(resolve, 180));
+		assert.equal(tooltip?.hasAttribute("data-visible"), true);
+		tooltip?.dispatchEvent(new Event("pointerleave"));
+		await new Promise((resolve) => setTimeout(resolve, 310));
+		assert.equal(tooltip?.hasAttribute("data-visible"), false);
+		mirror.button.disabled = false;
+		mirror.button.dispatchEvent(new Event("focus"));
+		assert.equal(tooltip?.hasAttribute("data-visible"), true);
+		mirror.button.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+		assert.equal(tooltip?.hasAttribute("data-visible"), false);
+
+		mirror.dispose();
+		assert.equal(source.hasAttribute("data-dribbblish-rail-source"), false);
+		assert.equal(source.style.display, "");
+		assert.equal(mirror.button.isConnected, false);
+		assert.equal(tooltip?.isConnected, false);
+		parent.remove();
+	});
+
+	it("positions rail tooltips beside compact actions and below expanded ones", () => {
+		const button = { bottom: 58, height: 48, left: 10, right: 58, top: 10, width: 48 };
+		const tooltip = { height: 34, width: 104 };
+		assert.deepEqual(railTooltipPosition(button, tooltip, { height: 300, width: 500 }, false), {
+			left: 66,
+			top: 17,
+		});
+		assert.deepEqual(railTooltipPosition(button, tooltip, { height: 300, width: 500 }, true), {
+			left: 8,
+			top: 66,
+		});
+	});
+
+	it("keeps rail tooltips on screen at compact and expanded edges", () => {
+		const button = { bottom: 292, height: 48, left: 444, right: 492, top: 244, width: 48 };
+		const tooltip = { height: 34, width: 104 };
+		assert.deepEqual(railTooltipPosition(button, tooltip, { height: 300, width: 500 }, false), {
+			left: 332,
+			top: 251,
+		});
+		assert.deepEqual(railTooltipPosition(button, tooltip, { height: 300, width: 500 }, true), {
+			left: 388,
+			top: 202,
+		});
+	});
+
+	it("removes leaked mirrors before a hot-reloaded rail rebinds", () => {
+		const root = document.createElement("div");
+		const source = document.createElement("button");
+		source.setAttribute("data-dribbblish-rail-source-display", "inline-flex");
+		source.setAttribute("data-dribbblish-rail-source-display-priority", "important");
+		source.setAttribute("data-dribbblish-rail-source", "");
+		source.style.setProperty("display", "none", "important");
+		const stale = document.createElement("button");
+		stale.className = "dribbblish-rail-button";
+		const staleTooltip = document.createElement("div");
+		staleTooltip.className = "dribbblish-rail-tooltip";
+		document.body.append(staleTooltip);
+		root.append(source, stale);
+
+		removeStaleRailMirrors(root);
+		assert.deepEqual([...root.children], [source]);
+		assert.equal(source.hasAttribute("data-dribbblish-rail-source"), false);
+		assert.equal(source.hasAttribute("data-dribbblish-rail-source-display"), false);
+		assert.equal(source.style.display, "inline-flex");
+		assert.equal(source.style.getPropertyPriority("display"), "important");
+		assert.equal(staleTooltip.isConnected, false);
 	});
 
 	it("rebinds floating search when Spotify replaces its React-owned host", () => {

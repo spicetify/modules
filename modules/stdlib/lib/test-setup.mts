@@ -31,6 +31,7 @@ const globals = [
 	"MouseEvent",
 	"InputEvent",
 	"KeyboardEvent",
+	"MutationObserver",
 	// Modules that read persisted settings at import time need these, and
 	// Node ships no global storage of its own.
 	"localStorage",

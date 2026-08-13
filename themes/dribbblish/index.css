@@ -132,6 +132,38 @@ html.spicetify-themed .Root__top-container {
 	color: var(--spice-sidebar-text) !important;
 }
 
+#dribbblish-navlinks-rail [data-dribbblish-rail-source] {
+	display: none !important;
+}
+
+#dribbblish-navlinks-rail .dribbblish-rail-button {
+	position: relative;
+}
+
+.dribbblish-rail-tooltip {
+	position: fixed;
+	z-index: 1000;
+	width: max-content;
+	max-width: 220px;
+	padding: 7px 10px;
+	border-radius: 4px;
+	color: var(--spice-text);
+	background: var(--spice-main);
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 20px;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+.dribbblish-rail-tooltip[data-visible] {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+
 #dribbblish-navlinks-rail .dribbblish-native-navlink > button {
 	width: 48px;
 	height: 48px;

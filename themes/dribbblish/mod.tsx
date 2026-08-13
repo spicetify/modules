@@ -16,8 +16,10 @@ import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import {
 	captureInlineStyles,
 	floatingSearchLayout,
+	mirrorRailButton,
 	navlinkRailLayout,
 	relocateElement,
+	removeStaleRailMirrors,
 	restoreInlineStyles,
 	SEARCH_HOST_CLASS,
 	SEARCH_HOST_OPEN_CLASS,
@@ -111,6 +113,25 @@ export default async function (ctx: ModuleRuntimeContext) {
 		rail.id = "dribbblish-navlinks-rail";
 		topContainer.append(rail);
 		const restoreNavlinks = relocateElement(navlinks, rail);
+		removeStaleRailMirrors(navlinks);
+		const mirroredButtons = new Map<HTMLButtonElement, ReturnType<typeof mirrorRailButton>>();
+		const syncMirroredButtons = () => {
+			for (const [source, mirror] of mirroredButtons) {
+				if (source.isConnected) continue;
+				mirror.dispose();
+				mirroredButtons.delete(source);
+			}
+			for (const source of navlinks.querySelectorAll<HTMLButtonElement>(".inline-flex > button")) {
+				if (
+					source.closest(".dribbblish-native-navlink") ||
+					source.classList.contains("dribbblish-rail-button") ||
+					source.hasAttribute("data-dribbblish-rail-source")
+				)
+					continue;
+				mirroredButtons.set(source, mirrorRailButton(source));
+			}
+		};
+		syncMirroredButtons();
 
 		let searchButton: HTMLButtonElement | undefined;
 		let closeSearch: (() => void) | undefined;
@@ -242,7 +263,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 
 		const syncRailLayout = () => {
-			const count = rail.querySelectorAll("button").length;
+			syncMirroredButtons();
+			const count = rail.querySelectorAll("button:not([data-dribbblish-rail-source])").length;
 			const { expanded, reserve } = navlinkRailLayout(rail.clientWidth, count);
 			rail.classList.toggle("dribbblish-navlinks-rail--expanded", expanded);
 			topContainer.style.setProperty("--dribbblish-navlinks-reserve", `${reserve}px`);
@@ -260,6 +282,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 			topContainer.style.removeProperty("--dribbblish-navlinks-reserve");
 			closeSearch?.();
 			removeSearchListeners?.();
+			for (const mirror of mirroredButtons.values()) mirror.dispose();
+			mirroredButtons.clear();
 			navlinks.querySelectorAll(".dribbblish-native-navlink").forEach((item) => item.remove());
 			restoreNavlinks();
 			rail.remove();
