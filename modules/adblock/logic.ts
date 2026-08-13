@@ -4,9 +4,9 @@
  *
  * Ported from veryboringhwl's `adblock` module (MIT). His version drives
  * Spotify's Esperanto ad services, located by scanning webpack exports for a
- * SERVICE_ID. This client exposes the same surfaces directly on
- * `Platform.AdManagers`, so the port targets those instead of reintroducing a
- * scanner.
+ * SERVICE_ID. Manager-owned surfaces remain directly accessible through
+ * `Platform.AdManagers`; inventory settings require the targeted lookup in
+ * `slots.ts`.
  */
 
 // Where each ad surface's disable actually lives. Some managers expose it
@@ -34,6 +34,9 @@ export const AD_MANAGERS = [
 // resolve empty is what stops them; the client renders no card for an empty
 // result and the leftover container collapses to zero height.
 export const AD_FETCHERS = [{ path: "home", method: "fetchHomeAd" }] as const;
+
+export { AD_SLOT_IDS, blockAdSlots, createAdSettingsClient, findWebpackServiceConstructor } from "./slots.ts";
+export type { AdSlotConnector, AdSlotSettingsClient } from "./slots.ts";
 
 /**
  * Replaces `method` on `manager` with one that resolves empty, returning a
@@ -127,8 +130,8 @@ export function isAdItem(item: PlayerItem | undefined | null): boolean {
 /**
  * Skips the ad currently playing, reporting whether the client accepted it.
  *
- * `Player.next()` is refused during an ad; the ads connector's own override is
- * the one call that moves past it.
+ * `Player.next()` is refused during an ad. Older clients exposed an ads
+ * connector override, while current clients rely on preventive slot blocking.
  */
 export async function skipAd(connector: CoreConnector | undefined): Promise<boolean> {
 	if (typeof connector?.skipToNextWithOverride !== "function") return false;
@@ -157,14 +160,15 @@ export async function skipAd(connector: CoreConnector | undefined): Promise<bool
  * CSS that hides ad surfaces already on screen.
  *
  * Disabling a manager stops the next ad; it does not tear down one the client
- * has already rendered. Both blocks carry a `data-testid`, which is stable
- * across builds where the class names beside them are hashed.
+ * has already rendered. Prefer semantic test ids and the locale-independent
+ * player state class over hashed client class names and translated labels.
  */
 export const AD_SURFACE_CSS = `
 	[data-testid="embedded-ad"],
 	[data-testid="ad-companion-card"],
 	[data-testid="hpto-container"],
 	[data-testid="home-ads-container"],
+	html.spicetify-adblock-ad-playing .main-nowPlayingView-mainWrapper,
 	.main-leaderboardComponent-container {
 		display: none !important;
 	}

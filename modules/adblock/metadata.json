@@ -1,9 +1,9 @@
 {
 	"name": "adblock",
 	"kind": "extension",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"authors": ["spicetify", "rxri", "veryboringhwl"],
-	"description": "Skips audio ads and hides ad and upsell surfaces. Toggle in Settings.",
+	"description": "Blocks audio ads and hides ad and upsell surfaces. Toggle in Settings.",
 	"entries": {
 		"js": "index.js"
 	},

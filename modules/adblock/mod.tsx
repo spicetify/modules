@@ -12,6 +12,8 @@ import {
 	AD_FETCHERS,
 	AD_MANAGERS,
 	AD_SURFACE_CSS,
+	blockAdSlots,
+	createAdSettingsClient,
 	disableManager,
 	enableManager,
 	injectStyle,
@@ -27,6 +29,7 @@ const STORAGE_KEY = "adblock:enabled";
 const UPSELL_KEY = "adblock:hideUpsells";
 const UPSELL_STYLE_ID = "spicetify-adblock-upsells";
 const AD_STYLE_ID = "spicetify-adblock-surfaces";
+const AD_PLAYING_CLASS = "spicetify-adblock-ad-playing";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
@@ -45,6 +48,33 @@ export default async function (ctx: ModuleRuntimeContext) {
 	let onSongChange: ((event: unknown) => void) | null = null;
 
 	let removeAdStyle: (() => void) | null = null;
+	let restoreAdSlots: (() => Promise<void>) | null = null;
+	let adSlotTransition = Promise.resolve();
+
+	const setAdSlotBlocking = (value: boolean): Promise<void> => {
+		adSlotTransition = adSlotTransition
+			.then(async () => {
+				if (restoreAdSlots) {
+					const restore = restoreAdSlots;
+					restoreAdSlots = null;
+					await restore();
+				}
+				if (!value) return;
+
+				const connector = managers().audio?.inStreamApi?.adsCoreConnector;
+				const settings = createAdSettingsClient(
+					globalThis.__webpack_require__ as Parameters<typeof createAdSettingsClient>[0],
+					client.platform as Parameters<typeof createAdSettingsClient>[1],
+				);
+				if (!connector || !settings) {
+					console.warn("[adblock] ad-slot services are unavailable in this Spotify build");
+					return;
+				}
+				restoreAdSlots = await blockAdSlots(connector, settings);
+			})
+			.catch((error) => console.warn("[adblock] ad-slot transition failed", error));
+		return adSlotTransition;
+	};
 
 	const applyBlocking = () => {
 		for (const path of AD_MANAGERS) {
@@ -59,23 +89,27 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 		}
 		removeAdStyle ??= injectStyle(AD_STYLE_ID, AD_SURFACE_CSS);
+		void setAdSlotBlocking(true);
 	};
 
-	const restore = () => {
+	const restore = async () => {
 		stopSkipping();
 		removeAdStyle?.();
 		removeAdStyle = null;
+		await setAdSlotBlocking(false);
+		if (enabled) return;
 		for (const path of disabled) enableManager(resolveManager(managers(), path) as never);
 		disabled = [];
 		for (const restorer of unstub) restorer();
 		unstub = [];
 	};
 
-	// Ads play as ordinary queue items, so the only thing that stops one is
-	// moving past it as soon as it starts.
+	// Older clients still expose an override skip. Keep it as a fallback while
+	// current clients are protected before inventory reaches the player.
 	const skipIfAd = () => {
-		if (!enabled) return;
-		if (!isAdItem(client.player?.data?.item)) return;
+		const adPlaying = enabled && isAdItem(client.player?.data?.item);
+		document.documentElement.classList.toggle(AD_PLAYING_CLASS, adPlaying);
+		if (!adPlaying) return;
 		void skipAd(managers().audio?.inStreamApi?.adsCoreConnector);
 	};
 
@@ -89,6 +123,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const stopSkipping = () => {
 		if (onSongChange) client.player?.removeEventListener?.("songchange", onSongChange);
 		onSongChange = null;
+		document.documentElement.classList.remove(AD_PLAYING_CLASS);
 	};
 
 	// Upsell chrome is remote-config gated rather than manager-owned. A failure
@@ -136,7 +171,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 					startSkipping();
 					void applyRemoteConfig();
 				} else {
-					restore();
+					void restore();
 				}
 			}}
 		/>,
@@ -155,8 +190,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 		/>,
 	);
 
-	ctx.defer(() => {
-		restore();
+	ctx.defer(async () => {
+		enabled = false;
+		await restore();
 		removeUpsellStyle?.();
 		removeUpsellStyle = null;
 	});
