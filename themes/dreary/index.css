@@ -582,9 +582,6 @@ div.main-cardImage-imageWrapper.main-cardImage-roundedCorners > div > div > svg 
 	margin: 0px;
 	position: absolute;
 }
-.Root__nav-bar {
-	min-width: 281px !important;
-}
 .playback-bar__progress-time-elapsed {
 	display: none !important;
 }

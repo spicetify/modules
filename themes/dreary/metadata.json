@@ -1,7 +1,7 @@
 {
 	"name": "dreary",
 	"kind": "theme",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"authors": ["SaltNuggets"],
 	"description": "Muted, moody palettes with six schemes",
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dreary.png",
