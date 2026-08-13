@@ -64,7 +64,7 @@ mountRegistryAnchor({
 type TopbarLeftButtonProps = {
 	label: string;
 	disabled?: boolean;
-	onClick: () => void;
+	onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
 	icon?: string;
 	/** Position within the module-button group; lower renders earlier. Read by the mount sorter. */
 	order?: number;

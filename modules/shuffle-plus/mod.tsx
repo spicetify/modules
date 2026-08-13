@@ -9,7 +9,7 @@
  * <style> tag moves into index.scss (scoped under .shuffle-plus-settings).
  */
 
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import type { ButtonHandle, ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import { Select, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
 
@@ -20,7 +20,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const { useState } = React;
 	const { Type } = client.uri;
 
-	let playbarButton: any = null;
+	let playbarButton: ButtonHandle | null = null;
 
 	function getConfig(): any {
 		const parsed = parseStoredConfig(client.storage.get("shufflePlus:settings"));
@@ -174,20 +174,16 @@ export default async function (ctx: ModuleRuntimeContext) {
 	contextMenuItems.forEach((item) => item.register());
 
 	function renderQueuePlaybarButton() {
-		if (!playbarButton) {
-			playbarButton = new client.playbar.Button(
-				"Shuffle+ Queue Tracks",
-				"enhance",
-				async () => {
-					await fetchAndPlay("queue");
-				},
-				false,
-				false,
-			);
+		if (CONFIG.enableQueueButton && !playbarButton) {
+			playbarButton = registrar.placeButton("playbar", {
+				label: "Shuffle+ Queue Tracks",
+				icon: client.icons.enhance,
+				onClick: () => void fetchAndPlay("queue"),
+			});
+		} else if (!CONFIG.enableQueueButton && playbarButton) {
+			playbarButton.remove();
+			playbarButton = null;
 		}
-
-		if (CONFIG.enableQueueButton) playbarButton.register();
-		else playbarButton.deregister();
 	}
 	renderQueuePlaybarButton();
 
@@ -519,6 +515,5 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// ----- teardown -----
 	ctx.defer(() => {
 		contextMenuItems.forEach((item) => item.deregister());
-		playbarButton?.deregister();
 	});
 }

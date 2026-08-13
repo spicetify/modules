@@ -168,6 +168,10 @@ for you on unload.
 For top-bar and playbar buttons, prefer `registrar.placeButton(location, options)`
 over the raw button registers above: it adds ordering and native anchoring in one
 call. See the [authoring guide](./authoring-guide.md#4-buttons-use-placebutton).
+Use the raw registrar entry only when a React component owns changing state or
+needs a more specialized lifecycle. First-party modules must not use the legacy
+`Spicetify.Playbar.Button` or `Spicetify.Topbar.Button` constructors; stdlib
+retains them solely as a migration bridge for third-party v2 extensions.
 
 Themes are a special case: a **css-only module** (a `color.ini` plus `user.css`
 as the css entry). The loader parses `[Section]`s into switchable schemes and

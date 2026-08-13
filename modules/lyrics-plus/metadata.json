@@ -1,7 +1,7 @@
 {
 	"name": "lyrics-plus",
 	"kind": "app",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"authors": ["spicetify"],
 	"description": "Full-featured lyrics: synced, karaoke, unsynced and translated, from Musixmatch, Spotify, LRCLIB, Netease and Genius.",
 	"entries": {
@@ -10,7 +10,7 @@
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.0.0"
+		"stdlib": "^1.5.2"
 	},
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
 }

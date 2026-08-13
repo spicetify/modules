@@ -67,6 +67,13 @@ picking a register key. It gives you ordering (`order`) and native anchoring
 (`near: { anchor: "playbar:lyrics" }`) so your control sits where the user
 would expect rather than wherever insertion order happened to put it.
 
+Every first-party button must still be owned by a registrar. A stateful button
+may use `registrar.register("playbarButton", <MyButton />)` instead of
+`placeButton`, but it must not instantiate the legacy `Spicetify.Playbar.Button`
+or `Spicetify.Topbar.Button` APIs and manually manage registration. Those
+compatibility surfaces exist for v2 extensions; the registrar is what
+guarantees v3 unload cleanup.
+
 ---
 
 ## Degrade, never destroy

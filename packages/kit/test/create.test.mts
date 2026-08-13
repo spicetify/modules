@@ -93,6 +93,14 @@ test("JavaScript scaffolds use the stdlib client capability boundary", async () 
 	}
 });
 
+test("basic scaffold places its topbar button through the registrar helper", async () => {
+	const root = freshRoot();
+	await runCreate(["demo-button", "--template", "basic"], root);
+	const source = readFileSync(path.join(root, "demo-button", "mod.tsx"), "utf8");
+	assert.match(source, /registrar\.placeButton\("topbar-right"/);
+	assert.doesNotMatch(source, /TopbarRightButton|registrar\.register\(\s*"topbarRightButton"/);
+});
+
 test("theme template: passes checkModule with zero findings (css-only skip)", async () => {
 	const root = freshRoot();
 	await runCreate(["demo-theme", "--template", "theme"], root);

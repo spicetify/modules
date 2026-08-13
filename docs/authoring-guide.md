@@ -100,6 +100,10 @@ Options:
 It returns a handle with `remove()`; the button is also removed automatically
 when the module unloads.
 
+`onClick` receives the native React mouse event. Use `event.currentTarget` when
+an overlay needs to be positioned from the button's bounds; this avoids keeping
+a manually registered legacy button solely to obtain its DOM element.
+
 **Native anchoring.** `near` sits the button next to one of the client's own
 buttons instead of in the module-button group:
 

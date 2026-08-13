@@ -5,20 +5,15 @@
  * Ported to the v3 module standard from the classic "Loopy loop" extension by
  * khanhas. Right click on the progress bar to set song start/end markers and
  * section skips; all points persist per song across sessions. The client's
- * v2-compatible Player events, LocalStorage, Playbar.Button and showNotification
- * helpers still work in v3, so the logic is kept near-verbatim; only the injected
- * <style> tag moved into index.scss and all teardown routes through ctx.defer.
+ * v2-compatible Player events, LocalStorage and showNotification helpers still
+ * work in v3, so the logic is kept near-verbatim. The playbar control mounts
+ * through the registrar and all teardown routes through the module lifecycle.
  */
 
-import { client, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { findActiveZone, moveEnd, moveStart, moveZoneEdge, parseStoredState, restartThresholds } from "./logic.ts";
 
 import type { SkipZone } from "./logic.ts";
-
-interface PlaybarButtonHandle {
-	element: HTMLElement;
-	deregister(): void;
-}
 
 export default async function (ctx: ModuleRuntimeContext) {
 	let disposed = false;
@@ -595,17 +590,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 	tryLoadInitialState(10);
 
 	// Toolbar button
-	let toolbarBtn: PlaybarButtonHandle | null = null;
-	try {
-		const markerIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" height="16" width="16"><rect x="1" y="7" width="14" height="2" rx="1"/><rect x="3" y="3" width="2" height="10" rx="1"/><rect x="11" y="3" width="2" height="10" rx="1"/><rect x="6" y="5" width="1.5" height="6" rx="0.75"/><rect x="8.5" y="5" width="1.5" height="6" rx="0.75"/></svg>`;
-		toolbarBtn = new client.playbar.Button("Loopy Loop", markerIcon, (self) => {
+	const registrar = createRegistrar(ctx);
+	const markerIcon = `<rect x="1" y="7" width="14" height="2" rx="1"/><rect x="3" y="3" width="2" height="10" rx="1"/><rect x="11" y="3" width="2" height="10" rx="1"/><rect x="6" y="5" width="1.5" height="6" rx="0.75"/><rect x="8.5" y="5" width="1.5" height="6" rx="0.75"/>`;
+	registrar.placeButton("playbar", {
+		label: "Loopy Loop",
+		icon: markerIcon,
+		onClick: (event) => {
+			event.stopPropagation();
 			mouseOnBarPercent = client.player.getProgressPercent();
 			setupActiveMarker(null, -1);
-			const rect = self.element.getBoundingClientRect();
+			const rect = event.currentTarget.getBoundingClientRect();
 			openContextMenu(rect.left, rect.top);
-		});
-		toolbarBtn.element.addEventListener("click", (e: MouseEvent) => e.stopPropagation());
-	} catch (_) {}
+		},
+	});
 
 	// ----- teardown -----
 	cleanups.push(() => {
@@ -614,7 +611,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		window.removeEventListener("click", onWindowClick);
 		document.removeEventListener("contextmenu", onContextMenu, true);
 		cancelMoveHide();
-		toolbarBtn?.deregister?.();
 		startMark.remove();
 		endMark.remove();
 		contextMenu.remove();

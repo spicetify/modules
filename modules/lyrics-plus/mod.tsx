@@ -18,6 +18,7 @@
 import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
+import { PlaybarButton } from "/modules/stdlib/src/registers/playbarButton.tsx";
 
 import {
 	APP_NAME,
@@ -37,6 +38,8 @@ import { createProviders } from "./providers/index.ts";
 import { AdjustmentsMenu, TranslationMenu } from "./options-menu.tsx";
 import { TopBarContent } from "./tab-bar.tsx";
 import { openConfig } from "./settings.tsx";
+import { lyricsReplacementReady, mountLyricsPlaybarStyleWhenReady, watchLyricsHistory } from "./playbar-lifecycle.ts";
+import type { LyricsHistory } from "./playbar-lifecycle.ts";
 import {
 	emptyLine,
 	GeniusPage,
@@ -1537,71 +1540,45 @@ class LyricsContainer extends react.Component {
 }
 
 // ============================================================================
-// PlaybarButton.js (adapted) — classic IIFE turned into a ctx-scoped function
+// PlaybarButton.js (adapted) — v3 registrar-owned React control
 // ============================================================================
 
-function initPlaybarButton(ctx: ModuleRuntimeContext) {
-	if (!Spicetify.Platform?.History) {
-		const retry = window.setTimeout(() => initPlaybarButton(ctx), 300);
-		ctx.defer(() => window.clearTimeout(retry));
-		return;
-	}
+const PLAYBAR_ICON = `<path d="M13.426 2.574a2.831 2.831 0 0 0-4.797 1.55l3.247 3.247a2.831 2.831 0 0 0 1.55-4.797zM10.5 8.118l-2.619-2.62A63303.13 63303.13 0 0 0 4.74 9.075L2.065 12.12a1.287 1.287 0 0 0 1.816 1.816l3.06-2.688 3.56-3.129zM7.12 4.094a4.331 4.331 0 1 1 4.786 4.786l-3.974 3.493-3.06 2.689a2.787 2.787 0 0 1-3.933-3.933l2.676-3.045 3.505-3.99z"></path>`;
 
-	const button = new Spicetify.Playbar.Button(
-		"Lyrics Plus",
-		`<svg role="img" height="16" width="16" aria-hidden="true" viewBox="0 0 16 16" data-encore-id="icon" fill="currentColor"><path d="M13.426 2.574a2.831 2.831 0 0 0-4.797 1.55l3.247 3.247a2.831 2.831 0 0 0 1.55-4.797zM10.5 8.118l-2.619-2.62A63303.13 63303.13 0 0 0 4.74 9.075L2.065 12.12a1.287 1.287 0 0 0 1.816 1.816l3.06-2.688 3.56-3.129zM7.12 4.094a4.331 4.331 0 1 1 4.786 4.786l-3.974 3.493-3.06 2.689a2.787 2.787 0 0 1-3.933-3.933l2.676-3.045 3.505-3.99z"></path></svg>`,
+function LyricsPlusPlaybarButton() {
+	const [history, setHistory] = react.useState<LyricsHistory | null>(null);
+	const [visible, setVisible] = react.useState(
+		Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true",
+	);
+	const [active, setActive] = react.useState(false);
+
+	react.useEffect(
 		() =>
-			Spicetify.Platform.History.location.pathname !== "/lyrics-plus"
-				? Spicetify.Platform.History.push("/lyrics-plus")
-				: Spicetify.Platform.History.goBack(),
-		false,
-		Spicetify.Platform.History.location.pathname === "/lyrics-plus",
-		false,
+			watchLyricsHistory(
+				() => Spicetify.Platform?.History,
+				setHistory,
+				(pathname) => setActive(pathname === ROUTE),
+			),
+		[],
 	);
 
-	const style = document.createElement("style");
-	style.innerHTML = `
-		.main-nowPlayingBar-lyricsButton[data-testid="lyrics-button"] {
-			display: none !important;
-		}
-		li[data-id="/lyrics-plus"] {
-			display: none;
-		}
-	`;
-	style.classList.add("lyrics-plus:visual:playbar-button");
+	react.useEffect(() => {
+		const onToggle = (event: any) => {
+			if (event.detail?.name === "playbar-button") setVisible(Boolean(event.detail.value));
+		};
+		window.addEventListener("lyrics-plus", onToggle);
+		return () => window.removeEventListener("lyrics-plus", onToggle);
+	}, []);
 
-	let registered = false;
-	const setPlaybarButton = () => {
-		if (registered) return;
-		document.head.appendChild(style);
-		button.register();
-		registered = true;
-	};
-	const removePlaybarButton = () => {
-		if (!registered) return;
-		style.remove();
-		button.deregister();
-		registered = false;
-	};
+	const ready = lyricsReplacementReady(visible, history);
+	react.useEffect(() => mountLyricsPlaybarStyleWhenReady(document, ROUTE, visible, history), [visible, history]);
 
-	if (Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true") setPlaybarButton();
-
-	const onToggle = (event: any) => {
-		if (event.detail?.name === "playbar-button") {
-			if (event.detail.value) setPlaybarButton();
-			else removePlaybarButton();
-		}
-	};
-	window.addEventListener("lyrics-plus", onToggle);
-
-	const unlisten = Spicetify.Platform.History.listen((location: any) => {
-		button.active = location.pathname === "/lyrics-plus";
-	});
-
-	ctx.defer(() => {
-		removePlaybarButton();
-		window.removeEventListener("lyrics-plus", onToggle);
-		if (typeof unlisten === "function") unlisten();
+	if (!ready) return null;
+	return react.createElement(PlaybarButton, {
+		label: "Lyrics Plus",
+		icon: PLAYBAR_ICON,
+		isActive: active,
+		onClick: () => (history.location.pathname !== ROUTE ? history.push(ROUTE) : history.goBack()),
 	});
 }
 
@@ -1616,5 +1593,5 @@ export default function (ctx: ModuleRuntimeContext) {
 		react.createElement(NavLink, { localizedApp: "Lyrics", appRoutePath: ROUTE, icon: ICON, activeIcon: ICON }),
 	);
 	registrar.registerRoute(ROUTE, react.createElement(LyricsContainer));
-	initPlaybarButton(ctx);
+	registrar.register("playbarButton", react.createElement(LyricsPlusPlaybarButton));
 }

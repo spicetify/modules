@@ -116,7 +116,6 @@ import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
-import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
 import { nowPlaying } from "./logic.ts";
 
 const ROUTE = "${route}";
@@ -133,10 +132,11 @@ const Page = () => (
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
 
-	registrar.register(
-		"topbarRightButton",
-		<TopbarRightButton label="${name}" icon={ICON} onClick={() => Platform.getHistory().push(ROUTE)} />,
-	);
+	registrar.placeButton("topbar-right", {
+		label: "${name}",
+		icon: ICON,
+		onClick: () => Platform.getHistory().push(ROUTE),
+	});
 	registrar.registerRoute(ROUTE, <Page />);
 }
 `;

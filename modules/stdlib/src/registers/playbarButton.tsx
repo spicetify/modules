@@ -63,7 +63,7 @@ export type PlaybarButtonProps = {
 	isActiveNoIndicator?: boolean;
 	disabled?: boolean;
 	icon?: string;
-	onClick: () => void;
+	onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
 	/** Position within the module-button group; lower renders earlier. Read by the mount sorter. */
 	order?: number;
 };

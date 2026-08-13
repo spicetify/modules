@@ -1,7 +1,7 @@
 {
 	"name": "shuffle-plus",
 	"kind": "extension",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"authors": ["spicetify"],
 	"description": "True Fisher-Yates shuffle of any context or queue, with context-menu entries to play playlists, albums, artists and more shuffled without bias.",
 	"entries": {
@@ -10,7 +10,7 @@
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.5.0"
+		"stdlib": "^1.5.2"
 	},
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shuffle-plus.png"
 }

@@ -52,7 +52,7 @@ export interface PlaceButtonOptions {
 	label: string;
 	/** Inner SVG markup drawn on the stdlib 16-grid. */
 	icon?: string;
-	onClick: () => void;
+	onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
 	disabled?: boolean;
 	/** Position within this slot's module buttons; lower renders earlier. Default 0. */
 	order?: number;
