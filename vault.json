@@ -656,6 +656,14 @@
 					"providers": [],
 					"checksum": "sha256:ad0c9c175a0ca4a84bf94ed34f1ea4f65f5856521429c0a5c078e0cba7a7ca6e",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.8": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/lyrics-plus@0.1.8/lyrics-plus@0.1.8.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:43f891a49ea52fa81e9e7765a25378c08ef488877803f38a294d6af40b8ea95c",
+					"updatedAt": "2026-08-13"
 				}
 			},
 			"metadata": {
@@ -667,7 +675,8 @@
 					}
 				],
 				"kind": "app",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/lyrics-plus.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"manager": {
