@@ -121,6 +121,12 @@ describe("UPSELL_CSS", () => {
 	it("hides the row as well as the link so no blank menu entry is left", () => {
 		assert.match(UPSELL_CSS, /li:has\(> a\[href\*="\/premium"\]\)/);
 	});
+
+	it("hides Quicksilver in-app messages together with their modal overlay", () => {
+		assert.match(UPSELL_CSS, /\[data-testid="inAppMessageContainer"\]/);
+		assert.match(UPSELL_CSS, /\[data-testid="inAppMessageIframe"\]/);
+		assert.match(UPSELL_CSS, /\[role="presentation"\]:has\(\[data-testid="inAppMessageContainer"\]\)/);
+	});
 });
 
 describe("injectStyle", () => {

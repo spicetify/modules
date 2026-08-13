@@ -178,7 +178,11 @@ export const UPSELL_CSS = `
 	a[href*="/premium"],
 	li:has(> a[href*="/premium"]),
 	.main-topBar-UpgradeButton,
-	[data-testid="upgrade-button"] {
+	[data-testid="upgrade-button"],
+	[role="presentation"]:has([data-testid="inAppMessageContainer"]),
+	[role="dialog"]:has([data-testid="inAppMessageContainer"]),
+	[data-testid="inAppMessageContainer"],
+	[data-testid="inAppMessageIframe"] {
 		display: none !important;
 	}
 `;
