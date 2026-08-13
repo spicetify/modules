@@ -17,8 +17,8 @@
  * contributes nothing and the client keeps its stock look.
  *
  * See docs/theming-the-client.md for how these were found and what is
- * deliberately not here (alpha masks and over-media scrims are the
- * client's own and correct on any theme).
+ * deliberately not here (contrast scrims over artwork and video remain the
+ * client's own and are correct on any theme).
  */
 
 html.spicetify-themed {
@@ -151,6 +151,29 @@ html.spicetify-themed {
 		color: var(--spice-text);
 	}
 
+	/* Spotify bakes its stock #121212 surface into the metadata fade at the
+	   top of the expanded Now Playing panel. Keep the fade, but let it blend
+	   into the surface selected by the active theme. */
+	.main-nowPlayingView-contextItemInfo::before {
+		background-image: linear-gradient(
+			rgba(var(--spice-rgb-main), 0) 0%,
+			rgba(var(--spice-rgb-main), 0.45) 18%,
+			var(--spice-main) 89%,
+			var(--spice-main) 96%
+		);
+	}
+
+	/* When the Now Playing panel is collapsed, hovering its reveal rail makes
+	   the client expose a five-piece rounded gutter. Those pieces are painted
+	   flat black, so make them windows onto the surface the theme actually puts
+	   behind the rail. Transparency is important here: some themes use a
+	   gradient or artwork rather than --spice-main. The adjacent inert panel
+	   identifies this as the collapsed NPV handle without depending on its
+	   generated resize-handle classes. */
+	.Root__right-sidebar :has(> [inert] .main-nowPlayingView-container) > :first-child > * {
+		background-color: transparent;
+	}
+
 	/* The settings page's section wrapper is `color: #fff`, and the heading
 	   and row labels of every registered settings section inherit from it.
 	   Only .x-settings-title resolves through a token, so on a light theme
@@ -169,4 +192,14 @@ html.spicetify-themed {
 	.main-home-filterChipsSectionActive::after {
 		background-color: var(--spice-main) !important;
 	}
+}
+
+/* The shared carousel wrapper already reads these variables, but the client
+   defines both to a translucent #121212 on each shelf. :where() keeps the
+   themed scope specificity-neutral: the default beats the inherited client
+   literal, while a theme such as Text or Matte can still deliberately choose
+   its own edge treatment by source order. */
+:where(html.spicetify-themed) .search-searchCategory-contentArea {
+	--carousel-start-chevron-gradient: rgba(var(--spice-rgb-main), 0.7);
+	--carousel-end-chevron-gradient: rgba(var(--spice-rgb-main), 0.7);
 }
