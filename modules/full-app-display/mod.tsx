@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Ported to the v3 module standard from the classic "Full App Display" extension
- * by khanhas. The client's v2-compatible Topbar, Mousetrap, GraphQL,
+ * by khanhas. The client's v2-compatible Topbar, Mousetrap, PopupModal, GraphQL,
  * Player, History and LocalStorage helpers still work in v3, so the logic is kept
  * near-verbatim. The runtime <style> injection was moved into index.scss, and
- * preferences now render through the shared Spicetify Settings register.
+ * appearance preferences stay in a modal opened from the active overlay.
  */
 
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
@@ -448,6 +448,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 					id: "full-app-display",
 					className: rootClass,
 					onDoubleClick: deactivate,
+					onContextMenu: openConfig,
 				},
 				react.createElement("canvas", {
 					id: "fad-background",
@@ -683,7 +684,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		return react.createElement(
 			SettingsSection,
-			{ title: "Full App Display" },
+			null,
 			setting(
 				lyricsPlusAvailable ? "Lyrics Plus integration" : "Lyrics Plus integration (not installed)",
 				"lyricsPlus",
@@ -706,11 +707,18 @@ export default async function (ctx: ModuleRuntimeContext) {
 		);
 	};
 
+	function openConfig(event: MouseEvent) {
+		event.preventDefault();
+		client.popupModal.display({
+			title: "Full App Display",
+			content: react.createElement(FullAppDisplaySettings),
+		});
+	}
+
 	// Add activator on top bar. placeButton mounts through the stdlib
 	// topbar-right register (the classic wrapper Topbar.Button no longer
 	// mounts in v3's restructured top bar) and is torn down with the module.
 	const registrar = createRegistrar(ctx);
-	registrar.register("settingsSection", react.createElement(FullAppDisplaySettings));
 	// 1.5 round stroke matches the native encore topbar icons (the classic
 	// SVGIcons.projector is a heavier vintage and stands out next to them).
 	registrar.placeButton("topbar-right", {

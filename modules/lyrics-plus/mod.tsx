@@ -38,7 +38,7 @@ import { ProviderGenius } from "./providers/genius.ts";
 import { createProviders } from "./providers/index.ts";
 import { AdjustmentsMenu, TranslationMenu } from "./options-menu.tsx";
 import { TopBarContent } from "./tab-bar.tsx";
-import { LyricsPlusSettings } from "./settings.tsx";
+import { LyricsPlusSettings, openLyricsPlusAppearanceSettings } from "./settings.tsx";
 import { lyricsReplacementReady, mountLyricsPlaybarStyleWhenReady, watchLyricsHistory } from "./playbar-lifecycle.ts";
 import type { LyricsHistory } from "./playbar-lifecycle.ts";
 import {
@@ -52,7 +52,6 @@ import {
 import { ProviderMusixmatch } from "./providers/musixmatch.ts";
 
 const react = Spicetify.React;
-const spotifyVersion = Spicetify.Platform.version;
 
 // Romanization/conversion libraries the Translator injects at runtime via
 // <script> tags (kuroshiro / kuromoji / aromanize / opencc). Declared so the
@@ -72,9 +71,7 @@ const ICON =
 // ============================================================================
 
 // APP_NAME, the mode constants, getConfig and the CONFIG singleton now live
-// in ./config.ts. The genius client-version gate stays here: config.ts must
-// stay loadable without a client so it can be unit-tested.
-if (spotifyVersion >= "1.2.31") CONFIG.providers.genius.on = false;
+// in ./config.ts.
 
 let CACHE = {};
 
@@ -645,7 +642,6 @@ class LyricsContainer extends react.Component {
 		let finalData = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
-			if (spotifyVersion >= "1.2.31" && id === "genius") continue;
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
@@ -1429,6 +1425,33 @@ class LyricsContainer extends react.Component {
 							CONFIG.visual["musixmatch-translation-language"],
 					}),
 				react.createElement(AdjustmentsMenu, { mode, hasPerformer }),
+				react.createElement(
+					Spicetify.ReactComponent.TooltipWrapper,
+					{
+						label: "Lyrics Plus appearance",
+					},
+					react.createElement(
+						"button",
+						{
+							className: "lyrics-config-button",
+							"aria-label": "Lyrics Plus appearance",
+							onClick: openLyricsPlusAppearanceSettings,
+						},
+						react.createElement(
+							"svg",
+							{
+								width: 16,
+								height: 16,
+								viewBox: "0 0 16 16",
+								fill: "none",
+								stroke: "currentColor",
+								strokeWidth: 1.5,
+								strokeLinecap: "round",
+							},
+							react.createElement("path", { d: "M2 4h12M2 8h12M2 12h12M5 2v4M11 6v4M7 10v4" }),
+						),
+					),
+				),
 				react.createElement(
 					Spicetify.ReactComponent.TooltipWrapper,
 					{

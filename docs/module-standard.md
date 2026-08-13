@@ -133,6 +133,13 @@ class itself (that is what keeps you MAP-intact by construction). There are two
 tiers over **one shared class contract** (`lib/primitives-classes.ts`), so the look is
 identical; the choice is purely about reliability.
 
+For settings, the React tier also owns the recurring layouts:
+`SettingsSection`, `SettingsRow`, `SettingsToggleRow`, `SettingsButtonRow`,
+`SettingsTextInputRow`, and `SettingsProviderRow`. First-party modules must use
+these instead of defining parallel row, copy, action-gap, or provider-control
+CSS. Promote a missing shared pattern into stdlib before adding a second local
+implementation.
+
 | Your surface is…                                                                                                                                                        | Use                                                                                            | Because                                                                                                                      |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | A **recovery / infrastructure** tool that must keep working when _other_ modules break — a store, a module manager, anything you would reach for to fix a broken client | **Vanilla kit** — `lib/primitives-vanilla.ts`                                                  | React-free DOM survives a failed React capture or needle drift after a Spotify update, which is the exact moment you need it |
@@ -166,6 +173,17 @@ for you on unload.
 | `settingsSection`                        | A named group on the standalone Spicetify Settings page                                             |
 | `settingsAction`                         | A footer action on Spicetify Settings; reserved for global management navigation                    |
 | `rootChild`                              | A body-level overlay                                                                                |
+
+Use the settings registers for preferences whose meaning is clear outside the
+feature itself. Keep page filters and live presentation controls beside their
+own route or surface, using a feature-owned modal when the control set is too
+large to remain inline. Durable behavior, provider/integration choices,
+credentials, caches, and defaults belong in Spicetify Settings; sorting,
+filtering, layout, and appearance that manipulate the visible feature are
+contextual. A module may use both surfaces, but must not duplicate one control
+across them. Shared infrastructure belongs to a global Spicetify-owned section,
+not to whichever module first needs it. Do not use the account menu as a
+settings drawer.
 
 For top-bar and playbar buttons, prefer `registrar.placeButton(location, options)`
 over the raw button registers above: it adds ordering and native anchoring in one

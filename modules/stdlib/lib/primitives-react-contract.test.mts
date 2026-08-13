@@ -31,6 +31,24 @@ test("Toggle wires native classes, names, changes, and keyboard activation", () 
 	assert.match(source, /className=\{TOGGLE_CLASSES\.indicator\}/);
 });
 
+test("ReorderButtons owns the shared accessible provider ordering contract", () => {
+	assert.match(source, /export const ReorderButtons/);
+	assert.match(source, /<span className=\{SETTINGS_ACTION_GROUP_CLASS\}>/);
+	assert.match(source, /ariaLabel=\{`Move \$\{props\.label\} up`\}/);
+	assert.match(source, /ariaLabel=\{`Move \$\{props\.label\} down`\}/);
+	assert.match(source, /onClick=\{\(\) => props\.onMove\(-1\)\}/);
+	assert.match(source, /onClick=\{\(\) => props\.onMove\(1\)\}/);
+});
+
+test("stdlib owns recurring settings layouts and their spacing", () => {
+	assert.match(source, /export const SettingsLabel/);
+	assert.match(source, /export const SettingsActions/);
+	assert.match(source, /export const SettingsButtonRow/);
+	assert.match(source, /export const SettingsTextInputRow/);
+	assert.match(source, /export const SettingsProviderRow/);
+	assert.match(styles, /\.spicetify-settings-actions\s*\{[^}]*gap:\s*8px/s);
+});
+
 test("the deprecated standalone toggle class remains styled for patch compatibility", () => {
 	assert.match(styles, /\.spicetify-toggle\s*\{/);
 	assert.match(styles, /\.spicetify-toggle:checked\s*\{/);

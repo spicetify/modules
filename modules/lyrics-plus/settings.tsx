@@ -6,21 +6,27 @@
 // @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
 // header note in mod.tsx.
 
-// Settings.js — the settings UI rendered on the shared Spicetify Settings page.
+// Settings.js — contextual appearance controls plus provider settings shared
+// with the standalone Spicetify Settings page.
 
 import { React as react } from "/modules/stdlib/src/expose/React.ts";
-import { Toggle } from "/modules/stdlib/lib/primitives.js";
+import {
+	IconButton,
+	SettingsButtonRow,
+	SettingsProviderRow,
+	SettingsTextInputRow,
+	Toggle,
+} from "/modules/stdlib/lib/primitives.js";
 import {
 	SETTINGS_HELP_TEXT_CLASS,
 	SETTINGS_ROW_TEXT_CLASS,
-	SETTINGS_SECTION_HEADING_CLASS,
+	SETTINGS_SECTION_SUBHEADING_CLASS,
 } from "/modules/stdlib/lib/primitives-classes.js";
 import { APP_NAME, CONFIG, fontSizeLimit, thresholdSizeLimit } from "./config.ts";
 import { isMusixmatchTokenValid, musixmatchTokenListeners, setMusixmatchTokenValid } from "./providers/musixmatch.ts";
 import * as sharedCallbacks from "./shared-callbacks.ts";
 
 const { useState, useEffect, useCallback, useId } = react;
-const spotifyVersion = Spicetify.Platform.version;
 
 function useMusixmatchTokenValid() {
 	const [valid, setValid] = useState(isMusixmatchTokenValid());
@@ -32,58 +38,17 @@ function useMusixmatchTokenValid() {
 	return valid;
 }
 
-export const SwapButton = ({ icon, disabled, onClick }) => {
-	return react.createElement(
-		"button",
-		{
-			className: "switch small",
-			onClick,
-			disabled,
-		},
-		react.createElement("svg", {
-			width: 10,
-			height: 10,
-			viewBox: "0 0 16 16",
-			fill: "currentColor",
-			dangerouslySetInnerHTML: {
-				__html: icon,
-			},
-		}),
-	);
-};
-
-export const CacheButton = () => {
-	let lyrics = {};
-
-	try {
-		const localLyrics = JSON.parse(localStorage.getItem("lyrics-plus:local-lyrics"));
-		if (!localLyrics || typeof localLyrics !== "object") {
-			throw "";
-		}
-		lyrics = localLyrics;
-	} catch {
-		lyrics = {};
-	}
-
-	const [count, setCount] = useState(Object.keys(lyrics).length);
-	const text = count ? "Clear all cached lyrics" : "No cached lyrics";
-
-	return react.createElement(
-		"button",
-		{
-			className: "btn",
-			onClick: () => {
-				localStorage.removeItem("lyrics-plus:local-lyrics");
-				setCount(0);
-			},
-			disabled: !count,
-		},
-		text,
-	);
-};
-
-export const RefreshTokenButton = ({ setTokenCallback }) => {
+export const MusixmatchTokenSetting = ({ onTokenChange }) => {
+	const [token, setToken] = useState(CONFIG.providers.musixmatch.token);
 	const [buttonText, setButtonText] = useState("Refresh token");
+	const setTokenCallback = useCallback(
+		(value) => {
+			setToken(value);
+			onTokenChange(value);
+			setMusixmatchTokenValid(true);
+		},
+		[onTokenChange],
+	);
 
 	useEffect(() => {
 		if (buttonText === "Refreshing token...") {
@@ -119,17 +84,17 @@ export const RefreshTokenButton = ({ setTokenCallback }) => {
 		}
 	}, [buttonText]);
 
-	return react.createElement(
-		"button",
-		{
-			className: "btn",
-			onClick: () => {
-				setButtonText("Refreshing token...");
-			},
-			disabled: buttonText !== "Refresh token",
-		},
-		buttonText,
-	);
+	return react.createElement(SettingsTextInputRow, {
+		label: "Musixmatch token",
+		description: "Used by the Musixmatch provider. If lyrics stop loading, refresh the token.",
+		value: token,
+		placeholder: "Musixmatch user token",
+		ariaLabel: "Musixmatch token",
+		onInput: setTokenCallback,
+		actionLabel: buttonText,
+		actionDisabled: buttonText !== "Refresh token",
+		onAction: () => setButtonText("Refreshing token..."),
+	});
 };
 
 export const ConfigButton = ({ name, text, onChange = () => {} }) => {
@@ -332,11 +297,15 @@ export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = ()
 			{
 				className: "col action",
 			},
-			react.createElement(SwapButton, {
-				icon: `<path d="M2 7h12v2H0z"/>`,
-				onClick: () => adjust(-1),
-				disabled: value === min,
-			}),
+			react.createElement(
+				IconButton,
+				{
+					ariaLabel: `Decrease ${name}`,
+					onClick: () => adjust(-1),
+					disabled: value === min,
+				},
+				"−",
+			),
 			react.createElement(
 				"p",
 				{
@@ -344,11 +313,15 @@ export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = ()
 				},
 				value,
 			),
-			react.createElement(SwapButton, {
-				icon: Spicetify.SVGIcons.plus2px,
-				onClick: () => adjust(1),
-				disabled: value === max,
-			}),
+			react.createElement(
+				IconButton,
+				{
+					ariaLabel: `Increase ${name}`,
+					onClick: () => adjust(1),
+					disabled: value === max,
+				},
+				"+",
+			),
 		),
 	);
 };
@@ -402,118 +375,36 @@ export const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
 	);
 };
 
-export const ServiceAction = ({ item, setTokenCallback }) => {
-	switch (item.name) {
-		case "local":
-			return react.createElement(CacheButton);
-		case "musixmatch":
-			return react.createElement(RefreshTokenButton, { setTokenCallback });
-		default:
-			return null;
-	}
-};
-
-export const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
-	const toggleId = useId();
-	const [token, setToken] = useState(item.token);
+export const ServiceOption = ({ item, onToggle, onSwap, index, total }) => {
 	const [active, setActive] = useState(item.on);
 	const tokenValid = useMusixmatchTokenValid();
 	const musixmatchInvalid = item.name === "musixmatch" && !tokenValid;
 
-	const setTokenCallback = useCallback(
-		(token) => {
-			setToken(token);
-			onTokenChange(item.name, token);
-			// A new token is worth re-validating, so let the next request decide.
-			if (item.name === "musixmatch") setMusixmatchTokenValid(true);
-		},
-		[item.token],
-	);
-
 	const toggleActive = useCallback(
 		(state) => {
-			if (item.name === "genius" && spotifyVersion >= "1.2.31") return;
 			setActive(state);
 			onToggle(item.name, state);
 		},
 		[item.name, onToggle],
 	);
-	const toggleDisabled = musixmatchInvalid || (item.name === "genius" && spotifyVersion >= "1.2.31");
+	const toggleDisabled = musixmatchInvalid;
 
-	return react.createElement(
-		"div",
-		null,
-		react.createElement(
-			"div",
-			{
-				className: "setting-row",
-			},
-			react.createElement(
-				"h3",
-				{
-					className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
-				},
-				item.name,
-			),
-			react.createElement(
-				"div",
-				{
-					className: "col action",
-				},
-				react.createElement(ServiceAction, {
-					item,
-					setTokenCallback,
-				}),
-				react.createElement(SwapButton, {
-					icon: Spicetify.SVGIcons["chart-up"],
-					onClick: () => onSwap(item.name, -1),
-					disabled: isFirst,
-				}),
-				react.createElement(SwapButton, {
-					icon: Spicetify.SVGIcons["chart-down"],
-					onClick: () => onSwap(item.name, 1),
-					disabled: isLast,
-				}),
-				toggleDisabled
-					? react.createElement(
-							Spicetify.ReactComponent.TooltipWrapper,
-							{
-								label: musixmatchInvalid
-									? "Musixmatch token is invalid and could not be refreshed automatically. Refresh the token or paste your own to re-enable it."
-									: "Genius is unavailable on this Spotify version.",
-							},
-							react.createElement(Toggle, {
-								id: toggleId,
-								ariaLabel: `${item.name} provider`,
-								value: active,
-								onChange: toggleActive,
-								disabled: true,
-							}),
-						)
-					: react.createElement(Toggle, {
-							id: toggleId,
-							ariaLabel: `${item.name} provider`,
-							value: active,
-							onChange: toggleActive,
-						}),
-			),
-		),
-		react.createElement("span", {
-			className: SETTINGS_HELP_TEXT_CLASS,
-			dangerouslySetInnerHTML: {
-				__html: item.desc,
-			},
-		}),
-		item.token !== undefined &&
-			react.createElement("input", {
-				placeholder: `Place your ${item.name} token here`,
-				value: token,
-				onChange: (event) => setTokenCallback(event.target.value),
-			}),
-	);
+	return react.createElement(SettingsProviderRow, {
+		label: item.name.replace(/^./, (character) => character.toUpperCase()),
+		description: item.desc,
+		value: active,
+		disabled: toggleDisabled,
+		disabledReason: musixmatchInvalid
+			? "Musixmatch token is invalid and could not be refreshed automatically. Refresh the token or paste your own to re-enable it."
+			: undefined,
+		index,
+		total,
+		onMove: (direction) => onSwap(item.name, direction),
+		onChange: toggleActive,
+	});
 };
 
-export const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {}, onTokenChange = () => {} }) => {
+export const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {} }) => {
 	const [items, setItems] = useState(itemsList);
 	const maxIndex = items.length - 1;
 
@@ -534,30 +425,11 @@ export const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () 
 		return react.createElement(ServiceOption, {
 			item,
 			key,
-			isFirst: index === 0,
-			isLast: index === maxIndex,
+			index,
+			total: maxIndex + 1,
 			onSwap,
-			onTokenChange,
 			onToggle,
 		});
-	});
-};
-
-const corsProxyTemplate = () => {
-	const [proxyValue, setProxyValue] = react.useState(
-		localStorage.getItem("spicetify:corsProxyTemplate") || "https://cors-proxy.spicetify.app/{url}",
-	);
-
-	return react.createElement("input", {
-		placeholder: "CORS Proxy Template",
-		value: proxyValue,
-		onChange: (event) => {
-			const value = event.target.value;
-			setProxyValue(value);
-
-			if (value === "" || !value) return localStorage.removeItem("spicetify:corsProxyTemplate");
-			localStorage.setItem("spicetify:corsProxyTemplate", value);
-		},
 	});
 };
 
@@ -607,13 +479,12 @@ export const OptionList = ({ type, items, onChange }) => {
 	});
 };
 
-export function LyricsPlusSettings() {
+export function LyricsPlusAppearanceSettings() {
 	return react.createElement(
 		"div",
 		{
-			id: `${APP_NAME}-config-container`,
+			id: `${APP_NAME}-appearance-config-container`,
 		},
-		react.createElement("h2", { className: SETTINGS_SECTION_HEADING_CLASS }, "Options"),
 		react.createElement(OptionList, {
 			items: [
 				{
@@ -724,16 +595,6 @@ export function LyricsPlusSettings() {
 					max: thresholdSizeLimit.max,
 					step: thresholdSizeLimit.step,
 				},
-				{
-					desc: "Clear Memory Cache",
-					info: "Loaded lyrics are cached in memory for faster reloading. Press this button to clear the cached lyrics from memory without restarting Spotify.",
-					key: "clear-memore-cache",
-					text: "Clear memory cache",
-					type: ConfigButton,
-					onChange: () => {
-						sharedCallbacks.reloadLyrics?.();
-					},
-				},
 			],
 			onChange: (name, value) => {
 				CONFIG.visual[name] = value;
@@ -750,7 +611,36 @@ export function LyricsPlusSettings() {
 				window.dispatchEvent(configChange);
 			},
 		}),
-		react.createElement("h2", { className: SETTINGS_SECTION_HEADING_CLASS }, "Providers"),
+	);
+}
+
+export function openLyricsPlusAppearanceSettings() {
+	Spicetify.PopupModal.display({
+		title: "Lyrics Plus appearance",
+		content: react.createElement(LyricsPlusAppearanceSettings),
+		isLarge: true,
+	});
+}
+
+export function LyricsPlusSettings() {
+	const updateMusixmatchToken = useCallback((value) => {
+		CONFIG.providers.musixmatch.token = value;
+		localStorage.setItem(`${APP_NAME}:provider:musixmatch:token`, value);
+		sharedCallbacks.reloadLyrics?.();
+	}, []);
+	return react.createElement(
+		"div",
+		{
+			className: "lyrics-plus-settings",
+		},
+		react.createElement(SettingsButtonRow, {
+			label: "Lyrics cache",
+			description:
+				"Loaded lyrics are cached in memory for faster reloading. Press this button to clear the cached lyrics from memory without restarting Spotify.",
+			buttonLabel: "Clear cached lyrics",
+			onClick: () => sharedCallbacks.reloadLyrics?.(),
+		}),
+		react.createElement("h3", { className: SETTINGS_SECTION_SUBHEADING_CLASS }, "Providers"),
 		react.createElement(ServiceList, {
 			itemsList: CONFIG.providersOrder,
 			onListChange: (list) => {
@@ -763,25 +653,7 @@ export function LyricsPlusSettings() {
 				localStorage.setItem(`${APP_NAME}:provider:${name}:on`, value);
 				sharedCallbacks.reloadLyrics?.();
 			},
-			onTokenChange: (name, value) => {
-				CONFIG.providers[name].token = value;
-				localStorage.setItem(`${APP_NAME}:provider:${name}:token`, value);
-				sharedCallbacks.reloadLyrics?.();
-			},
 		}),
-		react.createElement("h2", { className: SETTINGS_SECTION_HEADING_CLASS }, "CORS Proxy Template"),
-		react.createElement("span", {
-			className: SETTINGS_HELP_TEXT_CLASS,
-			dangerouslySetInnerHTML: {
-				__html: "Use this to bypass CORS restrictions. Replace the URL with your cors proxy server of your choice. <code>{url}</code> will be replaced with the request URL.",
-			},
-		}),
-		react.createElement(corsProxyTemplate),
-		react.createElement("span", {
-			className: SETTINGS_HELP_TEXT_CLASS,
-			dangerouslySetInnerHTML: {
-				__html: "Spotify will reload its webview after applying. Leave empty to restore default: <code>https://cors-proxy.spicetify.app/{url}</code>",
-			},
-		}),
+		react.createElement(MusixmatchTokenSetting, { onTokenChange: updateMusixmatchToken }),
 	);
 }

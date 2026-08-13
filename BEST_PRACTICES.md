@@ -10,9 +10,9 @@ spot in the top bar. If they all act on it, the top bar is unusable.
 
 ---
 
-## Put settings in Spicetify Settings
+## Put settings where their effect is clear
 
-If your module has options, they belong on the standalone Spicetify Settings
+Durable module-wide preferences belong on the standalone Spicetify Settings
 page, via the `settingsSection` register:
 
 ```tsx
@@ -32,8 +32,21 @@ registrar.register(
 `SettingsSection` and `SettingsRow` render the client's settings structure, so
 your options line up consistently and inherit Spotify and theme styling. Small
 one-boolean modules should use `settingsRow`; stdlib groups those rows under
-General. All contributed controls stay visible rather than hiding behind an
-additional modal or disclosure.
+General.
+
+Do not recreate recurring settings layouts in module CSS. Use stdlib's
+`SettingsToggleRow`, `SettingsButtonRow`, `SettingsTextInputRow`, and
+`SettingsProviderRow`; if the needed pattern is missing, add it to stdlib first.
+That keeps label hierarchy, descriptions, native controls, action spacing, and
+accessibility identical across modules.
+
+Keep controls contextual when their effect only makes sense beside the feature
+they change. Page filters belong in that page's toolbar; visual controls for a
+full-screen or picture-in-picture surface belong in a modal opened from that
+surface. A large module can split the two: Lyrics Plus keeps provider
+configuration in Spicetify Settings, while its live appearance controls open
+from the lyrics page. CORS routing is global Spicetify infrastructure and is
+configured once in its own section rather than by an individual module.
 
 **Do not put settings in the account dropdown.** You _can_: `Menu.Item` works,
 and it is the shortest path to a visible toggle. It is also where the user
@@ -43,9 +56,9 @@ turns the profile menu into a settings page nobody designed. The same applies
 to the context menu: `ContextMenu.Item` is for acting on the right-clicked
 item, not for configuration.
 
-A useful test: if the control changes something _about your module_, it is a
-setting. If it acts on _the thing the user is looking at right now_, it is a
-menu item.
+A useful test: would the label and its effect still be obvious if the feature
+were not visible? If yes, it is a global setting. If it filters, arranges, or
+restyles what the user is looking at right now, keep it beside that surface.
 
 ---
 
@@ -58,6 +71,7 @@ Ranked from cheapest to most intrusive for the user:
 | `settingsRow`               | one small setting in the shared General group         |
 | `settingsSection`           | a named group of module settings                      |
 | `settingsAction`            | reserved global navigation at the bottom of settings  |
+| feature-owned modal         | contextual display controls for that feature          |
 | `route` + `navlink`         | a whole feature with its own page                     |
 | `menu` / `ContextMenu.Item` | an action on the current or right-clicked item        |
 | `playbarButton`             | a control the user reaches for _while playing_        |
@@ -112,7 +126,8 @@ disappear quietly, not take the client with it.
 - Fetch CORS-friendly hosts directly.
 - For hosts that block you, use `client.corsProxy.fetch`, which tries the
   local daemon first and falls back to the hosted proxy. Do not hardcode either
-  endpoint.
+  endpoint. Users can replace that chain globally from Spicetify Settings; a
+  module must not own or edit the proxy configuration itself.
 - `CosmosAsync` reaches Spotify's own authed endpoints; do not use it as a
   general-purpose HTTP client.
 

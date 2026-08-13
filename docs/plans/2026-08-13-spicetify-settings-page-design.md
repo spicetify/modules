@@ -2,7 +2,10 @@
 
 ## 1. Objective
 
-Move module configuration out of Spotify's native Settings route and profile-menu popups into one standalone Spicetify Settings page. Render every registered setting inline and keep Module Manager as the final entry.
+Move global module configuration out of Spotify's native Settings route and
+profile-menu popups into one standalone Spicetify Settings page. Keep controls
+whose effect depends on a visible feature beside that feature, and keep Module
+Manager as the final entry.
 
 ## 2. Tech Strategy
 
@@ -15,20 +18,23 @@ Move module configuration out of Spotify's native Settings route and profile-men
 
 - The stdlib settings registry stops patching Spotify's `/preferences` page and instead owns `/bespoke/settings`.
 - Existing row and section contributors move automatically because their register names stay unchanged.
-- Lyrics Plus replaces its route-mounted profile item and popup with a persistent settings contribution.
+- Lyrics Plus contributes provider and integration settings persistently while
+  its appearance controls remain available from the lyrics surface.
 - Manager keeps the profile shortcut, redirects it to the settings route, and contributes the explicitly last navigation row.
+- stdlib contributes the global CORS Proxy section; the wrapper owns its
+  automatic daemon-to-hosted chain and validated custom override.
 - Authoring guidance and metadata versions change with the public behavior.
 
 ## 4. File Changes
 
-| Action | Area                            | Purpose                                                                     |
-| :----- | :------------------------------ | :-------------------------------------------------------------------------- |
-| Modify | `modules/stdlib/src/registers/` | Render and order the standalone page; expose a reserved footer register.    |
-| Modify | `modules/stdlib/index.scss`     | Give the page a bounded native-looking layout.                              |
-| Modify | `modules/lyrics-plus/`          | Render its full configuration inline and remove route-owned menu lifecycle. |
-| Modify | `modules/manager/`              | Open Spicetify Settings and add the last Manager entry.                     |
-| Modify | Authoring docs and metadata     | Describe the new ownership model and publish compatible versions.           |
-| Add    | Focused tests                   | Guard route separation, ordering, migration, and documentation.             |
+| Action | Area                            | Purpose                                                                  |
+| :----- | :------------------------------ | :----------------------------------------------------------------------- |
+| Modify | `modules/stdlib/src/registers/` | Render and order the standalone page; expose a reserved footer register. |
+| Modify | `modules/stdlib/index.scss`     | Give the page a bounded native-looking layout.                           |
+| Modify | `modules/lyrics-plus/`          | Split global provider configuration from contextual appearance controls. |
+| Modify | `modules/manager/`              | Open Spicetify Settings and add the last Manager entry.                  |
+| Modify | Authoring docs and metadata     | Describe the new ownership model and publish compatible versions.        |
+| Add    | Focused tests                   | Guard route separation, ordering, migration, and documentation.          |
 
 ## 5. Execution Sequence
 
@@ -41,7 +47,8 @@ Move module configuration out of Spotify's native Settings route and profile-men
 ## 6. Verification Standards
 
 - [x] Spotify's `/preferences` page contains no injected Spicetify settings.
-- [x] `/bespoke/settings` lists all simple rows and full sections without expansion.
+- [x] `/bespoke/settings` lists global rows and sections without expansion.
+- [x] Feature-specific filters and appearance controls remain on their owning surfaces.
 - [x] Lyrics Plus settings exist before its lyrics route is visited.
 - [x] Module Manager is the final entry and navigates correctly.
 - [x] Unloading a contributing module removes only its settings.

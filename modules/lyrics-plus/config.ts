@@ -10,11 +10,8 @@
 // runtime (the musixmatch token). Exporting the one object keeps identity and
 // mutation semantics identical to the concatenated original.
 //
-// The genius provider's client-version gate deliberately does NOT live here.
-// It reads the client's Platform version, which would make this module
-// unloadable outside the client and untestable; mod.tsx applies that override
-// on import. Keep this file free of client references so the purity grep in
-// the plan's Verification Contract stays a plain token search.
+// Keep this file free of client references so the purity grep in the plan's
+// Verification Contract stays a plain token search.
 
 export const APP_NAME = "lyrics-plus";
 
@@ -87,7 +84,7 @@ export const CONFIG = {
 		},
 		musixmatch: {
 			on: getConfig("lyrics-plus:provider:musixmatch:on"),
-			desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button. You may need to be forced to use your own CORS Proxy to use this provider.",
+			desc: "Fully compatible with Spotify. If lyrics stop loading, refresh the token below.",
 			token:
 				localStorage.getItem("lyrics-plus:provider:musixmatch:token") ||
 				"21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
@@ -103,11 +100,6 @@ export const CONFIG = {
 			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
 			modes: [KARAOKE, SYNCED, UNSYNCED],
 		},
-		genius: {
-			on: getConfig("lyrics-plus:provider:genius:on"),
-			desc: "Provide unsynced lyrics with insights from artists themselves. Genius is disabled and cannot be used as a provider on <code>1.2.31</code> and higher.",
-			modes: [GENIUS],
-		},
 		local: {
 			on: getConfig("lyrics-plus:provider:local:on"),
 			desc: "Provide lyrics from cache/local files loaded from previous Spotify sessions.",
@@ -121,9 +113,12 @@ export const CONFIG = {
 
 try {
 	CONFIG.providersOrder = JSON.parse(CONFIG.providersOrder);
+	const providerKeys = Object.keys(CONFIG.providers);
 	if (
 		!Array.isArray(CONFIG.providersOrder) ||
-		Object.keys(CONFIG.providers).length !== CONFIG.providersOrder.length
+		providerKeys.length !== CONFIG.providersOrder.length ||
+		new Set(CONFIG.providersOrder).size !== providerKeys.length ||
+		CONFIG.providersOrder.some((provider) => !providerKeys.includes(provider))
 	) {
 		throw "";
 	}

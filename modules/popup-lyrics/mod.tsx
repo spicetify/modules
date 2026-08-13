@@ -14,7 +14,8 @@
  *     an inline Blob worker (CSP-permitted in the client).
  *   - The topbar button goes through registrar.placeButton("topbar-right"), so
  *     it sits with the other module topbar buttons.
- *   - Preferences render through the shared Spicetify Settings register.
+ *   - Provider preferences render in Spicetify Settings; appearance controls
+ *     stay in a modal opened from the Popup Lyrics button.
  *   - The injected <style> tag moved into index.scss.
  *   - All teardown routes through ctx.defer.
  *   - CosmosAsync still proxies both the authed Spotify color-lyrics endpoint
@@ -26,15 +27,16 @@ import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import {
-	Button,
-	IconButton,
 	Select,
+	SettingsButtonRow,
+	SettingsProviderRow,
 	SettingsRow,
 	SettingsSection,
+	SettingsTextInputRow,
 	TextInput,
 	Toggle,
 } from "/modules/stdlib/lib/primitives.js";
-import { SETTINGS_HELP_TEXT_CLASS } from "/modules/stdlib/lib/primitives-classes.js";
+import { SETTINGS_SECTION_SUBHEADING_CLASS } from "/modules/stdlib/lib/primitives-classes.js";
 
 import {
 	LyricUtils,
@@ -816,33 +818,18 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 
 	const ServiceSetting = ({ id, index, total, onToggle, onMove }: ServiceSettingProps) => {
-		const toggleId = React.useId();
 		const service = userConfigs.services[id];
 		const name = id.replace(/^./, (character) => character.toUpperCase());
 		return (
-			<SettingsRow
-				label={
-					<span className="popup-lyrics-setting-copy">
-						<span>{name}</span>
-						<span className={SETTINGS_HELP_TEXT_CLASS}>{service.desc}</span>
-					</span>
-				}
-				htmlFor={toggleId}
-			>
-				<div className="popup-lyrics-service-actions">
-					<IconButton ariaLabel={`Move ${name} up`} disabled={index === 0} onClick={() => onMove(-1)}>
-						↑
-					</IconButton>
-					<IconButton
-						ariaLabel={`Move ${name} down`}
-						disabled={index === total - 1}
-						onClick={() => onMove(1)}
-					>
-						↓
-					</IconButton>
-					<Toggle id={toggleId} value={service.on} onChange={onToggle} />
-				</div>
-			</SettingsRow>
+			<SettingsProviderRow
+				label={name}
+				description={service.desc}
+				value={service.on}
+				index={index}
+				total={total}
+				onMove={onMove}
+				onChange={onToggle}
+			/>
 		);
 	};
 
@@ -857,15 +844,85 @@ export default async function (ctx: ModuleRuntimeContext) {
 		offscreenCtx = null;
 	};
 
-	const PopupLyricsSettings = () => {
+	const PopupLyricsAppearanceSettings = () => {
 		const [, render] = React.useReducer((value: number) => value + 1, 0);
-		const [tokenStatus, setTokenStatus] = React.useState<"idle" | "refreshing" | "success" | "error">("idle");
 
 		const setBoolean = (field: "smooth" | "centerAlign" | "showCover", storageKey: string, value: boolean) => {
 			userConfigs[field] = value;
 			LocalStorage.set(storageKey, String(value));
 			render();
 		};
+
+		return (
+			<SettingsSection>
+				<BooleanSetting
+					label="Smooth scrolling"
+					value={userConfigs.smooth}
+					onChange={(value) => setBoolean("smooth", "popup-lyrics:smooth", value)}
+				/>
+				<BooleanSetting
+					label="Center lyrics"
+					value={userConfigs.centerAlign}
+					onChange={(value) => setBoolean("centerAlign", "popup-lyrics:center-align", value)}
+				/>
+				<BooleanSetting
+					label="Show cover art"
+					value={userConfigs.showCover}
+					onChange={(value) => setBoolean("showCover", "popup-lyrics:show-cover", value)}
+				/>
+				<SettingsRow label="Aspect ratio">
+					<Select
+						options={ASPECT_RATIO_OPTIONS}
+						value={userConfigs.ratio as (typeof ASPECT_RATIO_OPTIONS)[number]["value"]}
+						onChange={(value) => {
+							userConfigs.ratio = value;
+							LocalStorage.set("popup-lyrics:ratio", value);
+							resizeLyricsSurface();
+							render();
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Font size">
+					<Select
+						options={FONT_SIZE_OPTIONS}
+						value={String(userConfigs.fontSize)}
+						onChange={(value) => {
+							userConfigs.fontSize = Number(value);
+							LocalStorage.set("popup-lyrics:font-size", value);
+							render();
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Background blur">
+					<Select
+						options={BLUR_SIZE_OPTIONS}
+						value={String(userConfigs.blurSize)}
+						onChange={(value) => {
+							userConfigs.blurSize = Number(value);
+							LocalStorage.set("popup-lyrics:blur-size", value);
+							render();
+						}}
+					/>
+				</SettingsRow>
+				<SettingsRow label="Timing delay (ms)">
+					<TextInput
+						placeholder="0"
+						value={String(userConfigs.delay)}
+						onInput={(value) => {
+							userConfigs.delay = Number(value) || 0;
+							LocalStorage.set("popup-lyrics:delay", String(userConfigs.delay));
+							render();
+						}}
+					/>
+				</SettingsRow>
+			</SettingsSection>
+		);
+	};
+
+	const PopupLyricsSettings = () => {
+		const [, render] = React.useReducer((value: number) => value + 1, 0);
+		const [tokenStatus, setTokenStatus] = React.useState<"idle" | "refreshing" | "success" | "error">("idle");
+
 		const moveService = (id: string, direction: -1 | 1) => {
 			const current = userConfigs.servicesOrder.indexOf(id);
 			const next = current + direction;
@@ -889,126 +946,71 @@ export default async function (ctx: ModuleRuntimeContext) {
 		};
 
 		return (
-			<>
-				<SettingsSection title="Popup Lyrics">
-					<BooleanSetting
-						label="Smooth scrolling"
-						value={userConfigs.smooth}
-						onChange={(value) => setBoolean("smooth", "popup-lyrics:smooth", value)}
+			<SettingsSection title="Popup Lyrics">
+				<SettingsButtonRow
+					label="Lyrics cache"
+					description="Loaded lyrics are cached in memory for faster reloading. Press this button to clear the cached lyrics from memory without restarting Spotify."
+					buttonLabel="Clear cached lyrics"
+					onClick={() => {
+						CACHE = {};
+						void updateTrack();
+					}}
+				/>
+				<h3 className={SETTINGS_SECTION_SUBHEADING_CLASS}>Providers</h3>
+				{userConfigs.servicesOrder.map((id, index) => (
+					<ServiceSetting
+						key={id}
+						id={id}
+						index={index}
+						total={userConfigs.servicesOrder.length}
+						onMove={(direction) => moveService(id, direction)}
+						onToggle={(value) => {
+							userConfigs.services[id].on = value;
+							LocalStorage.set(`popup-lyrics:services:${id}:on`, String(value));
+							render();
+							void updateTrack(true);
+						}}
 					/>
-					<BooleanSetting
-						label="Center lyrics"
-						value={userConfigs.centerAlign}
-						onChange={(value) => setBoolean("centerAlign", "popup-lyrics:center-align", value)}
-					/>
-					<BooleanSetting
-						label="Show cover art"
-						value={userConfigs.showCover}
-						onChange={(value) => setBoolean("showCover", "popup-lyrics:show-cover", value)}
-					/>
-					<SettingsRow label="Aspect ratio">
-						<Select
-							options={ASPECT_RATIO_OPTIONS}
-							value={userConfigs.ratio as (typeof ASPECT_RATIO_OPTIONS)[number]["value"]}
-							onChange={(value) => {
-								userConfigs.ratio = value;
-								LocalStorage.set("popup-lyrics:ratio", value);
-								resizeLyricsSurface();
-								render();
-							}}
-						/>
-					</SettingsRow>
-					<SettingsRow label="Font size">
-						<Select
-							options={FONT_SIZE_OPTIONS}
-							value={String(userConfigs.fontSize)}
-							onChange={(value) => {
-								userConfigs.fontSize = Number(value);
-								LocalStorage.set("popup-lyrics:font-size", value);
-								render();
-							}}
-						/>
-					</SettingsRow>
-					<SettingsRow label="Background blur">
-						<Select
-							options={BLUR_SIZE_OPTIONS}
-							value={String(userConfigs.blurSize)}
-							onChange={(value) => {
-								userConfigs.blurSize = Number(value);
-								LocalStorage.set("popup-lyrics:blur-size", value);
-								render();
-							}}
-						/>
-					</SettingsRow>
-					<SettingsRow label="Timing delay (ms)">
-						<TextInput
-							placeholder="0"
-							value={String(userConfigs.delay)}
-							onInput={(value) => {
-								userConfigs.delay = Number(value) || 0;
-								LocalStorage.set("popup-lyrics:delay", String(userConfigs.delay));
-								render();
-							}}
-						/>
-					</SettingsRow>
-					<SettingsRow label="Memory cache">
-						<Button
-							variant="secondary"
-							onClick={() => {
-								CACHE = {};
-								void updateTrack();
-							}}
-						>
-							Clear cached lyrics
-						</Button>
-					</SettingsRow>
-				</SettingsSection>
-				<SettingsSection title="Popup Lyrics providers">
-					{userConfigs.servicesOrder.map((id, index) => (
-						<ServiceSetting
-							key={id}
-							id={id}
-							index={index}
-							total={userConfigs.servicesOrder.length}
-							onMove={(direction) => moveService(id, direction)}
-							onToggle={(value) => {
-								userConfigs.services[id].on = value;
-								LocalStorage.set(`popup-lyrics:services:${id}:on`, String(value));
-								render();
-								void updateTrack(true);
-							}}
-						/>
-					))}
-					<SettingsRow label="Musixmatch token">
-						<div className="popup-lyrics-token-controls">
-							<TextInput
-								placeholder="Musixmatch user token"
-								value={userConfigs.services.musixmatch.token}
-								onInput={(value) => {
-									userConfigs.services.musixmatch.token = value;
-									LocalStorage.set("popup-lyrics:services:musixmatch:token", value);
-									render();
-								}}
-							/>
-							<Button
-								variant="secondary"
-								disabled={tokenStatus === "refreshing"}
-								onClick={() => void refreshToken()}
-							>
-								{tokenStatus === "refreshing"
-									? "Refreshing…"
-									: tokenStatus === "success"
-										? "Token refreshed"
-										: tokenStatus === "error"
-											? "Try again"
-											: "Refresh token"}
-							</Button>
-						</div>
-					</SettingsRow>
-				</SettingsSection>
-			</>
+				))}
+				<SettingsTextInputRow
+					label="Musixmatch token"
+					description="Used by the Musixmatch provider. If lyrics stop loading, refresh the token."
+					placeholder="Musixmatch user token"
+					ariaLabel="Musixmatch token"
+					value={userConfigs.services.musixmatch.token}
+					onInput={(value) => {
+						userConfigs.services.musixmatch.token = value;
+						LocalStorage.set("popup-lyrics:services:musixmatch:token", value);
+						render();
+					}}
+					actionLabel={
+						tokenStatus === "refreshing"
+							? "Refreshing…"
+							: tokenStatus === "success"
+								? "Token refreshed"
+								: tokenStatus === "error"
+									? "Try again"
+									: "Refresh token"
+					}
+					actionDisabled={tokenStatus === "refreshing"}
+					onAction={() => void refreshToken()}
+				/>
+			</SettingsSection>
 		);
 	};
+
+	const onButtonContextMenu = (event: MouseEvent) => {
+		const target = event.target as HTMLElement | null;
+		if (!target?.closest?.('.spicetify-topbar-right-buttons [aria-label="Popup Lyrics"]')) return;
+		event.preventDefault();
+		client.popupModal.display({
+			title: "Popup Lyrics appearance",
+			// The runtime PopupModal accepts React elements, although the v2
+			// compatibility declaration still only names DOM Element here.
+			content: (<PopupLyricsAppearanceSettings />) as unknown as Element,
+		});
+	};
+	document.addEventListener("contextmenu", onButtonContextMenu);
 
 	registrar.register("settingsSection", <PopupLyricsSettings />);
 
@@ -1022,6 +1024,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		if (lyricVideoIsOpen && document.pictureInPictureElement) {
 			document.exitPictureInPicture().catch(() => {});
 		}
+		document.removeEventListener("contextmenu", onButtonContextMenu);
 		// The topbar button is removed by the registrar's own ctx.defer.
 	});
 }

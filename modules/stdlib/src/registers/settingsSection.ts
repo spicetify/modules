@@ -7,6 +7,7 @@ import { React } from "../expose/React.ts";
 import { SETTINGS_HEADER_CLASS, SETTINGS_HEADER_CONTAINER_CLASS } from "../../lib/primitives-classes.ts";
 import { Registry } from "./registry.ts";
 import route from "./route.ts";
+import { CorsProxySettings } from "../settings/corsProxy.tsx";
 
 export const SPICETIFY_SETTINGS_ROUTE = "/bespoke/settings";
 
@@ -59,6 +60,7 @@ const SpicetifySettingsPage = () => {
 			),
 		),
 		...sections.map((section, index) => React.createElement(React.Fragment, { key: `section-${index}` }, section)),
+		React.createElement(CorsProxySettings, { key: "cors-proxy" }),
 		...actions.map((action, index) => React.createElement(React.Fragment, { key: `action-${index}` }, action)),
 	);
 };

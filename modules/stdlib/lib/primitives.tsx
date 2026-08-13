@@ -26,6 +26,9 @@ import {
 	SETTINGS_ROW_CONTROL_CLASS,
 	SETTINGS_ROW_LABEL_CLASS,
 	SETTINGS_ROW_TEXT_CLASS,
+	SETTINGS_ACTION_GROUP_CLASS,
+	SETTINGS_HELP_TEXT_CLASS,
+	SETTINGS_LABEL_COPY_CLASS,
 	SETTINGS_SECTION_CLASS,
 	SETTINGS_SECTION_HEADING_CLASS,
 	badgeClass,
@@ -77,15 +80,40 @@ export const IconButton: React.FC<{
 	</button>
 );
 
+// One shared ordering affordance for provider lists and other short ordered
+// settings. Keeping the arrows here prevents each module from inventing a
+// different size, icon, disabled state, or accessible label.
+export const ReorderButtons: React.FC<{
+	label: string;
+	disableUp: boolean;
+	disableDown: boolean;
+	onMove: (direction: -1 | 1) => void;
+}> = (props) => (
+	<span className={SETTINGS_ACTION_GROUP_CLASS}>
+		<IconButton ariaLabel={`Move ${props.label} up`} disabled={props.disableUp} onClick={() => props.onMove(-1)}>
+			↑
+		</IconButton>
+		<IconButton ariaLabel={`Move ${props.label} down`} disabled={props.disableDown} onClick={() => props.onMove(1)}>
+			↓
+		</IconButton>
+	</span>
+);
+
 // ---------- inputs ----------
 
 export function Select<T extends string>(props: {
 	options: ReadonlyArray<{ value: T; label: string }>;
 	value: T;
 	onChange: (value: T) => void;
+	ariaLabel?: string;
 }): React.ReactElement {
 	return (
-		<select className={SELECT_CLASS} value={props.value} onChange={(e) => props.onChange(e.target.value as T)}>
+		<select
+			className={SELECT_CLASS}
+			value={props.value}
+			aria-label={props.ariaLabel}
+			onChange={(e) => props.onChange(e.target.value as T)}
+		>
 			{props.options.map((option) => (
 				<option key={option.value} value={option.value}>
 					{option.label}
@@ -100,6 +128,7 @@ export const TextInput: React.FC<{
 	value?: string;
 	disabled?: boolean;
 	onInput?: (value: string) => void;
+	ariaLabel?: string;
 }> = (props) => (
 	<input
 		type="text"
@@ -107,6 +136,7 @@ export const TextInput: React.FC<{
 		placeholder={props.placeholder}
 		value={props.value}
 		disabled={props.disabled}
+		aria-label={props.ariaLabel}
 		onChange={(e) => props.onInput?.(e.target.value)}
 	/>
 );
@@ -168,6 +198,60 @@ export const SettingsRow: React.FC<{ label: React.ReactNode; htmlFor?: string; c
 	</div>
 );
 
+export const SettingsLabel: React.FC<{ label: React.ReactNode; description?: React.ReactNode }> = (props) => (
+	<span className={SETTINGS_LABEL_COPY_CLASS}>
+		<span>{props.label}</span>
+		{props.description === undefined ? null : <span className={SETTINGS_HELP_TEXT_CLASS}>{props.description}</span>}
+	</span>
+);
+
+export const SettingsActions: React.FC<{ children: React.ReactNode }> = (props) => (
+	<span className={SETTINGS_ACTION_GROUP_CLASS}>{props.children}</span>
+);
+
+export const SettingsButtonRow: React.FC<{
+	label: React.ReactNode;
+	description?: React.ReactNode;
+	buttonLabel: React.ReactNode;
+	disabled?: boolean;
+	variant?: ButtonVariant;
+	onClick: () => void;
+}> = (props) => (
+	<SettingsRow label={<SettingsLabel label={props.label} description={props.description} />}>
+		<Button variant={props.variant ?? "secondary"} disabled={props.disabled} onClick={props.onClick}>
+			{props.buttonLabel}
+		</Button>
+	</SettingsRow>
+);
+
+export const SettingsTextInputRow: React.FC<{
+	label: React.ReactNode;
+	description?: React.ReactNode;
+	value: string;
+	placeholder?: string;
+	ariaLabel?: string;
+	onInput: (value: string) => void;
+	actionLabel?: React.ReactNode;
+	actionDisabled?: boolean;
+	onAction?: () => void;
+}> = (props) => (
+	<SettingsRow label={<SettingsLabel label={props.label} description={props.description} />}>
+		<SettingsActions>
+			<TextInput
+				value={props.value}
+				placeholder={props.placeholder}
+				ariaLabel={props.ariaLabel}
+				onInput={props.onInput}
+			/>
+			{props.actionLabel === undefined || props.onAction === undefined ? null : (
+				<Button variant="secondary" disabled={props.actionDisabled} onClick={props.onAction}>
+					{props.actionLabel}
+				</Button>
+			)}
+		</SettingsActions>
+	</SettingsRow>
+);
+
 // The client's own switch structure around a native checkbox. Its semantic
 // classes are recreated by the CLI css-map, so Spotify and themes style this
 // exactly like the adjacent settings controls.
@@ -194,6 +278,48 @@ export const Toggle: React.FC<{
 		</span>
 	</label>
 );
+
+export const SettingsProviderRow: React.FC<{
+	label: string;
+	description?: React.ReactNode;
+	value: boolean;
+	disabled?: boolean;
+	disabledReason?: string;
+	index: number;
+	total: number;
+	onChange: (value: boolean) => void;
+	onMove: (direction: -1 | 1) => void;
+}> = (props) => {
+	const id = React.useId();
+	const toggle = (
+		<Toggle
+			id={id}
+			ariaLabel={`${props.label} provider`}
+			value={props.value}
+			disabled={props.disabled}
+			onChange={props.onChange}
+		/>
+	);
+	return (
+		<SettingsRow label={<SettingsLabel label={props.label} description={props.description} />} htmlFor={id}>
+			<SettingsActions>
+				<ReorderButtons
+					label={props.label}
+					disableUp={props.index === 0}
+					disableDown={props.index === props.total - 1}
+					onMove={props.onMove}
+				/>
+				{props.disabled && props.disabledReason ? (
+					<Spicetify.ReactComponent.TooltipWrapper label={props.disabledReason}>
+						{toggle}
+					</Spicetify.ReactComponent.TooltipWrapper>
+				) : (
+					toggle
+				)}
+			</SettingsActions>
+		</SettingsRow>
+	);
+};
 
 // The "module with one boolean setting" pattern as a single row for the
 // `settingsRow` register. `getValue` is read lazily on every mount so

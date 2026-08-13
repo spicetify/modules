@@ -25,7 +25,9 @@ describe("standalone Spicetify Settings", () => {
 		assert.match(primitives, /SETTINGS_ROW_TEXT_CLASS/);
 		assert.match(classes, /encore-text-title-medium/);
 		assert.match(classes, /encore-text-body-medium-bold/);
+		assert.match(classes, /SETTINGS_SECTION_SUBHEADING_CLASS/);
 		assert.match(classes, /encore-text-body-small/);
+		assert.match(styles, /\.spicetify-settings-section-heading\s*\{[^}]*font-size:\s*18px/s);
 		assert.match(styles, /\.spicetify-settings-page\.x-settings-container\s*\{[^}]*max-width:\s*900px/s);
 		assert.match(styles, /\.spicetify-settings-page\.x-settings-container\s*\{[^}]*padding:\s*32px/s);
 		assert.match(styles, /\.spicetify-settings-page\s+\.x-settings-row\s*\{[^}]*grid-template-columns:\s*2fr 1fr/s);
@@ -38,6 +40,22 @@ describe("standalone Spicetify Settings", () => {
 		const actions = source.indexOf("actions.map");
 		assert.ok(sections >= 0, "the page must render registered sections");
 		assert.ok(actions > sections, "settings actions, including Manager, must render last");
+	});
+
+	it("owns global CORS routing instead of delegating it to Lyrics Plus", () => {
+		const page = read("modules/stdlib/src/registers/settingsSection.ts");
+		const cors = read("modules/stdlib/src/settings/corsProxy.tsx");
+		const lyrics = read("modules/lyrics-plus/settings.tsx");
+		const store = read("modules/store/catalog.ts");
+
+		assert.match(page, /CorsProxySettings/);
+		assert.match(cors, /title="CORS Proxy"/);
+		assert.match(cors, /api\.configuration\(\)/);
+		assert.match(cors, /typeof api\?\.configuration !== "function"/);
+		assert.match(cors, /api\.configure/);
+		assert.match(cors, /authenticated local daemon first/);
+		assert.doesNotMatch(lyrics, /corsProxyTemplate|CORS Proxy Template/);
+		assert.doesNotMatch(store, /corsProxyTemplate|cors-proxy\.spicetify\.app/);
 	});
 
 	it("remounts the route page per path so settings opens at the top", () => {
@@ -64,12 +82,37 @@ describe("standalone Spicetify Settings", () => {
 
 	it("renders every Lyrics Plus boolean as Spotify's native toggle", () => {
 		const settings = read("modules/lyrics-plus/settings.tsx");
+		const primitives = read("modules/stdlib/lib/primitives.tsx");
 		const styles = read("modules/lyrics-plus/index.scss");
 		const toggles = [...settings.matchAll(/react\.createElement\(Toggle/g)];
 
-		assert.ok(toggles.length >= 2, "visual options and provider switches must both use Toggle");
+		assert.ok(toggles.length >= 1, "visual options must use Toggle");
+		assert.match(settings, /react\.createElement\(SettingsProviderRow/);
+		assert.match(primitives, /export const SettingsProviderRow[\s\S]*?<Toggle\b/);
 		assert.doesNotMatch(settings, /Spicetify\.SVGIcons\.check/);
 		assert.match(styles, /input:not\(\[type=["']checkbox["']\]\)/);
+	});
+
+	it("uses stdlib-owned compact rows for lyrics providers, cache, and tokens", () => {
+		const primitives = read("modules/stdlib/lib/primitives.tsx");
+		const lyrics = read("modules/lyrics-plus/settings.tsx");
+		const popup = read("modules/popup-lyrics/mod.tsx");
+		const popupStyles = read("modules/popup-lyrics/index.scss");
+
+		for (const primitive of ["SettingsButtonRow", "SettingsProviderRow", "SettingsTextInputRow"]) {
+			assert.match(primitives, new RegExp(`export const ${primitive}`));
+			assert.match(lyrics, new RegExp(`react\\.createElement\\(${primitive}`));
+			assert.match(popup, new RegExp(`<${primitive}\\b`));
+		}
+		for (const source of [lyrics, popup]) {
+			assert.match(source, /label[=:]\s*["']Lyrics cache["']/);
+			assert.match(source, /buttonLabel[=:]\s*["']Clear cached lyrics["']/);
+			assert.match(source, /Loaded lyrics are cached in memory for faster reloading/);
+			assert.match(source, /label[=:]\s*["']Musixmatch token["']/);
+		}
+		assert.doesNotMatch(popupStyles, /popup-lyrics-(?:service-actions|token-controls|setting-copy)/);
+		assert.match(lyrics, /className:\s*["']lyrics-plus-settings["']/);
+		assert.doesNotMatch(lyrics, /id:\s*`\$\{APP_NAME\}-config-container`/);
 	});
 
 	it("ships the new settings contracts as minor releases", () => {

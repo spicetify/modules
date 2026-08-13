@@ -20,18 +20,10 @@ const DEFAULT_VAULT_URL = () =>
 // substituted (both proxies reject encoded targets).
 const needsProxy = (url: string) => url.startsWith("https://github.com/");
 
-// The wrapper owns the proxy chain (local daemon first, hosted as backup) so
-// this and CosmosAsync cannot drift. A client whose wrapper predates that API
-// still gets the hosted proxy, just without the local one.
-const HOSTED_FALLBACK = (url: string) =>
-	(
-		globalThis.localStorage?.getItem("spicetify:corsProxyTemplate") ?? "https://cors-proxy.spicetify.app/{url}"
-	).replace("{url}", url);
-
 export const proxiedFetch = (url: string, init?: RequestInit): Promise<Response> => {
 	if (!needsProxy(url)) return fetch(url, init);
 	const proxy = globalThis.Spicetify?.CORSProxy?.fetch;
-	return proxy ? proxy(url, init) : fetch(HOSTED_FALLBACK(url), init);
+	return proxy ? proxy(url, init) : fetch(url, init);
 };
 
 // Unique-install counts; absent/unreachable degrades to no badges and

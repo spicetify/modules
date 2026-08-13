@@ -2,31 +2,6 @@
  * Copyright (C) 2026 spicetify
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
- * Small layout helpers around stdlib's native-looking settings primitives.
+ * Popup Lyrics has no settings-specific chrome: the shared stdlib primitives
+ * own it so first-party settings cannot drift between modules.
  */
-
-.popup-lyrics-setting-copy {
-	display: grid;
-	gap: 4px;
-}
-
-.popup-lyrics-service-actions,
-.popup-lyrics-token-controls {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 8px;
-}
-
-.popup-lyrics-token-controls {
-	width: min(480px, 100%);
-
-	input {
-		min-width: 0;
-		flex: 1;
-	}
-
-	button {
-		white-space: nowrap;
-	}
-}

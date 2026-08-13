@@ -508,16 +508,28 @@ declare namespace Spicetify {
   const CosmosAPI: any;
   /**
    * Reaches hosts that refuse the client's origin, through the local daemon
-   * when it is running and the hosted proxy otherwise. Setting
-   * `spicetify:corsProxyTemplate` replaces the chain with that one template.
+   * when it is running and the hosted proxy otherwise. Its global
+   * configuration API can replace the chain with one custom template.
    */
   namespace CORSProxy {
+		type Mode = "automatic" | "custom";
+		interface Configuration {
+			mode: Mode;
+			template: string | null;
+			automaticTemplates: [string, string];
+		}
     /** The proxied URL for `target` using the first template in the chain. */
     function url(target: string): string;
     /** Fetches `target` proxied, falling back to the next template only when a request gets no answer. */
     function fetch(target: string, options?: RequestInit): Promise<Response>;
     /** The active chain, in order of preference. */
     function templates(): string[];
+		/** Describes the global proxy mode without exposing its storage details. */
+		function configuration(): Configuration;
+		/** Applies the automatic chain or a validated custom URL template immediately. */
+		function configure(options: { mode: "automatic" } | { mode: "custom"; template: string }): Configuration;
+		/** True when a custom absolute URL template contains the required `{url}` placeholder. */
+		function isValidTemplate(template: string): boolean;
   }
   /**
    * Async wrappers of CosmosAPI

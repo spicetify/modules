@@ -85,11 +85,15 @@ describe("CONFIG", () => {
 		assert.equal(CONFIG.providersOrder.length, Object.keys(CONFIG.providers).length);
 	});
 
-	it("leaves the genius client-version gate to mod.tsx", async () => {
-		const { CONFIG } = await import(`./config.ts?genius=${Date.now()}`);
-		// config.ts must stay loadable without a client, so it reads only the
-		// stored flag; mod.tsx applies the >= 1.2.31 override on import.
-		assert.equal(CONFIG.providers.genius.on, true);
+	it("removes Genius from a previously stored provider order", async () => {
+		localStorage.setItem(
+			"lyrics-plus:services-order",
+			JSON.stringify(["genius", "netease", "musixmatch", "spotify", "lrclib", "local"]),
+		);
+		const { CONFIG } = await import(`./config.ts?without-genius=${Date.now()}`);
+		assert.equal(CONFIG.providersOrder.includes("genius"), false);
+		assert.deepEqual(CONFIG.providersOrder, Object.keys(CONFIG.providers));
+		assert.deepEqual(JSON.parse(localStorage.getItem("lyrics-plus:services-order")), Object.keys(CONFIG.providers));
 	});
 
 	// The most intricate part of the moved block: three chained conditionals
@@ -126,15 +130,8 @@ describe("CONFIG", () => {
 		assert.equal(localStorage.getItem("lyrics-plus:visual:translate"), "false");
 	});
 
-	it("exposes all six providers", async () => {
+	it("exposes only supported providers in configuration", async () => {
 		const { CONFIG } = await import(`./config.ts?providers=${Date.now()}`);
-		assert.deepEqual(Object.keys(CONFIG.providers).sort(), [
-			"genius",
-			"local",
-			"lrclib",
-			"musixmatch",
-			"netease",
-			"spotify",
-		]);
+		assert.deepEqual(Object.keys(CONFIG.providers).sort(), ["local", "lrclib", "musixmatch", "netease", "spotify"]);
 	});
 });

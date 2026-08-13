@@ -134,6 +134,17 @@ button.main-contextMenu-menuItemButton {
 	gap: 8px;
 }
 
+/* Encore has no 18px body-title token in this client. Keep its typography
+   contract for family, weight and colour, and raise only the section level by
+   the requested 2px over the 16px subsection heading. */
+.spicetify-settings-section-heading {
+	font-size: 18px;
+}
+
+.spicetify-settings-section-subheading {
+	margin-block-start: 16px;
+}
+
 .spicetify-settings-page .x-settings-row {
 	display: grid;
 	grid-template-columns: 2fr 1fr;
@@ -145,11 +156,47 @@ button.main-contextMenu-menuItemButton {
 	align-items: center;
 }
 
+.spicetify-settings-label-copy {
+	display: grid;
+	gap: 4px;
+}
+
+.spicetify-settings-actions {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	min-width: 0;
+	width: 100%;
+
+	input {
+		min-width: 0;
+		flex: 1;
+	}
+
+	button {
+		white-space: nowrap;
+	}
+}
+
 .spicetify-settings-page .x-settings-secondColumn {
 	display: flex;
 	position: relative;
 	align-items: center;
 	justify-content: flex-end;
+}
+
+.spicetify-cors-proxy-controls {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	width: min(480px, 100%);
+
+	input {
+		min-width: 0;
+		flex: 1;
+	}
 }
 
 .spicetify-root-children,

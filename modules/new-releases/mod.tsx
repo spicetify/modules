@@ -13,7 +13,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
-import { Button, IconButton, Select, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.js";
+import { Button, Chip, IconButton, Select } from "/modules/stdlib/lib/primitives.js";
 import {
 	DAY_MS,
 	dedupeAndSort,
@@ -92,38 +92,6 @@ const RANGE_OPTIONS = [
 	{ value: "90", label: "90 days" },
 	{ value: "120", label: "120 days" },
 ] as const;
-
-const ConfigToggle = ({ label, configKey }: { label: string; configKey: Exclude<keyof Config, "range"> }) => {
-	const id = React.useId();
-	const config = useConfig();
-	return (
-		<SettingsRow label={label} htmlFor={id}>
-			<Toggle id={id} value={config[configKey]} onChange={(value) => updateConfig(configKey, value)} />
-		</SettingsRow>
-	);
-};
-
-const NewReleasesSettings = () => {
-	const config = useConfig();
-	const rangeId = React.useId();
-	return (
-		<SettingsSection title="New Releases">
-			<SettingsRow label="Release window" htmlFor={rangeId}>
-				<Select
-					options={RANGE_OPTIONS}
-					value={String(config.range) as (typeof RANGE_OPTIONS)[number]["value"]}
-					onChange={(value) => updateConfig("range", Number.parseInt(value, 10))}
-				/>
-			</SettingsRow>
-			<ConfigToggle label="Albums" configKey="album" />
-			<ConfigToggle label="Singles and EPs" configKey="singleEp" />
-			<ConfigToggle label="Compilations" configKey="compilations" />
-			<ConfigToggle label="Relative dates" configKey="relative" />
-			<ConfigToggle label="Show release type" configKey="showType" />
-			<ConfigToggle label="Show track count" configKey="showCount" />
-		</SettingsSection>
-	);
-};
 
 // ---------- dismissed set (persisted) ----------
 
@@ -406,6 +374,29 @@ const Page = () => {
 			<div className="new-releases-header">
 				<h1>New Releases</h1>
 				<div className="new-releases-controls">
+					<Select
+						options={RANGE_OPTIONS}
+						value={String(cfg.range) as (typeof RANGE_OPTIONS)[number]["value"]}
+						onChange={(value) => updateConfig("range", Number.parseInt(value, 10))}
+					/>
+					<Chip active={cfg.album} onClick={() => updateConfig("album", !cfg.album)}>
+						Albums
+					</Chip>
+					<Chip active={cfg.singleEp} onClick={() => updateConfig("singleEp", !cfg.singleEp)}>
+						Singles &amp; EPs
+					</Chip>
+					<Chip active={cfg.compilations} onClick={() => updateConfig("compilations", !cfg.compilations)}>
+						Compilations
+					</Chip>
+					<Chip active={cfg.relative} onClick={() => updateConfig("relative", !cfg.relative)}>
+						Relative dates
+					</Chip>
+					<Chip active={cfg.showType} onClick={() => updateConfig("showType", !cfg.showType)}>
+						Release type
+					</Chip>
+					<Chip active={cfg.showCount} onClick={() => updateConfig("showCount", !cfg.showCount)}>
+						Track count
+					</Chip>
 					{dismissed.length > 0 && (
 						<Button variant="secondary" onClick={undo}>
 							Undo dismiss
@@ -457,7 +448,6 @@ const Page = () => {
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
-	registrar.register("settingsSection", <NewReleasesSettings />);
 	registrar.register(
 		"navlink",
 		<NavLink localizedApp="New Releases" appRoutePath={ROUTE} icon={ICON} activeIcon={ICON} />,
