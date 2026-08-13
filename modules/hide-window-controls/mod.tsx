@@ -5,11 +5,18 @@
 
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { SettingsToggleRow } from "/modules/stdlib/lib/primitives.js";
+import { React } from "/modules/stdlib/src/expose/React.ts";
+import { SettingsRow, Toggle } from "/modules/stdlib/lib/primitives.js";
 
-import { STORAGE_KEY, shouldHide } from "./logic.ts";
+import {
+	createStateReconciler,
+	HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE,
+	resolveHiddenState,
+	STORAGE_KEY,
+} from "./logic.ts";
 
-const isEnabled = () => shouldHide(localStorage.getItem(STORAGE_KEY));
+const isRequired = () => document.documentElement.hasAttribute(HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE);
+const isEnabled = () => resolveHiddenState(localStorage.getItem(STORAGE_KEY), isRequired());
 
 // The DesktopUpdateUi service is the shell's own bridge for the native window
 // chrome; showButtons:false removes the macOS traffic lights (and the shell's
@@ -58,21 +65,61 @@ const apply = async (hidden: boolean) => {
 };
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const registrar = createRegistrar(ctx);
-	registrar.register(
-		"settingsRow",
-		<SettingsToggleRow
-			label="Hide window controls"
-			getValue={isEnabled}
-			onChange={(enabled) => {
-				localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0");
-				void apply(enabled);
-			}}
-		/>,
-	);
+	const reconciler = createStateReconciler(apply);
 
-	if (isEnabled()) await apply(true);
-	ctx.defer(() => {
-		if (isEnabled()) void apply(false);
+	const RequirementLockedToggle = () => {
+		const id = React.useId();
+		const [state, setState] = React.useState(() => ({ required: isRequired(), hidden: isEnabled() }));
+
+		React.useEffect(() => {
+			const sync = () => setState({ required: isRequired(), hidden: isEnabled() });
+			const observer = new MutationObserver(sync);
+			observer.observe(document.documentElement, {
+				attributes: true,
+				attributeFilter: [HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE],
+			});
+			sync();
+			return () => observer.disconnect();
+		}, []);
+
+		return (
+			<fieldset
+				className="spicetify-hide-window-controls-setting"
+				disabled={state.required}
+				title={state.required ? "Required by the active theme" : ""}
+				style={{ display: "contents" }}
+			>
+				<SettingsRow label="Hide window controls" htmlFor={id}>
+					<Toggle
+						id={id}
+						value={state.hidden}
+						onChange={(hidden) => {
+							if (isRequired()) return;
+							localStorage.setItem(STORAGE_KEY, hidden ? "1" : "0");
+							setState({ required: false, hidden });
+							void reconciler.request(hidden);
+						}}
+					/>
+				</SettingsRow>
+			</fieldset>
+		);
+	};
+
+	const registrar = createRegistrar(ctx);
+	registrar.register("settingsRow", <RequirementLockedToggle />);
+
+	const syncRequirement = () => {
+		return reconciler.request(isEnabled());
+	};
+	const requirementObserver = new MutationObserver(syncRequirement);
+	requirementObserver.observe(document.documentElement, {
+		attributes: true,
+		attributeFilter: [HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE],
+	});
+
+	await syncRequirement();
+	ctx.defer(async () => {
+		requirementObserver.disconnect();
+		await reconciler.stop(false);
 	});
 }
