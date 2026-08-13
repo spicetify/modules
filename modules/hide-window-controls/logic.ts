@@ -51,6 +51,32 @@ export interface SharedReconcilerState {
 	transition: Promise<void>;
 }
 
+export function createDebouncedReassertion(
+	reassert: () => Promise<void>,
+	schedule: (callback: () => void) => number,
+	cancel: (id: number) => void,
+	onError: (error: unknown) => void,
+) {
+	let active = true;
+	let pending: number | undefined;
+
+	return {
+		trigger() {
+			if (!active) return;
+			if (pending !== undefined) cancel(pending);
+			pending = schedule(() => {
+				pending = undefined;
+				if (active) void reassert().catch(onError);
+			});
+		},
+		stop() {
+			active = false;
+			if (pending !== undefined) cancel(pending);
+			pending = undefined;
+		},
+	};
+}
+
 export function createSharedStateReconciler(apply: (hidden: boolean) => Promise<void>, shared: SharedReconcilerState) {
 	const generation = ++shared.generation;
 	let active = true;

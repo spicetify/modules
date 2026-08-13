@@ -9,6 +9,7 @@ import { React } from "/modules/stdlib/src/expose/React.ts";
 import { SettingsRow, Toggle } from "/modules/stdlib/lib/primitives.js";
 
 import {
+	createDebouncedReassertion,
 	createSharedStateReconciler,
 	HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE,
 	resolveHiddenState,
@@ -107,7 +108,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 							if (isRequired()) return;
 							localStorage.setItem(STORAGE_KEY, hidden ? "1" : "0");
 							setState({ required: false, hidden });
-							void reconciler.request(hidden);
+							void reconciler
+								.request(hidden)
+								.catch((error) =>
+									console.warn("[hide-window-controls] could not update the window state", error),
+								);
 						}}
 					/>
 				</SettingsRow>
@@ -121,13 +126,35 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const syncRequirement = () => {
 		return reconciler.request(isEnabled());
 	};
-	const requirementObserver = new MutationObserver(syncRequirement);
+	const syncRequirementSafely = () => {
+		void syncRequirement().catch((error) =>
+			console.warn("[hide-window-controls] could not update the required window state", error),
+		);
+	};
+	const requirementObserver = new MutationObserver(syncRequirementSafely);
 	requirementObserver.observe(document.documentElement, {
 		attributes: true,
 		attributeFilter: [HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE],
 	});
 
+	// Desktop shells may rebuild their native chrome after a window-state
+	// transition without changing any web state. Reassert the desired state at
+	// those boundaries; debouncing keeps resize drags to one bridge call.
+	const reassertion = createDebouncedReassertion(
+		syncRequirement,
+		(callback) => window.setTimeout(callback, 100),
+		(id) => window.clearTimeout(id),
+		(error) => console.warn("[hide-window-controls] could not reassert the window state", error),
+	);
+	const reassert = () => reassertion.trigger();
+	for (const event of ["focus", "pageshow", "resize"] as const) window.addEventListener(event, reassert);
+	for (const event of ["fullscreenchange", "visibilitychange"] as const) document.addEventListener(event, reassert);
+
 	ctx.defer(async () => {
+		reassertion.stop();
+		for (const event of ["focus", "pageshow", "resize"] as const) window.removeEventListener(event, reassert);
+		for (const event of ["fullscreenchange", "visibilitychange"] as const)
+			document.removeEventListener(event, reassert);
 		requirementObserver.disconnect();
 		await reconciler.stop(false);
 	});

@@ -8,7 +8,13 @@ import "../stdlib/lib/test-setup.mts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { createSharedStateReconciler, createStateReconciler, resolveHiddenState, shouldHide } from "./logic.ts";
+import {
+	createDebouncedReassertion,
+	createSharedStateReconciler,
+	createStateReconciler,
+	resolveHiddenState,
+	shouldHide,
+} from "./logic.ts";
 
 test("shouldHide defaults on and stays off only for an explicit opt-out", () => {
 	assert.equal(shouldHide("1"), true);
@@ -135,4 +141,40 @@ test("shared reconciliation can retry after an initial native failure", async ()
 	await reconciler.request(true);
 
 	assert.deepEqual(applied, [true, true]);
+});
+
+test("shell lifecycle reassertion is debounced, contains failures, and cannot run after teardown", async () => {
+	let nextId = 0;
+	const pending = new Map<number, () => void>();
+	let reassertions = 0;
+	const errors: unknown[] = [];
+	const reassertion = createDebouncedReassertion(
+		async () => {
+			reassertions++;
+			throw new Error("native bridge unavailable");
+		},
+		(callback) => {
+			const id = ++nextId;
+			pending.set(id, () => {
+				pending.delete(id);
+				callback();
+			});
+			return id;
+		},
+		(id) => pending.delete(id),
+		(error) => errors.push(error),
+	);
+
+	reassertion.trigger();
+	reassertion.trigger();
+	assert.equal(pending.size, 1);
+	for (const callback of pending.values()) callback();
+	await Promise.resolve();
+	assert.equal(reassertions, 1);
+	assert.match(String(errors[0]), /native bridge unavailable/);
+
+	reassertion.trigger();
+	reassertion.stop();
+	assert.equal(pending.size, 0);
+	assert.equal(reassertions, 1);
 });
