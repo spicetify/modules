@@ -23,6 +23,14 @@
 			"providers": [],
 			"checksum": "sha256:b612ce76cd485c1c2a72594968d71bb2670b69e15389b30e0a609782ccdd9ff1",
 			"updatedAt": "2026-08-12"
+		},
+		"0.1.3": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/loopy-loop@0.1.3/loopy-loop@0.1.3.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:52bb392e7d9bd47fe58ae875f177661059596098ade3f8596d099971627b9e21",
+			"updatedAt": "2026-08-13"
 		}
 	},
 	"metadata": {
