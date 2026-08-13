@@ -3843,6 +3843,12 @@
 					"providers": [],
 					"checksum": "sha256:b57640f859494e7ecfed4ae826541d04238b83d97670497523b9e490ed63b4f0",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.2": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/ziro@0.1.2/ziro@0.1.2.zip"],
+					"providers": [],
+					"checksum": "sha256:f1228c7dee39d864c4033abf27c52fc953c2e78aca99b9ed799107abf4b21a9a",
+					"updatedAt": "2026-08-13"
 				}
 			},
 			"metadata": {
@@ -3854,7 +3860,8 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/ziro.jpg",
+				"license": "GPL-3.0-or-later"
 			}
 		}
 	}
