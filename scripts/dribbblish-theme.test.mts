@@ -37,14 +37,14 @@ describe("dribbblish frame", () => {
 		assert.match(css, /\.Root__right-sidebar\s*\{[^}]*background-color:\s*var\(--spice-main\)\s*!important\s*;/s);
 	});
 
-	it("turns the minimized Now Playing peek into a reserved green rail", () => {
+	it("turns the minimized Now Playing peek into a quiet black arrow rail", () => {
 		assert.match(
 			css,
-			/\.ylx\s+\.Root__top-container:has\(>\s*\.Root__right-sidebar\s+\[inert\]\s+\.main-nowPlayingView-container\)\s*\{[^}]*grid-template-columns:\s*var\(--dribbblish-sidebar-width,\s*72px\)\s+minmax\(0,\s*1fr\)\s+72px\s+0\s*!important\s*;/s,
+			/\.ylx\s+\.Root__top-container:has\(>\s*\.Root__right-sidebar\s+\[inert\]\s+\.main-nowPlayingView-container\)\s*\{[^}]*grid-template-columns:\s*var\(--dribbblish-sidebar-width,\s*72px\)\s+minmax\(0,\s*1fr\)\s+32px\s+0\s*!important\s*;/s,
 		);
 		assert.match(
 			css,
-			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*\{[^}]*width:\s*72px\s*!important\s*;[^}]*background-color:\s*var\(--spice-sidebar\)\s*!important\s*;/s,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*\{[^}]*width:\s*32px\s*!important\s*;[^}]*background-color:\s*var\(--spice-main\)\s*!important\s*;/s,
 		);
 		assert.match(
 			css,
@@ -52,7 +52,15 @@ describe("dribbblish frame", () => {
 		);
 		assert.match(
 			css,
-			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*>\s*div:last-child\s*>\s*button\s*\{[^}]*width:\s*48px\s*;[^}]*height:\s*48px\s*;/s,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)\s*>\s*div\s*>\s*div\s*\{[^}]*transform:\s*none\s*!important\s*;[^}]*transition:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*>\s*div:last-child\s*>\s*button\s*\{[^}]*width:\s*32px\s*;[^}]*height:\s*48px\s*;[^}]*transform:\s*none\s*!important\s*;[^}]*transition:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__right-sidebar:has\(\[inert\]\s+\.main-nowPlayingView-container\)[^{]*>\s*div:last-child\s*\{[^}]*opacity:\s*1\s*!important\s*;[^}]*transition:\s*none\s*!important\s*;/s,
 		);
 	});
 

@@ -205,18 +205,18 @@ html.spicetify-themed .Root__top-container {
 	padding-left: 0;
 }
 
-/* Turn Spotify's clipped black NPV peek into a real right-side theme rail. */
+/* Keep Spotify's clipped NPV peek as a quiet arrow beside the main surface. */
 .ylx .Root__top-container:has(> .Root__right-sidebar [inert] .main-nowPlayingView-container) {
-	grid-template-columns: var(--dribbblish-sidebar-width, 72px) minmax(0, 1fr) 72px 0 !important;
+	grid-template-columns: var(--dribbblish-sidebar-width, 72px) minmax(0, 1fr) 32px 0 !important;
 }
 
 .Root__right-sidebar:has([inert] .main-nowPlayingView-container),
 .Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div,
 .Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div,
 .Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div > div:last-child {
-	width: 72px !important;
+	width: 32px !important;
 	margin: 0 !important;
-	background-color: var(--spice-sidebar) !important;
+	background-color: var(--spice-main) !important;
 	border-radius: 0 !important;
 }
 
@@ -228,11 +228,23 @@ html.spicetify-themed .Root__top-container {
 	display: none !important;
 }
 
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div {
+	transform: none !important;
+	transition: none !important;
+}
+
+.Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div > div:last-child {
+	opacity: 1 !important;
+	transition: none !important;
+}
+
 .Root__right-sidebar:has([inert] .main-nowPlayingView-container) > div > div > div:last-child > button {
-	width: 48px;
+	width: 32px;
 	height: 48px;
-	padding: 16px;
+	padding: 16px 8px;
 	color: var(--spice-sidebar-text) !important;
+	transform: none !important;
+	transition: none !important;
 }
 
 .Root__nav-bar {
