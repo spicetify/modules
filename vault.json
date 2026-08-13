@@ -496,6 +496,14 @@
 					"providers": [],
 					"checksum": "sha256:449cc5d65f09efb02b03548e9dba853964f6a4e1cc59affb1460f9e079eebc1d",
 					"updatedAt": "2026-08-12"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/hide-window-controls@0.1.4/hide-window-controls@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:615d26f6b08d8f4071bbf21d117e143fbe18bbff1db80c3744cb614c6d903635",
+					"updatedAt": "2026-08-13"
 				}
 			},
 			"metadata": {
