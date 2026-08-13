@@ -21,7 +21,7 @@ export function relocateElement(element: Element, target: Element): () => void {
 }
 
 const NAVLINK_PITCH = 54;
-const NAVLINK_FIRST_ROW_OVERLAP = 28;
+const NAVLINK_FIRST_ROW_OVERLAP = 14;
 const EXPANDED_RAIL_LEFT_PADDING = 18;
 
 export function navlinkRailLayout(width: number, buttonCount: number) {

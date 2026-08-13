@@ -445,6 +445,55 @@ li > div::after {
 	color: var(--spice-sidebar-text) !important;
 }
 
+/* Match the collapsed library opener to the 48px circular rail buttons. */
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed {
+	width: 48px !important;
+	height: 48px !important;
+	transform: translateX(-4px);
+}
+
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed > div,
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed button {
+	width: 48px !important;
+	height: 48px !important;
+}
+
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed button {
+	justify-content: center !important;
+	padding: 12px !important;
+	border-radius: 50% !important;
+}
+
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed button:hover {
+	background-color: var(--spice-tab-active) !important;
+}
+
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed
+	button
+	> span:not([data-encore-id="visuallyHidden"]) {
+	background-color: transparent !important;
+}
+
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed button > span:nth-of-type(2) {
+	inset: auto !important;
+	top: 50% !important;
+	left: 50% !important;
+	margin: 0 !important;
+	width: 24px !important;
+	height: 24px !important;
+	transform: translate(-50%, -50%) !important;
+}
+
+.main-yourLibraryX-collapseButton.main-yourLibraryX-headerIsCollapsed button:hover > span:first-of-type {
+	opacity: 0 !important;
+}
+
+/* Spotify offsets collapsed artwork 4px left inside its centered list row. */
+.main-yourLibraryX-libraryContainer:has(.main-yourLibraryX-headerIsCollapsed)
+	:is(.x-entityImage-imageContainer, .main-yourLibraryX-rowCover, .x-entityImage-imagePlaceholder) {
+	transform: translateX(4px);
+}
+
 /* expanded sidebar buttons */
 .search-searchCategory-carouselButton {
 	background-color: transparent;

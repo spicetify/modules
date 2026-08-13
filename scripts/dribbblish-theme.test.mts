@@ -40,11 +40,11 @@ describe("dribbblish frame", () => {
 	});
 
 	it("uses the title strip for a horizontal rail when the library is expanded", () => {
-		assert.deepEqual(navlinkRailLayout(72, 3), { expanded: false, reserve: 80 });
-		assert.deepEqual(navlinkRailLayout(179, 3), { expanded: false, reserve: 80 });
+		assert.deepEqual(navlinkRailLayout(72, 3), { expanded: false, reserve: 94 });
+		assert.deepEqual(navlinkRailLayout(179, 3), { expanded: false, reserve: 94 });
 		assert.deepEqual(navlinkRailLayout(180, 3), { expanded: true, reserve: 0 });
 		assert.deepEqual(navlinkRailLayout(397, 3), { expanded: true, reserve: 0 });
-		assert.deepEqual(navlinkRailLayout(397, 8), { expanded: false, reserve: 350 });
+		assert.deepEqual(navlinkRailLayout(397, 8), { expanded: false, reserve: 364 });
 		assert.match(
 			css,
 			/#dribbblish-navlinks-rail\.dribbblish-navlinks-rail--expanded\s*\{[^}]*justify-content:\s*flex-start\s*;[^}]*padding-left:\s*18px\s*;/s,
@@ -52,6 +52,33 @@ describe("dribbblish frame", () => {
 		assert.match(
 			css,
 			/#dribbblish-navlinks-rail\.dribbblish-navlinks-rail--expanded\s+\.spicetify-navlinks-anchor\s*\{[^}]*flex-direction:\s*row\s*;/s,
+		);
+	});
+
+	it("centres the collapsed library opener and artwork on the compact rail", () => {
+		assert.match(
+			css,
+			/\.main-yourLibraryX-collapseButton\.main-yourLibraryX-headerIsCollapsed\s*\{[^}]*width:\s*48px\s*!important\s*;[^}]*height:\s*48px\s*!important\s*;[^}]*transform:\s*translateX\(-4px\)\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.main-yourLibraryX-collapseButton\.main-yourLibraryX-headerIsCollapsed button\s*\{[^}]*padding:\s*12px\s*!important\s*;[^}]*border-radius:\s*50%\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.main-yourLibraryX-collapseButton\.main-yourLibraryX-headerIsCollapsed\s+button\s*>\s*span:not\(\[data-encore-id="visuallyHidden"\]\)\s*\{[^}]*background-color:\s*transparent\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.main-yourLibraryX-collapseButton\.main-yourLibraryX-headerIsCollapsed button\s*>\s*span:nth-of-type\(2\)\s*\{[^}]*top:\s*50%\s*!important\s*;[^}]*left:\s*50%\s*!important\s*;[^}]*margin:\s*0\s*!important\s*;[^}]*width:\s*24px\s*!important\s*;[^}]*height:\s*24px\s*!important\s*;[^}]*transform:\s*translate\(-50%,\s*-50%\)\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.main-yourLibraryX-collapseButton\.main-yourLibraryX-headerIsCollapsed button:hover\s*>\s*span:first-of-type\s*\{[^}]*opacity:\s*0\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.main-yourLibraryX-libraryContainer:has\(\.main-yourLibraryX-headerIsCollapsed\)[^{]*:is\([^)]*\.x-entityImage-imageContainer[^)]*\.main-yourLibraryX-rowCover[^)]*\)\s*\{[^}]*transform:\s*translateX\(4px\)\s*;/s,
 		);
 	});
 
