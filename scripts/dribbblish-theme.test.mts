@@ -229,6 +229,18 @@ describe("dribbblish frame", () => {
 		assert.equal(staleTooltip.isConnected, false);
 	});
 
+	it("reveals the expanded library after its layout settles", () => {
+		assert.match(css, /@keyframes\s+dribbblish-library-reveal\s*\{/);
+		assert.match(
+			css,
+			/\.main-yourLibraryX-libraryContainer:not\(:has\(\.main-yourLibraryX-headerIsCollapsed\)\)\s*\{[^}]*animation:\s*dribbblish-library-reveal\s+220ms\s+cubic-bezier\(0\.2,\s*0\.8,\s*0\.2,\s*1\)\s*;/s,
+		);
+		assert.match(
+			css,
+			/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*\.main-yourLibraryX-libraryContainer:not\(:has\(\.main-yourLibraryX-headerIsCollapsed\)\)\s*\{[^}]*animation:\s*none\s*;/s,
+		);
+	});
+
 	it("rebinds floating search when Spotify replaces its React-owned host", () => {
 		const first = document.createElement("div");
 		const replacement = document.createElement("div");
