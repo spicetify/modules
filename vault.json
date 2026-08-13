@@ -802,6 +802,15 @@
 					"checksum": "sha256:a95b98ce74f8ff2c5d88939acb6e4c8e929e48b08b707a1073eb05e8bf79723f",
 					"updatedAt": "2026-08-13",
 					"hidden": true
+				},
+				"1.2.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/manager@1.2.0/manager@1.2.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:dcac928b0d3e77d65b6e5a6f9dd15891bb1e48b5bf33f83b2189d29571683d45",
+					"updatedAt": "2026-08-13",
+					"hidden": true
 				}
 			},
 			"metadata": {
