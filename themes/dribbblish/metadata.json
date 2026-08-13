@@ -1,7 +1,7 @@
 {
 	"name": "dribbblish",
 	"kind": "theme",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"authors": ["khanhas", "harbassan"],
 	"description": "Compact card-based redesign with rounded art and nineteen schemes",
 	"entries": {
@@ -9,6 +9,8 @@
 		"css": "index.css"
 	},
 	"hasMixins": false,
-	"dependencies": {},
+	"dependencies": {
+		"hide-window-controls": "^0.1.4"
+	},
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/dribbblish.png"
 }

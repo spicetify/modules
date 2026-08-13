@@ -72,6 +72,11 @@ body {
 	padding-left: 0 !important;
 }
 
+html.spicetify-themed .Root__top-container {
+	background-color: var(--spice-sidebar) !important;
+	padding: var(--main-gap) var(--main-gap) var(--main-gap) 0 !important;
+}
+
 .global-nav #Desktop_PanelContainer_Id {
 	border-radius: 0 !important;
 }
@@ -101,6 +106,31 @@ body {
 	transform: scale(0.75);
 }
 
+#dribbblish-navlinks-rail {
+	position: absolute;
+	inset: var(--main-gap) auto auto 0;
+	width: var(--dribbblish-sidebar-width, 72px);
+	z-index: 11;
+	display: flex;
+	justify-content: center;
+}
+
+#dribbblish-navlinks-rail .spicetify-navlinks-anchor {
+	display: flex !important;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+}
+
+#dribbblish-navlinks-rail .inline-flex {
+	display: flex;
+	justify-content: center;
+}
+
+#dribbblish-navlinks-rail button {
+	color: var(--spice-sidebar-text) !important;
+}
+
 .main-home-filterChipsSection {
 	background-color: var(--spice-main) !important;
 }
@@ -128,6 +158,7 @@ body {
 
 .Root__nav-bar {
 	grid-area: left-sidebar !important;
+	padding-top: var(--dribbblish-navlinks-reserve, 0px);
 }
 
 /* move the progress bar to the top */
@@ -659,7 +690,7 @@ input {
 }
 
 .Root__right-sidebar {
-	background-color: var(--spice-sidebar);
+	background-color: var(--spice-main) !important;
 }
 
 .Root__main-view {

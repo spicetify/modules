@@ -13,8 +13,13 @@
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
+import { relocateElement } from "./logic.ts";
+
 // Horizontal padding the tooltip keeps from either end of the progress bar.
 const TOOLTIP_EDGE_GAP = 12;
+const HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE = "data-spicetify-hide-window-controls-required";
+const NAVLINK_PITCH = 54;
+const NAVLINK_FIRST_ROW_OVERLAP = 28;
 
 export default async function (ctx: ModuleRuntimeContext) {
 	let disposed = false;
@@ -48,6 +53,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 		timers.clear();
 	});
 
+	// Dribbblish uses the native title-bar space as part of its green rail.
+	// The dependency watches this marker and keeps the native controls hidden
+	// while the theme is active, without overwriting the user's saved choice.
+	document.documentElement.setAttribute(HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE, "");
+	ctx.defer(() => document.documentElement.removeAttribute(HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE));
+
 	// The stylesheet scopes its layout rules to the client generation.
 	document.documentElement.classList.add("ylx");
 	ctx.defer(() => document.documentElement.classList.remove("ylx"));
@@ -63,13 +74,18 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	// The top bar is inset by the left sidebar's width, which the user can
 	// drag. Mirror it onto the global nav as a unitless custom property.
-	const sidebar = await waitFor<HTMLElement>(".Root__nav-bar, #Desktop_LeftSidebar_Id");
-	const globalNav = await waitFor<HTMLElement>(".Root__globalNav");
+	const [sidebar, globalNav, navlinks] = await Promise.all([
+		waitFor<HTMLElement>(".Root__nav-bar, #Desktop_LeftSidebar_Id"),
+		waitFor<HTMLElement>(".Root__globalNav"),
+		waitFor<HTMLElement>(".spicetify-navlinks-anchor"),
+	]);
 	if (disposed) return;
-	if (sidebar && globalNav) {
+	if (topContainer && sidebar && globalNav) {
 		const syncWidth = () => {
 			const declared = Number(getComputedStyle(sidebar).getPropertyValue("--left-sidebar-width").trim());
-			globalNav.style.setProperty("--left-sidebar-width", String(declared || sidebar.clientWidth));
+			const width = declared || sidebar.clientWidth;
+			globalNav.style.setProperty("--left-sidebar-width", String(width));
+			topContainer.style.setProperty("--dribbblish-sidebar-width", `${width}px`);
 		};
 		const observer = new ResizeObserver(syncWidth);
 		observer.observe(sidebar);
@@ -77,6 +93,30 @@ export default async function (ctx: ModuleRuntimeContext) {
 		ctx.defer(() => {
 			observer.disconnect();
 			globalNav.style.removeProperty("--left-sidebar-width");
+			topContainer.style.removeProperty("--dribbblish-sidebar-width");
+		});
+	}
+
+	if (topContainer && navlinks) {
+		const rail = document.createElement("div");
+		rail.id = "dribbblish-navlinks-rail";
+		topContainer.append(rail);
+		const restoreNavlinks = relocateElement(navlinks, rail);
+
+		const syncRailReserve = () => {
+			const count = rail.querySelectorAll("button").length;
+			const reserve = Math.max(0, (count - 1) * NAVLINK_PITCH - NAVLINK_FIRST_ROW_OVERLAP);
+			topContainer.style.setProperty("--dribbblish-navlinks-reserve", `${reserve}px`);
+		};
+		const railObserver = new MutationObserver(syncRailReserve);
+		railObserver.observe(rail, { childList: true, subtree: true });
+		syncRailReserve();
+
+		ctx.defer(() => {
+			railObserver.disconnect();
+			topContainer.style.removeProperty("--dribbblish-navlinks-reserve");
+			restoreNavlinks();
+			rail.remove();
 		});
 	}
 
