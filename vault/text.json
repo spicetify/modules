@@ -23,6 +23,12 @@
 			"providers": [],
 			"checksum": "sha256:37d2f61389c7cd40a6d38bebbb217043780d9a1bc1567f36d249fbeb2a1af159",
 			"updatedAt": "2026-08-06"
+		},
+		"0.1.4": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/text@0.1.4/text@0.1.4.zip"],
+			"providers": [],
+			"checksum": "sha256:a3fbd9748aac3fe10030847cb484828941bb3e9e8a66ec974ce76faac51af162",
+			"updatedAt": "2026-08-13"
 		}
 	},
 	"metadata": {
@@ -34,6 +40,7 @@
 			}
 		],
 		"kind": "theme",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/text.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
