@@ -10,10 +10,10 @@ spot in the top bar. If they all act on it, the top bar is unusable.
 
 ---
 
-## Put settings in Settings
+## Put settings in Spicetify Settings
 
-If your module has options, they belong on Spotify's own settings page, via the
-`settingsSection` register:
+If your module has options, they belong on the standalone Spicetify Settings
+page, via the `settingsSection` register:
 
 ```tsx
 import { SettingsRow, SettingsSection } from "/modules/stdlib/lib/primitives.js";
@@ -29,9 +29,11 @@ registrar.register(
 );
 ```
 
-`SettingsSection` and `SettingsRow` render the client's own
-`x-settings-section` / `x-settings-row` structure, so your options line up with
-Spotify's and inherit its styling and theming for free.
+`SettingsSection` and `SettingsRow` render the client's settings structure, so
+your options line up consistently and inherit Spotify and theme styling. Small
+one-boolean modules should use `settingsRow`; stdlib groups those rows under
+General. All contributed controls stay visible rather than hiding behind an
+additional modal or disclosure.
 
 **Do not put settings in the account dropdown.** You _can_: `Menu.Item` works,
 and it is the shortest path to a visible toggle. It is also where the user
@@ -53,7 +55,9 @@ Ranked from cheapest to most intrusive for the user:
 
 | Surface                     | Use it for                                            |
 | --------------------------- | ----------------------------------------------------- |
-| `settingsSection`           | anything configurable                                 |
+| `settingsRow`               | one small setting in the shared General group         |
+| `settingsSection`           | a named group of module settings                      |
+| `settingsAction`            | reserved global navigation at the bottom of settings  |
 | `route` + `navlink`         | a whole feature with its own page                     |
 | `menu` / `ContextMenu.Item` | an action on the current or right-clicked item        |
 | `playbarButton`             | a control the user reaches for _while playing_        |

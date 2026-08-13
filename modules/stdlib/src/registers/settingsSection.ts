@@ -3,57 +3,79 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mixin.ts";
-import { mountRegistryAnchor } from "./mount.ts";
+import { React } from "../expose/React.ts";
 import { Registry } from "./registry.ts";
+import route from "./route.ts";
 
-const registry = new (class extends Registry<React.ReactNode> {
+export const SPICETIFY_SETTINGS_ROUTE = "/bespoke/settings";
+
+const listeners = new Set<() => void>();
+const notify = () => {
+	for (const listener of listeners) listener();
+};
+
+class SettingsRegistry extends Registry<React.ReactNode> {
 	override add(value: React.ReactNode): this {
-		refresh?.();
-		return super.add(value);
+		super.add(value);
+		notify();
+		return this;
 	}
 
 	override delete(value: React.ReactNode): boolean {
-		refresh?.();
-		return super.delete(value);
+		const deleted = super.delete(value);
+		if (deleted) notify();
+		return deleted;
 	}
-})();
-export default registry;
-
-let refresh: (() => void) | undefined;
-
-declare global {
-	var __renderSettingSections: any;
 }
 
-globalThis.__renderSettingSections = () => registry.all();
-transformer(
-	(emit) => (str) => {
-		emit();
+const registry = new SettingsRegistry();
+export default registry;
 
-		str = str.replace(
-			/(\(0,[a-zA-Z_\$][\w\$]*\.jsx\)\([a-zA-Z_\$][\w\$]*,{settings:[a-zA-Z_\$][\w\$]*,setValue:[a-zA-Z_\$][\w\$]*}\))]/,
-			"$1,...__renderSettingSections()]",
+// Navigation and management actions belong after every module's controls.
+// Keeping them in a separate register makes the ordering structural instead
+// of dependent on module load order.
+export const settingsAction = new SettingsRegistry();
+
+const SpicetifySettingsPage = () => {
+	const [, forceRender] = React.useReducer((value: number) => value + 1, 0);
+	React.useEffect(() => {
+		listeners.add(forceRender);
+		return () => void listeners.delete(forceRender);
+	}, []);
+
+	const sections = registry.all();
+	const actions = settingsAction.all();
+	return React.createElement(
+		"main",
+		{ className: "spicetify-settings-page" },
+		React.createElement(
+			"header",
+			{ className: "spicetify-settings-page__header" },
+			React.createElement("h1", null, "Spicetify Settings"),
+			React.createElement("p", null, "Configure your installed modules and open Spicetify management tools."),
+		),
+		React.createElement(
+			"div",
+			{ className: "spicetify-settings-page__sections" },
+			sections.map((section, index) => React.createElement(React.Fragment, { key: index }, section)),
+		),
+		React.createElement(
+			"div",
+			{ className: "spicetify-settings-page__actions" },
+			actions.map((action, index) => React.createElement(React.Fragment, { key: index }, action)),
+		),
+	);
+};
+
+// The page belongs to stdlib rather than Manager so settings remain available
+// when the optional management UI fails or is disabled.
+if (typeof document !== "undefined") {
+	void CHUNKS.xpui.promise.then(() => {
+		route.add(
+			React.createElement("route", {
+				path: SPICETIFY_SETTINGS_ROUTE,
+				element: React.createElement(SpicetifySettingsPage),
+			}),
 		);
-
-		return str;
-	},
-	{
-		wait: false,
-		glob: /^\/xpui-routes-desktop-settings\.js/,
-	},
-);
-
-// The settings container only exists while the settings route is open; the
-// anchor keeper re-places the host every time it reappears.
-mountRegistryAnchor({
-	className: "spicetify-settings-sections",
-	registry,
-	setRefresh: (cb) => {
-		refresh = cb;
-	},
-	findSlot: () => {
-		const container = document.querySelector(".x-settings-container");
-		return container ? { parent: container } : null;
-	},
-});
+	});
+}

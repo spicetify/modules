@@ -108,6 +108,39 @@ button.main-contextMenu-menuItemButton {
 	background: var(--spice-main, var(--background-base, #121212));
 }
 
+.spicetify-settings-page {
+	box-sizing: border-box;
+	min-height: 100%;
+	padding: 32px clamp(24px, 5vw, 64px) 64px;
+	color: var(--spice-text, var(--text-base, #fff));
+}
+
+.spicetify-settings-page__header,
+.spicetify-settings-page__sections,
+.spicetify-settings-page__actions {
+	width: min(100%, 1200px);
+	margin-inline: auto;
+}
+
+.spicetify-settings-page__header {
+	margin-bottom: 32px;
+
+	h1 {
+		margin: 0 0 8px;
+		font-size: 32px;
+		line-height: 1.2;
+	}
+
+	p {
+		margin: 0;
+		color: var(--spice-subtext, var(--text-subdued, #b3b3b3));
+	}
+}
+
+.spicetify-settings-page__actions {
+	margin-top: 48px;
+}
+
 .spicetify-root-children,
 .spicetify-popover,
 .spicetify-route-page,

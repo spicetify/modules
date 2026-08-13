@@ -136,10 +136,9 @@ export const Card: React.FC<{ children: React.ReactNode }> = (props) => (
 
 // ---------- settings ----------
 
-// Native-looking settings chrome for the `settingsSection` register. These
-// render the client's own section/row structure rather than capturing its
-// components: the settings route is a lazily loaded chunk, and the loader
-// does not source-transform those, so a capture there never resolves.
+// Native-looking settings chrome for the `settingsSection` register on the
+// standalone Spicetify Settings page. These render the client's own section
+// and row structure rather than capturing its route-local components.
 export const SettingsSection: React.FC<{ title?: React.ReactNode; children: React.ReactNode }> = (props) => (
 	<div className={SETTINGS_SECTION_CLASS}>
 		{props.title === undefined ? null : <h2>{props.title}</h2>}

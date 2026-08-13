@@ -6,7 +6,7 @@
 // @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
 // header note in mod.tsx.
 
-// Settings.js — the settings UI components and the config page opener.
+// Settings.js — the settings UI rendered on the shared Spicetify Settings page.
 
 import { React as react } from "/modules/stdlib/src/expose/React.ts";
 import { APP_NAME, CONFIG, fontSizeLimit, thresholdSizeLimit } from "./config.ts";
@@ -606,8 +606,8 @@ export const OptionList = ({ type, items, onChange }) => {
 	});
 };
 
-export function openConfig() {
-	const configContainer = react.createElement(
+export function LyricsPlusSettings() {
+	return react.createElement(
 		"div",
 		{
 			id: `${APP_NAME}-config-container`,
@@ -781,10 +781,4 @@ export function openConfig() {
 			},
 		}),
 	);
-
-	Spicetify.PopupModal.display({
-		title: "Lyrics Plus",
-		content: configContainer,
-		isLarge: true,
-	});
 }

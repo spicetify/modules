@@ -162,7 +162,9 @@ for you on unload.
 | `menu`                                   | Context-menu items — the kit's `MenuItem` plus `openedFromProfileMenu(ctx)` / `closeMenu()` helpers |
 | `topbarLeftButton` / `topbarRightButton` | Top-bar icon buttons                                                                                |
 | `playbarButton` / `playbarWidget`        | The now-playing bar                                                                                 |
-| `settingsSection`                        | A section on Spotify's own settings page                                                            |
+| `settingsRow`                            | One control in the General group on the standalone Spicetify Settings page                          |
+| `settingsSection`                        | A named group on the standalone Spicetify Settings page                                             |
+| `settingsAction`                         | A footer action on Spicetify Settings; reserved for global management navigation                    |
 | `rootChild`                              | A body-level overlay                                                                                |
 
 For top-bar and playbar buttons, prefer `registrar.placeButton(location, options)`

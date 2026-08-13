@@ -19,6 +19,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
 import { PlaybarButton } from "/modules/stdlib/src/registers/playbarButton.tsx";
+import { SettingsSection } from "/modules/stdlib/lib/primitives.js";
 
 import {
 	APP_NAME,
@@ -37,7 +38,7 @@ import { ProviderGenius } from "./providers/genius.ts";
 import { createProviders } from "./providers/index.ts";
 import { AdjustmentsMenu, TranslationMenu } from "./options-menu.tsx";
 import { TopBarContent } from "./tab-bar.tsx";
-import { openConfig } from "./settings.tsx";
+import { LyricsPlusSettings } from "./settings.tsx";
 import { lyricsReplacementReady, mountLyricsPlaybarStyleWhenReady, watchLyricsHistory } from "./playbar-lifecycle.ts";
 import type { LyricsHistory } from "./playbar-lifecycle.ts";
 import {
@@ -1200,9 +1201,6 @@ class LyricsContainer extends react.Component {
 			document.querySelector(".Root__main-view .os-viewport") ??
 			document.querySelector(".Root__main-view .main-view-container__scroll-node");
 
-		this.configButton = new Spicetify.Menu.Item("Lyrics Plus config", false, openConfig, "lyrics");
-		this.configButton.register();
-
 		this.onFontSizeChange = (event) => {
 			if (!event.ctrlKey) return;
 			const dir = event.deltaY < 0 ? 1 : -1;
@@ -1240,7 +1238,6 @@ class LyricsContainer extends react.Component {
 
 	componentWillUnmount() {
 		Utils.removeQueueListener(this.onQueueChange);
-		this.configButton.deregister();
 		this.mousetrap.reset();
 		window.removeEventListener("fad-request", sharedCallbacks.lyricContainerUpdate);
 	}
@@ -1594,4 +1591,8 @@ export default function (ctx: ModuleRuntimeContext) {
 	);
 	registrar.registerRoute(ROUTE, react.createElement(LyricsContainer));
 	registrar.register("playbarButton", react.createElement(LyricsPlusPlaybarButton));
+	registrar.register(
+		"settingsSection",
+		react.createElement(SettingsSection, { title: "Lyrics Plus" }, react.createElement(LyricsPlusSettings)),
+	);
 }

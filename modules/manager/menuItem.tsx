@@ -4,6 +4,7 @@
  */
 
 import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
+import { SPICETIFY_SETTINGS_ROUTE } from "/modules/stdlib/mod.ts";
 import { MenuItem } from "/modules/stdlib/lib/primitives.js";
 import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
@@ -17,7 +18,7 @@ export const SpicetifyMenuItem = () => {
 		<MenuItem
 			className="spicetify-manager-menu-item"
 			onClick={() => {
-				Platform.getHistory().push(MANAGER_ROUTE);
+				Platform.getHistory().push(SPICETIFY_SETTINGS_ROUTE);
 				closeMenu();
 			}}
 		>

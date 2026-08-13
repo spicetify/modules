@@ -18,7 +18,7 @@ import { Registry } from "./registry.ts";
 import root from "./root.ts";
 import route from "./route.ts";
 import settingsRow from "./settingsRow.tsx";
-import settingsSection from "./settingsSection.ts";
+import settingsSection, { settingsAction } from "./settingsSection.ts";
 import topbarLeftButton, { TopbarLeftButton } from "./topbarLeftButton.tsx";
 import topbarRightButton, { TopbarRightButton } from "./topbarRightButton.tsx";
 const [rootChild, rootProvider] = root;
@@ -32,11 +32,14 @@ const registers = {
 	rootProvider,
 	route,
 	settingsRow,
+	settingsAction,
 	settingsSection,
 	topbarLeftButton,
 	topbarRightButton,
 } satisfies Record<string, Registry<any>>;
 type Registers = typeof registers;
+
+export { SPICETIFY_SETTINGS_ROUTE } from "./settingsSection.ts";
 
 // ---- placeButton: one ergonomic, position-controllable way to add a button ----
 // Instead of picking the right register key and hand-building the matching

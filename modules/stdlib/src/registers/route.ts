@@ -97,11 +97,12 @@ mountRegistryAnchor({
 		const route = items.find((item: any) => {
 			const path = item?.props?.path;
 			return typeof path === "string" && matchRoute(pathname, path);
-		}) as { props: { element?: unknown; children?: unknown } } | undefined;
+		}) as { props: { path: string; element?: unknown; children?: unknown } } | undefined;
 		if (!route) return null;
 		return (React as any).createElement(
 			"div",
 			{
+				key: route.props.path,
 				className: "spicetify-route-page",
 				style: {
 					position: "absolute",

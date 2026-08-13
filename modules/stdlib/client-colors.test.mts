@@ -44,8 +44,7 @@ describe("shared client colour bridge", () => {
 		);
 	});
 
-	it("ships as a patch release", () => {
-		assert.equal(metadata.version, "1.5.3");
+	it("keeps the kit compatibility target aligned with stdlib", () => {
 		assert.equal(kitPackage.spicetify.stdlibVersion, metadata.version);
 	});
 });
