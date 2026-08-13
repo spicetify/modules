@@ -39,6 +39,14 @@
 			"providers": [],
 			"checksum": "sha256:741032712d1958abe7babb9323e570768b21812221d60e3f84fe7388686995ff",
 			"updatedAt": "2026-08-12"
+		},
+		"0.2.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/full-app-display@0.2.0/full-app-display@0.2.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:5f03ce4210d587d3eb888a72c39952c4da8ef3051ef9c5a7f1c7b1ae86dd8402",
+			"updatedAt": "2026-08-13"
 		}
 	},
 	"metadata": {
