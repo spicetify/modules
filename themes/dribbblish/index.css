@@ -132,6 +132,50 @@ html.spicetify-themed .Root__top-container {
 	color: var(--spice-sidebar-text) !important;
 }
 
+#dribbblish-navlinks-rail .dribbblish-native-navlink > button {
+	width: 48px;
+	height: 48px;
+	justify-content: center;
+	border-radius: 50%;
+}
+
+#dribbblish-navlinks-rail .dribbblish-native-navlink > button:hover,
+#dribbblish-navlinks-rail .dribbblish-native-navlink > button[aria-expanded="true"] {
+	background-color: var(--spice-tab-active);
+}
+
+.Root__globalNav .main-globalNav-searchSection.dribbblish-search-host {
+	position: fixed;
+	z-index: 20;
+	display: none;
+	transform: none;
+	background: var(--spice-main);
+	border: 1px solid rgba(var(--spice-rgb-sidebar-text), 0.22);
+	border-radius: 999px;
+	box-sizing: border-box;
+	overflow: hidden;
+	filter: drop-shadow(0 8px 22px rgba(0, 0, 0, 0.42));
+}
+
+.Root__globalNav .main-globalNav-searchSection.dribbblish-search-host--open {
+	display: block;
+}
+
+.dribbblish-search-host [data-testid="home-button"] {
+	display: none;
+}
+
+.dribbblish-search-host .main-globalNav-searchContainer,
+.dribbblish-search-host .main-globalNav-searchInputSection,
+.dribbblish-search-host .main-globalNav-searchInputContainer {
+	width: 100%;
+}
+
+.dribbblish-search-host .main-topBar-searchBar {
+	border: 0 !important;
+	box-shadow: none !important;
+}
+
 #dribbblish-navlinks-rail.dribbblish-navlinks-rail--expanded {
 	justify-content: flex-start;
 	padding-left: 18px;

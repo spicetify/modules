@@ -13,7 +13,16 @@
 
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
-import { navlinkRailLayout, relocateElement } from "./logic.ts";
+import {
+	captureInlineStyles,
+	floatingSearchLayout,
+	navlinkRailLayout,
+	relocateElement,
+	restoreInlineStyles,
+	SEARCH_HOST_CLASS,
+	SEARCH_HOST_OPEN_CLASS,
+	syncSearchHostClasses,
+} from "./logic.ts";
 
 // Horizontal padding the tooltip keeps from either end of the progress bar.
 const TOOLTIP_EDGE_GAP = 12;
@@ -72,10 +81,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	// The top bar is inset by the left sidebar's width, which the user can
 	// drag. Mirror it onto the global nav as a unitless custom property.
-	const [sidebar, globalNav, navlinks] = await Promise.all([
+	const [sidebar, globalNav, navlinks, homeButton, searchSection] = await Promise.all([
 		waitFor<HTMLElement>(".Root__nav-bar, #Desktop_LeftSidebar_Id"),
 		waitFor<HTMLElement>(".Root__globalNav"),
 		waitFor<HTMLElement>(".spicetify-navlinks-anchor"),
+		waitFor<HTMLButtonElement>('[data-testid="home-button"]'),
+		waitFor<HTMLElement>(".main-globalNav-searchSection"),
 	]);
 	if (disposed) return;
 	if (topContainer && sidebar && globalNav) {
@@ -101,11 +112,141 @@ export default async function (ctx: ModuleRuntimeContext) {
 		topContainer.append(rail);
 		const restoreNavlinks = relocateElement(navlinks, rail);
 
+		let searchButton: HTMLButtonElement | undefined;
+		let closeSearch: (() => void) | undefined;
+		let repositionSearch: (() => void) | undefined;
+		let removeSearchListeners: (() => void) | undefined;
+
+		if (homeButton && searchSection && globalNav) {
+			const homeItem = document.createElement("div");
+			homeItem.className = "inline-flex dribbblish-native-navlink";
+			const railHomeButton = homeButton.cloneNode(true) as HTMLButtonElement;
+			railHomeButton.id = "dribbblish-home-button";
+			railHomeButton.removeAttribute("data-testid");
+			railHomeButton.removeAttribute("aria-current");
+			homeItem.append(railHomeButton);
+			navlinks.prepend(homeItem);
+
+			const nativeSearchIcon = searchSection.querySelector<HTMLElement>('[data-testid="search-icon"] span');
+			searchButton = homeButton.cloneNode(false) as HTMLButtonElement;
+			searchButton.id = "dribbblish-search-button";
+			searchButton.removeAttribute("data-testid");
+			searchButton.removeAttribute("aria-current");
+			searchButton.setAttribute("aria-label", "Search");
+			searchButton.setAttribute("aria-controls", "dribbblish-search-host");
+			searchButton.setAttribute("aria-expanded", "false");
+			if (nativeSearchIcon) searchButton.append(nativeSearchIcon.cloneNode(true));
+
+			const searchItem = document.createElement("div");
+			searchItem.className = "inline-flex dribbblish-native-navlink";
+			searchItem.append(searchButton);
+			homeItem.after(searchItem);
+
+			let searchOpen = false;
+			let currentSearchHost: HTMLElement | null = null;
+			const knownSearchHosts = new Map<
+				HTMLElement,
+				{ id: string | null; styles: ReturnType<typeof captureInlineStyles> }
+			>();
+			const cleanSearchHost = (host: HTMLElement) => {
+				host.classList.remove(SEARCH_HOST_CLASS, SEARCH_HOST_OPEN_CLASS);
+				const original = knownSearchHosts.get(host);
+				if (!original) return;
+				restoreInlineStyles(host, original.styles);
+				if (original.id === null) host.removeAttribute("id");
+				else host.id = original.id;
+			};
+			const syncSearchHost = () => {
+				const next = document.querySelector<HTMLElement>(".main-globalNav-searchSection");
+				if (currentSearchHost !== next) {
+					if (currentSearchHost) cleanSearchHost(currentSearchHost);
+					if (next) {
+						if (!knownSearchHosts.has(next)) {
+							knownSearchHosts.set(next, {
+								id: next.getAttribute("id"),
+								styles: captureInlineStyles(next, ["left", "top", "width"]),
+							});
+						}
+						next.id = "dribbblish-search-host";
+					}
+				}
+				currentSearchHost = syncSearchHostClasses(currentSearchHost, next, searchOpen);
+				return currentSearchHost;
+			};
+			syncSearchHost();
+
+			closeSearch = () => {
+				if (!searchButton) return;
+				searchOpen = false;
+				const host = syncSearchHost();
+				host?.querySelector<HTMLInputElement>('[data-testid="search-input"]')?.blur();
+				searchButton.setAttribute("aria-expanded", "false");
+			};
+			repositionSearch = () => {
+				if (!searchButton) return;
+				const host = syncSearchHost();
+				if (!host) return;
+				const layout = floatingSearchLayout(
+					searchButton.getBoundingClientRect(),
+					rail.getBoundingClientRect(),
+					window.innerWidth,
+				);
+				host.style.left = `${layout.left}px`;
+				host.style.top = `${layout.top}px`;
+				host.style.width = `${layout.width}px`;
+			};
+			const openSearch = () => {
+				if (!searchButton) return;
+				searchOpen = true;
+				searchButton.setAttribute("aria-expanded", "true");
+				const host = syncSearchHost();
+				if (!host) return;
+				repositionSearch?.();
+				host.querySelector<HTMLInputElement>('[data-testid="search-input"]')?.focus();
+			};
+			const toggleSearch = () => (searchOpen ? closeSearch?.() : openSearch());
+			const onDocumentPointerDown = (event: PointerEvent) => {
+				const target = event.target as Node | null;
+				if (target && !currentSearchHost?.contains(target) && !searchButton?.contains(target)) closeSearch?.();
+			};
+			const onDocumentKeyDown = (event: KeyboardEvent) => {
+				if (event.key === "Escape") closeSearch?.();
+				if (event.key === "Enter" && currentSearchHost?.contains(event.target as Node))
+					setT(() => closeSearch?.(), 0);
+			};
+			const onWindowResize = () => {
+				if (searchOpen) repositionSearch?.();
+			};
+			const searchHostObserver = new MutationObserver(() => {
+				const previous = currentSearchHost;
+				const host = syncSearchHost();
+				if (searchOpen && host !== previous) {
+					repositionSearch?.();
+					host?.querySelector<HTMLInputElement>('[data-testid="search-input"]')?.focus();
+				}
+			});
+			searchHostObserver.observe(globalNav, { childList: true, subtree: true });
+			railHomeButton.addEventListener("click", () => Spicetify.Platform.History.push("/"));
+			searchButton.addEventListener("click", toggleSearch);
+			document.addEventListener("pointerdown", onDocumentPointerDown);
+			document.addEventListener("keydown", onDocumentKeyDown, true);
+			window.addEventListener("resize", onWindowResize);
+			removeSearchListeners = () => {
+				searchHostObserver.disconnect();
+				searchButton?.removeEventListener("click", toggleSearch);
+				document.removeEventListener("pointerdown", onDocumentPointerDown);
+				document.removeEventListener("keydown", onDocumentKeyDown, true);
+				window.removeEventListener("resize", onWindowResize);
+				for (const host of knownSearchHosts.keys()) cleanSearchHost(host);
+			};
+		}
+
 		const syncRailLayout = () => {
 			const count = rail.querySelectorAll("button").length;
 			const { expanded, reserve } = navlinkRailLayout(rail.clientWidth, count);
 			rail.classList.toggle("dribbblish-navlinks-rail--expanded", expanded);
 			topContainer.style.setProperty("--dribbblish-navlinks-reserve", `${reserve}px`);
+			repositionSearch?.();
 		};
 		const railObserver = new MutationObserver(syncRailLayout);
 		railObserver.observe(rail, { childList: true, subtree: true });
@@ -117,6 +258,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 			railObserver.disconnect();
 			railResizeObserver.disconnect();
 			topContainer.style.removeProperty("--dribbblish-navlinks-reserve");
+			closeSearch?.();
+			removeSearchListeners?.();
+			navlinks.querySelectorAll(".dribbblish-native-navlink").forEach((item) => item.remove());
 			restoreNavlinks();
 			rail.remove();
 		});

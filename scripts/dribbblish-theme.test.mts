@@ -11,7 +11,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 
-import { navlinkRailLayout, relocateElement } from "../themes/dribbblish/logic.ts";
+import {
+	captureInlineStyles,
+	floatingSearchLayout,
+	navlinkRailLayout,
+	relocateElement,
+	restoreInlineStyles,
+	SEARCH_HOST_CLASS,
+	SEARCH_HOST_OPEN_CLASS,
+	syncSearchHostClasses,
+} from "../themes/dribbblish/logic.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const THEME_DIR = path.join(HERE, "..", "themes", "dribbblish");
@@ -40,10 +49,10 @@ describe("dribbblish frame", () => {
 	});
 
 	it("uses the title strip for a horizontal rail when the library is expanded", () => {
-		assert.deepEqual(navlinkRailLayout(72, 3), { expanded: false, reserve: 94 });
-		assert.deepEqual(navlinkRailLayout(179, 3), { expanded: false, reserve: 94 });
-		assert.deepEqual(navlinkRailLayout(180, 3), { expanded: true, reserve: 0 });
-		assert.deepEqual(navlinkRailLayout(397, 3), { expanded: true, reserve: 0 });
+		assert.deepEqual(navlinkRailLayout(72, 5), { expanded: false, reserve: 202 });
+		assert.deepEqual(navlinkRailLayout(287, 5), { expanded: false, reserve: 202 });
+		assert.deepEqual(navlinkRailLayout(288, 5), { expanded: true, reserve: 0 });
+		assert.deepEqual(navlinkRailLayout(397, 5), { expanded: true, reserve: 0 });
 		assert.deepEqual(navlinkRailLayout(397, 8), { expanded: false, reserve: 364 });
 		assert.match(
 			css,
@@ -53,6 +62,62 @@ describe("dribbblish frame", () => {
 			css,
 			/#dribbblish-navlinks-rail\.dribbblish-navlinks-rail--expanded\s+\.spicetify-navlinks-anchor\s*\{[^}]*flex-direction:\s*row\s*;/s,
 		);
+	});
+
+	it("puts Home and Search first and opens the native search form beside the rail", () => {
+		assert.match(mod, /navlinks\.prepend\(homeItem\)/);
+		assert.match(mod, /homeItem\.after\(searchItem\)/);
+		assert.doesNotMatch(mod, /relocateElement\((?:homeButton|searchSection)/);
+		assert.match(mod, /new MutationObserver\(\(\) => \{/);
+		assert.match(mod, /querySelector<HTMLInputElement>\('\[data-testid="search-input"\]'\)\?\.focus\(\)/);
+		assert.match(mod, /querySelector<HTMLInputElement>\('\[data-testid="search-input"\]'\)\?\.blur\(\)/);
+		assert.deepEqual(floatingSearchLayout({ top: 64 }, { right: 72 }, 800), {
+			left: 80,
+			top: 64,
+			width: 420,
+		});
+		assert.deepEqual(floatingSearchLayout({ top: 10 }, { right: 397 }, 800), {
+			left: 405,
+			top: 10,
+			width: 383,
+		});
+		assert.match(
+			css,
+			/\.main-globalNav-searchSection\.dribbblish-search-host\s*\{[^}]*position:\s*fixed\s*;[^}]*z-index:\s*20\s*;/s,
+		);
+	});
+
+	it("rebinds floating search when Spotify replaces its React-owned host", () => {
+		const first = document.createElement("div");
+		const replacement = document.createElement("div");
+		let current = syncSearchHostClasses(null, first, true);
+		assert.equal(first.classList.contains(SEARCH_HOST_CLASS), true);
+		assert.equal(first.classList.contains(SEARCH_HOST_OPEN_CLASS), true);
+
+		current = syncSearchHostClasses(current, replacement, false);
+		assert.equal(current, replacement);
+		assert.equal(first.classList.contains(SEARCH_HOST_CLASS), false);
+		assert.equal(first.classList.contains(SEARCH_HOST_OPEN_CLASS), false);
+		assert.equal(replacement.classList.contains(SEARCH_HOST_CLASS), true);
+		assert.equal(replacement.classList.contains(SEARCH_HOST_OPEN_CLASS), false);
+	});
+
+	it("restores only the native inline properties the floating host overrides", () => {
+		const host = document.createElement("div");
+		host.style.setProperty("left", "11px", "important");
+		host.style.top = "22px";
+		const snapshot = captureInlineStyles(host, ["left", "top", "width"]);
+		host.style.left = "80px";
+		host.style.top = "64px";
+		host.style.width = "420px";
+		host.style.height = "50px";
+
+		restoreInlineStyles(host, snapshot);
+		assert.equal(host.style.getPropertyValue("left"), "11px");
+		assert.equal(host.style.getPropertyPriority("left"), "important");
+		assert.equal(host.style.top, "22px");
+		assert.equal(host.style.width, "");
+		assert.equal(host.style.height, "50px");
 	});
 
 	it("centres the collapsed library opener and artwork on the compact rail", () => {
