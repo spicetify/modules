@@ -67,6 +67,56 @@ describe("dribbblish frame", () => {
 		);
 	});
 
+	it("keeps fullscreen Now Playing inside the framed vertical rail", () => {
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+\.body-drag-top\s*\{[^}]*pointer-events:\s*none\s*!important\s*;[^}]*-webkit-app-region:\s*no-drag\s*!important\s*;[^}]*app-region:\s*no-drag\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+\.Root__globalNav\s*\{[^}]*display:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+#dribbblish-navlinks-rail\s*\{[^}]*width:\s*78px\s*!important\s*;[^}]*height:\s*calc\(100%\s*-\s*20px\)\s*!important\s*;[^}]*justify-content:\s*center\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+#dribbblish-navlinks-rail\s+\.spicetify-navlinks-anchor\s*\{[^}]*flex-direction:\s*column\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+#dribbblish-search-button\s*\{[^}]*display:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+\.Root__cinema-view\s*\{[^}]*position:\s*absolute\s*!important\s*;[^}]*inset:\s*0\s+0\s+98px\s+78px\s*!important\s*;[^}]*border-radius:\s*var\(--corner-radius\)\s*!important\s*;[^}]*outline:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)\s+\.Root__now-playing-bar\s*\{[^}]*display:\s*block\s*!important\s*;[^}]*position:\s*absolute\s*!important\s*;[^}]*inset:\s*auto\s+0\s+10px\s+78px\s*!important\s*;[^}]*height:\s*88px\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\]\)[^{]*:is\(\.Root__nav-bar,\s*\.Root__main-view,\s*\.Root__right-sidebar\)\s*\{[^}]*display:\s*none\s*!important\s*;/s,
+		);
+	});
+
+	it("removes motion from both directions of the fullscreen transition", () => {
+		assert.match(
+			css,
+			/html:is\(\s*\[data-cinema-npv-preenter\],\s*\[data-cinema-npv-duringenter\],\s*\[data-cinema-npv-postenter\],\s*\[data-cinema-npv-preexit\],\s*\[data-cinema-npv-duringexit\]\s*\)\s*:is\(\s*\.Root__top-container,\s*\.Root__main-view,\s*\.Root__globalNav,\s*\.Root__right-sidebar,\s*\.Root__now-playing-bar,\s*\.Root__cinema-view,\s*#dribbblish-navlinks-rail\s*\)\s*\{[^}]*animation:\s*none\s*!important\s*;[^}]*transition:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-preexit\],\s*\[data-cinema-npv-duringexit\]\)\s+\.Root__cinema-view\s*\{[^}]*display:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/html:is\(\[data-cinema-npv-preexit\],\s*\[data-cinema-npv-duringexit\]\)\s+\.Root__main-view\s*\{[^}]*transform:\s*none\s*!important\s*;/s,
+		);
+	});
+
 	it("removes the wide-library control from the Dribbblish sidebar", () => {
 		assert.match(
 			css,

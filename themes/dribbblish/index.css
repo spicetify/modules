@@ -1173,22 +1173,103 @@ img.playlist-picture[src$=".svg"] {
 
 /* Cinema View */
 
-html[data-cinema-npv-postenter] .Root__cinema-view {
-	padding-left: 10px;
+html:is(
+		[data-cinema-npv-preenter],
+		[data-cinema-npv-duringenter],
+		[data-cinema-npv-postenter],
+		[data-cinema-npv-preexit],
+		[data-cinema-npv-duringexit]
+	)
+	:is(
+		.Root__top-container,
+		.Root__main-view,
+		.Root__globalNav,
+		.Root__right-sidebar,
+		.Root__now-playing-bar,
+		.Root__cinema-view,
+		#dribbblish-navlinks-rail
+	) {
+	animation: none !important;
+	transition: none !important;
 }
-html[data-cinema-npv-postenter] .Root__cinema-view:nth-child(2) {
-	border-radius: 0px;
+
+/* The shell's 60px drag overlay sits above the cinema action row. CDP clicks
+ * bypass it, but a physical mouse never reaches these buttons unless cinema
+ * temporarily opts the overlay out of window dragging. */
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) .body-drag-top {
+	pointer-events: none !important;
+	-webkit-app-region: no-drag !important;
+	app-region: no-drag !important;
 }
-html[data-cinema-npv-postenter] .Root__globalNav {
-	margin-left: 10px;
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) .Root__globalNav {
+	display: none !important;
 }
-html[data-cinema-npv-postenter] .Root__top-container {
-	grid-template-areas:
-		"top-banner top-banner top-banner"
-		"global-nav global-nav global-nav"
-		"left-sidebar main-view right-sidebar"
-		"now-playing-bar now-playing-bar now-playing-bar" !important;
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) #dribbblish-navlinks-rail {
+	left: 0 !important;
+	top: 10px !important;
+	width: 78px !important;
+	height: calc(100% - 20px) !important;
+	padding: 0 !important;
+	align-items: center !important;
+	justify-content: center !important;
 }
-html[data-cinema-npv-postenter] .Root__now-playing-bar {
-	margin-left: 10px !important;
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter])
+	#dribbblish-navlinks-rail
+	.spicetify-navlinks-anchor {
+	flex-direction: column !important;
+}
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) #dribbblish-search-button {
+	display: none !important;
+}
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) .Root__cinema-view {
+	position: absolute !important;
+	inset: 0 0 98px 78px !important;
+	width: auto !important;
+	height: auto !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border-radius: var(--corner-radius) !important;
+	outline: none !important;
+}
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) .Root__now-playing-bar {
+	display: block !important;
+	position: absolute !important;
+	inset: auto 0 10px 78px !important;
+	width: auto !important;
+	height: 88px !important;
+	margin: 0 !important;
+}
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter])
+	.Root__cinema-view
+	> .main-actionBar-ActionBarContainer {
+	width: 100% !important;
+	height: 100% !important;
+	border-radius: var(--corner-radius) !important;
+	outline: none !important;
+}
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter]) #dribbblish-back-shadow {
+	position: absolute !important;
+	inset: 10px 10px 108px 78px !important;
+	grid-area: auto !important;
+}
+
+html:is([data-cinema-npv-duringenter], [data-cinema-npv-postenter])
+	:is(.Root__nav-bar, .Root__main-view, .Root__right-sidebar) {
+	display: none !important;
+}
+
+html:is([data-cinema-npv-preexit], [data-cinema-npv-duringexit]) .Root__cinema-view {
+	display: none !important;
+}
+
+html:is([data-cinema-npv-preexit], [data-cinema-npv-duringexit]) .Root__main-view {
+	transform: none !important;
 }
