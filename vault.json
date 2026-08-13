@@ -49,11 +49,19 @@
 					"providers": [],
 					"checksum": "sha256:d3b7f69853bb9d00a811e542d43eb1091ca1d5979f8c1caf076ae2311b69b38d",
 					"updatedAt": "2026-08-12"
+				},
+				"0.1.6": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/adblock@0.1.6/adblock@0.1.6.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:8885b014b5ed8d0746691755d7486b4fd210c40516949928f217030ed59b03c1",
+					"updatedAt": "2026-08-13"
 				}
 			},
 			"metadata": {
 				"name": "adblock",
-				"description": "Skips audio ads and hides ad and upsell surfaces. Toggle in Settings.",
+				"description": "Blocks audio ads and hides ad and upsell surfaces. Toggle in Settings.",
 				"authors": [
 					{
 						"name": "spicetify"
