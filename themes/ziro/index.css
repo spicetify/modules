@@ -129,15 +129,12 @@
 .playback-bar__progress-time-elapsed,
 .main-playbackBarRemainingTime-container {
 	color: var(--spice-text);
-	position: absolute;
-	margin-bottom: 33px;
-	right: 0;
-}
-.playback-bar__progress-time-elapsed {
-	right: 43px;
+	position: static;
+	margin: 0;
+	width: auto;
 }
 .playback-bar__progress-time-elapsed::after {
-	content: "  /";
+	content: none;
 }
 .main-nowPlayingBar-extraControls {
 	margin-right: 75px;
@@ -414,11 +411,6 @@ input:checked ~ .x-toggle-indicatorWrapper .x-toggle-indicator {
 /* fullscreen */
 .npv-main-container .npv-cross-fade-image {
 	border-radius: calc(var(--br-1) * 3);
-}
-.npv-main-container .playback-bar__progress-time-elapsed,
-.npv-main-container .main-playbackBarRemainingTime-container {
-	margin-bottom: -125px;
-	margin-right: -86px;
 }
 .npv-up-next {
 	background: var(--spice-card) !important;
