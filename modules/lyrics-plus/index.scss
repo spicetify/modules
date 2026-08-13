@@ -545,8 +545,8 @@ div.lyrics-tabBar-headerItemLink {
 	padding: 3px;
 }
 
-.lyrics-tooltip-wrapper input,
-#lyrics-plus-config-container input {
+.lyrics-tooltip-wrapper input:not([type="checkbox"]),
+#lyrics-plus-config-container input:not([type="checkbox"]) {
 	width: 100%;
 	margin-top: 10px;
 	padding: 0 5px;
@@ -563,11 +563,6 @@ div.lyrics-tabBar-headerItemLink {
 	text-align: center;
 }
 
-.lyrics-tooltip-wrapper .col.action span,
-#lyrics-plus-config-container .col.action span {
-	font-size: 14px;
-	opacity: 0.8;
-}
 .lyrics-tooltip-wrapper .col.action .btn,
 #lyrics-plus-config-container .col.action .btn {
 	font-weight: 700;
@@ -594,10 +589,14 @@ div.lyrics-tabBar-headerItemLink {
 	cursor: not-allowed;
 }
 .lyrics-tooltip-wrapper .col.action .main-dropDown-dropDown,
-.lyrics-tooltip-wrapper .col.action input,
+.lyrics-tooltip-wrapper .col.action input:not([type="checkbox"]),
 #lyrics-plus-config-container .col.action .main-dropDown-dropDown,
-#lyrics-plus-config-container .col.action input {
+#lyrics-plus-config-container .col.action input:not([type="checkbox"]) {
 	width: 150px;
+}
+
+#lyrics-plus-config-container > h2:not(:first-child) {
+	margin-block-start: 24px;
 }
 
 #lyrics-fullscreen-container {

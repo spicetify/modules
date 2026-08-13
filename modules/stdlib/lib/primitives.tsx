@@ -25,7 +25,9 @@ import {
 	SETTINGS_ROW_CLASS,
 	SETTINGS_ROW_CONTROL_CLASS,
 	SETTINGS_ROW_LABEL_CLASS,
+	SETTINGS_ROW_TEXT_CLASS,
 	SETTINGS_SECTION_CLASS,
+	SETTINGS_SECTION_HEADING_CLASS,
 	badgeClass,
 	buttonClass,
 	type BadgeTone,
@@ -141,7 +143,7 @@ export const Card: React.FC<{ children: React.ReactNode }> = (props) => (
 // and row structure rather than capturing its route-local components.
 export const SettingsSection: React.FC<{ title?: React.ReactNode; children: React.ReactNode }> = (props) => (
 	<div className={SETTINGS_SECTION_CLASS}>
-		{props.title === undefined ? null : <h2>{props.title}</h2>}
+		{props.title === undefined ? null : <h2 className={SETTINGS_SECTION_HEADING_CLASS}>{props.title}</h2>}
 		{props.children}
 	</div>
 );
@@ -154,7 +156,13 @@ export const SettingsRow: React.FC<{ label: React.ReactNode; htmlFor?: string; c
 ) => (
 	<div className={SETTINGS_ROW_CLASS}>
 		<div className={SETTINGS_ROW_LABEL_CLASS}>
-			{props.htmlFor === undefined ? props.label : <label htmlFor={props.htmlFor}>{props.label}</label>}
+			{props.htmlFor === undefined ? (
+				<span className={SETTINGS_ROW_TEXT_CLASS}>{props.label}</span>
+			) : (
+				<label className={SETTINGS_ROW_TEXT_CLASS} htmlFor={props.htmlFor}>
+					{props.label}
+				</label>
+			)}
 		</div>
 		<div className={SETTINGS_ROW_CONTROL_CLASS}>{props.children}</div>
 	</div>
@@ -166,6 +174,7 @@ export const SettingsRow: React.FC<{ label: React.ReactNode; htmlFor?: string; c
 export const Toggle: React.FC<{
 	id?: string;
 	ariaLabel?: string;
+	disabled?: boolean;
 	value: boolean;
 	onChange: (value: boolean) => void;
 }> = (props) => (
@@ -176,6 +185,7 @@ export const Toggle: React.FC<{
 			id={props.id}
 			aria-label={props.ariaLabel}
 			checked={props.value}
+			disabled={props.disabled}
 			onKeyDown={activateToggleOnKeyDown}
 			onChange={(e) => props.onChange((e.target as HTMLInputElement).checked)}
 		/>

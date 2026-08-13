@@ -9,7 +9,24 @@ describe("standalone Spicetify Settings", () => {
 	it("owns a bespoke route instead of injecting into Spotify preferences", () => {
 		const source = read("modules/stdlib/src/registers/settingsSection.ts");
 		assert.match(source, /SPICETIFY_SETTINGS_ROUTE\s*=\s*"\/bespoke\/settings"/);
-		assert.doesNotMatch(source, /\.x-settings-container/);
+		assert.doesNotMatch(source, /querySelector\(["']\.x-settings-container/);
+	});
+
+	it("reuses Spotify's Settings width and typography contracts", () => {
+		const page = read("modules/stdlib/src/registers/settingsSection.ts");
+		const primitives = read("modules/stdlib/lib/primitives.tsx");
+		const classes = read("modules/stdlib/lib/primitives-classes.ts");
+		const styles = read("modules/stdlib/index.scss");
+
+		assert.match(page, /spicetify-settings-page x-settings-container/);
+		assert.match(page, /SETTINGS_HEADER_CONTAINER_CLASS/);
+		assert.match(page, /SETTINGS_HEADER_CLASS/);
+		assert.match(primitives, /SETTINGS_SECTION_HEADING_CLASS/);
+		assert.match(primitives, /SETTINGS_ROW_TEXT_CLASS/);
+		assert.match(classes, /encore-text-title-medium/);
+		assert.match(classes, /encore-text-body-medium-bold/);
+		assert.match(classes, /encore-text-body-small/);
+		assert.doesNotMatch(styles, /\.spicetify-settings-page[^}]*1200px/s);
 	});
 
 	it("renders ordinary settings before footer actions", () => {
@@ -40,6 +57,16 @@ describe("standalone Spicetify Settings", () => {
 		assert.match(mod, /LyricsPlusSettings/);
 		assert.match(settings, /export (?:const|function) LyricsPlusSettings/);
 		assert.doesNotMatch(mod, /new Spicetify\.Menu\.Item\("Lyrics Plus config"/);
+	});
+
+	it("renders every Lyrics Plus boolean as Spotify's native toggle", () => {
+		const settings = read("modules/lyrics-plus/settings.tsx");
+		const styles = read("modules/lyrics-plus/index.scss");
+		const toggles = [...settings.matchAll(/react\.createElement\(Toggle/g)];
+
+		assert.ok(toggles.length >= 2, "visual options and provider switches must both use Toggle");
+		assert.doesNotMatch(settings, /Spicetify\.SVGIcons\.check/);
+		assert.match(styles, /input:not\(\[type=["']checkbox["']\]\)/);
 	});
 
 	it("ships the new settings contracts as minor releases", () => {

@@ -4,6 +4,7 @@
  */
 
 import { React } from "../expose/React.ts";
+import { SETTINGS_HEADER_CLASS, SETTINGS_HEADER_CONTAINER_CLASS } from "../../lib/primitives-classes.ts";
 import { Registry } from "./registry.ts";
 import route from "./route.ts";
 
@@ -47,23 +48,18 @@ const SpicetifySettingsPage = () => {
 	const actions = settingsAction.all();
 	return React.createElement(
 		"main",
-		{ className: "spicetify-settings-page" },
-		React.createElement(
-			"header",
-			{ className: "spicetify-settings-page__header" },
-			React.createElement("h1", null, "Spicetify Settings"),
-			React.createElement("p", null, "Configure your installed modules and open Spicetify management tools."),
-		),
+		{ className: "spicetify-settings-page x-settings-container" },
 		React.createElement(
 			"div",
-			{ className: "spicetify-settings-page__sections" },
-			sections.map((section, index) => React.createElement(React.Fragment, { key: index }, section)),
+			{ className: SETTINGS_HEADER_CONTAINER_CLASS },
+			React.createElement(
+				"h1",
+				{ className: SETTINGS_HEADER_CLASS, style: { paddingBlockEnd: "16px" } },
+				"Spicetify Settings",
+			),
 		),
-		React.createElement(
-			"div",
-			{ className: "spicetify-settings-page__actions" },
-			actions.map((action, index) => React.createElement(React.Fragment, { key: index }, action)),
-		),
+		...sections.map((section, index) => React.createElement(React.Fragment, { key: `section-${index}` }, section)),
+		...actions.map((action, index) => React.createElement(React.Fragment, { key: `action-${index}` }, action)),
 	);
 };
 

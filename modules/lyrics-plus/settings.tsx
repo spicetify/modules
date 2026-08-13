@@ -9,11 +9,17 @@
 // Settings.js — the settings UI rendered on the shared Spicetify Settings page.
 
 import { React as react } from "/modules/stdlib/src/expose/React.ts";
+import { Toggle } from "/modules/stdlib/lib/primitives.js";
+import {
+	SETTINGS_HELP_TEXT_CLASS,
+	SETTINGS_ROW_TEXT_CLASS,
+	SETTINGS_SECTION_HEADING_CLASS,
+} from "/modules/stdlib/lib/primitives-classes.js";
 import { APP_NAME, CONFIG, fontSizeLimit, thresholdSizeLimit } from "./config.ts";
 import { isMusixmatchTokenValid, musixmatchTokenListeners, setMusixmatchTokenValid } from "./providers/musixmatch.ts";
 import * as sharedCallbacks from "./shared-callbacks.ts";
 
-const { useState, useEffect, useCallback } = react;
+const { useState, useEffect, useCallback, useId } = react;
 const spotifyVersion = Spicetify.Platform.version;
 
 function useMusixmatchTokenValid() {
@@ -25,26 +31,6 @@ function useMusixmatchTokenValid() {
 	}, []);
 	return valid;
 }
-
-export const ButtonSVG = ({ icon, active = true, onClick, disabled = false }) => {
-	return react.createElement(
-		"button",
-		{
-			className: `switch${active ? "" : " disabled"}`,
-			onClick,
-			disabled,
-		},
-		react.createElement("svg", {
-			width: 16,
-			height: 16,
-			viewBox: "0 0 16 16",
-			fill: "currentColor",
-			dangerouslySetInnerHTML: {
-				__html: icon,
-			},
-		}),
-	);
-};
 
 export const SwapButton = ({ icon, disabled, onClick }) => {
 	return react.createElement(
@@ -155,7 +141,7 @@ export const ConfigButton = ({ name, text, onChange = () => {} }) => {
 		react.createElement(
 			"label",
 			{
-				className: "col description",
+				className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
 			},
 			name,
 		),
@@ -177,17 +163,20 @@ export const ConfigButton = ({ name, text, onChange = () => {} }) => {
 };
 
 export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
+	const id = useId();
 	const [active, setActive] = useState(defaultValue);
 
 	useEffect(() => {
 		setActive(defaultValue);
 	}, [defaultValue]);
 
-	const toggleState = useCallback(() => {
-		const state = !active;
-		setActive(state);
-		onChange(state);
-	}, [active]);
+	const toggleState = useCallback(
+		(state) => {
+			setActive(state);
+			onChange(state);
+		},
+		[onChange],
+	);
 
 	return react.createElement(
 		"div",
@@ -197,7 +186,8 @@ export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 		react.createElement(
 			"label",
 			{
-				className: "col description",
+				className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
+				htmlFor: id,
 			},
 			name,
 		),
@@ -206,10 +196,11 @@ export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 			{
 				className: "col action",
 			},
-			react.createElement(ButtonSVG, {
-				icon: Spicetify.SVGIcons.check,
-				active,
-				onClick: toggleState,
+			react.createElement(Toggle, {
+				id,
+				ariaLabel: name,
+				value: active,
+				onChange: toggleState,
 			}),
 		),
 	);
@@ -244,7 +235,7 @@ export const ConfigSelection = ({ name, defaultValue, options, onChange = () => 
 		react.createElement(
 			"label",
 			{
-				className: "col description",
+				className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
 			},
 			name,
 		),
@@ -294,7 +285,7 @@ export const ConfigInput = ({ name, defaultValue, onChange = () => {} }) => {
 		react.createElement(
 			"label",
 			{
-				className: "col description",
+				className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
 			},
 			name,
 		),
@@ -332,7 +323,7 @@ export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = ()
 		react.createElement(
 			"label",
 			{
-				className: "col description",
+				className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
 			},
 			name,
 		),
@@ -393,7 +384,7 @@ export const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
 		react.createElement(
 			"label",
 			{
-				className: "col description",
+				className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
 			},
 			name,
 		),
@@ -423,6 +414,7 @@ export const ServiceAction = ({ item, setTokenCallback }) => {
 };
 
 export const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast = false, onTokenChange = null }) => {
+	const toggleId = useId();
 	const [token, setToken] = useState(item.token);
 	const [active, setActive] = useState(item.on);
 	const tokenValid = useMusixmatchTokenValid();
@@ -438,12 +430,15 @@ export const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast 
 		[item.token],
 	);
 
-	const toggleActive = useCallback(() => {
-		if (item.name === "genius" && spotifyVersion >= "1.2.31") return;
-		const state = !active;
-		setActive(state);
-		onToggle(item.name, state);
-	}, [active]);
+	const toggleActive = useCallback(
+		(state) => {
+			if (item.name === "genius" && spotifyVersion >= "1.2.31") return;
+			setActive(state);
+			onToggle(item.name, state);
+		},
+		[item.name, onToggle],
+	);
+	const toggleDisabled = musixmatchInvalid || (item.name === "genius" && spotifyVersion >= "1.2.31");
 
 	return react.createElement(
 		"div",
@@ -456,7 +451,7 @@ export const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast 
 			react.createElement(
 				"h3",
 				{
-					className: "col description",
+					className: `col description ${SETTINGS_ROW_TEXT_CLASS}`,
 				},
 				item.name,
 			),
@@ -479,27 +474,32 @@ export const ServiceOption = ({ item, onToggle, onSwap, isFirst = false, isLast 
 					onClick: () => onSwap(item.name, 1),
 					disabled: isLast,
 				}),
-				musixmatchInvalid
+				toggleDisabled
 					? react.createElement(
 							Spicetify.ReactComponent.TooltipWrapper,
 							{
-								label: "Musixmatch token is invalid and could not be refreshed automatically. Refresh the token or paste your own to re-enable it.",
+								label: musixmatchInvalid
+									? "Musixmatch token is invalid and could not be refreshed automatically. Refresh the token or paste your own to re-enable it."
+									: "Genius is unavailable on this Spotify version.",
 							},
-							react.createElement(ButtonSVG, {
-								icon: Spicetify.SVGIcons.check,
-								active,
-								onClick: toggleActive,
+							react.createElement(Toggle, {
+								id: toggleId,
+								ariaLabel: `${item.name} provider`,
+								value: active,
+								onChange: toggleActive,
 								disabled: true,
 							}),
 						)
-					: react.createElement(ButtonSVG, {
-							icon: Spicetify.SVGIcons.check,
-							active,
-							onClick: toggleActive,
+					: react.createElement(Toggle, {
+							id: toggleId,
+							ariaLabel: `${item.name} provider`,
+							value: active,
+							onChange: toggleActive,
 						}),
 			),
 		),
 		react.createElement("span", {
+			className: SETTINGS_HELP_TEXT_CLASS,
 			dangerouslySetInnerHTML: {
 				__html: item.desc,
 			},
@@ -598,6 +598,7 @@ export const OptionList = ({ type, items, onChange }) => {
 			}),
 			item.info &&
 				react.createElement("span", {
+					className: SETTINGS_HELP_TEXT_CLASS,
 					dangerouslySetInnerHTML: {
 						__html: item.info,
 					},
@@ -612,7 +613,7 @@ export function LyricsPlusSettings() {
 		{
 			id: `${APP_NAME}-config-container`,
 		},
-		react.createElement("h2", null, "Options"),
+		react.createElement("h2", { className: SETTINGS_SECTION_HEADING_CLASS }, "Options"),
 		react.createElement(OptionList, {
 			items: [
 				{
@@ -749,7 +750,7 @@ export function LyricsPlusSettings() {
 				window.dispatchEvent(configChange);
 			},
 		}),
-		react.createElement("h2", null, "Providers"),
+		react.createElement("h2", { className: SETTINGS_SECTION_HEADING_CLASS }, "Providers"),
 		react.createElement(ServiceList, {
 			itemsList: CONFIG.providersOrder,
 			onListChange: (list) => {
@@ -768,14 +769,16 @@ export function LyricsPlusSettings() {
 				sharedCallbacks.reloadLyrics?.();
 			},
 		}),
-		react.createElement("h2", null, "CORS Proxy Template"),
+		react.createElement("h2", { className: SETTINGS_SECTION_HEADING_CLASS }, "CORS Proxy Template"),
 		react.createElement("span", {
+			className: SETTINGS_HELP_TEXT_CLASS,
 			dangerouslySetInnerHTML: {
 				__html: "Use this to bypass CORS restrictions. Replace the URL with your cors proxy server of your choice. <code>{url}</code> will be replaced with the request URL.",
 			},
 		}),
 		react.createElement(corsProxyTemplate),
 		react.createElement("span", {
+			className: SETTINGS_HELP_TEXT_CLASS,
 			dangerouslySetInnerHTML: {
 				__html: "Spotify will reload its webview after applying. Leave empty to restore default: <code>https://cors-proxy.spicetify.app/{url}</code>",
 			},

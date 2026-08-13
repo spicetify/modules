@@ -14,7 +14,10 @@ test("SettingsToggleRow associates its label with the native checkbox", () => {
 	assert.match(source, /const id = React\.useId\(\)/);
 	assert.match(source, /<SettingsRow label=\{props\.label\} htmlFor=\{id\}>/);
 	assert.match(source, /<Toggle\s+id=\{id\}/);
-	assert.match(source, /<label htmlFor=\{props\.htmlFor\}>\{props\.label\}<\/label>/);
+	assert.match(
+		source,
+		/<label className=\{SETTINGS_ROW_TEXT_CLASS\} htmlFor=\{props\.htmlFor\}>\s*\{props\.label\}\s*<\/label>/,
+	);
 });
 
 test("Toggle wires native classes, names, changes, and keyboard activation", () => {
@@ -22,6 +25,7 @@ test("Toggle wires native classes, names, changes, and keyboard activation", () 
 	assert.match(source, /className=\{TOGGLE_CLASSES\.input\}/);
 	assert.match(source, /id=\{props\.id\}/);
 	assert.match(source, /aria-label=\{props\.ariaLabel\}/);
+	assert.match(source, /disabled=\{props\.disabled\}/);
 	assert.match(source, /onKeyDown=\{activateToggleOnKeyDown\}/);
 	assert.match(source, /className=\{TOGGLE_CLASSES\.indicatorWrapper\}/);
 	assert.match(source, /className=\{TOGGLE_CLASSES\.indicator\}/);

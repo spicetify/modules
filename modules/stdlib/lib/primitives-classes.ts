@@ -43,6 +43,13 @@ export const SETTINGS_SECTION_CLASS = "x-settings-section";
 export const SETTINGS_ROW_CLASS = "x-settings-row";
 export const SETTINGS_ROW_LABEL_CLASS = "x-settings-firstColumn";
 export const SETTINGS_ROW_CONTROL_CLASS = "x-settings-secondColumn";
+export const SETTINGS_HEADER_CONTAINER_CLASS = "x-settings-headerContainer";
+export const SETTINGS_HEADER_CLASS =
+	"encore-text encore-text-title-medium encore-internal-color-text-base x-settings-header";
+export const SETTINGS_SECTION_HEADING_CLASS =
+	"encore-text encore-text-body-medium-bold encore-internal-color-text-base";
+export const SETTINGS_ROW_TEXT_CLASS = "encore-text encore-text-body-small encore-internal-color-text-subdued";
+export const SETTINGS_HELP_TEXT_CLASS = "encore-text encore-text-marginal encore-internal-color-text-subdued";
 export const TOGGLE_CLASSES = {
 	wrapper: "x-toggle-wrapper",
 	input: "x-toggle-input",
