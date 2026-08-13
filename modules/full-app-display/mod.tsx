@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Ported to the v3 module standard from the classic "Full App Display" extension
- * by khanhas. The client's v2-compatible Topbar, Mousetrap, PopupModal, GraphQL,
+ * by khanhas. The client's v2-compatible Topbar, Mousetrap, GraphQL,
  * Player, History and LocalStorage helpers still work in v3, so the logic is kept
- * near-verbatim. The two runtime <style> injections (the overlay stylesheet and
- * the settings-modal stylesheet) were moved into index.scss, and the settings
- * modal is now built as scoped DOM instead of an inline <style> element.
+ * near-verbatim. The runtime <style> injection was moved into index.scss, and
+ * preferences now render through the shared Spicetify Settings register.
  */
 
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
+import { SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.js";
+import { hasLyricsPlus, parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
 
 // client.mousetrap is a client value whose runtime bind/unbind surface is
 // richer than the ambient .d.ts captures. Narrow the member value locally; this
@@ -47,8 +47,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 	let fadComponent: any = null;
 
 	function checkLyricsPlus(): boolean {
-		return (
-			client.config?.custom_apps?.includes("lyrics-plus") || !!document.querySelector("a[href='/lyrics-plus']")
+		return hasLyricsPlus(
+			client.modules?.list?.(),
+			client.config?.custom_apps,
+			!!document.querySelector("a[href='/lyrics-plus']"),
 		);
 	}
 
@@ -446,7 +448,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 					id: "full-app-display",
 					className: rootClass,
 					onDoubleClick: deactivate,
-					onContextMenu: openConfig,
 				},
 				react.createElement("canvas", {
 					id: "fad-background",
@@ -648,76 +649,68 @@ export default async function (ctx: ModuleRuntimeContext) {
 		window.dispatchEvent(new Event("fad-request"));
 	}
 
-	// Settings modal, opened by right-clicking the overlay. Built as scoped DOM;
-	// its styles live in index.scss under .full-app-display-settings.
-	function buildConfig(): HTMLElement {
-		const content = document.createElement("div");
-		content.className = "full-app-display-settings";
+	type BooleanSettingProps = {
+		label: string;
+		field: string;
+		disabled?: boolean;
+		afterChange?: () => void;
+	};
 
-		const addSlider = (name: string, field: string, func: () => void, disabled = false) => {
-			const row = document.createElement("div");
-			row.className = "setting-row";
-
-			const label = document.createElement("label");
-			label.className = "col description";
-			label.textContent = name;
-
-			const action = document.createElement("div");
-			action.className = "col action";
-
-			const btn = document.createElement("button");
-			btn.className = "switch";
-			btn.disabled = disabled;
-			btn.innerHTML = `<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">${client.icons.check}</svg>`;
-			btn.classList.toggle("disabled", !CONFIG[field]);
-			btn.onclick = () => {
-				const state = !CONFIG[field];
-				CONFIG[field] = state;
-				btn.classList.toggle("disabled", !state);
-				saveConfig();
-				func();
-			};
-
-			action.appendChild(btn);
-			row.append(label, action);
-			content.appendChild(row);
-		};
-
-		addSlider(
-			checkLyricsPlus() ? "Enable Lyrics Plus integration" : "Lyrics Plus not applied",
-			"lyricsPlus",
-			() => {
-				updateVisual?.();
-				requestLyricsPlus();
-			},
-			!checkLyricsPlus(),
+	const BooleanSetting = ({ label, field, disabled = false, afterChange }: BooleanSettingProps) => {
+		const id = react.useId();
+		const [value, setValue] = useState(() => Boolean(CONFIG[field]));
+		return react.createElement(
+			SettingsRow,
+			{ label, htmlFor: id },
+			react.createElement(Toggle, {
+				id,
+				disabled,
+				value,
+				onChange: (next: boolean) => {
+					CONFIG[field] = next;
+					saveConfig();
+					setValue(next);
+					afterChange?.();
+				},
+			}),
 		);
-		addSlider("Enable progress bar", "enableProgress", () => updateVisual?.());
-		addSlider("Enable controls", "enableControl", () => updateVisual?.());
-		addSlider("Trim title", "trimTitle", () => updateVisual?.());
-		addSlider("Show album", "showAlbum", () => updateVisual?.());
-		addSlider("Show all artists", "showAllArtists", () => updateVisual?.());
-		addSlider("Show release date", "showReleaseDate", () => updateVisual?.());
-		addSlider("Show icons", "icons", () => updateVisual?.());
-		addSlider("Vertical mode", "vertical", () => updateStyle());
-		addSlider("Enable fullscreen", "enableFullscreen", () => void toggleFullscreen());
-		addSlider("Enable song change animation", "enableFade", () => updateVisual?.());
+	};
 
-		return content;
-	}
+	const FullAppDisplaySettings = () => {
+		const lyricsPlusAvailable = checkLyricsPlus();
+		const setting = (label: string, field: string, afterChange: () => void, disabled = false) =>
+			react.createElement(BooleanSetting, { key: field, label, field, afterChange, disabled });
 
-	function openConfig(event: MouseEvent) {
-		event.preventDefault();
-		client.popupModal.display({
-			title: "Full App Display",
-			content: buildConfig(),
-		});
-	}
+		return react.createElement(
+			SettingsSection,
+			{ title: "Full App Display" },
+			setting(
+				lyricsPlusAvailable ? "Lyrics Plus integration" : "Lyrics Plus integration (not installed)",
+				"lyricsPlus",
+				() => {
+					updateVisual?.();
+					requestLyricsPlus();
+				},
+				!lyricsPlusAvailable,
+			),
+			setting("Progress bar", "enableProgress", () => updateVisual?.()),
+			setting("Playback controls", "enableControl", () => updateVisual?.()),
+			setting("Trim track title", "trimTitle", () => updateVisual?.()),
+			setting("Album name", "showAlbum", () => updateVisual?.()),
+			setting("All artists", "showAllArtists", () => updateVisual?.()),
+			setting("Release date", "showReleaseDate", () => updateVisual?.()),
+			setting("Detail icons", "icons", () => updateVisual?.()),
+			setting("Vertical layout", "vertical", updateStyle),
+			setting("System fullscreen", "enableFullscreen", () => void toggleFullscreen()),
+			setting("Song change animation", "enableFade", () => updateVisual?.()),
+		);
+	};
 
 	// Add activator on top bar. placeButton mounts through the stdlib
 	// topbar-right register (the classic wrapper Topbar.Button no longer
 	// mounts in v3's restructured top bar) and is torn down with the module.
 	const registrar = createRegistrar(ctx);
+	registrar.register("settingsSection", react.createElement(FullAppDisplaySettings));
 	// 1.5 round stroke matches the native encore topbar icons (the classic
 	// SVGIcons.projector is a heavier vintage and stands out next to them).
 	registrar.placeButton("topbar-right", {

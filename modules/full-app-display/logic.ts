@@ -19,6 +19,18 @@ export function parseConfig(raw: string | null): Record<string, unknown> | null 
 	}
 }
 
+export function hasLyricsPlus(
+	modules: Array<{ identifier?: string; loaded?: boolean }> | undefined,
+	customApps: string[] | undefined,
+	hasRouteLink: boolean,
+): boolean {
+	return (
+		modules?.some((module) => module.identifier === "lyrics-plus" && module.loaded === true) === true ||
+		customApps?.includes("lyrics-plus") === true ||
+		hasRouteLink
+	);
+}
+
 export function progressFromPointer(clientX: number, rectLeft: number, rectWidth: number, duration: number): number {
 	return ((clientX - rectLeft) / rectWidth) * duration;
 }

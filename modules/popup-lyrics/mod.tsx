@@ -5,7 +5,7 @@
  * Ported to the v3 module standard from the classic "Popup Lyrics" extension by
  * khanhas (Netease parser + UI from github.com/mantou132/Spotify-Lyrics). It
  * renders synced lyrics onto a canvas that is streamed into a picture-in-picture
- * window, toggled from a topbar button (right-click for settings).
+ * window and toggled from a topbar button.
  *
  * v3 adaptations, everything else is kept near-verbatim:
  *   - The classic build loaded its own file twice (main + Web Worker) and
@@ -13,8 +13,8 @@
  *     own path, so the "keep ticking while the window is hidden" worker is now
  *     an inline Blob worker (CSP-permitted in the client).
  *   - The topbar button goes through registrar.placeButton("topbar-right"), so
- *     it sits with the other module topbar buttons; right-click (settings) is
- *     delegated at the document level since placeButton exposes no element.
+ *     it sits with the other module topbar buttons.
+ *   - Preferences render through the shared Spicetify Settings register.
  *   - The injected <style> tag moved into index.scss.
  *   - All teardown routes through ctx.defer.
  *   - CosmosAsync still proxies both the authed Spotify color-lyrics endpoint
@@ -24,6 +24,17 @@
 
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { React } from "/modules/stdlib/src/expose/React.ts";
+import {
+	Button,
+	IconButton,
+	Select,
+	SettingsRow,
+	SettingsSection,
+	TextInput,
+	Toggle,
+} from "/modules/stdlib/lib/primitives.js";
+import { SETTINGS_HELP_TEXT_CLASS } from "/modules/stdlib/lib/primitives-classes.js";
 
 import {
 	LyricUtils,
@@ -248,30 +259,26 @@ export default async function (ctx: ModuleRuntimeContext) {
 				call: LyricProviders.fetchNetease,
 				desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
 				token: "",
-				element: null as HTMLElement | null,
 			},
 			musixmatch: {
 				on: boolLocalStorage("popup-lyrics:services:musixmatch:on"),
 				call: LyricProviders.fetchMusixmatch,
-				desc: "Fully compatible with Spotify. Requires a token that can be retrieved from the official Musixmatch app. If you have problems with retrieving lyrics, try refreshing the token by clicking <code>Refresh Token</code> button.",
+				desc: "Fully compatible with Spotify. If lyrics stop loading, refresh the token below.",
 				token:
 					LocalStorage.get("popup-lyrics:services:musixmatch:token") ||
 					"2005218b74f939209bda92cb633c7380612e14cb7fe92dcd6a780f",
-				element: null as HTMLElement | null,
 			},
 			spotify: {
 				on: boolLocalStorage("popup-lyrics:services:spotify:on"),
 				call: LyricProviders.fetchSpotify,
 				desc: "Lyrics sourced from official Spotify API.",
 				token: "",
-				element: null as HTMLElement | null,
 			},
 			lrclib: {
 				on: boolLocalStorage("popup-lyrics:services:lrclib:on"),
 				call: LyricProviders.fetchLrclib,
 				desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
 				token: "",
-				element: null as HTMLElement | null,
 			},
 		} as Record<
 			string,
@@ -280,7 +287,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 				call: (i: TrackInfo) => Promise<LyricResult>;
 				desc: string;
 				token: string;
-				element: HTMLElement | null;
 			}
 		>,
 		servicesOrder: [] as string[],
@@ -358,16 +364,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 		},
 	});
-	// Right-click the topbar button opens settings. placeButton exposes no
-	// element handle, so delegate at the document level (like loopy-loop).
-	const onButtonContextMenu = (event: MouseEvent) => {
-		const target = event.target as HTMLElement | null;
-		if (target?.closest?.('.spicetify-topbar-right-buttons [aria-label="Popup Lyrics"]')) {
-			openConfig(event);
-		}
-	};
-	document.addEventListener("contextmenu", onButtonContextMenu);
-
 	const coverCanvas = document.createElement("canvas");
 	coverCanvas.width = lyricVideo.width;
 	coverCanvas.height = lyricVideo.width;
@@ -782,409 +778,239 @@ export default async function (ctx: ModuleRuntimeContext) {
 		return value ? value === "true" : defaultVal;
 	}
 
-	let configContainer: HTMLDivElement | undefined;
+	const ASPECT_RATIO_OPTIONS = [
+		{ value: "11", label: "1:1" },
+		{ value: "43", label: "4:3" },
+		{ value: "169", label: "16:9" },
+	] as const;
+	const FONT_SIZE_OPTIONS = [30, 34, 38, 42, 46, 50, 54, 58].map((value) => ({
+		value: String(value),
+		label: `${value}px`,
+	}));
+	const BLUR_SIZE_OPTIONS = [0, 2, 5, 10, 15].map((value) => ({
+		value: String(value),
+		label: value === 0 ? "Off" : `${value}px`,
+	}));
 
-	function openConfig(event: MouseEvent) {
-		event.preventDefault();
+	type BooleanSettingProps = {
+		label: string;
+		value: boolean;
+		onChange: (value: boolean) => void;
+	};
 
-		// Reset on reopen
-		if (configContainer) {
-			resetTokenButton(configContainer);
-		} else {
-			configContainer = document.createElement("div");
-			configContainer.id = "popup-config-container";
-			const optionHeader = document.createElement("h2");
-			optionHeader.innerText = "Options";
-			const smooth = createSlider("Smooth scrolling", userConfigs.smooth, (state) => {
-				userConfigs.smooth = state;
-				LocalStorage.set("popup-lyrics:smooth", String(state));
-			});
-			const center = createSlider("Center align", userConfigs.centerAlign, (state) => {
-				userConfigs.centerAlign = state;
-				LocalStorage.set("popup-lyrics:center-align", String(state));
-			});
-			const cover = createSlider("Show cover", userConfigs.showCover, (state) => {
-				userConfigs.showCover = state;
-				LocalStorage.set("popup-lyrics:show-cover", String(state));
-			});
-			const ratio = createOptions(
-				"Aspect ratio",
-				{ 11: "1:1", 43: "4:3", 169: "16:9" },
-				userConfigs.ratio,
-				(state) => {
-					userConfigs.ratio = state;
-					LocalStorage.set("popup-lyrics:ratio", state);
-					let value = lyricVideo.width;
-					switch (userConfigs.ratio) {
-						case "11":
-							value = lyricVideo.width;
-							break;
-						case "43":
-							value = Math.round((lyricVideo.width * 3) / 4);
-							break;
-						case "169":
-							value = Math.round((lyricVideo.width * 9) / 16);
-							break;
-					}
-					lyricVideo.height = lyricCanvas.height = value;
-					offscreenCtx = null;
-				},
-			);
-			const fontSize = createOptions(
-				"Font size",
-				{ 30: "30px", 34: "34px", 38: "38px", 42: "42px", 46: "46px", 50: "50px", 54: "54px", 58: "58px" },
-				String(userConfigs.fontSize),
-				(state) => {
-					userConfigs.fontSize = Number(state);
-					LocalStorage.set("popup-lyrics:font-size", state);
-				},
-			);
-			const blurSize = createOptions(
-				"Blur size",
-				{ 2: "2px", 5: "5px", 10: "10px", 15: "15px" },
-				String(userConfigs.blurSize),
-				(state) => {
-					userConfigs.blurSize = Number(state);
-					LocalStorage.set("popup-lyrics:blur-size", state);
-				},
-			);
-			const delay = createOptionsInput("Delay", String(userConfigs.delay), (state) => {
-				userConfigs.delay = Number(state);
-				LocalStorage.set("popup-lyrics:delay", state);
-			});
-			const clearCache = descriptiveElement(
-				createButton("Clear Memory Cache", "Clear Memory Cache", () => {
-					CACHE = {};
-					updateTrack();
-				}),
-				"Loaded lyrics are cached in memory for faster reloading. Press this button to clear the cached lyrics from memory without restarting Spotify.",
-			);
+	const BooleanSetting = ({ label, value, onChange }: BooleanSettingProps) => {
+		const id = React.useId();
+		return (
+			<SettingsRow label={label} htmlFor={id}>
+				<Toggle id={id} value={value} onChange={onChange} />
+			</SettingsRow>
+		);
+	};
 
-			const serviceHeader = document.createElement("h2");
-			serviceHeader.innerText = "Services";
+	type ServiceSettingProps = {
+		id: string;
+		index: number;
+		total: number;
+		onToggle: (value: boolean) => void;
+		onMove: (direction: -1 | 1) => void;
+	};
 
-			const serviceContainer = document.createElement("div");
+	const ServiceSetting = ({ id, index, total, onToggle, onMove }: ServiceSettingProps) => {
+		const toggleId = React.useId();
+		const service = userConfigs.services[id];
+		const name = id.replace(/^./, (character) => character.toUpperCase());
+		return (
+			<SettingsRow
+				label={
+					<span className="popup-lyrics-setting-copy">
+						<span>{name}</span>
+						<span className={SETTINGS_HELP_TEXT_CLASS}>{service.desc}</span>
+					</span>
+				}
+				htmlFor={toggleId}
+			>
+				<div className="popup-lyrics-service-actions">
+					<IconButton ariaLabel={`Move ${name} up`} disabled={index === 0} onClick={() => onMove(-1)}>
+						↑
+					</IconButton>
+					<IconButton
+						ariaLabel={`Move ${name} down`}
+						disabled={index === total - 1}
+						onClick={() => onMove(1)}
+					>
+						↓
+					</IconButton>
+					<Toggle id={toggleId} value={service.on} onChange={onToggle} />
+				</div>
+			</SettingsRow>
+		);
+	};
 
-			function stackServiceElements() {
-				userConfigs.servicesOrder.forEach((name, index) => {
-					const el = userConfigs.services[name].element!;
+	const resizeLyricsSurface = () => {
+		const height =
+			userConfigs.ratio === "43"
+				? Math.round((lyricVideo.width * 3) / 4)
+				: userConfigs.ratio === "169"
+					? Math.round((lyricVideo.width * 9) / 16)
+					: lyricVideo.width;
+		lyricVideo.height = lyricCanvas.height = height;
+		offscreenCtx = null;
+	};
 
-					const [up, down] = el.querySelectorAll("button");
-					if (index === 0) {
-						up.disabled = true;
-						down.disabled = false;
-					} else if (index === userConfigs.servicesOrder.length - 1) {
-						up.disabled = false;
-						down.disabled = true;
-					} else {
-						up.disabled = false;
-						down.disabled = false;
-					}
+	const PopupLyricsSettings = () => {
+		const [, render] = React.useReducer((value: number) => value + 1, 0);
+		const [tokenStatus, setTokenStatus] = React.useState<"idle" | "refreshing" | "success" | "error">("idle");
 
-					serviceContainer.append(el);
-				});
+		const setBoolean = (field: "smooth" | "centerAlign" | "showCover", storageKey: string, value: boolean) => {
+			userConfigs[field] = value;
+			LocalStorage.set(storageKey, String(value));
+			render();
+		};
+		const moveService = (id: string, direction: -1 | 1) => {
+			const current = userConfigs.servicesOrder.indexOf(id);
+			const next = current + direction;
+			if (current < 0 || next < 0 || next >= userConfigs.servicesOrder.length) return;
+			[userConfigs.servicesOrder[current], userConfigs.servicesOrder[next]] = [
+				userConfigs.servicesOrder[next],
+				userConfigs.servicesOrder[current],
+			];
+			LocalStorage.set("popup-lyrics:services-order", JSON.stringify(userConfigs.servicesOrder));
+			render();
+			void updateTrack(true);
+		};
+		const refreshToken = async () => {
+			setTokenStatus("refreshing");
+			const token = await refreshMusixmatchToken();
+			setTokenStatus(token ? "success" : "error");
+			if (token) {
+				render();
+				void updateTrack(true);
 			}
-
-			function switchCallback(el: HTMLElement, state: boolean) {
-				const id = el.dataset.id!;
-				userConfigs.services[id].on = state;
-				LocalStorage.set(`popup-lyrics:services:${id}:on`, String(state));
-				updateTrack(true);
-			}
-
-			function posCallback(el: HTMLElement, dir: number) {
-				const id = el.dataset.id!;
-				const curPos = userConfigs.servicesOrder.findIndex((val) => val === id);
-				const newPos = curPos + dir;
-
-				const temp = userConfigs.servicesOrder[newPos];
-				userConfigs.servicesOrder[newPos] = userConfigs.servicesOrder[curPos];
-				userConfigs.servicesOrder[curPos] = temp;
-
-				LocalStorage.set("popup-lyrics:services-order", JSON.stringify(userConfigs.servicesOrder));
-
-				stackServiceElements();
-				updateTrack(true);
-			}
-
-			for (const name of userConfigs.servicesOrder) {
-				userConfigs.services[name].element = createServiceOption(
-					name,
-					userConfigs.services[name],
-					switchCallback,
-					posCallback,
-				);
-			}
-			stackServiceElements();
-
-			configContainer.append(
-				optionHeader,
-				smooth,
-				center,
-				cover,
-				blurSize,
-				fontSize,
-				ratio,
-				delay,
-				clearCache,
-				serviceHeader,
-				serviceContainer,
-			);
-		}
-		client.popupModal.display({
-			title: "Popup Lyrics",
-			content: configContainer,
-		});
-	}
-
-	function createSlider(name: string, defaultVal: boolean, callback: (state: boolean) => void): HTMLDivElement {
-		const container = document.createElement("div");
-		container.innerHTML = `
-<div class="setting-row">
-	<label class="col description">${name}</label>
-	<div class="col action"><button class="switch">
-		<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-			${client.icons.check}
-		</svg>
-	</button></div>
-</div>`;
-
-		const slider = container.querySelector("button")!;
-		slider.classList.toggle("disabled", !defaultVal);
-
-		slider.onclick = () => {
-			const state = slider.classList.contains("disabled");
-			slider.classList.toggle("disabled");
-			callback(state);
 		};
 
-		return container;
-	}
+		return (
+			<>
+				<SettingsSection title="Popup Lyrics">
+					<BooleanSetting
+						label="Smooth scrolling"
+						value={userConfigs.smooth}
+						onChange={(value) => setBoolean("smooth", "popup-lyrics:smooth", value)}
+					/>
+					<BooleanSetting
+						label="Center lyrics"
+						value={userConfigs.centerAlign}
+						onChange={(value) => setBoolean("centerAlign", "popup-lyrics:center-align", value)}
+					/>
+					<BooleanSetting
+						label="Show cover art"
+						value={userConfigs.showCover}
+						onChange={(value) => setBoolean("showCover", "popup-lyrics:show-cover", value)}
+					/>
+					<SettingsRow label="Aspect ratio">
+						<Select
+							options={ASPECT_RATIO_OPTIONS}
+							value={userConfigs.ratio as (typeof ASPECT_RATIO_OPTIONS)[number]["value"]}
+							onChange={(value) => {
+								userConfigs.ratio = value;
+								LocalStorage.set("popup-lyrics:ratio", value);
+								resizeLyricsSurface();
+								render();
+							}}
+						/>
+					</SettingsRow>
+					<SettingsRow label="Font size">
+						<Select
+							options={FONT_SIZE_OPTIONS}
+							value={String(userConfigs.fontSize)}
+							onChange={(value) => {
+								userConfigs.fontSize = Number(value);
+								LocalStorage.set("popup-lyrics:font-size", value);
+								render();
+							}}
+						/>
+					</SettingsRow>
+					<SettingsRow label="Background blur">
+						<Select
+							options={BLUR_SIZE_OPTIONS}
+							value={String(userConfigs.blurSize)}
+							onChange={(value) => {
+								userConfigs.blurSize = Number(value);
+								LocalStorage.set("popup-lyrics:blur-size", value);
+								render();
+							}}
+						/>
+					</SettingsRow>
+					<SettingsRow label="Timing delay (ms)">
+						<TextInput
+							placeholder="0"
+							value={String(userConfigs.delay)}
+							onInput={(value) => {
+								userConfigs.delay = Number(value) || 0;
+								LocalStorage.set("popup-lyrics:delay", String(userConfigs.delay));
+								render();
+							}}
+						/>
+					</SettingsRow>
+					<SettingsRow label="Memory cache">
+						<Button
+							variant="secondary"
+							onClick={() => {
+								CACHE = {};
+								void updateTrack();
+							}}
+						>
+							Clear cached lyrics
+						</Button>
+					</SettingsRow>
+				</SettingsSection>
+				<SettingsSection title="Popup Lyrics providers">
+					{userConfigs.servicesOrder.map((id, index) => (
+						<ServiceSetting
+							key={id}
+							id={id}
+							index={index}
+							total={userConfigs.servicesOrder.length}
+							onMove={(direction) => moveService(id, direction)}
+							onToggle={(value) => {
+								userConfigs.services[id].on = value;
+								LocalStorage.set(`popup-lyrics:services:${id}:on`, String(value));
+								render();
+								void updateTrack(true);
+							}}
+						/>
+					))}
+					<SettingsRow label="Musixmatch token">
+						<div className="popup-lyrics-token-controls">
+							<TextInput
+								placeholder="Musixmatch user token"
+								value={userConfigs.services.musixmatch.token}
+								onInput={(value) => {
+									userConfigs.services.musixmatch.token = value;
+									LocalStorage.set("popup-lyrics:services:musixmatch:token", value);
+									render();
+								}}
+							/>
+							<Button
+								variant="secondary"
+								disabled={tokenStatus === "refreshing"}
+								onClick={() => void refreshToken()}
+							>
+								{tokenStatus === "refreshing"
+									? "Refreshing…"
+									: tokenStatus === "success"
+										? "Token refreshed"
+										: tokenStatus === "error"
+											? "Try again"
+											: "Refresh token"}
+							</Button>
+						</div>
+					</SettingsRow>
+				</SettingsSection>
+			</>
+		);
+	};
 
-	function createOptions(
-		name: string,
-		options: Record<string, string>,
-		defaultValue: string,
-		callback: (state: string) => void,
-	): HTMLDivElement {
-		const container = document.createElement("div");
-		container.innerHTML = `
-<div class="setting-row">
-	<label class="col description">${name}</label>
-	<div class="col action">
-		<select>
-			${Object.keys(options)
-				.map((item) => `<option value="${item}" dir="auto">${options[item]}</option>`)
-				.join("\n")}
-		</select>
-	</div>
-</div>`;
-
-		const select = container.querySelector("select")!;
-		select.value = defaultValue;
-		select.onchange = (e) => {
-			callback((e.target as HTMLSelectElement).value);
-		};
-
-		return container;
-	}
-
-	function createOptionsInput(name: string, defaultValue: string, callback: (state: string) => void): HTMLDivElement {
-		const container = document.createElement("div");
-		container.innerHTML = `
-	<div class="setting-row">
-	<label class="col description">${name}</label>
-	<div class="col action">
-		<input id="popup-lyrics-delay-input" type="number" />
-	</div>
-	</div>`;
-
-		const input = container.querySelector("#popup-lyrics-delay-input") as HTMLInputElement;
-		input.value = defaultValue;
-		input.onchange = (e) => {
-			callback((e.target as HTMLInputElement).value);
-		};
-
-		return container;
-	}
-
-	// if name is null, the element can be used without a description.
-	function createButton(name: string | null, defaultValue: string, callback: () => void): HTMLElement {
-		let container: HTMLElement;
-
-		if (name) {
-			container = document.createElement("div");
-			container.innerHTML = `
-		<div class="setting-row">
-		<label class="col description">${name}</label>
-		<div class="col action">
-			<button id="popup-lyrics-clickbutton" class="btn">${defaultValue}</button>
-		</div>
-		</div>`;
-
-			const button = container.querySelector("#popup-lyrics-clickbutton") as HTMLButtonElement;
-			button.onclick = () => callback();
-		} else {
-			container = document.createElement("button");
-			container.innerHTML = defaultValue;
-			container.className = "btn ";
-			container.onclick = () => callback();
-		}
-
-		return container;
-	}
-
-	// if name is null, the element can be used without a description.
-	function createTextfield(
-		name: string | null,
-		defaultValue: string,
-		placeholder: string,
-		callback: (value: string) => void,
-	): HTMLElement {
-		let container: HTMLElement;
-
-		if (name) {
-			container = document.createElement("div");
-			container.className = "setting-column";
-			const label = document.createElement("label");
-			label.className = "row-description";
-			label.textContent = name;
-			const wrap = document.createElement("div");
-			wrap.className = "popup-row-option action";
-			const input = document.createElement("input");
-			input.id = "popup-lyrics-textfield";
-			input.placeholder = placeholder;
-			input.value = defaultValue;
-			input.onchange = () => callback(input.value);
-			wrap.append(input);
-			container.append(label, wrap);
-		} else {
-			const input = document.createElement("input");
-			input.placeholder = placeholder;
-			input.value = defaultValue;
-			input.onchange = (e) => callback((e.target as HTMLInputElement).value);
-			container = input;
-		}
-
-		return container;
-	}
-
-	function descriptiveElement(element: HTMLElement, description: string): HTMLElement {
-		const desc = document.createElement("span");
-		desc.innerHTML = description;
-		element.append(desc);
-		return element;
-	}
-
-	function resetTokenButton(container: HTMLElement) {
-		const button = container.querySelector("#popup-lyrics-refresh-token") as HTMLButtonElement | null;
-		if (button) {
-			button.innerHTML = "Refresh token";
-			button.disabled = false;
-		}
-	}
-
-	function musixmatchTokenElements(defaultVal: { token: string }): HTMLDivElement {
-		const button = createButton(null, "Refresh token", clickRefresh) as HTMLButtonElement;
-		button.className += "popup-config-col-margin";
-		button.id = "popup-lyrics-refresh-token";
-		const textfield = createTextfield(
-			null,
-			defaultVal.token,
-			"Place your musixmatch token here",
-			changeTokenfield,
-		) as HTMLInputElement;
-		textfield.className += "popup-config-col-margin";
-
-		function clickRefresh() {
-			button.innerHTML = "Refreshing token...";
-			button.disabled = true;
-
-			client.cosmos
-				.get("https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0", null, {
-					authority: "apic-desktop.musixmatch.com",
-				})
-				.then(({ message: response }: any) => {
-					if (response.header.status_code === 200 && response.body.user_token) {
-						button.innerHTML = "Token refreshed";
-						textfield.value = response.body.user_token;
-						textfield.dispatchEvent(new Event("change"));
-					} else if (response.header.status_code === 401) {
-						button.innerHTML = "Too many attempts";
-					} else {
-						button.innerHTML = "Failed to refresh token";
-						console.error("Failed to refresh token", response);
-					}
-				})
-				.catch((error: unknown) => {
-					button.innerHTML = "Failed to refresh token";
-					console.error("Failed to refresh token", error);
-				});
-		}
-
-		function changeTokenfield(value: string) {
-			userConfigs.services.musixmatch.token = value;
-			LocalStorage.set("popup-lyrics:services:musixmatch:token", value);
-			updateTrack(true);
-		}
-
-		const container = document.createElement("div");
-		container.append(button);
-		container.append(textfield);
-		return container;
-	}
-
-	function createServiceOption(
-		id: string,
-		defaultVal: { on: boolean; desc: string },
-		switchCallback: (el: HTMLElement, state: boolean) => void,
-		posCallback: (el: HTMLElement, dir: number) => void,
-	): HTMLDivElement {
-		const name = id.replace(/^./, (c) => c.toUpperCase());
-
-		const container = document.createElement("div");
-		container.dataset.id = id;
-		container.innerHTML = `
-<div class="setting-row">
-	<h3 class="col description">${name}</h3>
-	<div class="col action">
-		<button class="switch small">
-			<svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
-				${client.icons["chart-up"]}
-			</svg>
-		</button>
-		<button class="switch small">
-			<svg height="10" width="10" viewBox="0 0 16 16" fill="currentColor">
-				${client.icons["chart-down"]}
-			</svg>
-		</button>
-		<button class="switch">
-			<svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor">
-				${client.icons.check}
-			</svg>
-		</button>
-	</div>
-</div>
-<span>${defaultVal.desc}</span>`;
-
-		if (id === "musixmatch") {
-			container.append(musixmatchTokenElements(userConfigs.services.musixmatch));
-		}
-
-		const [up, down, slider] = container.querySelectorAll("button");
-
-		slider.classList.toggle("disabled", !defaultVal.on);
-		slider.onclick = () => {
-			const state = slider.classList.contains("disabled");
-			slider.classList.toggle("disabled");
-			switchCallback(container, state);
-		};
-
-		up.onclick = () => posCallback(container, -1);
-		down.onclick = () => posCallback(container, 1);
-
-		return container;
-	}
+	registrar.register("settingsSection", <PopupLyricsSettings />);
 
 	// ----- teardown -----
 	ctx.defer(() => {
@@ -1196,7 +1022,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 		if (lyricVideoIsOpen && document.pictureInPictureElement) {
 			document.exitPictureInPicture().catch(() => {});
 		}
-		document.removeEventListener("contextmenu", onButtonContextMenu);
 		// The topbar button is removed by the registrar's own ctx.defer.
 	});
 }

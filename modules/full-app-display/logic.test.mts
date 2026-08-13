@@ -6,7 +6,16 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
+import { hasLyricsPlus, parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
+
+describe("hasLyricsPlus", () => {
+	it("prefers the loaded v3 module and keeps the v2 fallbacks", () => {
+		assert.equal(hasLyricsPlus([{ identifier: "lyrics-plus", loaded: true }], [], false), true);
+		assert.equal(hasLyricsPlus([{ identifier: "lyrics-plus", loaded: false }], [], false), false);
+		assert.equal(hasLyricsPlus([], ["lyrics-plus"], false), true);
+		assert.equal(hasLyricsPlus([], [], true), true);
+	});
+});
 
 describe("parseConfig", () => {
 	it("parses stored objects, treats null/empty as an empty config", () => {

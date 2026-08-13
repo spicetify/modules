@@ -13,7 +13,7 @@ import { createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
-import { Button, Chip, IconButton, Select } from "/modules/stdlib/lib/primitives.js";
+import { Button, IconButton, Select, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.js";
 import {
 	DAY_MS,
 	dedupeAndSort,
@@ -57,6 +57,73 @@ const readConfig = (): Config => ({
 	singleEp: readBool("single-ep", true),
 	compilations: readBool("compilations", false),
 });
+
+const CONFIG_KEYS: Record<keyof Config, string> = {
+	range: "range",
+	relative: "relative",
+	showType: "visual:type",
+	showCount: "visual:count",
+	album: "album",
+	singleEp: "single-ep",
+	compilations: "compilations",
+};
+const configListeners = new Set<() => void>();
+
+const updateConfig = <K extends keyof Config>(key: K, value: Config[K]): void => {
+	writeConfig(CONFIG_KEYS[key], String(value));
+	for (const listener of configListeners) listener();
+};
+
+const useConfig = (): Config => {
+	const [config, setConfig] = React.useState(readConfig);
+	React.useEffect(() => {
+		const refresh = () => setConfig(readConfig());
+		configListeners.add(refresh);
+		return () => {
+			configListeners.delete(refresh);
+		};
+	}, []);
+	return config;
+};
+
+const RANGE_OPTIONS = [
+	{ value: "30", label: "30 days" },
+	{ value: "60", label: "60 days" },
+	{ value: "90", label: "90 days" },
+	{ value: "120", label: "120 days" },
+] as const;
+
+const ConfigToggle = ({ label, configKey }: { label: string; configKey: Exclude<keyof Config, "range"> }) => {
+	const id = React.useId();
+	const config = useConfig();
+	return (
+		<SettingsRow label={label} htmlFor={id}>
+			<Toggle id={id} value={config[configKey]} onChange={(value) => updateConfig(configKey, value)} />
+		</SettingsRow>
+	);
+};
+
+const NewReleasesSettings = () => {
+	const config = useConfig();
+	const rangeId = React.useId();
+	return (
+		<SettingsSection title="New Releases">
+			<SettingsRow label="Release window" htmlFor={rangeId}>
+				<Select
+					options={RANGE_OPTIONS}
+					value={String(config.range) as (typeof RANGE_OPTIONS)[number]["value"]}
+					onChange={(value) => updateConfig("range", Number.parseInt(value, 10))}
+				/>
+			</SettingsRow>
+			<ConfigToggle label="Albums" configKey="album" />
+			<ConfigToggle label="Singles and EPs" configKey="singleEp" />
+			<ConfigToggle label="Compilations" configKey="compilations" />
+			<ConfigToggle label="Relative dates" configKey="relative" />
+			<ConfigToggle label="Show release type" configKey="showType" />
+			<ConfigToggle label="Show track count" configKey="showCount" />
+		</SettingsSection>
+	);
+};
 
 // ---------- dismissed set (persisted) ----------
 
@@ -266,7 +333,7 @@ const Page = () => {
 	const [cache, setCache] = React.useState<CacheShape | null>(readCache);
 	const [phase, setPhase] = React.useState<Phase>(cache ? "idle" : "loading");
 	const [dismissed, setDismissed] = React.useState<string[]>(readDismissed);
-	const [cfg, setCfg] = React.useState<Config>(readConfig);
+	const cfg = useConfig();
 
 	const releases = cache?.releases ?? [];
 
@@ -301,11 +368,6 @@ const Page = () => {
 		else if (Date.now() - cache.fetchedAt > TTL_MS) void load(true);
 	}, []);
 
-	const update = (patch: Partial<Config>, persist: () => void) => {
-		persist();
-		setCfg((prev) => ({ ...prev, ...patch }));
-	};
-
 	const dismiss = (uri: string) => {
 		setDismissed((prev) => {
 			const next = prev.includes(uri) ? prev : [...prev, uri];
@@ -323,7 +385,7 @@ const Page = () => {
 
 	const dismissedSet = React.useMemo(() => new Set(dismissed), [dismissed]);
 	// All type/range filtering happens here over the cached superset, so changing
-	// a chip or the range window is instant and never triggers a network fetch.
+	// a preference is instant and never triggers a network fetch.
 	const visible = React.useMemo(
 		() => filterVisible(releases, cfg, dismissedSet, Date.now()),
 		[releases, dismissedSet, cfg.range, cfg.album, cfg.singleEp, cfg.compilations],
@@ -339,55 +401,11 @@ const Page = () => {
 		[visible, cfg.relative],
 	);
 
-	const rangeOptions = [
-		{ value: "30", label: "30 days" },
-		{ value: "60", label: "60 days" },
-		{ value: "90", label: "90 days" },
-		{ value: "120", label: "120 days" },
-	] as const;
-
 	return (
 		<div className="new-releases-page">
 			<div className="new-releases-header">
 				<h1>New Releases</h1>
 				<div className="new-releases-controls">
-					<Select
-						options={rangeOptions}
-						value={String(cfg.range) as "30" | "60" | "90" | "120"}
-						onChange={(v) => update({ range: Number.parseInt(v, 10) }, () => writeConfig("range", v))}
-					/>
-					<Chip
-						active={cfg.album}
-						onClick={() => update({ album: !cfg.album }, () => writeConfig("album", String(!cfg.album)))}
-					>
-						Albums
-					</Chip>
-					<Chip
-						active={cfg.singleEp}
-						onClick={() =>
-							update({ singleEp: !cfg.singleEp }, () => writeConfig("single-ep", String(!cfg.singleEp)))
-						}
-					>
-						Singles &amp; EPs
-					</Chip>
-					<Chip
-						active={cfg.compilations}
-						onClick={() =>
-							update({ compilations: !cfg.compilations }, () =>
-								writeConfig("compilations", String(!cfg.compilations)),
-							)
-						}
-					>
-						Compilations
-					</Chip>
-					<Chip
-						active={cfg.relative}
-						onClick={() =>
-							update({ relative: !cfg.relative }, () => writeConfig("relative", String(!cfg.relative)))
-						}
-					>
-						Relative dates
-					</Chip>
 					{dismissed.length > 0 && (
 						<Button variant="secondary" onClick={undo}>
 							Undo dismiss
@@ -439,6 +457,7 @@ const Page = () => {
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);
+	registrar.register("settingsSection", <NewReleasesSettings />);
 	registrar.register(
 		"navlink",
 		<NavLink localizedApp="New Releases" appRoutePath={ROUTE} icon={ICON} activeIcon={ICON} />,
