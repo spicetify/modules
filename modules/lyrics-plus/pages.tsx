@@ -10,6 +10,7 @@
 // to lyricContainerUpdate/reloadLyrics, so no callback plumbing lives here.
 
 import { React as react } from "/modules/stdlib/src/expose/React.ts";
+import { client } from "/modules/stdlib/mod.ts";
 import { CONFIG } from "./config.ts";
 import { ProviderGenius } from "./providers/genius.ts";
 import { convertParsedToLRC, convertParsedToUnsynced } from "./utils.ts";
@@ -479,19 +480,19 @@ export class SearchBar extends react.Component {
 			}
 		};
 
-		Spicetify.Mousetrap().bind("mod+shift+f", this.toggleCallback);
-		Spicetify.Mousetrap(this.container).bind("mod+shift+f", this.toggleCallback);
-		Spicetify.Mousetrap(this.container).bind("enter", this.loopThroughCallback);
-		Spicetify.Mousetrap(this.container).bind("shift+enter", this.loopThroughCallback);
-		Spicetify.Mousetrap(this.container).bind("esc", this.unFocusCallback);
+		client.mousetrap().bind("mod+shift+f", this.toggleCallback);
+		client.mousetrap(this.container).bind("mod+shift+f", this.toggleCallback);
+		client.mousetrap(this.container).bind("enter", this.loopThroughCallback);
+		client.mousetrap(this.container).bind("shift+enter", this.loopThroughCallback);
+		client.mousetrap(this.container).bind("esc", this.unFocusCallback);
 	}
 
 	componentWillUnmount() {
-		Spicetify.Mousetrap().unbind("mod+shift+f", this.toggleCallback);
-		Spicetify.Mousetrap(this.container).unbind("mod+shift+f", this.toggleCallback);
-		Spicetify.Mousetrap(this.container).unbind("enter", this.loopThroughCallback);
-		Spicetify.Mousetrap(this.container).unbind("shift+enter", this.loopThroughCallback);
-		Spicetify.Mousetrap(this.container).unbind("esc", this.unFocusCallback);
+		client.mousetrap().unbind("mod+shift+f", this.toggleCallback);
+		client.mousetrap(this.container).unbind("mod+shift+f", this.toggleCallback);
+		client.mousetrap(this.container).unbind("enter", this.loopThroughCallback);
+		client.mousetrap(this.container).unbind("shift+enter", this.loopThroughCallback);
+		client.mousetrap(this.container).unbind("esc", this.unFocusCallback);
 	}
 
 	getNodeFromInput(event) {

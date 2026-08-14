@@ -743,9 +743,16 @@ div.lyrics-tabBar-headerItemLink {
 	width: 40px;
 }
 
-.lyrics-config-button-container .main-contextMenu-menu {
+.spicetify-popover.lyrics-tooltip-wrapper {
+	width: min(360px, calc(100vw - 16px));
 	color: var(--spice-text);
 	padding: 12px 12px 6px;
+}
+
+.spicetify-popover.lyrics-tooltip-wrapper h3 {
+	margin: 0;
+	padding: 4px 4px 8px;
+	font-size: 16px;
 }
 
 .lyrics-lyricsContainer-UnsyncedLyricsPage .split {

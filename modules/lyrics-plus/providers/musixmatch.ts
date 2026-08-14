@@ -12,6 +12,7 @@
 // is only touched inside the network calls.
 
 import { CONFIG } from "../config.ts";
+import { lyricsClient as client } from "../runtime-client.ts";
 
 // Whether the current Musixmatch usertoken authenticates. The provider UI reads
 // this to disable itself and explain why when an automatic refresh can't recover.
@@ -55,7 +56,7 @@ export const ProviderMusixmatch = (() => {
 		if (!pendingTokenRefresh) {
 			pendingTokenRefresh = (async () => {
 				try {
-					const { message } = await Spicetify.CosmosAsync.get(
+					const { message } = await client.cosmos.get(
 						"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
 						null,
 						headers,
@@ -80,10 +81,10 @@ export const ProviderMusixmatch = (() => {
 	}
 
 	async function request(buildURL) {
-		let body = await Spicetify.CosmosAsync.get(buildURL(CONFIG.providers.musixmatch.token), null, headers);
+		let body = await client.cosmos.get(buildURL(CONFIG.providers.musixmatch.token), null, headers);
 		if (body?.message?.header?.status_code === 401) {
 			const token = await refreshToken();
-			if (token) body = await Spicetify.CosmosAsync.get(buildURL(token), null, headers);
+			if (token) body = await client.cosmos.get(buildURL(token), null, headers);
 		} else if (body?.message?.header?.status_code === 200) {
 			setMusixmatchTokenValid(true);
 		}

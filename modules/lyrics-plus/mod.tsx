@@ -15,11 +15,12 @@
 // be disproportionate and fragile; correctness is verified live against the
 // running client instead. oxlint still lints this file for real defects.
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { React as react } from "/modules/stdlib/src/expose/React.ts";
 import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
 import { PlaybarButton } from "/modules/stdlib/src/registers/playbarButton.tsx";
-import { SettingsSection } from "/modules/stdlib/lib/primitives.js";
+import { SettingsSection, Tooltip } from "/modules/stdlib/lib/primitives.js";
 
 import {
 	APP_NAME,
@@ -50,8 +51,9 @@ import {
 	UnsyncedLyricsPage,
 } from "./pages.tsx";
 import { ProviderMusixmatch } from "./providers/musixmatch.ts";
+import { configureLyricsClient } from "./runtime-client.ts";
 
-const react = Spicetify.React;
+configureLyricsClient(client);
 
 // Romanization/conversion libraries the Translator injects at runtime via
 // <script> tags (kuroshiro / kuromoji / aromanize / opencc). Declared so the
@@ -470,7 +472,7 @@ class LyricsContainer extends react.Component {
 				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
 				vibrant = Number.parseInt(hex.replace("#", ""), 16);
 			} catch {
-				const colors = await Spicetify.CosmosAsync.get(
+				const colors = await client.cosmos.get(
 					`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`,
 				);
 				vibrant = colors.entries[0].color_swatches.find(
@@ -490,7 +492,7 @@ class LyricsContainer extends react.Component {
 	}
 
 	async fetchTempo(uri) {
-		const audio = await Spicetify.CosmosAsync.get(
+		const audio = await client.cosmos.get(
 			`https://spclient.wg.spotify.com/audio-attributes/v1/audio-features/${uri.split(":")[2]}?format=json`,
 		);
 		let tempo = audio.tempo;
@@ -1140,8 +1142,8 @@ class LyricsContainer extends react.Component {
 		event.target.value = "";
 	}
 	initMoustrap() {
-		if (!this.mousetrap && Spicetify.Mousetrap) {
-			this.mousetrap = new Spicetify.Mousetrap();
+		if (!this.mousetrap && client.mousetrap) {
+			this.mousetrap = new client.mousetrap();
 		}
 	}
 
@@ -1426,7 +1428,7 @@ class LyricsContainer extends react.Component {
 					}),
 				react.createElement(AdjustmentsMenu, { mode, hasPerformer }),
 				react.createElement(
-					Spicetify.ReactComponent.TooltipWrapper,
+					Tooltip,
 					{
 						label: "Lyrics Plus appearance",
 					},
@@ -1453,7 +1455,7 @@ class LyricsContainer extends react.Component {
 					),
 				),
 				react.createElement(
-					Spicetify.ReactComponent.TooltipWrapper,
+					Tooltip,
 					{
 						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
 					},
@@ -1461,6 +1463,7 @@ class LyricsContainer extends react.Component {
 						"button",
 						{
 							className: "lyrics-config-button",
+							"aria-label": this.state.isCached ? "Lyrics cached" : "Cache lyrics",
 							onClick: () => {
 								const { synced, unsynced, karaoke, genius } = this.state;
 								if (!synced && !unsynced && !karaoke && !genius) {
@@ -1489,7 +1492,7 @@ class LyricsContainer extends react.Component {
 					),
 				),
 				react.createElement(
-					Spicetify.ReactComponent.TooltipWrapper,
+					Tooltip,
 					{
 						label: "Load lyrics from file",
 					},
@@ -1497,6 +1500,7 @@ class LyricsContainer extends react.Component {
 						"button",
 						{
 							className: "lyrics-config-button",
+							"aria-label": "Load lyrics from file",
 							onClick: () => {
 								document.getElementById("lyrics-file-input").click();
 							},

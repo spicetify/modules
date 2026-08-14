@@ -11,6 +11,7 @@
 // Translator, which is deliberately not part of this slice — plan KTD6).
 
 import { capitalize, containsHanCharacter, normalize, removeExtraInfo, removeSongFeat } from "../utils.ts";
+import { lyricsClient as client } from "../runtime-client.ts";
 
 export const ProviderNetease = (() => {
 	const requestHeader = {
@@ -24,7 +25,7 @@ export const ProviderNetease = (() => {
 		const cleanTitle = removeExtraInfo(removeSongFeat(normalize(info.title)));
 		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
-		const searchResults = await Spicetify.CosmosAsync.get(finalURL, null, requestHeader);
+		const searchResults = await client.cosmos.get(finalURL, null, requestHeader);
 		const items = searchResults.result.songs;
 		if (!items?.length) {
 			throw "Cannot find track";
@@ -40,7 +41,7 @@ export const ProviderNetease = (() => {
 		if (itemId === -1) itemId = items.findIndex((val) => val.name === cleanTitle);
 		if (itemId === -1) throw "Cannot find track";
 
-		return await Spicetify.CosmosAsync.get(lyricURL + items[itemId].id, null, requestHeader);
+		return await client.cosmos.get(lyricURL + items[itemId].id, null, requestHeader);
 	}
 
 	const creditInfo = [

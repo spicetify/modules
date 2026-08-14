@@ -14,6 +14,7 @@
 // with LyricsContainer.tryServices, not here.
 
 import { CONFIG } from "../config.ts";
+import { lyricsClient as client } from "../runtime-client.ts";
 import { processLyrics } from "../utils.ts";
 import { ProviderGenius } from "./genius.ts";
 import { ProviderLRCLIB } from "./lrclib.ts";
@@ -41,9 +42,7 @@ export function createProviders(deps: ProviderDeps) {
 			const id = info.uri.split(":")[2];
 			let body;
 			try {
-				body = await Spicetify.CosmosAsync.get(
-					`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`,
-				);
+				body = await client.cosmos.get(`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`);
 			} catch {
 				return { error: "Request error", uri: info.uri };
 			}

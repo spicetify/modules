@@ -11,6 +11,7 @@
 // fetchLyricsVersion } — there is no getSynced/getUnsynced here.
 
 import { removeExtraInfo, removeSongFeat } from "../utils.ts";
+import { lyricsClient as client } from "../runtime-client.ts";
 
 export const ProviderGenius = (() => {
 	function getChildDeep(parent, isDeep = false) {
@@ -34,13 +35,13 @@ export const ProviderGenius = (() => {
 	}
 
 	async function getNote(id) {
-		const body = await Spicetify.CosmosAsync.get(`https://genius.com/api/annotations/${id}`);
+		const body = await client.cosmos.get(`https://genius.com/api/annotations/${id}`);
 		const response = body.response;
 		let note = "";
 
 		// Authors annotations
 		if (response.referent && response.referent.classification === "verified") {
-			const referentsBody = await Spicetify.CosmosAsync.get(`https://genius.com/api/referents/${id}`);
+			const referentsBody = await client.cosmos.get(`https://genius.com/api/referents/${id}`);
 			const referents = referentsBody.response;
 			for (const ref of referents.referent.annotations) {
 				note += getChildDeep(ref.body.dom);
@@ -121,7 +122,7 @@ export const ProviderGenius = (() => {
 			const query = new URLSearchParams({ per_page: 20, q: `${info.artist} ${title}` });
 			const url = `https://genius.com/api/search/song?${query.toString()}`;
 
-			const geniusSearch = await Spicetify.CosmosAsync.get(url);
+			const geniusSearch = await client.cosmos.get(url);
 
 			hits = geniusSearch.response.sections[0].hits.map((item) => ({
 				title: item.result.full_title,
