@@ -34,6 +34,18 @@ describe("standalone Spicetify Settings", () => {
 		assert.match(styles, /\.spicetify-settings-page\s+\.x-settings-section\s*\{[^}]*gap:\s*8px/s);
 	});
 
+	it("keeps Manager at the same narrow content width as Spicetify Settings", () => {
+		const settingsStyles = read("modules/stdlib/index.scss");
+		const managerStyles = read("modules/manager/index.scss");
+		const settingsWidth = settingsStyles.match(
+			/\.spicetify-settings-page\.x-settings-container\s*\{[^}]*max-width:\s*([0-9]+px)/s,
+		)?.[1];
+		const managerWidth = managerStyles.match(/\.spicetify-manager-page\s*\{[^}]*max-width:\s*([0-9]+px)/s)?.[1];
+
+		assert.equal(settingsWidth, "900px");
+		assert.equal(managerWidth, settingsWidth);
+	});
+
 	it("renders ordinary settings before footer actions", () => {
 		const source = read("modules/stdlib/src/registers/settingsSection.ts");
 		const sections = source.indexOf("sections.map");
@@ -122,7 +134,7 @@ describe("standalone Spicetify Settings", () => {
 		const kit = readJson("packages/kit/package.json");
 
 		assert.equal(stdlib.version, "1.6.0");
-		assert.equal(manager.version, "1.2.0");
+		assert.equal(manager.version, "1.2.1");
 		assert.equal(manager.dependencies.stdlib, "^1.6.0");
 		assert.equal(lyricsPlus.version, "0.2.0");
 		assert.equal(kit.spicetify.stdlibVersion, stdlib.version);
