@@ -5,21 +5,12 @@
  * Ported to the v3 module standard from the classic "Bookmark" extension by
  * khanhas. The client's v2-compatible Topbar, ContextMenu, URI, LocalStorage,
  * Player, GraphQL and CosmosAsync helpers still work in v3, so the logic is
- * kept near-verbatim; only the runtime <style> injection moves to index.scss
- * and the custom element is expressed as a plain DOM factory (a fixed custom
- * element name cannot be re-registered on module reload).
+ * kept near-verbatim; the presentation uses stdlib's owned right-sidebar panel
+ * so Bookmark no longer has to position and dismiss a detached popup.
  */
 
-import { client, createRegistrar } from "/modules/stdlib/mod.ts";
-import {
-	clampMenuPosition,
-	filterBookmarks,
-	idToProperName,
-	largestImage,
-	withNewEntry,
-	withoutEntry,
-} from "./logic.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar, type ModuleRuntimeContext, type PanelController } from "/modules/stdlib/mod.ts";
+import { filterBookmarks, idToProperName, largestImage, withNewEntry, withoutEntry } from "./logic.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 
 // UI Text
@@ -41,16 +32,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const { cosmos: CosmosAsync, player: Player, storage: LocalStorage, uri: URI } = client;
 	const registrar = createRegistrar(ctx);
 
-	// The popup is rebuilt from scratch on every apply(); the React roots behind
-	// the MenuItem entries and the Tippy instances attached to each card outlive
-	// the DOM nodes unless we tear them down explicitly, so we track them.
-	const menuItemWrappers: HTMLElement[] = [];
+	// Tippy instances attached to each card outlive their DOM nodes unless they
+	// are explicitly destroyed when the list refreshes or the module unloads.
 	const tippyInstances: any[] = [];
-
-	function disposeMenuItems() {
-		for (const wrapper of menuItemWrappers) client.reactDOM.unmountComponentAtNode(wrapper);
-		menuItemWrappers.length = 0;
-	}
 
 	function destroyTippies() {
 		for (const instance of tippyInstances) instance?.destroy?.();
@@ -59,62 +43,47 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	class BookmarkCollection {
 		container: HTMLElement;
+		actions: HTMLElement;
 		items: HTMLElement;
+		count: HTMLElement;
 		lastScroll: number;
 		filter: number;
 
-		// ESC listener is only attached while the menu is open.
-		private onKey?: (e: KeyboardEvent) => void;
-
 		constructor() {
-			const menu = createMenu();
-			this.container = menu.container;
-			this.items = menu.menu;
+			const surface = createPanelSurface();
+			this.container = surface.container;
+			this.actions = surface.actions;
+			this.items = surface.items;
+			this.count = surface.count;
 			this.lastScroll = 0;
 			this.filter = 0;
-			// Dismiss on the backdrop's click, not mousedown: the client
-			// swallows mousedown in the window capture phase (keydown is
-			// unaffected, which is why Escape worked but a mousedown dismiss
-			// did not). The menu stops its own clicks from bubbling here.
-			this.container.addEventListener("click", () => this.close());
-			this.apply();
-		}
-
-		// Called by openBookmarks after the menu is in the DOM.
-		open() {
-			this.onKey = (e) => {
-				if (e.key === "Escape") {
-					e.preventDefault();
-					this.close();
-				}
+			surface.filter.onchange = (event) => {
+				this.filter = (event.target as HTMLSelectElement).selectedIndex;
+				this.apply();
 			};
-			document.addEventListener("keydown", this.onKey, true);
-		}
-
-		close() {
-			this.storeScroll();
-			if (this.onKey) document.removeEventListener("keydown", this.onKey, true);
-			this.onKey = undefined;
-			this.container.remove();
 		}
 
 		apply() {
 			destroyTippies();
-			disposeMenuItems();
-			this.items.textContent = ""; // Remove all childs
-			this.items.append(createMenuItem("Current page", storeThisPage));
-			this.items.append(createMenuItem("Track", storeTrack));
-			this.items.append(createMenuItem("Track with timestamp", storeTrackWithTime));
+			this.actions.replaceChildren(
+				createMenuItem("Page", "Bookmark the current page", storeThisPage),
+				createMenuItem("Track", "Bookmark the current track", storeTrack),
+				createMenuItem("At time", "Bookmark this playback position", storeTrackWithTime),
+			);
 
-			const select = createSortSelect(this.filter);
-			select.onchange = (event) => {
-				this.filter = (event.target as HTMLSelectElement).selectedIndex;
-				this.apply();
-			};
-			this.items.append(select);
-
-			for (const item of filterBookmarks(this.getStorage(), this.filter)) {
+			const stored = this.getStorage();
+			const visible = filterBookmarks(stored, this.filter);
+			this.count.textContent = this.filter === 0 ? String(stored.length) : `${visible.length}/${stored.length}`;
+			this.items.replaceChildren();
+			for (const item of visible) {
 				this.items.append(createCard(item));
+			}
+			if (visible.length === 0) {
+				const empty = document.createElement("p");
+				empty.className = "bookmark-panel-empty";
+				empty.textContent =
+					stored.length === 0 ? "Your saved places will appear here." : "No bookmarks match this filter.";
+				this.items.append(empty);
 			}
 		}
 
@@ -133,25 +102,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		addToStorage(data: any) {
 			LocalStorage.set(STORAGE_KEY, JSON.stringify(withNewEntry(this.getStorage(), data, Date.now())));
-			this.apply();
+			if (this.container.isConnected) this.apply();
 		}
 
 		removeFromStorage(id: string) {
 			LocalStorage.set(STORAGE_KEY, JSON.stringify(withoutEntry(this.getStorage(), id)));
 			this.apply();
-		}
-
-		changePosition(x: number, y: number) {
-			// Clamp into the viewport: a right-side topbar button would push a
-			// left-aligned menu off the right edge.
-			const { left, top } = clampMenuPosition(
-				x,
-				y,
-				{ width: this.items.offsetWidth || 360, height: this.items.offsetHeight || 0 },
-				{ width: window.innerWidth, height: window.innerHeight },
-			);
-			this.items.style.left = `${left}px`;
-			this.items.style.top = `${top}px`;
 		}
 
 		storeScroll() {
@@ -163,8 +119,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 	}
 
+	let panelController: PanelController;
+
 	function createCard(info: any): HTMLElement {
-		const card = document.createElement("div");
 		const uri = URI.fromString(info.uri);
 		const isPlayable =
 			uri.type === URI.Type.TRACK ||
@@ -179,6 +136,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 		// static play glyph and the client's own SVGIcons constant.
 		const inner = document.createElement("div");
 		inner.className = "bookmark-card";
+		const linkButton = document.createElement("button");
+		linkButton.type = "button";
+		linkButton.className = "bookmark-card-link";
+		linkButton.setAttribute("aria-label", `Open ${info.title ?? "bookmark"}`);
 
 		if (info.imageUrl && /^(https:\/\/|data:image\/)/.test(String(info.imageUrl))) {
 			const img = document.createElement("img");
@@ -188,7 +149,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			img.loading = "eager";
 			img.src = info.imageUrl;
 			img.alt = info.title ?? "";
-			inner.appendChild(img);
+			linkButton.appendChild(img);
 		}
 
 		const infoDiv = document.createElement("div");
@@ -220,7 +181,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 			fixed.append(prog, timeSpan);
 			infoDiv.appendChild(fixed);
 		}
-		inner.appendChild(infoDiv);
+		linkButton.appendChild(infoDiv);
+		inner.appendChild(linkButton);
 
 		if (isPlayable) {
 			const playWrap = document.createElement("div");
@@ -238,64 +200,69 @@ export default async function (ctx: ModuleRuntimeContext) {
 		removeBtn.innerHTML = `<svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor">${client.icons.x}</svg>`;
 		inner.appendChild(removeBtn);
 
-		card.appendChild(inner);
-
-		const instances = client.tippy(card.querySelectorAll("[data-tippy-content]"), client.tippyProps);
+		const instances = client.tippy(inner.querySelectorAll("[data-tippy-content]"), client.tippyProps);
 		if (Array.isArray(instances)) tippyInstances.push(...instances);
 		else if (instances) tippyInstances.push(instances);
 		if (isPlayable) {
-			const playButton = card.querySelector("button.main-playButton-PlayButton") as HTMLButtonElement;
+			const playButton = inner.querySelector("button.main-playButton-PlayButton") as HTMLButtonElement;
 			playButton.onclick = (event) => {
 				onPlayClick(info);
 				event.stopPropagation();
 			};
 		}
 
-		const controls = card.querySelector(".bookmark-controls") as HTMLButtonElement;
+		const controls = inner.querySelector(".bookmark-controls") as HTMLButtonElement;
 		controls.onclick = (event) => {
 			LIST.removeFromStorage(info.id);
 			event.stopPropagation();
 		};
 
-		card.onclick = () => {
+		const openBookmark = () => {
 			onLinkClick(info);
-			LIST.close();
+			panelController.close();
 		};
-		return card;
+		linkButton.onclick = openBookmark;
+		return inner;
 	}
 
 	const LIST = new BookmarkCollection();
 
-	// The classic wrapper Topbar.Button no longer mounts in v3's restructured
-	// topbar (same reason trashbin abandoned Playbar.Widget), so the entry point
-	// goes through registrar.placeButton("topbar-right", ...). placeButton gives
-	// no element handle, so the popup is positioned off the mounted button looked
-	// up by its aria-label within the register's anchor.
-	function openBookmarks() {
-		const button = document.querySelector<HTMLElement>(
-			`.spicetify-topbar-right-buttons [aria-label="${BUTTON_NAME_TEXT}"]`,
-		);
-		const bound = button?.getBoundingClientRect();
-		// Append before positioning so changePosition can measure the menu.
-		document.body.append(LIST.container);
-		if (bound) LIST.changePosition(bound.left, bound.top);
-		LIST.setScroll();
-		LIST.open();
-	}
+	const BookmarkPanel = () => {
+		const mountRef = React.useRef<HTMLDivElement>(null);
+		React.useEffect(() => {
+			const mount = mountRef.current;
+			if (!mount) return;
+			mount.append(LIST.container);
+			LIST.apply();
+			LIST.setScroll();
+			return () => {
+				LIST.storeScroll();
+				destroyTippies();
+				LIST.container.remove();
+			};
+		}, []);
+		return <div className="bookmark-panel-mount" ref={mountRef} />;
+	};
+
+	panelController = registrar.registerPanel({
+		id: "bookmarks",
+		label: "Bookmarks",
+		width: { default: 380, min: 320, max: 480 },
+		render: () => <BookmarkPanel />,
+	});
 
 	registrar.placeButton("topbar-right", {
 		label: BUTTON_NAME_TEXT,
 		icon: BUTTON_ICON_PATH,
-		onClick: openBookmarks,
+		onClick: () => panelController.toggle(),
 	});
 
-	function createMenuItem(title: string, callback?: () => void) {
-		// Plain DOM styled with the native context-menu-item class. The client's
-		// ReactComponent.MenuItem uses useNavigateStable and can only render
-		// inside the app router, so rendering it into this detached popup throws.
+	function createMenuItem(title: string, label: string, callback?: () => void) {
+		// Plain DOM keeps the panel independent of the client's router contexts.
 		const button = document.createElement("button");
 		button.type = "button";
-		button.className = "main-contextMenu-menuItemButton bookmark-menu-item";
+		button.className = "bookmark-menu-item";
+		button.setAttribute("aria-label", label);
 		const span = document.createElement("span");
 		span.textContent = title;
 		button.appendChild(span);
@@ -303,19 +270,17 @@ export default async function (ctx: ModuleRuntimeContext) {
 		return button;
 	}
 
-	function createSortSelect(defaultOpt = 0) {
+	function createSortSelect() {
 		const select = document.createElement("select");
 		select.className = "spicetify-select bookmark-filter";
 		const allOpt = document.createElement("option");
 		allOpt.text = "All";
 		const pageOpt = document.createElement("option");
-		pageOpt.text = "Page";
+		pageOpt.text = "Pages";
 		const trackOpt = document.createElement("option");
-		trackOpt.text = "Track";
+		trackOpt.text = "Tracks";
 
-		select.onclick = (ev) => ev.stopPropagation();
 		select.append(allOpt, pageOpt, trackOpt);
-		select.options[defaultOpt].selected = true;
 
 		return select;
 	}
@@ -419,19 +384,33 @@ export default async function (ctx: ModuleRuntimeContext) {
 		LIST.addToStorage(meta);
 	}
 
-	function createMenu() {
+	function createPanelSurface() {
 		const container = document.createElement("div");
-		container.id = "bookmark-spicetify";
-		container.className = "context-menu-container";
+		container.className = "bookmark-panel";
+		const saveLabel = document.createElement("p");
+		saveLabel.className = "bookmark-panel-eyebrow";
+		saveLabel.textContent = "Save";
+		const actions = document.createElement("div");
+		actions.className = "bookmark-panel-actions";
+		const saveSection = document.createElement("section");
+		saveSection.append(saveLabel, actions);
 
-		const menu = document.createElement("ul");
-		menu.id = "bookmark-menu";
-		menu.className = "main-contextMenu-menu";
-		menu.onclick = (e) => e.stopPropagation();
+		const heading = document.createElement("h3");
+		heading.textContent = "Saved";
+		const count = document.createElement("span");
+		count.className = "bookmark-panel-count";
+		const filter = createSortSelect();
+		const toolbar = document.createElement("header");
+		toolbar.className = "bookmark-panel-toolbar";
+		toolbar.append(heading, count, filter);
+		const items = document.createElement("div");
+		items.className = "bookmark-panel-list";
+		const library = document.createElement("section");
+		library.className = "bookmark-panel-library";
+		library.append(toolbar, items);
+		container.append(saveSection, library);
 
-		container.append(menu);
-
-		return { container, menu };
+		return { container, actions, items, count, filter };
 	}
 
 	/**
@@ -603,7 +582,5 @@ export default async function (ctx: ModuleRuntimeContext) {
 	ctx.defer(() => {
 		contextMenuItem.deregister();
 		destroyTippies();
-		disposeMenuItems();
-		LIST.close();
 	});
 }
