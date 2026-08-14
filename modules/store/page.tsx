@@ -55,6 +55,7 @@ import {
 	uninstallStaged,
 } from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged, toast } from "./runtime.ts";
+import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
 import { pendingUpdates } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
@@ -293,6 +294,79 @@ function SnippetEditor(props: {
 
 type ReadmeState = { kind: "none" } | { kind: "loading" } | { kind: "loaded"; text: string };
 
+function CachedPreviewImage(props: { mod: VaultModule; className: string; eager?: boolean }): ReactElement {
+	const url = props.mod.meta?.preview ?? "";
+	const revision = previewRevision(props.mod.version, props.mod.updatedAt);
+	const imageRef = React.useRef<HTMLImageElement>(null);
+	const objectUrlRef = React.useRef<string | null>(null);
+	const [source, setSource] = React.useState<string>();
+
+	React.useEffect(() => {
+		let active = true;
+		let observer: IntersectionObserver | null = null;
+		const releaseObjectUrl = () => {
+			if (!objectUrlRef.current) return;
+			URL.revokeObjectURL(objectUrlRef.current);
+			objectUrlRef.current = null;
+		};
+		const load = async () => {
+			const blob = await loadPreviewBlob(url, revision, { fetcher: proxiedFetch });
+			if (!active) return;
+			if (!blob) {
+				setSource(url);
+				return;
+			}
+			try {
+				objectUrlRef.current = URL.createObjectURL(blob);
+				setSource(objectUrlRef.current);
+			} catch {
+				setSource(url);
+			}
+		};
+
+		const node = imageRef.current;
+		if (props.eager || !node || typeof IntersectionObserver === "undefined") {
+			void load();
+		} else {
+			observer = new IntersectionObserver(
+				(entries) => {
+					if (!entries.some((entry) => entry.isIntersecting)) return;
+					observer?.disconnect();
+					observer = null;
+					void load();
+				},
+				{ rootMargin: "400px" },
+			);
+			observer.observe(node);
+		}
+
+		return () => {
+			active = false;
+			observer?.disconnect();
+			releaseObjectUrl();
+		};
+	}, [props.eager, revision, url]);
+
+	return (
+		<img
+			ref={imageRef}
+			className={props.className}
+			src={source}
+			loading={props.eager ? "eager" : "lazy"}
+			decoding="async"
+			alt=""
+			onError={() => {
+				// A client CSP that rejects blob: images, or a corrupt cached body,
+				// must degrade to the exact native image path used before caching.
+				if (!source || source === url) return;
+				if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+				objectUrlRef.current = null;
+				setSource(url);
+			}}
+		/>
+	);
+}
+
 function ModuleDetails(props: {
 	mod: VaultModule;
 	installLabel: string;
@@ -329,7 +403,7 @@ function ModuleDetails(props: {
 	const repo = deriveRepository(mod);
 	return (
 		<Dialog title={displayName(mod)} onClose={props.onClose}>
-			{mod.meta?.preview && <img className="spicetify-store-detail-preview" src={mod.meta.preview} alt="" />}
+			{mod.meta?.preview && <CachedPreviewImage mod={mod} className="spicetify-store-detail-preview" eager />}
 			<div className="spicetify-store-card-meta">
 				<Badge>{displayVersion(mod.version)}</Badge>
 				{/* The dialog has no tab around it to imply the kind, so it
@@ -579,7 +653,7 @@ function CatalogCard(props: {
 			}}
 		>
 			<div className="spicetify-store-card-art">
-				<img className="spicetify-store-card-preview" src={mod.meta?.preview ?? ""} loading="lazy" alt="" />
+				<CachedPreviewImage mod={mod} className="spicetify-store-card-preview" />
 				{count !== undefined && count > 0 && (
 					<InstallsBadge count={count} className="spicetify-store-installs" />
 				)}
@@ -865,7 +939,21 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			// Only a load where some vault answered may latch; an offline
 			// page keeps retrying on later visits.
 			loadedRef.current = next.ok;
-			if (next.ok) loadedAtRef.current = Date.now();
+			if (next.ok) {
+				loadedAtRef.current = Date.now();
+				void prunePreviewCache(
+					next.modules.flatMap((mod) =>
+						mod.meta?.preview
+							? [
+									{
+										url: mod.meta.preview,
+										revision: previewRevision(mod.version, mod.updatedAt),
+									},
+								]
+							: [],
+					),
+				);
+			}
 			setCatalog(next);
 			setStatus(
 				next.ok
