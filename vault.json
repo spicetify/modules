@@ -287,11 +287,19 @@
 					"providers": [],
 					"checksum": "sha256:6dd0001c64e16e4b8742a9d5ac0dc7aac6edacca0a3f112d804cfd0397e17d96",
 					"updatedAt": "2026-08-12"
+				},
+				"0.4.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/bookmark@0.4.0/bookmark@0.4.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:5974dec251ba9dad1eff24a53232340f681dac2bd9dd2bfefa91736d36e6673d",
+					"updatedAt": "2026-08-14"
 				}
 			},
 			"metadata": {
 				"name": "bookmark",
-				"description": "Bookmark pages, tracks, and tracks with a playback timestamp to revisit later from a topbar popup.",
+				"description": "Bookmark pages, tracks, and playback timestamps to revisit from a persistent sidebar panel.",
 				"authors": [
 					{
 						"name": "spicetify"
