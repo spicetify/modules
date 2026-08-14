@@ -127,13 +127,13 @@ describe("standalone Spicetify Settings", () => {
 		assert.doesNotMatch(lyrics, /id:\s*`\$\{APP_NAME\}-config-container`/);
 	});
 
-	it("ships the new settings contracts as minor releases", () => {
+	it("ships the current stdlib and settings contracts", () => {
 		const stdlib = readJson("modules/stdlib/metadata.json");
 		const manager = readJson("modules/manager/metadata.json");
 		const lyricsPlus = readJson("modules/lyrics-plus/metadata.json");
 		const kit = readJson("packages/kit/package.json");
 
-		assert.equal(stdlib.version, "1.6.0");
+		assert.equal(stdlib.version, "1.7.0");
 		assert.equal(manager.version, "1.2.1");
 		assert.equal(manager.dependencies.stdlib, "^1.6.0");
 		assert.equal(lyricsPlus.version, "0.2.0");

@@ -131,7 +131,41 @@ button up by aria-label under `.spicetify-topbar-right-buttons`.
 
 ---
 
-## 5. The typed client surface
+## 5. A right-sidebar panel
+
+`registrar.registerPanel(options)` creates a Spicetify-owned panel without
+depending on Spotify's private panel state machine. Only one custom panel is
+active at a time; opening another replaces it. While open, the native
+right-sidebar content stays mounted but hidden and inert, then returns in its
+exact previous state when the custom panel closes.
+
+```tsx
+const panel = registrar.registerPanel({
+	id: "details",
+	label: "Track details",
+	width: { default: 360, min: 280, max: 520 },
+	render: () => <TrackDetails />,
+});
+
+registrar.placeButton("playbar", {
+	label: "Track details",
+	icon: DETAILS_ICON,
+	onClick: () => panel.toggle(),
+});
+```
+
+The controller exposes `open()`, `close()`, `toggle()`, `isOpen()`,
+`subscribe(listener)`, and `dispose()`. Registration IDs are namespaced by the
+module automatically. Escape and the panel's close button close it, focus
+returns to the opener, and the registrar disposes it on module unload.
+
+Use `subscribe` when a button or another surface needs a reactive active state.
+Lifecycle callbacks (`onOpen`, `onClose`) are optional and isolated: an
+exception is logged without stranding the right sidebar.
+
+---
+
+## 6. The typed client surface
 
 Import `client` from stdlib instead of reading the ambient wrapper global. It
 is the v3 capability boundary for `player`, `platform`, `uri`, `icons`,
@@ -162,7 +196,7 @@ Icons: `client.icons.<name>` returns inner SVG markup ready for
 
 ---
 
-## 6. Recovery-tier modules: React without the dependency
+## 7. Recovery-tier modules: React without the dependency
 
 Most modules should skip this section: a leaf feature imports React from
 stdlib at the top of the file, and if stdlib is broken the loader contains the
@@ -202,7 +236,7 @@ release the root and retry on the next visit if not. The store's
 
 ---
 
-## 7. State, teardown, and shipping
+## 8. State, teardown, and shipping
 
 These are the contract; [the standard](./module-standard.md) carries the detail.
 

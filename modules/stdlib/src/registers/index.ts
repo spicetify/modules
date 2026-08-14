@@ -11,7 +11,7 @@ import menu from "./menu.ts";
 import { mountAdjacent } from "./mount.ts";
 import { isNativeAnchor, type NativeAnchor, resolveNativeAnchor } from "./nativeAnchors.ts";
 import navlink from "./navlink.tsx";
-import panel from "./panel.ts";
+import panel, { type PanelController, type PanelRegistration } from "./panel.ts";
 import playbarButton, { PlaybarButton } from "./playbarButton.tsx";
 import playbarWidget from "./playbarWidget.tsx";
 import { Registry } from "./registry.ts";
@@ -21,6 +21,7 @@ import settingsRow from "./settingsRow.tsx";
 import settingsSection, { settingsAction } from "./settingsSection.ts";
 import topbarLeftButton, { TopbarLeftButton } from "./topbarLeftButton.tsx";
 import topbarRightButton, { TopbarRightButton } from "./topbarRightButton.tsx";
+export type { PanelController, PanelRegistration, PanelWidth } from "./panel.ts";
 const [rootChild, rootProvider] = root;
 const registers = {
 	menu,
@@ -74,6 +75,11 @@ export interface PlaceButtonOptions {
 export interface ButtonHandle {
 	/** Remove the button now. It is also removed automatically when the module unloads. */
 	remove(): void;
+}
+
+export interface RegisterPanelOptions extends Omit<PanelRegistration<React.ReactNode>, "id"> {
+	/** Stable within this module. Defaults to "default". */
+	id?: string;
 }
 
 const BUTTON_SLOTS = {
@@ -138,6 +144,29 @@ export class Registrar {
 			remove: () => {
 				this.disposers.delete(cleanup);
 				cleanup();
+			},
+		};
+	}
+
+	/**
+	 * Register a Spicetify-owned right-sidebar panel. The returned controller
+	 * opens, closes and observes the panel; module unload disposes it.
+	 */
+	registerPanel(options: RegisterPanelOptions): PanelController {
+		const registration: PanelRegistration<React.ReactNode> = {
+			...options,
+			id: `${this.id}:${options.id ?? "default"}`,
+		};
+		panel.add(registration);
+		const controller = panel.controller(registration);
+		if (!controller) throw new Error(`[stdlib] failed to register panel: ${registration.id}`);
+		const dispose = () => panel.delete(registration);
+		this.disposers.add(dispose);
+		return {
+			...controller,
+			dispose: () => {
+				this.disposers.delete(dispose);
+				dispose();
 			},
 		};
 	}

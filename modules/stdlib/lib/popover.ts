@@ -69,7 +69,10 @@ export function openPopover({ anchor, content, onClose, gap = 8 }: PopoverOption
 		if (!host.contains(target) && !anchor.contains(target)) close();
 	};
 	const onKey = (e: KeyboardEvent) => {
-		if (e.key === "Escape") close();
+		if (e.key !== "Escape") return;
+		e.preventDefault();
+		e.stopPropagation();
+		close();
 	};
 
 	document.body.appendChild(host);

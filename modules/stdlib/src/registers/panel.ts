@@ -1,168 +1,80 @@
 /*
  * Copyright (C) 2024 Delusoire
+ * Copyright (C) 2026 Afonso Jorge Ramos
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mixin.ts";
-
-import type { createMachine as createMachineT } from "npm:xstate";
+import { React, ReactDOM } from "../expose/React.ts";
+import { createItemBoundary } from "./mount.ts";
 import { Registry } from "./registry.ts";
+import {
+	createPanelCoordinator,
+	type PanelController,
+	type PanelCoordinator,
+	type PanelRegistration,
+} from "./panel-logic.ts";
 
-export type StateMachine = ReturnType<typeof createMachineT>;
-export let Machine: StateMachine;
+export type { PanelController, PanelRegistration, PanelWidth } from "./panel-logic.ts";
 
-const registry = new (class extends Registry<React.ReactNode> {
-	private static NodeNash = Symbol.for("NodeHash");
-
-	getHash(value: React.ReactNode) {
-		if (!this.has(value)) {
-			return null;
-		}
-		// @ts-ignore
-		const hash = value[this.constructor.NodeNash];
-		const state = `bespoke_${hash}`;
-		const event = `bespoke_${hash}_button_click`;
-		return { state, event };
-	}
-
-	override add(value: React.ReactNode, onEntry?: any, onExit?: any): this {
-		const hash = crypto.randomUUID();
-		// @ts-ignore
-		value[this.constructor.NodeNash] = hash;
-		const state = `bespoke_${hash}`;
-		const event = `bespoke_${hash}_button_click`;
-
-		stateToNode.set(state, value);
-
-		ON[event] = {
-			target: state,
-		};
-
-		STATES[state] = {
-			on: Object.setPrototypeOf(
-				{
-					[event]: {
-						target: "disabled",
+const mountReactPanel = (host: HTMLElement, panel: PanelRegistration<React.ReactNode>, close: () => void) => {
+	const root = ReactDOM.createRoot(host);
+	const PanelBoundary = createItemBoundary(React, "panel") as unknown as React.ComponentType<{
+		children?: React.ReactNode;
+	}>;
+	const PanelContent = () => React.createElement("div", { className: "spicetify-panel-content" }, panel.render());
+	const PanelSurface = () =>
+		React.createElement(
+			React.Fragment,
+			null,
+			React.createElement(
+				"header",
+				{ className: "spicetify-panel-header" },
+				React.createElement("h2", { className: "spicetify-panel-title" }, panel.label),
+				React.createElement(
+					"button",
+					{
+						className: "spicetify-panel-close spicetify-button-circle",
+						"aria-label": `Close ${panel.label}`,
+						onClick: close,
 					},
-				},
-				ON,
+					"×",
+				),
 			),
-		};
-
-		if (onEntry) {
-			const entry = `bespoke_${hash}_entry`;
-			STATES[state].entry = [entry];
-			ACTIONS[entry] = onEntry;
-		}
-		if (onExit) {
-			const exit = `bespoke_${hash}_exit`;
-			Machine.config.states![state].exit = [exit];
-			ACTIONS[exit] = onExit;
-		}
-
-		return super.add(value);
-	}
-
-	override delete(item: React.ReactNode): boolean {
-		// @ts-ignore
-		const hash = item[this.constructor.NodeNash];
-		const state = `bespoke_${hash}`;
-		const event = `bespoke_${hash}_button_click`;
-
-		stateToNode.delete(state);
-
-		delete ON[event];
-		return super.delete(item);
-	}
-})();
-export default registry;
-
-const stateToNode = new Map<string, React.ReactNode>();
-
-declare global {
-	var __renderPanel: any;
-}
-
-globalThis.__renderPanel = (state: string) => {
-	if (!state.startsWith("bespoke_")) {
-		return null;
-	}
-
-	return stateToNode.get(state);
+			React.createElement(PanelBoundary, null, React.createElement(PanelContent)),
+		);
+	root.render(React.createElement(PanelSurface));
+	return () => root.unmount();
 };
 
-let ON: Record<string, any> = {};
-let STATES: Record<string, any> = {};
-let ACTIONS: Record<string, any> = {};
+const panelCoordinatorKey = Symbol.for("spicetify.stdlib.panel-coordinator");
+const shared = globalThis as typeof globalThis & Record<symbol, unknown>;
+const previousCoordinator = shared[panelCoordinatorKey] as PanelCoordinator<React.ReactNode> | undefined;
+previousCoordinator?.dispose();
 
-transformer(
-	(emit) => (str) => {
-		emit();
+export const panelCoordinator = createPanelCoordinator<React.ReactNode>({
+	document,
+	window,
+	mount: mountReactPanel,
+});
+shared[panelCoordinatorKey] = panelCoordinator;
 
-		str = str.replace(/(=\(0,[a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\)\(\{id:"RightPanelState)/, "=__Machine$1");
-		Object.defineProperty(globalThis, "__Machine", {
-			set: ($: StateMachine) => {
-				Machine = $;
+class PanelRegistry extends Registry<PanelRegistration<React.ReactNode>> {
+	private controllers = new Map<PanelRegistration<React.ReactNode>, PanelController>();
 
-				queueMicrotask(() => {
-					ON = {
-						...ON,
-						...Machine.config.states!.disabled.on,
-						panel_close_click: [
-							{
-								target: "disabled",
-							},
-						],
-					};
-					delete ON.playback_autoplay_context_changed;
+	override add(panel: PanelRegistration<React.ReactNode>): this {
+		this.controllers.set(panel, panelCoordinator.register(panel));
+		return super.add(panel);
+	}
 
-					for (const [k, v] of Object.entries(Machine.config.states! as Record<string, any>)) {
-						if (k === "puffin_activation") {
-							continue;
-						}
-						v.on = new Proxy(v.on!, {
-							get(target, p, _receiver) {
-								// @ts-ignore
-								if (p.startsWith("bespoke_")) {
-									// @ts-ignore
-									return ON[p];
-								}
-								// @ts-ignore
-								return target[p];
-							},
-						});
-					}
+	override delete(panel: PanelRegistration<React.ReactNode>): boolean {
+		this.controllers.get(panel)?.dispose();
+		this.controllers.delete(panel);
+		return super.delete(panel);
+	}
 
-					Object.setPrototypeOf(Machine.config.states!, STATES);
+	controller(panel: PanelRegistration<React.ReactNode>): PanelController | undefined {
+		return this.controllers.get(panel);
+	}
+}
 
-					Machine._options.actions = ACTIONS;
-				});
-			},
-			get: () => Machine,
-		});
-
-		// ! HACKY ALERT
-		str = str.replace(
-			/(case [a-zA-Z_\$][\w\$]*\.[a-zA-Z_\$][\w\$]*\.Disabled:return!0;default:)/,
-			"$1return true;",
-		);
-
-		return str;
-	},
-	{
-		glob: /^\/xpui\.js/,
-	},
-);
-
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace(/(\(([a-zA-Z_\$][\w\$]*),"PanelSection".+?children:\[?)/, "$1__renderPanel($2),");
-
-		return str;
-	},
-	{
-		glob: /^\/dwp\-panel\-section\.js/,
-	},
-);
+export default new PanelRegistry();
