@@ -106,6 +106,20 @@ html.spicetify-themed .Root__top-container {
 	transform: scale(0.75);
 }
 
+/* The stock flex group is allowed to shrink every icon when modules add more
+ * top-right actions. Keep the scaled action strip at its intrinsic width so
+ * native and module buttons remain legible beside the fixed profile control. */
+.Root__globalNav :is(.main-globalNav-contentRight, .main-topBar-topbarContentRight, .main-actionButtons) {
+	width: max-content !important;
+	max-width: none !important;
+	flex-shrink: 0 !important;
+}
+
+.Root__globalNav :is(.main-actionButtons > button, .spicetify-topbar-right-buttons > button) {
+	flex: 0 0 auto !important;
+	min-width: 32px !important;
+}
+
 #dribbblish-navlinks-rail {
 	position: absolute;
 	inset: var(--main-gap) auto auto 0;
