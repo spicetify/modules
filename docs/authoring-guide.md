@@ -124,10 +124,10 @@ falls back to ordinary `order` placement, so it is never hidden.
 
 **When not to use it.** `placeButton` is for static buttons and exposes no DOM
 element. If a button manages its own active state from player or route events,
-or you need its element (say, to anchor a popup off it), keep it as a
-self-managing `register("playbarButton", <Component/>)` component instead. The
-bookmark module works around the missing element handle by looking its mounted
-button up by aria-label under `.spicetify-topbar-right-buttons`.
+or you need its element (say, to anchor a popover), keep it as a self-managing
+`register("playbarButton", <Component/>)` component instead. A button that only
+opens an owned panel needs no element handle: retain the panel controller and
+call `open()`, `close()`, or `toggle()` from `onClick`.
 
 ---
 
@@ -163,9 +163,52 @@ Use `subscribe` when a button or another surface needs a reactive active state.
 Lifecycle callbacks (`onOpen`, `onClose`) are optional and isolated: an
 exception is logged without stranding the right sidebar.
 
+The rendered subtree mounts when the panel opens and unmounts when it closes.
+Keep state that must survive close/reopen outside that subtree (module state,
+storage, or an external store), and use component cleanup for subscriptions and
+temporary DOM. Do not add a backdrop, global Escape listener, fixed positioning,
+or right-sidebar width styles: the coordinator owns those responsibilities.
+
+`width` is optional and measured in CSS pixels. Its defaults are 360px, with a
+280px minimum and 520px maximum; stdlib clamps the requested width to the
+declared bounds and to the available client viewport. Values must be finite and
+non-negative.
+
+See [Bookmark](../modules/bookmark/mod.tsx) for a complete consumer that keeps
+saved data and scroll position across panel openings while letting stdlib own
+the shell lifecycle.
+
 ---
 
-## 6. The typed client surface
+## 6. A modal
+
+Use stdlib's imperative modal API when an existing action needs to open
+temporary focused content:
+
+```tsx
+import { displayModal } from "/modules/stdlib/mod.ts";
+
+displayModal({
+	title: "Appearance",
+	content: <AppearanceSettings />,
+	isLarge: true,
+});
+```
+
+`isLarge` is optional. Both sizes use stdlib-owned responsive chrome, theme
+colors, scrolling, focus containment and restoration, backdrop dismissal, and
+Escape handling. Opening another imperative modal replaces the current one.
+
+For state already owned by a React tree, render the kit's `<Dialog>`
+conditionally instead. React-free recovery surfaces use the vanilla kit's
+`openDialog()`. All three paths share the same `.spicetify-dialog` contract.
+First-party modules must not call `Spicetify.PopupModal`, `client.popupModal`,
+or client `GenericModal` components; those compatibility surfaces depend on
+Spotify classes that can disappear between releases.
+
+---
+
+## 7. The typed client surface
 
 Import `client` from stdlib instead of reading the ambient wrapper global. It
 is the v3 capability boundary for `player`, `platform`, `uri`, `icons`,
@@ -196,7 +239,7 @@ Icons: `client.icons.<name>` returns inner SVG markup ready for
 
 ---
 
-## 7. Recovery-tier modules: React without the dependency
+## 8. Recovery-tier modules: React without the dependency
 
 Most modules should skip this section: a leaf feature imports React from
 stdlib at the top of the file, and if stdlib is broken the loader contains the
@@ -236,7 +279,7 @@ release the root and retry on the next visit if not. The store's
 
 ---
 
-## 8. State, teardown, and shipping
+## 9. State, teardown, and shipping
 
 These are the contract; [the standard](./module-standard.md) carries the detail.
 

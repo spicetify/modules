@@ -172,6 +172,7 @@ for you on unload.
 | `settingsRow`                            | One control in the General group on the standalone Spicetify Settings page                          |
 | `settingsSection`                        | A named group on the standalone Spicetify Settings page                                             |
 | `settingsAction`                         | A footer action on Spicetify Settings; reserved for global management navigation                    |
+| `panel`                                  | A Spicetify-owned right-sidebar panel — `registrar.registerPanel(options)`                          |
 | `rootChild`                              | A body-level overlay                                                                                |
 
 Use the settings registers for preferences whose meaning is clear outside the
@@ -184,6 +185,22 @@ contextual. A module may use both surfaces, but must not duplicate one control
 across them. Shared infrastructure belongs to a global Spicetify-owned section,
 not to whichever module first needs it. Do not use the account menu as a
 settings drawer.
+
+Use `registerPanel` for persistent or inspectable feature UI that belongs beside
+the current page. It owns right-sidebar sizing, native-content suspension,
+Escape handling, focus restoration, and teardown. Do not reproduce that shell
+with a `rootChild`, fixed overlay, or client-private panel state. Only the panel
+content belongs to the feature; keep state that must survive close/reopen
+outside the rendered subtree. See the
+[authoring guide](./authoring-guide.md#5-a-right-sidebar-panel) and Bookmark for
+the worked pattern.
+
+Use stdlib's `displayModal()` for imperative transient content, the React kit's
+`Dialog` for component-owned state, and the vanilla kit's `openDialog()` for a
+React-free recovery surface. These share one owned, theme-aware shell. Do not
+call the legacy `Spicetify.PopupModal`, `client.popupModal`, or client
+`GenericModal` components: their private client classes are not an authoring
+contract.
 
 For top-bar and playbar buttons, prefer `registrar.placeButton(location, options)`
 over the raw button registers above: it adds ordering and native anchoring in one
