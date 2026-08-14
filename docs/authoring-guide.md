@@ -208,7 +208,42 @@ Spotify classes that can disappear between releases.
 
 ---
 
-## 7. The typed client surface
+## 7. Tooltips and popovers
+
+Use stdlib's owned floating primitives instead of client-private tooltip and
+context-menu components:
+
+```tsx
+import { Popover, PopoverMenu, PopoverMenuItem, Tooltip } from "/modules/stdlib/lib/primitives.js";
+
+<Tooltip label="More options">
+	<button type="button" aria-label="More options">...</button>
+</Tooltip>
+
+<Popover
+	ariaLabel="Sort order"
+	role="menu"
+	content={(close) => (
+		<PopoverMenu>
+			<PopoverMenuItem onSelect={() => { setSort("recent"); close(); }}>
+				Recently added
+			</PopoverMenuItem>
+		</PopoverMenu>
+	)}
+>
+	<button type="button" aria-label="Sort order">...</button>
+</Popover>
+```
+
+The primitives own viewport-aware placement, flipping, focus entry and return,
+outside-click and Escape dismissal, ARIA state, and menu keyboard navigation.
+Use `openPopover()` for a plain-DOM or recovery-tier surface. First-party
+modules must not use `Spicetify.ReactComponent.TooltipWrapper`, `ContextMenu`,
+or `Menu`; those components inherit private Spotify markup and styling.
+
+---
+
+## 8. The typed client surface
 
 Import `client` from stdlib instead of reading the ambient wrapper global. It
 is the v3 capability boundary for `player`, `platform`, `uri`, `icons`,
@@ -239,7 +274,7 @@ Icons: `client.icons.<name>` returns inner SVG markup ready for
 
 ---
 
-## 8. Recovery-tier modules: React without the dependency
+## 9. Recovery-tier modules: React without the dependency
 
 Most modules should skip this section: a leaf feature imports React from
 stdlib at the top of the file, and if stdlib is broken the loader contains the
@@ -279,7 +314,7 @@ release the root and retry on the next visit if not. The store's
 
 ---
 
-## 9. State, teardown, and shipping
+## 10. State, teardown, and shipping
 
 These are the contract; [the standard](./module-standard.md) carries the detail.
 

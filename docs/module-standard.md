@@ -202,6 +202,11 @@ call the legacy `Spicetify.PopupModal`, `client.popupModal`, or client
 `GenericModal` components: their private client classes are not an authoring
 contract.
 
+Use stdlib's `Tooltip`, `Popover`, `PopoverMenu`, and `PopoverMenuItem` for
+anchored help and actions. They own placement, dismissal, focus, ARIA state,
+and menu keyboard interaction; recovery-tier plain DOM may use `openPopover()`.
+Do not use `Spicetify.ReactComponent.TooltipWrapper`, `ContextMenu`, or `Menu`.
+
 For top-bar and playbar buttons, prefer `registrar.placeButton(location, options)`
 over the raw button registers above: it adds ordering and native anchoring in one
 call. See the [authoring guide](./authoring-guide.md#4-buttons-use-placebutton).
