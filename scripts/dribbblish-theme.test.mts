@@ -32,6 +32,18 @@ const mod = readFileSync(path.join(THEME_DIR, "mod.tsx"), "utf8");
 const metadata = JSON.parse(readFileSync(path.join(THEME_DIR, "metadata.json"), "utf8"));
 
 describe("dribbblish frame", () => {
+	it("keeps accumulated top-right actions at their native scaled width", () => {
+		assert.equal(metadata.version, "0.1.2");
+		assert.match(
+			css,
+			/\.Root__globalNav\s+:is\(\.main-globalNav-contentRight,\s*\.main-topBar-topbarContentRight,\s*\.main-actionButtons\)\s*\{[^}]*width:\s*max-content\s*!important\s*;[^}]*max-width:\s*none\s*!important\s*;[^}]*flex-shrink:\s*0\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.Root__globalNav\s+:is\(\.main-actionButtons\s*>\s*button,\s*\.spicetify-topbar-right-buttons\s*>\s*button\)\s*\{[^}]*flex:\s*0\s+0\s+auto\s*!important\s*;[^}]*min-width:\s*32px\s*!important\s*;/s,
+		);
+	});
+
 	it("uses the sidebar colour as a continuous outer frame around one main surface", () => {
 		assert.match(
 			css,
