@@ -35,12 +35,6 @@
 	--text-base: var(--spice-main);
 }
 
-/* Modal Styles */
-
-.MAP__modal__widget-generator__container {
-	overflow: auto !important;
-}
-
 .palette-modal-container {
 	--input-bg: #202020;
 	--input-bg2: #121212;
@@ -50,6 +44,8 @@
 	--gap-secondary: 12px;
 
 	display: flex;
+	height: min(640px, calc(84vh - 98px));
+	min-height: 0;
 	gap: var(--gap-primary);
 }
 
@@ -59,7 +55,8 @@
 }
 
 .palette-list-container {
-	width: 13rem;
+	flex: 0 0 13rem;
+	min-height: 0;
 	background-color: #101010;
 	padding: var(--gap-primary);
 	border-radius: var(--border-radius);
@@ -71,6 +68,7 @@
 		flex-direction: column;
 		gap: 2px;
 		height: 100%;
+		min-height: 0;
 
 		> li {
 			list-style: none;
@@ -86,6 +84,7 @@
 	.palette-list {
 		overflow-y: auto;
 		flex-grow: 1;
+		min-height: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 2px;
@@ -145,7 +144,7 @@
 
 .palette-fields-container {
 	flex-grow: 1;
-	height: 45vh;
+	min-height: 0;
 	gap: var(--gap-primary);
 	display: flex;
 	flex-direction: column;

@@ -124,8 +124,8 @@ export default function () {
 								{palette.name}
 							</MenuRow>
 						))}
+						<ThemeSchemes />
 					</ul>
-					<ThemeSchemes />
 				</ul>
 			</div>
 			<PaletteFields palette={selectedPalette} updatePalettes={updatePalettes} />
