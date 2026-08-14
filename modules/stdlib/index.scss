@@ -327,11 +327,88 @@ button.main-contextMenu-menuItemButton {
 	}
 }
 
+/* Owned floating surfaces. Their geometry is measured by floating.tsx and
+   only left/top/visibility are inline; every visual choice stays themeable. */
+.spicetify-floating-anchor {
+	display: inline-flex;
+	min-width: 0;
+}
+
+.spicetify-tooltip,
+.spicetify-popover {
+	position: fixed;
+	z-index: 1100;
+	box-sizing: border-box;
+	border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.09);
+	background: var(--spice-main-elevated, var(--spice-card, #282828));
+	color: var(--spice-text, #fff);
+	box-shadow: 0 12px 32px rgba(var(--spice-rgb-shadow, 0, 0, 0), 0.46);
+}
+
+.spicetify-tooltip {
+	max-width: min(320px, calc(100vw - 16px));
+	padding: 8px 10px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 500;
+	line-height: 1.35;
+	pointer-events: auto;
+}
+
+.spicetify-popover {
+	max-width: min(420px, calc(100vw - 16px));
+	max-height: min(70vh, calc(100vh - 16px));
+	overflow: auto;
+	overscroll-behavior: contain;
+	border-radius: 8px;
+}
+
+.spicetify-popover--owned {
+	min-width: 188px;
+}
+
+.spicetify-popover-menu {
+	display: flex;
+	flex-direction: column;
+	padding: 4px;
+}
+
+.spicetify-popover-menu-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px;
+	width: 100%;
+	min-height: 40px;
+	border: 0;
+	border-radius: 4px;
+	padding: 8px 12px;
+	background: transparent;
+	color: var(--spice-text, #fff);
+	font: inherit;
+	text-align: start;
+	cursor: pointer;
+
+	&:hover,
+	&:focus-visible {
+		background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
+		outline: none;
+	}
+
+	&[aria-checked="true"]::after {
+		content: "✓";
+		font-weight: 700;
+	}
+
+	&:disabled {
+		opacity: 0.48;
+		cursor: default;
+	}
+}
+
 /* Spotify-look chrome for self-contained module DOM (dialogs, anchors,
-   popovers). Client components only render correctly inside the client's
-   own React trees; these classes replicate the Encore look for
-   everything module-owned. Inside a client tree, prefer the real
-   components from stdlib's ComponentLibrary instead. */
+   popovers). These classes replicate the Encore look for everything
+   module-owned, including surfaces mounted outside the client React tree. */
 .spicetify-button {
 	display: inline-flex;
 	align-items: center;

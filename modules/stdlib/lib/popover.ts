@@ -10,6 +10,7 @@
 // modules can use it without touching React.
 
 import { React, ReactDOM } from "../src/expose/React.ts";
+import { calculateFloatingPosition } from "./floating-position.ts";
 
 export interface PopoverHandle {
 	close: () => void;
@@ -26,40 +27,40 @@ export interface PopoverOptions {
 export function openPopover({ anchor, content, onClose, gap = 8 }: PopoverOptions): PopoverHandle {
 	const host = document.createElement("div");
 	host.className = "spicetify-popover";
-	Object.assign(host.style, {
-		position: "fixed",
-		zIndex: "1000",
-		background: "var(--spice-card, var(--background-elevated-base, #282828))",
-		color: "var(--spice-text, var(--text-base, #fff))",
-		borderRadius: "8px",
-		boxShadow: "0 16px 24px rgba(0, 0, 0, 0.3), 0 6px 8px rgba(0, 0, 0, 0.2)",
-		maxHeight: "80vh",
-		overflow: "auto",
-	});
+	host.style.visibility = "hidden";
 
 	const place = () => {
-		const rect = anchor.getBoundingClientRect();
-		host.style.top = `${Math.round(Math.min(rect.bottom + gap, window.innerHeight - 64))}px`;
-		const left = Math.min(Math.max(8, rect.left), Math.max(8, window.innerWidth - host.offsetWidth - 8));
-		host.style.left = `${Math.round(left)}px`;
+		if (!anchor.isConnected || !host.isConnected) return;
+		const position = calculateFloatingPosition(
+			anchor.getBoundingClientRect(),
+			host.getBoundingClientRect(),
+			{ width: window.innerWidth, height: window.innerHeight },
+			{ align: "start", gap },
+		);
+		host.style.left = `${position.left}px`;
+		host.style.top = `${position.top}px`;
+		host.style.visibility = "visible";
+		host.dataset.placement = position.placement;
 	};
 
-	let root: { unmount: () => void } | undefined;
+	let root: ReturnType<typeof ReactDOM.createRoot> | undefined;
 	if (content instanceof HTMLElement) {
 		host.appendChild(content);
 	} else {
-		const createRoot = (ReactDOM as any).createRoot;
-		root = createRoot(host);
-		(root as any).render(React.createElement(React.Fragment, null, content as any));
+		root = ReactDOM.createRoot(host);
+		root.render(React.createElement(React.Fragment, null, content));
 	}
+	const resizeObserver = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(place);
 
 	let closed = false;
 	const close = () => {
 		if (closed) return;
 		closed = true;
 		window.removeEventListener("resize", place);
+		document.removeEventListener("scroll", place, true);
 		document.removeEventListener("mousedown", onDocDown, true);
 		document.removeEventListener("keydown", onKey, true);
+		resizeObserver?.disconnect();
 		root?.unmount();
 		host.remove();
 		onClose?.();
@@ -80,8 +81,11 @@ export function openPopover({ anchor, content, onClose, gap = 8 }: PopoverOption
 	// A second pass once layout has produced the real width, for clamping.
 	requestAnimationFrame(place);
 	window.addEventListener("resize", place);
+	document.addEventListener("scroll", place, true);
 	document.addEventListener("mousedown", onDocDown, true);
 	document.addEventListener("keydown", onKey, true);
+	resizeObserver?.observe(anchor);
+	resizeObserver?.observe(host);
 
 	return { close, host };
 }

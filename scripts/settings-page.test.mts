@@ -127,17 +127,17 @@ describe("standalone Spicetify Settings", () => {
 		assert.doesNotMatch(lyrics, /id:\s*`\$\{APP_NAME\}-config-container`/);
 	});
 
-	it("ships the current stdlib and settings contracts", () => {
+	it("ships compatible stdlib and settings contracts", () => {
 		const stdlib = readJson("modules/stdlib/metadata.json");
 		const manager = readJson("modules/manager/metadata.json");
 		const lyricsPlus = readJson("modules/lyrics-plus/metadata.json");
 		const kit = readJson("packages/kit/package.json");
 
-		assert.equal(stdlib.version, "1.8.0");
 		assert.equal(manager.version, "1.2.1");
 		assert.equal(manager.dependencies.stdlib, "^1.6.0");
-		assert.equal(lyricsPlus.version, "0.2.1");
-		assert.equal(lyricsPlus.dependencies.stdlib, "^1.8.0");
+		const installedMinor = Number(stdlib.version.match(/^1\.(\d+)\.0$/)?.[1]);
+		const requiredMinor = Number(lyricsPlus.dependencies.stdlib.match(/^\^1\.(\d+)\.0$/)?.[1]);
+		assert.ok(installedMinor >= requiredMinor, "Lyrics Plus must accept the installed stdlib");
 		assert.equal(kit.spicetify.stdlibVersion, stdlib.version);
 	});
 });

@@ -48,8 +48,10 @@ import {
 	SELECT_CLASS,
 } from "./primitives-classes.ts";
 import { activateDialog } from "./dialog-lifecycle.ts";
+import { Tooltip } from "./floating.tsx";
 
 export type { BadgeTone, ButtonVariant } from "./primitives-classes.ts";
+export { Popover, PopoverMenu, PopoverMenuItem, Tooltip } from "./floating.tsx";
 
 // ---------- buttons ----------
 
@@ -318,9 +320,7 @@ export const SettingsProviderRow: React.FC<{
 					onMove={props.onMove}
 				/>
 				{props.disabled && props.disabledReason ? (
-					<Spicetify.ReactComponent.TooltipWrapper label={props.disabledReason}>
-						{toggle}
-					</Spicetify.ReactComponent.TooltipWrapper>
+					<Tooltip label={props.disabledReason}>{toggle}</Tooltip>
 				) : (
 					toggle
 				)}

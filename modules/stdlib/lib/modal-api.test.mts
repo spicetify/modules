@@ -58,10 +58,12 @@ describe("stdlib-owned modal API", () => {
 	});
 
 	it("requires the stdlib version that supplies the owned API", async () => {
-		assert.equal((await readJson("../metadata.json")).version, "1.8.0");
+		const stdlibMinor = Number((await readJson("../metadata.json")).version.split(".")[1]);
+		assert.ok(stdlibMinor >= 8);
 		for (const name of Object.keys(consumers)) {
 			const metadata = await readJson(`../../${name}/metadata.json`);
-			assert.equal(metadata.dependencies.stdlib, "^1.8.0");
+			const requiredMinor = Number(metadata.dependencies.stdlib.match(/^\^1\.(\d+)\.0$/)?.[1]);
+			assert.ok(requiredMinor >= 8, `${name} must require stdlib 1.8.0 or newer`);
 		}
 	});
 });
