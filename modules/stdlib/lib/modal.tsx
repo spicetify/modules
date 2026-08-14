@@ -42,7 +42,10 @@ interface PopupModalProps {
 const ModalShell = (props: { contentLabel: string; children: React.ReactNode }) => {
 	React.useEffect(() => {
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") hide();
+			if (e.key !== "Escape") return;
+			e.preventDefault();
+			e.stopPropagation();
+			hide();
 		};
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);
