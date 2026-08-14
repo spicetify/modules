@@ -6,15 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import {
-	clampMenuPosition,
-	filterBookmarks,
-	idToProperName,
-	isTrackUri,
-	largestImage,
-	withNewEntry,
-	withoutEntry,
-} from "./logic.ts";
+import { filterBookmarks, idToProperName, isTrackUri, largestImage, withNewEntry, withoutEntry } from "./logic.ts";
 
 describe("idToProperName", () => {
 	it("dashes become spaces, each word capitalized", () => {
@@ -41,19 +33,6 @@ describe("filterBookmarks", () => {
 	it("episodes count as tracks for the filter", () => {
 		assert.equal(isTrackUri("spotify:episode:b"), true);
 		assert.equal(isTrackUri("spotify:playlist:c"), false);
-	});
-});
-
-describe("clampMenuPosition", () => {
-	const menu = { width: 360, height: 400 };
-	const viewport = { width: 1440, height: 900 };
-
-	it("keeps the y+40 drop and clamps into the viewport with an 8px margin", () => {
-		assert.deepEqual(clampMenuPosition(100, 50, menu, viewport), { left: 100, top: 90 });
-		// A right-edge topbar button would push the menu off-screen: clamp.
-		assert.deepEqual(clampMenuPosition(1400, 50, menu, viewport), { left: 1440 - 360 - 8, top: 90 });
-		assert.deepEqual(clampMenuPosition(100, 880, menu, viewport), { left: 100, top: 900 - 400 - 8 });
-		assert.deepEqual(clampMenuPosition(-50, -100, menu, viewport), { left: 8, top: 8 });
 	});
 });
 

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// The pure core of bookmark: naming, filtering, menu-position clamping and the
-// storage-list transforms, hoisted from the module closure so they run under
-// node --test. mod.tsx owns the DOM, Player/URI access and localStorage I/O.
+// The pure core of bookmark: naming, filtering and storage-list transforms,
+// hoisted from the module closure so they run under node --test. mod.tsx owns
+// the DOM, Player/URI access and localStorage I/O.
 
 export interface BookmarkEntry {
 	id?: string;
@@ -25,18 +25,6 @@ export function isTrackUri(uri: string): boolean {
 export function filterBookmarks<T extends BookmarkEntry>(items: T[], filter: number): T[] {
 	if (filter === 0) return items;
 	return items.filter((item) => (filter === 1 ? !isTrackUri(item.uri) : isTrackUri(item.uri)));
-}
-
-export function clampMenuPosition(
-	x: number,
-	y: number,
-	menu: { width: number; height: number },
-	viewport: { width: number; height: number },
-	margin = 8,
-): { left: number; top: number } {
-	const left = Math.max(margin, Math.min(x, viewport.width - menu.width - margin));
-	const top = Math.max(margin, Math.min(y + 40, viewport.height - menu.height - margin));
-	return { left, top };
 }
 
 export function withNewEntry<T extends BookmarkEntry>(list: T[], data: T, now: number): T[] {

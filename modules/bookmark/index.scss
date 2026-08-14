@@ -1,67 +1,135 @@
-/* Bookmark popup styles, moved out of the v2 runtime <style> injection. All
-   selectors are namespaced under the module's own ids / .bookmark-* classes so
-   they cannot leak onto client chrome. */
+/* Bookmark owns only the content inside stdlib's right-sidebar panel. */
 
-/* Clickable full-viewport backdrop above client chrome; dismisses on click,
-   does not dim. */
-#bookmark-spicetify {
-	position: fixed;
-	inset: 0;
-	z-index: 2000;
-	pointer-events: auto;
+.spicetify-panel-content:has(> .bookmark-panel-mount) {
+	overflow: hidden;
 }
 
-/* An elevated menu surface matching Spotify's own context menus: solid card
-   background, rounded, shadowed, self-contained padding. */
-#bookmark-menu {
-	pointer-events: auto;
-	position: absolute;
-	z-index: 5001;
+.bookmark-panel-mount {
+	height: 100%;
+	min-height: 0;
+}
+
+.bookmark-panel {
 	display: flex;
 	flex-direction: column;
-	width: 360px;
-	max-width: 92vw;
-	max-height: 70vh;
-	overflow: hidden auto;
-	padding: 6px;
-	background: var(--spice-card, #282828);
-	border-radius: 8px;
-	box-shadow:
-		0 16px 24px rgba(0, 0, 0, 0.3),
-		0 6px 8px rgba(0, 0, 0, 0.2);
+	gap: 20px;
+	height: 100%;
+	min-height: 0;
 }
 
-/* The three add-actions read as compact menu rows with a hover state. */
+.bookmark-panel-eyebrow {
+	margin: 0 0 8px;
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.bookmark-panel-actions {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
 .bookmark-menu-item {
 	display: flex;
 	align-items: center;
-	width: 100%;
-	padding: 8px 12px;
+	justify-content: center;
+	min-height: 44px;
+	padding: 8px;
 	border: 0;
-	border-radius: 4px;
-	background: transparent;
+	border-radius: 8px;
+	background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.07);
 	color: var(--spice-text, #fff);
-	font-size: 14px;
-	text-align: left;
+	font: inherit;
+	font-size: 13px;
+	font-weight: 700;
+	text-align: center;
 	cursor: pointer;
 
 	&:hover {
-		background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
+		background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.12);
+	}
+
+	&:focus-visible {
+		box-shadow: inset 0 0 0 2px var(--spice-text, #fff);
+		outline: none;
 	}
 }
 
+.bookmark-panel-library {
+	display: flex;
+	flex: 1 1 auto;
+	min-height: 0;
+	flex-direction: column;
+}
+
+.bookmark-panel-toolbar {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 8px;
+	padding-bottom: 10px;
+
+	h3 {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 700;
+	}
+}
+
+.bookmark-panel-count {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 24px;
+	height: 20px;
+	padding: 0 7px;
+	border-radius: 999px;
+	background: rgba(var(--spice-rgb-text, 255, 255, 255), 0.08);
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+
 .bookmark-filter {
-	margin: 4px 8px 8px;
-	align-self: flex-start;
+	margin-left: auto;
+}
+
+.bookmark-panel-list {
+	display: flex;
+	flex: 1 1 auto;
+	min-height: 0;
+	flex-direction: column;
+	gap: 2px;
+	overflow: hidden auto;
+	margin: 0 -8px;
+	padding: 0 8px 8px;
+	overscroll-behavior: contain;
+}
+
+.bookmark-panel-empty {
+	display: grid;
+	flex: 1 1 auto;
+	place-items: center;
+	min-height: 140px;
+	margin: 0;
+	padding: 24px;
+	color: var(--spice-subtext, #a7a7a7);
+	font-size: 13px;
+	line-height: 1.5;
+	text-align: center;
 }
 
 .bookmark-card {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 12px;
+	gap: 10px;
+	min-height: 64px;
 	padding: 8px;
-	border-radius: 6px;
+	border-radius: 8px;
 	cursor: pointer;
 
 	&:hover {
@@ -73,27 +141,44 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 40px;
-		height: 40px;
+		width: 36px;
+		height: 36px;
 		padding: 0;
 		border: none;
 		border-radius: 50%;
 		background: var(--spice-button, #1ed760);
 		color: #000;
 		cursor: pointer;
-		transition:
-			transform 0.1s ease,
-			background-color 0.1s ease;
 
 		svg {
-			width: 20px;
-			height: 20px;
+			width: 18px;
+			height: 18px;
 		}
 
 		&:hover {
-			transform: scale(1.06);
 			background: var(--spice-button-active, #1fdf64);
 		}
+	}
+}
+
+.bookmark-card-link {
+	display: flex;
+	flex: 1 1 auto;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+
+	&:focus-visible {
+		border-radius: 6px;
+		box-shadow: 0 0 0 2px var(--spice-text, #fff);
+		outline: none;
 	}
 }
 
@@ -103,11 +188,9 @@
 	height: 48px;
 	object-fit: cover;
 	object-position: center center;
-	border-radius: 4px;
+	border-radius: 6px;
 }
 
-/* flex:1 + min-width:0 lets the info column shrink so the title can ellipsis
-   instead of pushing the card past the menu edge. */
 .bookmark-card-info {
 	display: flex;
 	flex: 1 1 auto;
@@ -118,9 +201,9 @@
 
 	span {
 		display: block;
-		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.main-type-mesto {
@@ -130,18 +213,18 @@
 }
 
 .bookmark-controls {
+	display: inline-flex;
 	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
 	width: 28px;
 	height: 28px;
-	align-items: center;
-	background-color: transparent;
+	padding: 8px;
 	border: none;
 	border-radius: 50%;
+	background-color: transparent;
 	color: var(--spice-subtext, #a7a7a7);
 	cursor: pointer;
-	display: inline-flex;
-	justify-content: center;
-	padding: 8px;
 
 	&:hover {
 		background-color: rgba(var(--spice-rgb-text, 255, 255, 255), 0.1);
@@ -150,10 +233,10 @@
 }
 
 .bookmark-fixed-height {
-	height: 22px;
 	display: flex;
 	align-items: center;
 	gap: 6px;
+	height: 22px;
 }
 
 .bookmark-progress {
