@@ -39,6 +39,7 @@ import {
 	chipClass,
 	DIALOG_BODY_CLASS,
 	DIALOG_CLASS,
+	DIALOG_LARGE_CLASS,
 	DIALOG_HEADER_CLASS,
 	ICON_BUTTON_CLASS,
 	MENU_ITEM_CLASS,
@@ -46,6 +47,7 @@ import {
 	SEARCHBAR_CLASS,
 	SELECT_CLASS,
 } from "./primitives-classes.ts";
+import { activateDialog } from "./dialog-lifecycle.ts";
 
 export type { BadgeTone, ButtonVariant } from "./primitives-classes.ts";
 
@@ -127,7 +129,10 @@ export const TextInput: React.FC<{
 	placeholder?: string;
 	value?: string;
 	disabled?: boolean;
+	readOnly?: boolean;
 	onInput?: (value: string) => void;
+	onFocus?: React.FocusEventHandler<HTMLInputElement>;
+	onBlur?: React.FocusEventHandler<HTMLInputElement>;
 	ariaLabel?: string;
 }> = (props) => (
 	<input
@@ -136,7 +141,10 @@ export const TextInput: React.FC<{
 		placeholder={props.placeholder}
 		value={props.value}
 		disabled={props.disabled}
+		readOnly={props.readOnly}
 		aria-label={props.ariaLabel}
+		onFocus={props.onFocus}
+		onBlur={props.onBlur}
 		onChange={(e) => props.onInput?.(e.target.value)}
 	/>
 );
@@ -410,34 +418,41 @@ export const ConfirmButton: React.FC<{
 // transformed ancestor (the norm for Spotify's scroll containers) would
 // otherwise be clipped/offset to that ancestor. The backdrop and the ×
 // button both call onClose.
-export const Dialog: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = (props) => {
-	const { onClose } = props;
-	// Escape closes the dialog, matching every native modal. A capturing
-	// document listener catches the key wherever focus sits (the client's own
-	// components steal focus), and the client's shortcut handlers do not see it.
+export const Dialog: React.FC<{
+	title: string;
+	onClose: () => void;
+	size?: "normal" | "large";
+	children: React.ReactNode;
+}> = (props) => {
+	const dialogRef = React.useRef<HTMLDivElement>(null);
+	const onCloseRef = React.useRef(props.onClose);
+	const titleId = React.useId();
+	onCloseRef.current = props.onClose;
 	React.useEffect(() => {
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				e.preventDefault();
-				e.stopPropagation();
-				onClose();
-			}
-		};
-		document.addEventListener("keydown", onKey, true);
-		return () => document.removeEventListener("keydown", onKey, true);
-	}, [onClose]);
+		const dialog = dialogRef.current;
+		if (!dialog) return;
+		return activateDialog(dialog, () => onCloseRef.current());
+	}, []);
+	const dialogClass = props.size === "large" ? `${DIALOG_CLASS} ${DIALOG_LARGE_CLASS}` : DIALOG_CLASS;
 
 	return ReactDOM.createPortal(
 		<div
 			className={SCRIM_CLASS}
 			onClick={(e) => {
-				if (e.target === e.currentTarget) onClose();
+				if (e.target === e.currentTarget) props.onClose();
 			}}
 		>
-			<div className={DIALOG_CLASS} role="dialog" aria-modal="true" aria-label={props.title}>
+			<div
+				ref={dialogRef}
+				className={dialogClass}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby={titleId}
+				tabIndex={-1}
+			>
 				<div className={DIALOG_HEADER_CLASS}>
-					<h2>{props.title}</h2>
-					<IconButton ariaLabel="Close" onClick={onClose}>
+					<h2 id={titleId}>{props.title}</h2>
+					<IconButton ariaLabel="Close" onClick={props.onClose}>
 						×
 					</IconButton>
 				</div>

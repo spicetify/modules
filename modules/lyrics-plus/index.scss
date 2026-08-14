@@ -495,6 +495,24 @@ div.lyrics-tabBar-headerItemLink {
 }
 
 /** Setting menu */
+.lyrics-plus-appearance-settings {
+	display: grid;
+	gap: 0;
+}
+
+.lyrics-plus-appearance-settings .spicetify-select,
+.lyrics-plus-appearance-settings .spicetify-searchbar {
+	width: min(180px, 100%);
+}
+
+.lyrics-plus-appearance-value {
+	min-width: 48px;
+	color: var(--spice-text);
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+	text-align: center;
+}
+
 .lyrics-tooltip-wrapper .setting-row::after,
 #lyrics-plus-config-container .setting-row::after {
 	content: "";

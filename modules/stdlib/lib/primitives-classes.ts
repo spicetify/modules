@@ -33,6 +33,7 @@ export const SEARCHBAR_CLASS = "spicetify-searchbar";
 export const CARD_CLASS = "spicetify-card";
 export const SCRIM_CLASS = "spicetify-scrim";
 export const DIALOG_CLASS = "spicetify-dialog";
+export const DIALOG_LARGE_CLASS = "spicetify-dialog--large";
 export const DIALOG_HEADER_CLASS = "spicetify-dialog-header";
 export const DIALOG_BODY_CLASS = "spicetify-dialog-body";
 

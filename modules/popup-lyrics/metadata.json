@@ -1,7 +1,7 @@
 {
 	"name": "popup-lyrics",
 	"kind": "extension",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"authors": ["spicetify"],
 	"description": "Pop synced lyrics up in a picture-in-picture window, sourced from Spotify, Musixmatch, Netease or LRCLIB.",
 	"entries": {
@@ -10,7 +10,7 @@
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.6.0"
+		"stdlib": "^1.8.0"
 	},
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/popup-lyrics.png"
 }

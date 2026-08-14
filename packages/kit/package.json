@@ -39,7 +39,7 @@
 		"access": "public"
 	},
 	"spicetify": {
-		"stdlibVersion": "1.7.0"
+		"stdlibVersion": "1.8.0"
 	},
 	"scripts": {
 		"build": "../../node_modules/.bin/tsc -p tsconfig.build.json",

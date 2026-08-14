@@ -13,9 +13,16 @@
  * modules.
  */
 
+import type { ModalOptions } from "../lib/modal.tsx";
+
 type SpicetifyRuntime = typeof Spicetify;
 
 export type PlayerState = Spicetify.PlayerState;
+
+export interface PopupModalCompatibility {
+	display(options: ModalOptions): void;
+	hide(): void;
+}
 
 export interface ClientCapabilities {
 	readonly player: typeof Spicetify.Player;
@@ -30,7 +37,8 @@ export interface ClientCapabilities {
 	readonly keyboard: typeof Spicetify.Keyboard;
 	readonly mousetrap: typeof Spicetify.Mousetrap;
 	readonly contextMenu: typeof Spicetify.ContextMenu;
-	readonly popupModal: typeof Spicetify.PopupModal;
+	/** @deprecated Import displayModal and hideModal from /modules/stdlib/mod.ts. */
+	readonly popupModal: PopupModalCompatibility;
 	readonly config: typeof Spicetify.Config;
 	readonly modules: typeof Spicetify.Modules;
 	readonly react: typeof Spicetify.React;
@@ -45,6 +53,23 @@ const runtime = (): SpicetifyRuntime => {
 	const value = (globalThis as unknown as { Spicetify?: SpicetifyRuntime }).Spicetify;
 	if (!value) throw new Error("Spicetify client runtime is unavailable");
 	return value;
+};
+
+let modalRequestGeneration = 0;
+const reportModalFailure = (error: unknown) => console.error("[stdlib] failed to load the owned modal:", error);
+const popupModalCompatibility: PopupModalCompatibility = {
+	display(options) {
+		const generation = ++modalRequestGeneration;
+		void import("../lib/modal.tsx")
+			.then(({ display }) => {
+				if (generation === modalRequestGeneration) display(options);
+			})
+			.catch(reportModalFailure);
+	},
+	hide() {
+		++modalRequestGeneration;
+		void import("../lib/modal.tsx").then(({ hide }) => hide()).catch(reportModalFailure);
+	},
 };
 
 export const client: ClientCapabilities = {
@@ -85,7 +110,7 @@ export const client: ClientCapabilities = {
 		return runtime().ContextMenu;
 	},
 	get popupModal() {
-		return runtime().PopupModal;
+		return popupModalCompatibility;
 	},
 	get config() {
 		return runtime().Config;

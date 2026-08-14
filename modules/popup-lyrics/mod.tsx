@@ -23,7 +23,7 @@
  *     is CORS-enabled and keeps using plain fetch.
  */
 
-import { client, createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar, displayModal } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { React } from "/modules/stdlib/src/expose/React.ts";
 import {
@@ -1003,11 +1003,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const target = event.target as HTMLElement | null;
 		if (!target?.closest?.('.spicetify-topbar-right-buttons [aria-label="Popup Lyrics"]')) return;
 		event.preventDefault();
-		client.popupModal.display({
+		displayModal({
 			title: "Popup Lyrics appearance",
-			// The runtime PopupModal accepts React elements, although the v2
-			// compatibility declaration still only names DOM Element here.
-			content: (<PopupLyricsAppearanceSettings />) as unknown as Element,
+			content: <PopupLyricsAppearanceSettings />,
 		});
 	};
 	document.addEventListener("contextmenu", onButtonContextMenu);

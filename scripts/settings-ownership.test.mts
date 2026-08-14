@@ -68,7 +68,8 @@ describe("first-party settings ownership", () => {
 	it("keeps Full App Display settings on its overlay", () => {
 		const source = read("modules/full-app-display/mod.tsx");
 		assert.match(source, /onContextMenu:\s*openConfig/);
-		assert.match(source, /popupModal\.display\(\{/);
+		assert.match(source, /displayModal\(\{/);
+		assert.doesNotMatch(source, /(?:Spicetify\.PopupModal|client\.popupModal)/);
 		assert.doesNotMatch(source, /register\(\s*["']settingsSection["']/);
 	});
 

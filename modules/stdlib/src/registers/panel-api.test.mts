@@ -12,7 +12,7 @@ const panelSource = await readFile(new URL("./panel.ts", import.meta.url), "utf8
 const panelLogicSource = await readFile(new URL("./panel-logic.ts", import.meta.url), "utf8");
 const styles = await readFile(new URL("../../index.scss", import.meta.url), "utf8");
 const popoverSource = await readFile(new URL("../../lib/popover.ts", import.meta.url), "utf8");
-const modalSource = await readFile(new URL("../../lib/modal.tsx", import.meta.url), "utf8");
+const dialogLifecycleSource = await readFile(new URL("../../lib/dialog-lifecycle.ts", import.meta.url), "utf8");
 const metadata = JSON.parse(await readFile(new URL("../../metadata.json", import.meta.url), "utf8"));
 const kitPackage = JSON.parse(
 	await readFile(new URL("../../../../packages/kit/package.json", import.meta.url), "utf8"),
@@ -61,15 +61,15 @@ describe("owned panel public API", () => {
 	});
 
 	it("lets the topmost stdlib overlay consume Escape before the panel", () => {
-		for (const source of [popoverSource, modalSource]) {
-			assert.match(source, /e\.preventDefault\(\)/);
-			assert.match(source, /e\.stopPropagation\(\)/);
+		for (const source of [popoverSource, dialogLifecycleSource]) {
+			assert.match(source, /(?:e|event)\.preventDefault\(\)/);
+			assert.match(source, /(?:e|event)\.stopPropagation\(\)/);
 		}
 		assert.match(panelLogicSource, /event\.defaultPrevented/);
 	});
 
-	it("ships as a minor stdlib release", () => {
-		assert.equal(metadata.version, "1.7.0");
-		assert.equal(kitPackage.spicetify.stdlibVersion, "1.7.0");
+	it("ships the current stdlib release", () => {
+		assert.equal(metadata.version, "1.8.0");
+		assert.equal(kitPackage.spicetify.stdlibVersion, "1.8.0");
 	});
 });

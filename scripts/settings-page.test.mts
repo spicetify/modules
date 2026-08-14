@@ -133,10 +133,11 @@ describe("standalone Spicetify Settings", () => {
 		const lyricsPlus = readJson("modules/lyrics-plus/metadata.json");
 		const kit = readJson("packages/kit/package.json");
 
-		assert.equal(stdlib.version, "1.7.0");
+		assert.equal(stdlib.version, "1.8.0");
 		assert.equal(manager.version, "1.2.1");
 		assert.equal(manager.dependencies.stdlib, "^1.6.0");
-		assert.equal(lyricsPlus.version, "0.2.0");
+		assert.equal(lyricsPlus.version, "0.2.1");
+		assert.equal(lyricsPlus.dependencies.stdlib, "^1.8.0");
 		assert.equal(kit.spicetify.stdlibVersion, stdlib.version);
 	});
 });

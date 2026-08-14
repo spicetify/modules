@@ -25,7 +25,6 @@ test("client capabilities resolve lazily from the current runtime", () => {
 		keyboard: "Keyboard",
 		mousetrap: "Mousetrap",
 		contextMenu: "ContextMenu",
-		popupModal: "PopupModal",
 		config: "Config",
 		modules: "Modules",
 		react: "React",
@@ -38,6 +37,7 @@ test("client capabilities resolve lazily from the current runtime", () => {
 	const runtime: Record<string, { marker: string }> = Object.fromEntries(
 		Object.values(runtimeKeys).map((key) => [key, { marker: key }]),
 	);
+	runtime.PopupModal = { marker: "PopupModal" };
 	globalRecord.Spicetify = runtime;
 
 	for (const [capability, runtimeKey] of Object.entries(runtimeKeys)) {
@@ -47,6 +47,9 @@ test("client capabilities resolve lazily from the current runtime", () => {
 	const replacement = { marker: "replacement" };
 	runtime.Player = replacement;
 	assert.equal(client.player, replacement);
+	assert.equal(typeof client.popupModal.display, "function");
+	assert.equal(typeof client.popupModal.hide, "function");
+	assert.notEqual(client.popupModal, runtime.PopupModal);
 });
 
 test("client capabilities fail with a targeted error when the wrapper is absent", () => {

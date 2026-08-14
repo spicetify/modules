@@ -27,11 +27,13 @@ import {
 	DIALOG_BODY_CLASS,
 	DIALOG_CLASS,
 	DIALOG_HEADER_CLASS,
+	DIALOG_LARGE_CLASS,
 	ICON_BUTTON_CLASS,
 	SCRIM_CLASS,
 	SEARCHBAR_CLASS,
 	SELECT_CLASS,
 } from "./primitives-classes.ts";
+import { activateDialog } from "./dialog-lifecycle.ts";
 
 export type { BadgeTone, ButtonVariant } from "./primitives-classes.ts";
 
@@ -246,22 +248,43 @@ export interface DialogHandle {
 // backdrop, close button, and programmatic close() all run one teardown,
 // so onClose fires exactly once on any dismissal path (consumers use it
 // to drop their own bookkeeping, e.g. a dispose registry).
-export function openDialog(props: { title: string; children: Child; onClose?: () => void }): DialogHandle {
+let nextDialogTitleId = 0;
+
+export function openDialog(props: {
+	title: string;
+	children: Child;
+	size?: "normal" | "large";
+	onClose?: () => void;
+}): DialogHandle {
 	const body = h("div", { className: DIALOG_BODY_CLASS }, props.children);
 	let closed = false;
+	let deactivate = () => {};
 	const close = () => {
 		if (closed) return;
 		closed = true;
+		deactivate();
 		scrim.remove();
 		props.onClose?.();
 	};
+	const titleId = `spicetify-dialog-title-${++nextDialogTitleId}`;
 	const header = h(
 		"div",
 		{ className: DIALOG_HEADER_CLASS },
-		h("h2", { textContent: props.title }),
+		h("h2", { id: titleId, textContent: props.title }),
 		IconButton({ glyph: "×", ariaLabel: "Close", onClick: close }),
 	);
-	const dialog = h("div", { className: DIALOG_CLASS }, header, body);
+	const dialog = h(
+		"div",
+		{
+			className: props.size === "large" ? `${DIALOG_CLASS} ${DIALOG_LARGE_CLASS}` : DIALOG_CLASS,
+			tabIndex: -1,
+			role: "dialog",
+			"aria-modal": "true",
+			"aria-labelledby": titleId,
+		},
+		header,
+		body,
+	);
 	const scrim = h(
 		"div",
 		{
@@ -273,5 +296,6 @@ export function openDialog(props: { title: string; children: Child; onClose?: ()
 		dialog,
 	);
 	document.body.append(scrim);
+	deactivate = activateDialog(dialog, close);
 	return { body, close };
 }

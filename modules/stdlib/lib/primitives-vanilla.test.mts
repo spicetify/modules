@@ -239,6 +239,28 @@ describe("openDialog", () => {
 		assert.equal(c, 1);
 	});
 
+	it("owns accessible large-dialog chrome, Escape, and focus restoration", () => {
+		const opener = h("button", { textContent: "Open" });
+		document.body.append(opener);
+		opener.focus();
+
+		openDialog({ title: "Appearance", children: [], size: "large" });
+		const dialog = document.querySelector(".spicetify-dialog") as HTMLElement;
+		const title = dialog.querySelector("h2") as HTMLElement;
+		const close = dialog.querySelector(".spicetify-button-circle") as HTMLButtonElement;
+
+		assert.match(dialog.className, /spicetify-dialog--large/);
+		assert.equal(dialog.getAttribute("role"), "dialog");
+		assert.equal(dialog.getAttribute("aria-modal"), "true");
+		assert.equal(dialog.getAttribute("aria-labelledby"), title.id);
+		assert.equal(document.activeElement, close);
+
+		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+		assert.equal(document.querySelector(".spicetify-scrim"), null);
+		assert.equal(document.activeElement, opener);
+		opener.remove();
+	});
+
 	it("rejects a misspelled event handler at the type level", () => {
 		// @ts-expect-error onClik is not a real DOM event handler
 		h("button", { onClik: () => {} });

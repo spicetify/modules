@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Ported to the v3 module standard from the classic "Full App Display" extension
- * by khanhas. The client's v2-compatible Topbar, Mousetrap, PopupModal, GraphQL,
- * Player, History and LocalStorage helpers still work in v3, so the logic is kept
- * near-verbatim. The runtime <style> injection was moved into index.scss, and
- * appearance preferences stay in a modal opened from the active overlay.
+ * by khanhas. The client's v2-compatible Mousetrap, GraphQL, Player, History and
+ * LocalStorage helpers still work in v3, so the logic is kept near-verbatim. The
+ * runtime <style> injection moved into index.scss, and appearance preferences use
+ * stdlib's owned modal opened from the active overlay.
  */
 
-import { client, createRegistrar } from "/modules/stdlib/mod.ts";
+import { client, createRegistrar, displayModal } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.js";
 import { hasLyricsPlus, parseConfig, progressFromPointer, rootClasses, thumbPercent } from "./logic.ts";
@@ -709,7 +709,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	function openConfig(event: MouseEvent) {
 		event.preventDefault();
-		client.popupModal.display({
+		displayModal({
 			title: "Full App Display",
 			content: react.createElement(FullAppDisplaySettings),
 		});

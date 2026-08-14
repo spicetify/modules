@@ -18,6 +18,7 @@ export * from "./lib/primitives-vanilla.ts";
 export * from "./src/storage.ts";
 export * from "./src/wpunpk.ts";
 export * from "./src/logger.ts";
+export { display as displayModal, hide as hideModal, type ModalOptions } from "./lib/modal.tsx";
 
 // Public barrel: everything dependent modules are allowed to deep-import.
 // Import from /modules/stdlib/mod.js at runtime; nothing else is public.

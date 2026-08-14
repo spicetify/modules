@@ -10,11 +10,18 @@
 // with the standalone Spicetify Settings page.
 
 import { React as react } from "/modules/stdlib/src/expose/React.ts";
+import { client, displayModal } from "/modules/stdlib/mod.ts";
 import {
 	IconButton,
+	Select,
+	SettingsActions,
 	SettingsButtonRow,
+	SettingsLabel,
 	SettingsProviderRow,
+	SettingsRow,
+	SettingsSection,
 	SettingsTextInputRow,
+	TextInput,
 	Toggle,
 } from "/modules/stdlib/lib/primitives.js";
 import {
@@ -52,10 +59,8 @@ export const MusixmatchTokenSetting = ({ onTokenChange }) => {
 
 	useEffect(() => {
 		if (buttonText === "Refreshing token...") {
-			Spicetify.CosmosAsync.get(
-				"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
-				null,
-				{
+			client.cosmos
+				.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", null, {
 					Host: "apic-appmobile.musixmatch.com",
 					authority: "apic-appmobile.musixmatch.com",
 					"X-Cookie": "x-mxm-token-guid=",
@@ -64,8 +69,7 @@ export const MusixmatchTokenSetting = ({ onTokenChange }) => {
 					"Accept-Language": "en-US,en;q=0.9",
 					Connection: "keep-alive",
 					Accept: "application/json",
-				},
-			)
+				})
 				.then(({ message: response }) => {
 					if (response.header.status_code === 200 && response.body.user_token) {
 						setTokenCallback(response.body.user_token);
@@ -328,7 +332,7 @@ export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = ()
 
 export const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
 	const [value, setValue] = useState(defaultValue);
-	const [trap] = useState(new Spicetify.Mousetrap());
+	const [trap] = useState(() => new client.mousetrap());
 
 	function record() {
 		trap.handleKey = (character, modifiers, e) => {
@@ -479,146 +483,289 @@ export const OptionList = ({ type, items, onChange }) => {
 	});
 };
 
-export function LyricsPlusAppearanceSettings() {
-	return react.createElement(
-		"div",
-		{
-			id: `${APP_NAME}-appearance-config-container`,
-		},
-		react.createElement(OptionList, {
-			items: [
-				{
-					desc: "Playbar button",
-					key: "playbar-button",
-					info: "Replace Spotify's lyrics button with Lyrics Plus.",
-					type: ConfigSlider,
-				},
-				{
-					desc: "Global delay",
-					info: "Offset (in ms) across all tracks.",
-					key: "global-delay",
-					type: ConfigAdjust,
-					min: -10000,
-					max: 10000,
-					step: 250,
-				},
-				{
-					desc: "Font size",
-					info: "(or Ctrl + Mouse scroll in main app)",
-					key: "font-size",
-					type: ConfigAdjust,
-					min: fontSizeLimit.min,
-					max: fontSizeLimit.max,
-					step: fontSizeLimit.step,
-				},
-				{
-					desc: "Alignment",
-					key: "alignment",
-					type: ConfigSelection,
-					options: {
-						left: "Left",
-						center: "Center",
-						right: "Right",
-					},
-				},
-				{
-					desc: "Fullscreen hotkey",
-					key: "fullscreen-key",
-					type: ConfigHotkey,
-				},
-				{
-					desc: "Compact synced: Lines to show before",
-					key: "lines-before",
-					type: ConfigSelection,
-					options: [0, 1, 2, 3, 4],
-				},
-				{
-					desc: "Compact synced: Lines to show after",
-					key: "lines-after",
-					type: ConfigSelection,
-					options: [0, 1, 2, 3, 4],
-				},
-				{
-					desc: "Compact synced: Fade-out blur",
-					key: "fade-blur",
-					type: ConfigSlider,
-				},
-				{
-					desc: "Noise overlay",
-					key: "noise",
-					type: ConfigSlider,
-				},
-				{
-					desc: "Colorful background",
-					key: "colorful",
-					type: ConfigSlider,
-				},
-				{
-					desc: "Background color",
-					key: "background-color",
-					type: ConfigInput,
-					when: () => !CONFIG.visual.colorful,
-				},
-				{
-					desc: "Active text color",
-					key: "active-color",
-					type: ConfigInput,
-					when: () => !CONFIG.visual.colorful,
-				},
-				{
-					desc: "Inactive text color",
-					key: "inactive-color",
-					type: ConfigInput,
-					when: () => !CONFIG.visual.colorful,
-				},
-				{
-					desc: "Highlight text background",
-					key: "highlight-color",
-					type: ConfigInput,
-					when: () => !CONFIG.visual.colorful,
-				},
-				{
-					desc: "Text convertion: Japanese Detection threshold (Advanced)",
-					info: "Checks if whenever Kana is dominant in lyrics. If the result passes the threshold, it's most likely Japanese, and vice versa. This setting is in percentage.",
-					key: "ja-detect-threshold",
-					type: ConfigAdjust,
-					min: thresholdSizeLimit.min,
-					max: thresholdSizeLimit.max,
-					step: thresholdSizeLimit.step,
-				},
-				{
-					desc: "Text convertion: Traditional-Simplified Detection threshold (Advanced)",
-					info: "Checks if whenever Traditional or Simplified is dominant in lyrics. If the result passes the threshold, it's most likely Simplified, and vice versa. This setting is in percentage.",
-					key: "hans-detect-threshold",
-					type: ConfigAdjust,
-					min: thresholdSizeLimit.min,
-					max: thresholdSizeLimit.max,
-					step: thresholdSizeLimit.step,
-				},
-			],
-			onChange: (name, value) => {
-				CONFIG.visual[name] = value;
-				localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
-				sharedCallbacks.lyricContainerUpdate?.();
+const AppearanceToggleRow = ({ name, description, defaultValue, onChange }) => {
+	const id = useId();
+	const [value, setValue] = useState(defaultValue);
+	useEffect(() => setValue(defaultValue), [defaultValue]);
+	return (
+		<SettingsRow label={<SettingsLabel label={name} description={description} />} htmlFor={id}>
+			<Toggle
+				id={id}
+				ariaLabel={name}
+				value={value}
+				onChange={(nextValue) => {
+					setValue(nextValue);
+					onChange(nextValue);
+				}}
+			/>
+		</SettingsRow>
+	);
+};
 
-				const configChange = new CustomEvent("lyrics-plus", {
-					detail: {
-						type: "config",
-						name: name,
-						value: value,
-					},
-				});
-				window.dispatchEvent(configChange);
-			},
-		}),
+const AppearanceAdjustRow = ({ name, description, defaultValue, step, min, max, onChange }) => {
+	const [value, setValue] = useState(defaultValue);
+	useEffect(() => setValue(defaultValue), [defaultValue]);
+	const adjust = (direction) => {
+		const nextValue = Math.max(min, Math.min(max, value + direction * step));
+		setValue(nextValue);
+		onChange(nextValue);
+	};
+	return (
+		<SettingsRow label={<SettingsLabel label={name} description={description} />}>
+			<SettingsActions>
+				<IconButton ariaLabel={`Decrease ${name}`} disabled={value === min} onClick={() => adjust(-1)}>
+					−
+				</IconButton>
+				<output className="lyrics-plus-appearance-value" aria-live="polite">
+					{value}
+				</output>
+				<IconButton ariaLabel={`Increase ${name}`} disabled={value === max} onClick={() => adjust(1)}>
+					+
+				</IconButton>
+			</SettingsActions>
+		</SettingsRow>
+	);
+};
+
+const AppearanceSelectRow = ({ name, description, defaultValue, options, onChange }) => {
+	const [value, setValue] = useState(String(defaultValue));
+	useEffect(() => setValue(String(defaultValue)), [defaultValue]);
+	const normalizedOptions = Object.entries(options).map(([optionValue, label]) => ({
+		value: optionValue,
+		label: String(label),
+	}));
+	return (
+		<SettingsRow label={<SettingsLabel label={name} description={description} />}>
+			<Select
+				ariaLabel={name}
+				options={normalizedOptions}
+				value={value}
+				onChange={(nextValue) => {
+					setValue(nextValue);
+					onChange(Number.isNaN(Number(nextValue)) ? nextValue : Number.parseInt(nextValue));
+				}}
+			/>
+		</SettingsRow>
+	);
+};
+
+const AppearanceTextRow = ({ name, description, defaultValue, onChange }) => {
+	const [value, setValue] = useState(defaultValue);
+	useEffect(() => setValue(defaultValue), [defaultValue]);
+	return (
+		<SettingsTextInputRow
+			label={name}
+			description={description}
+			value={value}
+			ariaLabel={name}
+			onInput={(nextValue) => {
+				setValue(nextValue);
+				onChange(nextValue);
+			}}
+		/>
+	);
+};
+
+const AppearanceHotkeyRow = ({ name, description, defaultValue, onChange }) => {
+	const [value, setValue] = useState(defaultValue);
+	const [trap] = useState(() => new client.mousetrap());
+	useEffect(() => setValue(defaultValue), [defaultValue]);
+	useEffect(() => () => trap.reset?.(), [trap]);
+	const record = () => {
+		trap.handleKey = (character, modifiers, event) => {
+			if (event.type !== "keydown") return;
+			const sequence = [...new Set([...modifiers, character])];
+			if (sequence.length === 1 && sequence[0] === "esc") {
+				setValue("");
+				return;
+			}
+			setValue(sequence.join("+"));
+		};
+	};
+	const finish = () => {
+		trap.handleKey = () => {};
+		onChange(value);
+	};
+	return (
+		<SettingsRow label={<SettingsLabel label={name} description={description} />}>
+			<TextInput ariaLabel={name} value={value} readOnly onFocus={record} onBlur={finish} />
+		</SettingsRow>
+	);
+};
+
+const AppearanceOptions = ({ items, onChange }) =>
+	items
+		.filter((item) => !item.when || item.when())
+		.map((item) =>
+			react.createElement(item.type, {
+				...item,
+				key: item.key,
+				name: item.desc,
+				description: item.info,
+				defaultValue: CONFIG.visual[item.key],
+				onChange: (value) => onChange(item.key, value),
+			}),
+		);
+
+export function LyricsPlusAppearanceSettings() {
+	const [, refresh] = useState(0);
+	const onChange = (name, value) => {
+		CONFIG.visual[name] = value;
+		localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
+		sharedCallbacks.lyricContainerUpdate?.();
+		window.dispatchEvent(new CustomEvent("lyrics-plus", { detail: { type: "config", name, value } }));
+		refresh((revision) => revision + 1);
+	};
+	return (
+		<div id={`${APP_NAME}-appearance-config-container`} className="lyrics-plus-appearance-settings">
+			<SettingsSection title="Playback">
+				<AppearanceOptions
+					items={[
+						{
+							desc: "Playbar button",
+							key: "playbar-button",
+							info: "Replace Spotify's lyrics button with Lyrics Plus.",
+							type: AppearanceToggleRow,
+						},
+						{
+							desc: "Global delay",
+							info: "Offset every lyric line across all tracks, in milliseconds.",
+							key: "global-delay",
+							type: AppearanceAdjustRow,
+							min: -10000,
+							max: 10000,
+							step: 250,
+						},
+						{
+							desc: "Font size",
+							info: "You can also hold Ctrl and scroll in the main lyrics view.",
+							key: "font-size",
+							type: AppearanceAdjustRow,
+							min: fontSizeLimit.min,
+							max: fontSizeLimit.max,
+							step: fontSizeLimit.step,
+						},
+						{
+							desc: "Alignment",
+							key: "alignment",
+							type: AppearanceSelectRow,
+							options: {
+								left: "Left",
+								center: "Center",
+								right: "Right",
+							},
+						},
+						{
+							desc: "Fullscreen hotkey",
+							info: "Focus the field, then press the shortcut you want to use.",
+							key: "fullscreen-key",
+							type: AppearanceHotkeyRow,
+						},
+					]}
+					onChange={onChange}
+				/>
+			</SettingsSection>
+			<SettingsSection title="Compact lyrics">
+				<AppearanceOptions
+					items={[
+						{
+							desc: "Lines before",
+							key: "lines-before",
+							type: AppearanceSelectRow,
+							options: [0, 1, 2, 3, 4],
+						},
+						{
+							desc: "Lines after",
+							key: "lines-after",
+							type: AppearanceSelectRow,
+							options: [0, 1, 2, 3, 4],
+						},
+						{
+							desc: "Fade-out blur",
+							info: "Softly blur lines as they leave the compact view.",
+							key: "fade-blur",
+							type: AppearanceToggleRow,
+						},
+					]}
+					onChange={onChange}
+				/>
+			</SettingsSection>
+			<SettingsSection title="Backdrop">
+				<AppearanceOptions
+					items={[
+						{
+							desc: "Noise overlay",
+							info: "Add subtle texture behind the lyrics.",
+							key: "noise",
+							type: AppearanceToggleRow,
+						},
+						{
+							desc: "Colorful background",
+							info: "Derive the backdrop and text colors from the current artwork.",
+							key: "colorful",
+							type: AppearanceToggleRow,
+						},
+						{
+							desc: "Background color",
+							key: "background-color",
+							type: AppearanceTextRow,
+							when: () => !CONFIG.visual.colorful,
+						},
+						{
+							desc: "Active text color",
+							key: "active-color",
+							type: AppearanceTextRow,
+							when: () => !CONFIG.visual.colorful,
+						},
+						{
+							desc: "Inactive text color",
+							key: "inactive-color",
+							type: AppearanceTextRow,
+							when: () => !CONFIG.visual.colorful,
+						},
+						{
+							desc: "Highlight text background",
+							key: "highlight-color",
+							type: AppearanceTextRow,
+							when: () => !CONFIG.visual.colorful,
+						},
+					]}
+					onChange={onChange}
+				/>
+			</SettingsSection>
+			<SettingsSection title="Advanced text detection">
+				<AppearanceOptions
+					items={[
+						{
+							desc: "Japanese threshold",
+							info: "Kana percentage used to distinguish Japanese lyrics from Chinese lyrics.",
+							key: "ja-detect-threshold",
+							type: AppearanceAdjustRow,
+							min: thresholdSizeLimit.min,
+							max: thresholdSizeLimit.max,
+							step: thresholdSizeLimit.step,
+						},
+						{
+							desc: "Simplified Chinese threshold",
+							info: "Character percentage used to distinguish Simplified from Traditional Chinese.",
+							key: "hans-detect-threshold",
+							type: AppearanceAdjustRow,
+							min: thresholdSizeLimit.min,
+							max: thresholdSizeLimit.max,
+							step: thresholdSizeLimit.step,
+						},
+					]}
+					onChange={onChange}
+				/>
+			</SettingsSection>
+		</div>
 	);
 }
 
 export function openLyricsPlusAppearanceSettings() {
-	Spicetify.PopupModal.display({
+	displayModal({
 		title: "Lyrics Plus appearance",
 		content: react.createElement(LyricsPlusAppearanceSettings),
-		isLarge: true,
 	});
 }
 
