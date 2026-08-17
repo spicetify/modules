@@ -135,7 +135,7 @@ jobs:
             run: npm test --prefix packages/kit
 
          -  name: Build generated projects
-            run: npm exec -- node packages/kit/scripts/create-smoke.mjs
+            run: node packages/kit/scripts/create-smoke.mjs
             env:
                SPICETIFY_KIT_VENDOR_CLASSMAPS: ${{ github.workspace }}/classmaps
 

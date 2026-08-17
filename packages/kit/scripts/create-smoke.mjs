@@ -11,8 +11,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const kitRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const npmCli = process.env.npm_execpath;
-assert.ok(npmCli && existsSync(npmCli), "run this smoke through `npm exec -- node ...`");
+const executableDir = path.dirname(process.execPath);
+const npmCli = [
+	process.env.npm_execpath,
+	path.join(executableDir, "node_modules", "npm", "bin", "npm-cli.js"),
+	path.resolve(executableDir, "..", "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+].find((candidate) => candidate && existsSync(candidate));
+assert.ok(npmCli, `cannot locate npm's JavaScript CLI beside ${process.execPath}`);
 const workspace = mkdtempSync(path.join(tmpdir(), "spicetify-kit-create-"));
 
 function run(command, args, cwd, env = process.env) {

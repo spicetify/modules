@@ -42,9 +42,9 @@
 		"stdlibVersion": "1.10.0"
 	},
 	"scripts": {
-		"build": "../../node_modules/.bin/tsc -p tsconfig.build.json",
+		"build": "tsc -p tsconfig.build.json",
 		"test": "node --test \"test/*.test.mts\"",
-		"prepack": "node scripts/sync-vendor.ts && ../../node_modules/.bin/tsc -p tsconfig.build.json"
+		"prepack": "node scripts/sync-vendor.ts && tsc -p tsconfig.build.json"
 	},
 	"dependencies": {
 		"rolldown": "^1.2.0",
