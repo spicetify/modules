@@ -961,6 +961,14 @@
 					"providers": [],
 					"checksum": "sha256:206b12ee3c202997ce5a23f81cef0c5a8653f2ea50730de85cf6698ae79a76ca",
 					"updatedAt": "2026-08-13"
+				},
+				"0.2.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/new-releases@0.2.1/new-releases@0.2.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:c5a88ad9ec1ffa3ccb748fad2c0f37f5839b3240904872e9db6710fa6c587bc4",
+					"updatedAt": "2026-08-17"
 				}
 			},
 			"metadata": {
