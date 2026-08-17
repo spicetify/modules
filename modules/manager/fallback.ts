@@ -10,6 +10,7 @@
 // mounts as a fixed card so recovery does not even depend on navigation.
 
 import { deriveManagerState, type ManagerModuleRow } from "./state.ts";
+import { managerModules, managerRuntime } from "./runtime.ts";
 
 export interface FallbackActions {
 	disable(id: string): unknown;
@@ -72,8 +73,8 @@ export function captureHealthy(react: unknown): boolean {
 }
 
 export function mountManagerFallback(): () => void {
-	const g = globalThis as never as Record<string, any>;
-	const M = g.Spicetify?.Modules;
+	const g = managerRuntime();
+	const M = managerModules();
 	const actions: FallbackActions = {
 		disable: (id) => M?.disable?.(id),
 		enable: (id) => M?.enable?.(id),

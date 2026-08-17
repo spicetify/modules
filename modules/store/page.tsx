@@ -18,7 +18,7 @@
 import type { ReactElement, ReactNode } from "react";
 import type * as KitClasses from "/modules/stdlib/lib/primitives-classes.ts";
 import type * as UIKit from "/modules/stdlib/lib/primitives.tsx";
-import type * as ReactExpose from "/modules/stdlib/src/expose/React.ts";
+import type * as Stdlib from "/modules/stdlib/mod.ts";
 
 import {
 	type BackupSnippet,
@@ -60,8 +60,8 @@ import { pendingUpdates } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
 
-let React: typeof ReactExpose.React;
-let ReactDOM: typeof ReactExpose.ReactDOM;
+let React: typeof Stdlib.React;
+let ReactDOM: typeof Stdlib.ReactDOM;
 let Badge: typeof UIKit.Badge;
 let Button: typeof UIKit.Button;
 let Chip: typeof UIKit.Chip;
@@ -74,12 +74,12 @@ let SEARCHBAR_CLASS: typeof KitClasses.SEARCHBAR_CLASS;
 // stdlib is absent or broken this rejects and index.ts drops to the
 // vanilla fallback panel.
 export async function loadPageDeps(): Promise<void> {
-	const [expose, primitives, classes] = await Promise.all([
-		import("/modules/stdlib/src/expose/React.js"),
+	const [stdlib, primitives, classes] = await Promise.all([
+		import("/modules/stdlib/mod.js"),
 		import("/modules/stdlib/lib/primitives.js"),
 		import("/modules/stdlib/lib/primitives-classes.js"),
 	]);
-	({ React, ReactDOM } = expose);
+	({ React, ReactDOM } = stdlib);
 	({ Badge, Button, Chip, Dialog, Select } = primitives);
 	({ SEARCHBAR_CLASS } = classes);
 }

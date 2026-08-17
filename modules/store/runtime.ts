@@ -5,6 +5,16 @@
 
 export const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
 export const PLATFORM = () => (globalThis as never as Record<string, any>).Spicetify?.Platform;
+export const CORS_PROXY = () =>
+	(globalThis as never as { Spicetify?: { CORSProxy?: { fetch?: typeof fetch } } }).Spicetify?.CORSProxy;
+
+export type StoreDaemonApi = {
+	available: () => Promise<boolean>;
+	uninstallStaged?: (id: string, version: string) => Promise<unknown>;
+};
+
+export const DAEMON = (): StoreDaemonApi | null =>
+	(globalThis as never as { Spicetify?: { Daemon?: StoreDaemonApi } }).Spicetify?.Daemon ?? null;
 
 // Native Spotify toast (Encore Snackbar) for every terminal outcome, with a
 // showNotification fallback for older clients. The store's inline status line

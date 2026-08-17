@@ -9,10 +9,7 @@
  * public browse Web API a v3 module cannot proxy dependably.
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
+import { client, createRegistrar, NavLink, React, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { Button, Chip, IconButton, Select } from "/modules/stdlib/lib/primitives.js";
 import {
 	DAY_MS,
@@ -113,7 +110,7 @@ const writeDismissed = (list: string[]): void =>
 
 // The artists the user follows (LibraryAPI content filtered to artists).
 async function getFollowedArtists(): Promise<Array<{ name: string; uri: string }>> {
-	const res = await Spicetify?.Platform?.LibraryAPI?.getContents?.({
+	const res = await client.platform?.LibraryAPI?.getContents?.({
 		filters: ["1"],
 		sortOrder: ["0"],
 		textFilter: "",
@@ -127,13 +124,13 @@ async function getFollowedArtists(): Promise<Array<{ name: string; uri: string }
 // every release type inside the widest window; type/range filtering happens in
 // the view over the cached superset, not here.
 async function getArtistReleases(artist: { name: string; uri: string }, cutoff: number): Promise<Release[]> {
-	const def = Spicetify?.GraphQL?.Definitions?.queryArtistDiscographyAll ?? {
+	const def = client.graphQL?.Definitions?.queryArtistDiscographyAll ?? {
 		name: "queryArtistDiscographyAll",
 		operation: "query",
 		sha256Hash: "9380995a9d4663cbcb5113fef3c6aabf70ae6d407ba61793fd01e2a1dd6929b0",
 		value: null,
 	};
-	const { data, errors } = await Spicetify.GraphQL.Request(def, { uri: artist.uri, offset: 0, limit: 100 });
+	const { data, errors } = await client.graphQL.Request(def, { uri: artist.uri, offset: 0, limit: 100 });
 	if (errors) throw errors;
 
 	const raw = data?.artistUnion?.discography?.all?.items?.flatMap((r: any) => r.releases?.items ?? []) ?? [];
@@ -201,14 +198,14 @@ const writeCache = (cache: CacheShape): void => {
 
 const uriToPath = (uri: string): string => {
 	try {
-		return Spicetify?.URI?.fromString?.(uri)?.toURLPath?.(true) ?? "";
+		return client.uri?.fromString?.(uri)?.toURLPath?.(true) ?? "";
 	} catch {
 		return "";
 	}
 };
 const navigate = (uri: string): void => {
 	const path = uriToPath(uri);
-	if (path) Spicetify?.Platform?.History?.push?.(path);
+	if (path) client.platform?.History?.push?.(path);
 };
 
 // ---------- card ----------
@@ -256,7 +253,7 @@ const ReleaseCard = ({
 					aria-label={`Play ${release.title}`}
 					onClick={(e) => {
 						e.stopPropagation();
-						Spicetify?.Player?.playUri?.(release.uri);
+						client.player?.playUri?.(release.uri);
 					}}
 				>
 					<PlayIcon />

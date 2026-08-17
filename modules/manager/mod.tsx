@@ -3,10 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
+import { createRegistrar, Platform, React, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { Button, SettingsRow, SettingsSection } from "/modules/stdlib/lib/primitives.js";
 
 import { ManagerPage } from "./page.tsx";

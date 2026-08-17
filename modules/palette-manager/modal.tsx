@@ -3,14 +3,9 @@
  */
 
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
-import { client } from "/modules/stdlib/mod.ts";
+import { client, Color, createIconComponent, Platform, React, startCase } from "/modules/stdlib/mod.ts";
 import { Palette, PaletteManager } from "./palette.ts";
-import { createIconComponent } from "/modules/stdlib/src/createIconComponent.tsx";
-import { startCase } from "/modules/stdlib/deps.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
 import type { ChangeEvent } from "react";
-import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
 
 // Context-free menu row: the client MenuItem needs the client tree's
 // navigation providers, which modal anchors don't have. Styled by the

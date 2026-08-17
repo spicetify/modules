@@ -1,7 +1,7 @@
 {
 	"name": "manager",
 	"kind": "app",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"authors": ["spicetify", "Afonso Jorge Ramos"],
 	"description": "Manage spicetify from inside Spotify",
 	"entries": {
@@ -10,7 +10,7 @@
 	},
 	"hasMixins": false,
 	"dependencies": {
-		"stdlib": "^1.6.0"
+		"stdlib": "^1.10.0"
 	},
 	"hidden": true
 }

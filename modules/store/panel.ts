@@ -13,7 +13,7 @@ export function createTopbarButton(onClick: () => void) {
 	// Append to body (never inside React-managed containers) and position over
 	// the topbar; React reconciliation must not find or touch this node.
 	const host = el("div", "spicetify-store-anchor");
-	const btn = el("button", `${MAP.main.topbar.right.button.wrapper} spicetify-store-btn`, "Store");
+	const btn = el("button", "spicetify-store-btn", "Store");
 	btn.setAttribute("aria-label", "Open module store");
 	btn.addEventListener("click", onClick);
 	host.appendChild(btn);

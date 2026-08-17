@@ -8,7 +8,7 @@
 
 // OptionsMenu.js — the options, translation and adjustments menus.
 
-import { React as react } from "/modules/stdlib/src/expose/React.ts";
+import { client, React as react } from "/modules/stdlib/mod.ts";
 import { Popover, PopoverMenu, PopoverMenuItem } from "/modules/stdlib/lib/primitives.js";
 import {
 	APP_NAME,
@@ -369,7 +369,7 @@ export const AdjustmentsMenu = react.memo(({ mode, hasPerformer }) => {
 						CONFIG.visual[name] = value;
 						localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
 						if (name === "delay")
-							localStorage.setItem(`lyrics-delay:${Spicetify.Player.data.item.uri}`, value);
+							localStorage.setItem(`lyrics-delay:${client.player.data.item.uri}`, value);
 						sharedCallbacks.lyricContainerUpdate?.();
 					},
 				}),

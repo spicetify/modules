@@ -3,10 +3,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
-import { SPICETIFY_SETTINGS_ROUTE } from "/modules/stdlib/mod.ts";
+import {
+	closeMenu,
+	openedFromProfileMenu,
+	Platform,
+	SPICETIFY_SETTINGS_ROUTE,
+	useMenuItem,
+} from "/modules/stdlib/mod.ts";
 import { MenuItem } from "/modules/stdlib/lib/primitives.js";
-import { closeMenu, openedFromProfileMenu, useMenuItem } from "/modules/stdlib/src/registers/menu.ts";
 
 export const MANAGER_ROUTE = "/bespoke/manager";
 

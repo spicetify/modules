@@ -8,11 +8,11 @@
 
 // TabBar.js — the provider tab bar rendered into the top bar.
 
-import { React as react } from "/modules/stdlib/src/expose/React.ts";
+import { client, React as react } from "/modules/stdlib/mod.ts";
 import { OptionsMenu } from "./options-menu.tsx";
 
 const { useState, useEffect } = react;
-const spotifyVersion = Spicetify.Platform.version;
+const spotifyVersion = client.platform.version;
 
 export class TabBarItem extends react.Component {
 	onSelect(event) {
@@ -120,7 +120,7 @@ export const TabBarContext = ({ children }) => {
 	// The classic app portaled the mode switcher into the client top bar. v3 has
 	// no such wrapper, so fall back to rendering it inline within the route.
 	const target = document.querySelector(".main-topBar-topbarContentWrapper");
-	return target ? Spicetify.ReactDOM.createPortal(content, target) : content;
+	return target ? client.reactDOM.createPortal(content, target) : content;
 };
 
 export const TabBar = react.memo(

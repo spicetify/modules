@@ -11,10 +11,7 @@ import { announceUpdates } from "./updates.ts";
 
 async function registerStorePage(page: ReturnType<typeof createStorePage>): Promise<(() => void) | null> {
 	try {
-		const [{ Registrar }, { React }] = await Promise.all([
-			import("/modules/stdlib/src/registers/index.js"),
-			import("/modules/stdlib/src/expose/React.js"),
-		]);
+		const { React, Registrar } = await import("/modules/stdlib/mod.js");
 		const registrar = new Registrar("store-page");
 		// Hook-free host: the route overlay renders it with the client
 		// React; the vanilla page node mounts through the ref.
@@ -49,11 +46,7 @@ const STORE_ICON_OUTLINE =
 
 async function createStdlibNavlink(): Promise<(() => void) | null> {
 	try {
-		const [{ Registrar }, { NavLink }, { React }] = await Promise.all([
-			import("/modules/stdlib/src/registers/index.js"),
-			import("/modules/stdlib/src/registers/navlink.js"),
-			import("/modules/stdlib/src/expose/React.js"),
-		]);
+		const { NavLink, React, Registrar } = await import("/modules/stdlib/mod.js");
 		const registrar = new Registrar("store");
 		registrar.register(
 			"navlink",

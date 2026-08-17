@@ -36,8 +36,8 @@ describe("Bookmark owned panel", () => {
 	});
 
 	it("ships as a Bookmark feature release against the owned-panel stdlib", () => {
-		assert.equal(metadata.version, "0.4.0");
-		assert.equal(metadata.dependencies.stdlib, "^1.7.0");
+		assert.equal(metadata.version, "0.4.1");
+		assert.equal(metadata.dependencies.stdlib, "^1.10.0");
 		assert.match(metadata.description, /sidebar panel/i);
 	});
 });

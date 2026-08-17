@@ -9,8 +9,7 @@
 // Pages.js — the 11 lyrics page components, the largest UI leaf. No references
 // to lyricContainerUpdate/reloadLyrics, so no callback plumbing lives here.
 
-import { React as react } from "/modules/stdlib/src/expose/React.ts";
-import { client } from "/modules/stdlib/mod.ts";
+import { client, React as react } from "/modules/stdlib/mod.ts";
 import { CONFIG } from "./config.ts";
 import { ProviderGenius } from "./providers/genius.ts";
 import { convertParsedToLRC, convertParsedToUnsynced } from "./utils.ts";
@@ -19,7 +18,7 @@ const { useState, useEffect, useMemo, useRef } = react;
 
 export const CreditFooter = react.memo(({ provider, copyright }) => {
 	if (provider === "local") return null;
-	const credit = [Spicetify.Locale.get("web-player.lyrics.providedBy", provider)];
+	const credit = [client.locale.get("web-player.lyrics.providedBy", provider)];
 	if (copyright) {
 		credit.push(...copyright.split("\n"));
 	}
@@ -202,7 +201,7 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 	const lyricContainerEle = useRef();
 
 	useTrackPosition(() => {
-		const newPos = Spicetify.Player.getProgress();
+		const newPos = client.player.getProgress();
 		const delay = CONFIG.visual["global-delay"] + CONFIG.visual.delay;
 		if (newPos !== position) {
 			setPosition(newPos + delay);
@@ -370,7 +369,7 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 						key: lineNumber,
 						onClick: () => {
 							if (startTime) {
-								Spicetify.Player.seek(startTime);
+								client.player.seek(startTime);
 							}
 						},
 					},
@@ -381,13 +380,11 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 								{
 									onContextMenu: (event) => {
 										event.preventDefault();
-										Spicetify.Platform.ClipboardAPI.copy(
+										client.platform.ClipboardAPI.copy(
 											convertParsedToLRC(lyrics, belowMode).original,
 										)
-											.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-											.catch(() =>
-												Spicetify.showNotification("Failed to copy lyrics to clipboard"),
-											);
+											.then(() => client.notify("Lyrics copied to clipboard"))
+											.catch(() => client.notify("Failed to copy lyrics to clipboard"));
 									},
 								},
 								renderPerformer(
@@ -414,11 +411,9 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 								},
 								onContextMenu: (event) => {
 									event.preventDefault();
-									Spicetify.Platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).conver)
-										.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-										.catch(() =>
-											Spicetify.showNotification("Failed to copy translated lyrics to clipboard"),
-										);
+									client.platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).conver)
+										.then(() => client.notify("Translated lyrics copied to clipboard"))
+										.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
 								},
 							},
 							text,
@@ -448,7 +443,7 @@ export class SearchBar extends react.Component {
 		this.viewPort = document.querySelector(".main-view-container .os-viewport");
 		this.mainViewOffsetTop = document.querySelector(".Root__main-view").offsetTop;
 		this.toggleCallback = () => {
-			if (!(Spicetify.Platform.History.location.pathname === "/lyrics-plus" && this.container)) return;
+			if (!(client.platform.History.location.pathname === "/lyrics-plus" && this.container)) return;
 
 			if (this.state.hidden) {
 				this.setState({ hidden: false });
@@ -559,7 +554,7 @@ export class SearchBar extends react.Component {
 				viewBox: "0 0 16 16",
 				fill: "currentColor",
 				dangerouslySetInnerHTML: {
-					__html: Spicetify.SVGIcons.search,
+					__html: client.icons.search,
 				},
 			}),
 			react.createElement(
@@ -592,14 +587,14 @@ function isInViewport(element) {
 
 export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara }) => {
 	const [position, setPosition] = useState(
-		() => Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay,
+		() => client.player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay,
 	);
 	const activeLineRef = useRef(null);
 	const pageRef = useRef(null);
 
 	useTrackPosition(() => {
-		if (!Spicetify.Player.data.is_paused) {
-			setPosition(Spicetify.Player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
+		if (!client.player.data.is_paused) {
+			setPosition(client.player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 		}
 	});
 
@@ -724,7 +719,7 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 					ref: isFocused ? activeLineRef : null,
 					onClick: () => {
 						if (startTime) {
-							Spicetify.Player.seek(startTime);
+							client.player.seek(startTime);
 						}
 					},
 				},
@@ -735,9 +730,9 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 							{
 								onContextMenu: (event) => {
 									event.preventDefault();
-									Spicetify.Platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).original)
-										.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-										.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+									client.platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).original)
+										.then(() => client.notify("Lyrics copied to clipboard"))
+										.catch(() => client.notify("Failed to copy lyrics to clipboard"));
 								},
 							},
 							renderPerformer(performer, padded[i - 1]?.performer, CONFIG.visual["synced-compact"]),
@@ -752,11 +747,9 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 							style: { opacity: 0.5 },
 							onContextMenu: (event) => {
 								event.preventDefault();
-								Spicetify.Platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-									.catch(() =>
-										Spicetify.showNotification("Failed to copy translated lyrics to clipboard"),
-									);
+								client.platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).conver)
+									.then(() => client.notify("Translated lyrics copied to clipboard"))
+									.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
 							},
 						},
 						text,
@@ -814,9 +807,9 @@ export const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) =
 					{
 						onContextMenu: (event) => {
 							event.preventDefault();
-							Spicetify.Platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).original)
-								.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-								.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+							client.platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).original)
+								.then(() => client.notify("Lyrics copied to clipboard"))
+								.catch(() => client.notify("Failed to copy lyrics to clipboard"));
 						},
 					},
 					renderPerformer(performer, lyrics[index - 1]?.performer, false),
@@ -829,11 +822,9 @@ export const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) =
 							style: { opacity: 0.5 },
 							onContextMenu: (event) => {
 								event.preventDefault();
-								Spicetify.Platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).conver)
-									.then(() => Spicetify.showNotification("Translated lyrics copied to clipboard"))
-									.catch(() =>
-										Spicetify.showNotification("Failed to copy translated lyrics to clipboard"),
-									);
+								client.platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).conver)
+									.then(() => client.notify("Translated lyrics copied to clipboard"))
+									.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
 							},
 						},
 						text,
@@ -946,9 +937,9 @@ export const GeniusPage = react.memo(
 				onContextMenu: (event) => {
 					event.preventDefault();
 					const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
-					Spicetify.Platform.ClipboardAPI.copy(copylyrics)
-						.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-						.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+					client.platform.ClipboardAPI.copy(copylyrics)
+						.then(() => client.notify("Lyrics copied to clipboard"))
+						.catch(() => client.notify("Failed to copy lyrics to clipboard"));
 				},
 			}),
 		);
@@ -976,9 +967,9 @@ export const GeniusPage = react.memo(
 					onContextMenu: (event) => {
 						event.preventDefault();
 						const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
-						Spicetify.Platform.ClipboardAPI.copy(copylyrics)
-							.then(() => Spicetify.showNotification("Lyrics copied to clipboard"))
-							.catch(() => Spicetify.showNotification("Failed to copy lyrics to clipboard"));
+						client.platform.ClipboardAPI.copy(copylyrics)
+							.then(() => client.notify("Lyrics copied to clipboard"))
+							.catch(() => client.notify("Failed to copy lyrics to clipboard"));
 					},
 				}),
 			);

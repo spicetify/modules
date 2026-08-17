@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { ClientCapabilities } from "/modules/stdlib/src/client.ts";
+import type { ClientCapabilities } from "/modules/stdlib/mod.ts";
 
 type LyricsClient = Pick<ClientCapabilities, "cosmos">;
 

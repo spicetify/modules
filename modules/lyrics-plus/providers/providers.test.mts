@@ -170,7 +170,11 @@ describe("ProviderMusixmatch", () => {
 });
 
 describe("createProviders registry", () => {
-	const providers = createProviders({ trackDurationMs: () => 0, simplifyChinese: async (s) => s });
+	const providers = createProviders({
+		trackDurationMs: () => 0,
+		simplifyChinese: async (s) => s,
+		spicetifyVersion: () => "3.2.0",
+	});
 
 	it("exposes exactly the six entries, all callable", () => {
 		assert.deepEqual(Object.keys(providers).sort(), [
@@ -199,5 +203,26 @@ describe("createProviders registry", () => {
 
 	it("imports clean with stub deps - client policy is injected, not read", () => {
 		assert.equal(typeof (globalThis as never as Record<string, unknown>).Spicetify, "undefined");
+	});
+
+	it("injects the Spicetify version into LRCLIB's user agent", async () => {
+		const originalFetch = globalThis.fetch;
+		let userAgent: string | undefined;
+		globalThis.fetch = (async (_input, init) => {
+			userAgent = new Headers(init?.headers).get("x-user-agent") ?? undefined;
+			return { status: 200, json: async () => ({ plainLyrics: "line" }) } as Response;
+		}) as typeof fetch;
+		try {
+			await providers.lrclib({
+				uri: "spotify:track:test",
+				title: "Title",
+				artist: "Artist",
+				album: "Album",
+				duration: 1000,
+			});
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+		assert.equal(userAgent, "spicetify v3.2.0 (https://github.com/spicetify/cli)");
 	});
 });

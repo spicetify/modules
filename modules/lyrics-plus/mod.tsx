@@ -15,11 +15,14 @@
 // be disproportionate and fragile; correctness is verified live against the
 // running client instead. oxlint still lints this file for real defects.
 
-import { client, createRegistrar } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React as react } from "/modules/stdlib/src/expose/React.ts";
-import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
-import { PlaybarButton } from "/modules/stdlib/src/registers/playbarButton.tsx";
+import {
+	client,
+	createRegistrar,
+	NavLink,
+	PlaybarButton,
+	React as react,
+	type ModuleRuntimeContext,
+} from "/modules/stdlib/mod.ts";
 import { SettingsSection, Tooltip } from "/modules/stdlib/lib/primitives.js";
 
 import {
@@ -110,10 +113,10 @@ function resolveTranslationSource(source) {
 
 const Utils = {
 	addQueueListener(callback) {
-		Spicetify.Player.origin._events.addListener("queue_update", callback);
+		client.player.origin._events.addListener("queue_update", callback);
 	},
 	removeQueueListener(callback) {
-		Spicetify.Player.origin._events.removeListener("queue_update", callback);
+		client.player.origin._events.removeListener("queue_update", callback);
 	},
 	/**
 	 * Singleton Translator instance for {@link toSimplifiedChinese}.
@@ -150,13 +153,13 @@ const Utils = {
 		}));
 	},
 	rubyTextToOriginalReact(translated, syncedText) {
-		const react = Spicetify.React;
+		const react = client.react;
 		return react.createElement("p1", null, [
 			react.createElement("ruby", {}, syncedText, react.createElement("rt", null, translated)),
 		]);
 	},
 	rubyTextToReact(s) {
-		const react = Spicetify.React;
+		const react = client.react;
 		const rubyElems = s.split("<ruby>");
 		const reactChildren = [];
 
@@ -180,7 +183,7 @@ Object.assign(Utils, UtilsPure);
 
 // parseLocalLyrics used to read this itself. It is passed in now so the parser
 // stays client-free; this helper keeps the value identical to what it read.
-const currentTrackDurationMs = () => Number(Spicetify.Player.data?.item?.metadata?.duration) || 0;
+const currentTrackDurationMs = () => Number(client.player.data?.item?.metadata?.duration) || 0;
 
 // ============================================================================
 // Translator.js
@@ -366,6 +369,7 @@ class Translator {
 const Providers = createProviders({
 	trackDurationMs: currentTrackDurationMs,
 	simplifyChinese: (s) => Utils.toSimplifiedChinese(s),
+	spicetifyVersion: () => client.spicetifyVersion,
 });
 
 // ============================================================================
@@ -467,8 +471,8 @@ class LyricsContainer extends react.Component {
 		let vibrant = 0;
 		try {
 			try {
-				const { fetchExtractedColorForTrackEntity } = Spicetify.GraphQL.Definitions;
-				const { data } = await Spicetify.GraphQL.Request(fetchExtractedColorForTrackEntity, { uri });
+				const { fetchExtractedColorForTrackEntity } = client.graphQL.Definitions;
+				const { data } = await client.graphQL.Request(fetchExtractedColorForTrackEntity, { uri });
 				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
 				vibrant = Number.parseInt(hex.replace("#", ""), 16);
 			} catch {
@@ -559,7 +563,7 @@ class LyricsContainer extends react.Component {
 
 		const currentLanguage = selectedLanguage;
 
-		Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_MESSAGE, false, 1000);
+		client.notify(MUSIXMATCH_TRANSLATION_FETCH_MESSAGE, false, 1000);
 
 		this.setState({
 			musixmatchTranslation: null,
@@ -572,7 +576,7 @@ class LyricsContainer extends react.Component {
 		} catch (error) {
 			console.error(error);
 			if (isLatestRequest()) {
-				Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
+				client.notify(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
 				if (CACHE[currentUri]) {
 					CACHE[currentUri].musixmatchTranslation = null;
 					CACHE[currentUri].musixmatchTranslationLanguage = null;
@@ -584,7 +588,7 @@ class LyricsContainer extends react.Component {
 
 		if (!translation) {
 			if (isLatestRequest()) {
-				Spicetify.showNotification(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
+				client.notify(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
 				if (CACHE[currentUri]) {
 					CACHE[currentUri].musixmatchTranslation = null;
 					CACHE[currentUri].musixmatchTranslationLanguage = null;
@@ -943,7 +947,7 @@ class LyricsContainer extends react.Component {
 	async translateLyrics(language, lyrics, targetConvert) {
 		if (!language) return;
 
-		Spicetify.showNotification("Converting...", false, 1000);
+		client.notify("Converting...", false, 1000);
 		if (!this.translator) {
 			this.translator = new Translator(language);
 		}
@@ -985,7 +989,7 @@ class LyricsContainer extends react.Component {
 
 				// prevent conversion between the same language.
 				if (targetConvert === "cn") {
-					Spicetify.showNotification("No conversion is needed", false, 1000);
+					client.notify("No conversion is needed", false, 1000);
 					return lyrics;
 				}
 
@@ -1009,7 +1013,7 @@ class LyricsContainer extends react.Component {
 
 				// prevent conversion between the same language.
 				if (targetConvert === "tw") {
-					Spicetify.showNotification("No conversion is needed", false, 1000);
+					client.notify("No conversion is needed", false, 1000);
 					return lyrics;
 				}
 
@@ -1026,16 +1030,16 @@ class LyricsContainer extends react.Component {
 			}
 
 			const res = Utils.processTranslatedLyrics(result, lyrics);
-			Spicetify.showNotification("Converting...", false, 0);
+			client.notify("Converting...", false, 0);
 			return res;
 		} catch (error) {
-			Spicetify.showNotification("Convert Error!", true);
+			client.notify("Convert Error!", true);
 			console.error(error);
 		}
 	}
 
 	resetDelay() {
-		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${Spicetify.Player.data.item.uri}`)) || 0;
+		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${client.player.data.item.uri}`)) || 0;
 	}
 
 	async onVersionChange(items, index) {
@@ -1105,7 +1109,7 @@ class LyricsContainer extends react.Component {
 		const reader = new FileReader();
 
 		if (file[0].size > 1024 * 1024) {
-			Spicetify.showNotification("File too large", true);
+			client.notify("File too large", true);
 			return;
 		}
 
@@ -1118,7 +1122,7 @@ class LyricsContainer extends react.Component {
 					.map((key) => `<strong>${key}</strong>`);
 
 				if (!parsedKeys.length) {
-					Spicetify.showNotification("Nothing to load", true);
+					client.notify("Nothing to load", true);
 					return;
 				}
 
@@ -1126,16 +1130,16 @@ class LyricsContainer extends react.Component {
 				CACHE[this.currentTrackUri] = { ...localLyrics, provider: "local", uri: this.currentTrackUri };
 				this.saveLocalLyrics(this.currentTrackUri, localLyrics);
 
-				Spicetify.showNotification(`Loaded ${parsedKeys.join(", ")} lyrics from file`);
+				client.notify(`Loaded ${parsedKeys.join(", ")} lyrics from file`);
 			} catch (e) {
 				console.error(e);
-				Spicetify.showNotification("Failed to load lyrics", true);
+				client.notify("Failed to load lyrics", true);
 			}
 		};
 
 		reader.onerror = (e) => {
 			console.error(e);
-			Spicetify.showNotification("Failed to read file", true);
+			client.notify("Failed to read file", true);
 		};
 
 		reader.readAsText(file[0]);
@@ -1168,10 +1172,10 @@ class LyricsContainer extends react.Component {
 			});
 		};
 
-		if (Spicetify.Player?.data?.item) {
+		if (client.player?.data?.item) {
 			this.state.explicitMode = this.state.lockMode;
-			this.currentTrackUri = Spicetify.Player.data.item.uri;
-			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode);
+			this.currentTrackUri = client.player.data.item.uri;
+			this.fetchLyrics(client.player.data.item, this.state.explicitMode);
 		}
 
 		this.updateVisualOnConfigChange();
@@ -1192,7 +1196,7 @@ class LyricsContainer extends react.Component {
 			CACHE = {};
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
-			this.fetchLyrics(Spicetify.Player.data.item, this.state.explicitMode, true);
+			this.fetchLyrics(client.player.data.item, this.state.explicitMode, true);
 		});
 
 		this.viewPort =
@@ -1467,16 +1471,16 @@ class LyricsContainer extends react.Component {
 							onClick: () => {
 								const { synced, unsynced, karaoke, genius } = this.state;
 								if (!synced && !unsynced && !karaoke && !genius) {
-									Spicetify.showNotification("No lyrics to cache", true);
+									client.notify("No lyrics to cache", true);
 									return;
 								}
 
 								if (this.state.isCached) {
 									this.deleteLocalLyrics(this.currentTrackUri);
-									Spicetify.showNotification("Delete lyrics cache");
+									client.notify("Delete lyrics cache");
 								} else {
 									this.saveLocalLyrics(this.currentTrackUri, { synced, unsynced, karaoke, genius });
-									Spicetify.showNotification("Lyrics cached");
+									client.notify("Lyrics cached");
 								}
 							},
 						},
@@ -1486,7 +1490,7 @@ class LyricsContainer extends react.Component {
 							viewBox: "0 0 16 16",
 							fill: "currentColor",
 							dangerouslySetInnerHTML: {
-								__html: Spicetify.SVGIcons[this.state.isCached ? "downloaded" : "download"],
+								__html: client.icons[this.state.isCached ? "downloaded" : "download"],
 							},
 						}),
 					),
@@ -1520,7 +1524,7 @@ class LyricsContainer extends react.Component {
 							viewBox: "0 0 16 16",
 							fill: "currentColor",
 							dangerouslySetInnerHTML: {
-								__html: Spicetify.SVGIcons["plus-alt"],
+								__html: client.icons["plus-alt"],
 							},
 						}),
 					),
@@ -1535,13 +1539,13 @@ class LyricsContainer extends react.Component {
 					const mode = CONFIG.modes.findIndex((a) => a === label);
 					if (mode !== this.state.mode) {
 						// If explicitMode is not set, moving the topBar will apply the default mode value for the selected song.
-						const info = this.infoFromTrack(Spicetify.Player.data.item);
+						const info = this.infoFromTrack(client.player.data.item);
 						if (info?.uri && CACHE[info?.uri]) {
 							CACHE[info.uri].mode = mode;
 						}
 
 						this.setState({ explicitMode: mode });
-						if (this.state.provider !== "local") this.fetchLyrics(Spicetify.Player.data.item, mode);
+						if (this.state.provider !== "local") this.fetchLyrics(client.player.data.item, mode);
 					}
 				},
 				lockCallback: (label) => {
@@ -1550,15 +1554,15 @@ class LyricsContainer extends react.Component {
 						mode = -1;
 					}
 					this.setState({ explicitMode: mode, lockMode: mode });
-					this.fetchLyrics(Spicetify.Player.data.item, mode);
+					this.fetchLyrics(client.player.data.item, mode);
 					CONFIG.locked = mode;
 					localStorage.setItem("lyrics-plus:lock-mode", mode);
 				},
 			}),
 		);
 
-		if (this.state.isFullscreen) return Spicetify.ReactDOM.createPortal(out, this.fullscreenContainer);
-		if (fadLyricsContainer) return Spicetify.ReactDOM.createPortal(out, fadLyricsContainer);
+		if (this.state.isFullscreen) return client.reactDOM.createPortal(out, this.fullscreenContainer);
+		if (fadLyricsContainer) return client.reactDOM.createPortal(out, fadLyricsContainer);
 		return out;
 	}
 }
@@ -1571,15 +1575,13 @@ const PLAYBAR_ICON = `<path d="M13.426 2.574a2.831 2.831 0 0 0-4.797 1.55l3.247 
 
 function LyricsPlusPlaybarButton() {
 	const [history, setHistory] = react.useState<LyricsHistory | null>(null);
-	const [visible, setVisible] = react.useState(
-		Spicetify.LocalStorage.get("lyrics-plus:visual:playbar-button") === "true",
-	);
+	const [visible, setVisible] = react.useState(client.storage.get("lyrics-plus:visual:playbar-button") === "true");
 	const [active, setActive] = react.useState(false);
 
 	react.useEffect(
 		() =>
 			watchLyricsHistory(
-				() => Spicetify.Platform?.History,
+				() => client.platform?.History,
 				setHistory,
 				(pathname) => setActive(pathname === ROUTE),
 			),

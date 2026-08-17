@@ -2,8 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createStorage, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
+import { Color, createStorage, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 import { deserializeColors, paletteCSS, serializePalette, type PaletteData } from "./palette-logic.ts";
 

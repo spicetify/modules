@@ -14,7 +14,7 @@
 import { parseLocalLyrics } from "../utils.ts";
 
 export const ProviderLRCLIB = (() => {
-	async function findLyrics(info) {
+	async function findLyrics(info, spicetifyVersion) {
 		const baseURL = "https://lrclib.net/api/get";
 		const durr = info.duration / 1000;
 		const params = {
@@ -30,7 +30,7 @@ export const ProviderLRCLIB = (() => {
 
 		const body = await fetch(finalURL, {
 			headers: {
-				"x-user-agent": `spicetify v${Spicetify.Config.version} (https://github.com/spicetify/cli)`,
+				"x-user-agent": `spicetify${spicetifyVersion ? ` v${spicetifyVersion}` : ""} (https://github.com/spicetify/cli)`,
 			},
 		});
 

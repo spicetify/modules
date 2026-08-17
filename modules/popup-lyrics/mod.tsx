@@ -23,9 +23,7 @@
  *     is CORS-enabled and keeps using plain fetch.
  */
 
-import { client, createRegistrar, displayModal } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
+import { client, createRegistrar, displayModal, React, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import {
 	Select,
 	SettingsButtonRow,
@@ -230,9 +228,10 @@ export default async function (ctx: ModuleRuntimeContext) {
 				.map((key) => `${key}=${encodeURIComponent(params[key])}`)
 				.join("&")}`;
 
+			const spicetifyVersion = client.spicetifyVersion;
 			const body = await fetch(finalURL, {
 				headers: {
-					"x-user-agent": `spicetify v${client.config.version} (https://github.com/spicetify/cli)`,
+					"x-user-agent": `spicetify${spicetifyVersion ? ` v${spicetifyVersion}` : ""} (https://github.com/spicetify/cli)`,
 				},
 			});
 

@@ -9,8 +9,7 @@
 // Settings.js — contextual appearance controls plus provider settings shared
 // with the standalone Spicetify Settings page.
 
-import { React as react } from "/modules/stdlib/src/expose/React.ts";
-import { client, displayModal } from "/modules/stdlib/mod.ts";
+import { client, displayModal, React as react } from "/modules/stdlib/mod.ts";
 import {
 	IconButton,
 	Select,

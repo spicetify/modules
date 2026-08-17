@@ -24,6 +24,7 @@ import { ProviderNetease } from "./netease.ts";
 export interface ProviderDeps {
 	trackDurationMs: () => number;
 	simplifyChinese: (s: string) => Promise<string>;
+	spicetifyVersion: () => string | undefined;
 }
 
 export function createProviders(deps: ProviderDeps) {
@@ -217,7 +218,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderLRCLIB.findLyrics(info);
+				list = await ProviderLRCLIB.findLyrics(info, deps.spicetifyVersion());
 			} catch {
 				result.error = "No lyrics";
 				return result;

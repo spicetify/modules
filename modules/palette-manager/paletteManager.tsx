@@ -2,10 +2,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { TopbarRightButton } from "/modules/stdlib/src/registers/topbarRightButton.tsx";
+import { displayModal, React, TopbarRightButton } from "/modules/stdlib/mod.ts";
 import Modal from "./modal.tsx";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { displayModal } from "/modules/stdlib/mod.ts";
 
 export const EditButton = () => {
 	return (

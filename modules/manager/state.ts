@@ -7,6 +7,8 @@
 // loader-provided field can be absent (older CLI manifests, partial boots)
 // and renders as "unknown" rather than a guess.
 
+import { managerModules, managerRuntime, managerSpotifyVersion } from "./runtime.ts";
+
 export interface ManagerModuleRow {
 	id: string;
 	version: string;
@@ -41,22 +43,6 @@ export interface ManagerState {
 }
 
 type LoaderGlobals = {
-	Spicetify?: {
-		Platform?: { version?: string };
-		Modules?: {
-			manifest?: Manifest;
-			registry?: { manifest?: Manifest };
-			report?: { loaded: string[]; failed: Record<string, string> };
-			list?: () => Array<{
-				identifier: string;
-				version: string;
-				loaded: boolean;
-				mixedIn: boolean;
-				local?: boolean;
-				failed?: string;
-			}>;
-		};
-	};
 	__SPICETIFY_MODULAR_MANIFEST__?: Manifest;
 	__SPICETIFY_APPLY_TRANSFORMS__?: unknown;
 	__SPICETIFY_DIAGNOSTICS__?: DiagnosticsEntry[];
@@ -76,9 +62,9 @@ type Manifest = {
 };
 
 export function deriveManagerState(): ManagerState {
-	const g = globalThis as never as LoaderGlobals;
-	const M = g.Spicetify?.Modules;
-	const manifest = M?.manifest ?? M?.registry?.manifest ?? g.__SPICETIFY_MODULAR_MANIFEST__;
+	const g = managerRuntime() as LoaderGlobals;
+	const M = managerModules();
+	const manifest: Manifest | undefined = M?.manifest ?? M?.registry?.manifest ?? g.__SPICETIFY_MODULAR_MANIFEST__;
 
 	// list() is registry truth: it covers staged modules, live local
 	// installs, and removals, and its `local` flag marks records actually
@@ -97,7 +83,7 @@ export function deriveManagerState(): ManagerState {
 	// The desktop client's fourth build component does not affect classmap
 	// compatibility. Keep every Manager surface on the three-part line.
 	return {
-		spotifyVersion: spotifyVersionLine(g.Spicetify?.Platform?.version ?? manifest?.spotifyVersion),
+		spotifyVersion: spotifyVersionLine(managerSpotifyVersion() ?? manifest?.spotifyVersion),
 		classmapKey: manifest?.classmapKey,
 		cliVersion: manifest?.cliVersion,
 		updatesBlocked: manifest?.updatesBlocked,

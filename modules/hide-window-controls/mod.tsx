@@ -3,9 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { client, createRegistrar } from "/modules/stdlib/mod.ts";
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
+import { client, createRegistrar, React, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 import { SettingsRow, Toggle } from "/modules/stdlib/lib/primitives.js";
 
 import {

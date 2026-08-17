@@ -23,7 +23,7 @@ describe("Lyrics Plus owned floating-surface migration", () => {
 	});
 
 	it("declares the stdlib version that introduced floating surfaces", () => {
-		assert.equal(metadata.version, "0.2.2");
-		assert.equal(metadata.dependencies.stdlib, "^1.9.0");
+		assert.equal(metadata.version, "0.2.3");
+		assert.equal(metadata.dependencies.stdlib, "^1.10.0");
 	});
 });

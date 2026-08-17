@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { React } from "/modules/stdlib/src/expose/React.ts";
+import { client, React } from "/modules/stdlib/mod.ts";
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
@@ -20,7 +20,7 @@ import {
 } from "./state.ts";
 import { retryNotice } from "./notice.ts";
 
-const M = () => (globalThis as never as Record<string, any>).Spicetify.Modules;
+const M = () => client.modules;
 
 const LEVEL_CLASS: Record<string, string> = {
 	error: "spicetify-manager-diag--error",
@@ -121,8 +121,7 @@ const ModuleRow = ({
 type DaemonMethod = "apply" | "blockUpdates" | "unblockUpdates";
 type DaemonApi = Record<DaemonMethod, () => Promise<unknown>> & { available: () => Promise<boolean> };
 
-const daemonApi = (): DaemonApi | null =>
-	(globalThis as never as { Spicetify?: { Daemon?: DaemonApi } }).Spicetify?.Daemon ?? null;
+const daemonApi = (): DaemonApi | null => (client.daemon as DaemonApi | undefined) ?? null;
 
 export const ManagerPage = () => {
 	const [state, setState] = React.useState(deriveManagerState);
@@ -160,7 +159,7 @@ export const ManagerPage = () => {
 		const advice = updateAdvice(state.spotifyVersion, effectiveSupport(state, support));
 		if (advice.kind !== "unsupported" || unsupportedNoticeShown) return;
 		const notify = () => {
-			const enqueue = (globalThis as never as Record<string, any>).Spicetify?.Snackbar?.enqueueSnackbar;
+			const enqueue = client.snackbar?.enqueueSnackbar;
 			if (typeof enqueue === "function") {
 				try {
 					enqueue(advice.message, { variant: "warning" });

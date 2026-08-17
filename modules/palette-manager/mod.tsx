@@ -2,12 +2,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { createRegistrar } from "/modules/stdlib/mod.ts";
-
-import { React } from "/modules/stdlib/src/expose/React.ts";
-
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { Color } from "/modules/stdlib/src/webpack/misc.xpui.ts";
+import { Color, createRegistrar, React, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const registrar = createRegistrar(ctx);

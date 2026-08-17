@@ -11,6 +11,8 @@
 // Overridable for vault development: point at any URL (data: URLs work)
 // to preview a vault before publishing it. Read lazily like the other
 // overrides so a change applies on the next load, not the next boot.
+import { CORS_PROXY } from "./runtime.ts";
+
 const DEFAULT_VAULT_URL = () =>
 	globalThis.localStorage?.getItem("spicetify:defaultVaultUrl") ??
 	"https://raw.githubusercontent.com/spicetify/modules/main/vault.json";
@@ -22,7 +24,7 @@ const needsProxy = (url: string) => url.startsWith("https://github.com/");
 
 export const proxiedFetch = (url: string, init?: RequestInit): Promise<Response> => {
 	if (!needsProxy(url)) return fetch(url, init);
-	const proxy = globalThis.Spicetify?.CORSProxy?.fetch;
+	const proxy = CORS_PROXY()?.fetch;
 	return proxy ? proxy(url, init) : fetch(url, init);
 };
 

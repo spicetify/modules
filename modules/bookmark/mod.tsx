@@ -9,9 +9,14 @@
  * so Bookmark no longer has to position and dismiss a detached popup.
  */
 
-import { client, createRegistrar, type ModuleRuntimeContext, type PanelController } from "/modules/stdlib/mod.ts";
+import {
+	client,
+	createRegistrar,
+	React,
+	type ModuleRuntimeContext,
+	type PanelController,
+} from "/modules/stdlib/mod.ts";
 import { filterBookmarks, idToProperName, largestImage, withNewEntry, withoutEntry } from "./logic.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
 
 // UI Text
 const BUTTON_NAME_TEXT = "Bookmark";

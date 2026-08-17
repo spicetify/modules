@@ -5,7 +5,7 @@
 
 import { kindOf, type ModuleKind, proxiedFetch, type VaultModule } from "./catalog.ts";
 import { reportInstall } from "./counter.ts";
-import { M, toast } from "./runtime.ts";
+import { DAEMON, M, toast } from "./runtime.ts";
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 	const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -118,19 +118,11 @@ export async function removeLocalRecord(id: string, name: string): Promise<strin
 
 // ---------- daemon-backed removal (disk installs) ----------
 
-type DaemonApi = {
-	available: () => Promise<boolean>;
-	uninstallStaged?: (id: string, version: string) => Promise<unknown>;
-};
-
-const daemonApi = (): DaemonApi | null =>
-	(globalThis as never as { Spicetify?: { Daemon?: DaemonApi } }).Spicetify?.Daemon ?? null;
-
 // Whether a CLI-staged module can be uninstalled from in here. Both halves
 // have to hold: the daemon must be up, and this client's wrapper must be new
 // enough to carry the call (an older payload has the Daemon object without it).
 export async function canUninstallStaged(): Promise<boolean> {
-	const api = daemonApi();
+	const api = DAEMON();
 	if (!api?.uninstallStaged) return false;
 	try {
 		return await api.available();
@@ -142,7 +134,7 @@ export async function canUninstallStaged(): Promise<boolean> {
 // Drops the module from disk and re-applies. The apply restarts Spotify, so
 // this never resolves into a UI the user is still looking at.
 export async function uninstallStaged(id: string, version: string): Promise<void> {
-	const api = daemonApi();
+	const api = DAEMON();
 	if (!api?.uninstallStaged) throw new Error("this client cannot reach the daemon");
 	await api.uninstallStaged(id, version);
 }
