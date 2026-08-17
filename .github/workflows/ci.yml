@@ -19,8 +19,8 @@ concurrency:
    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-   verify:
-      name: Verify
+   repository:
+      name: Repository checks (Ubuntu)
       runs-on: ubuntu-latest
 
       steps:
@@ -100,3 +100,56 @@ jobs:
          -  name: Unreleased work summary
             if: github.event_name == 'push'
             run: node scripts/release.ts status --summary --soft >> "$GITHUB_STEP_SUMMARY"
+
+   kit-create:
+      name: Kit create (${{ matrix.os }})
+      runs-on: ${{ matrix.os }}
+      strategy:
+         fail-fast: false
+         matrix:
+            os: [ubuntu-latest, macos-latest, windows-latest]
+
+      steps:
+         -  name: Clone repository
+            uses: actions/checkout@v4
+
+         -  name: Clone classmaps
+            uses: actions/checkout@v4
+            with:
+               repository: spicetify/classmaps
+               path: classmaps
+
+         -  name: Setup pnpm
+            uses: pnpm/action-setup@v6
+
+         -  name: Setup Node
+            uses: actions/setup-node@v6
+            with:
+               node-version: "24"
+               cache: pnpm
+
+         -  name: Install dependencies
+            run: pnpm install --frozen-lockfile
+
+         -  name: Test kit
+            run: npm test --prefix packages/kit
+
+         -  name: Build generated projects
+            run: npm exec -- node packages/kit/scripts/create-smoke.mjs
+            env:
+               SPICETIFY_KIT_VENDOR_CLASSMAPS: ${{ github.workspace }}/classmaps
+
+   verify:
+      name: Verify
+      if: always()
+      needs: [repository, kit-create]
+      runs-on: ubuntu-latest
+
+      steps:
+         -  name: Require every platform gate
+            env:
+               REPOSITORY_RESULT: ${{ needs.repository.result }}
+               KIT_CREATE_RESULT: ${{ needs.kit-create.result }}
+            run: |
+               test "$REPOSITORY_RESULT" = success
+               test "$KIT_CREATE_RESULT" = success
