@@ -22,6 +22,11 @@ import settingsSection, { settingsAction } from "./settingsSection.ts";
 import topbarLeftButton, { TopbarLeftButton } from "./topbarLeftButton.tsx";
 import topbarRightButton, { TopbarRightButton } from "./topbarRightButton.tsx";
 export type { PanelController, PanelRegistration, PanelWidth } from "./panel.ts";
+export { closeMenu, openedFromProfileMenu, useMenuItem } from "./menu.ts";
+export { NavLink, type NavLinkProps, useHistoryRefresh } from "./navlink.tsx";
+export { PlaybarButton, type PlaybarButtonProps } from "./playbarButton.tsx";
+export { TopbarLeftButton } from "./topbarLeftButton.tsx";
+export { TopbarRightButton } from "./topbarRightButton.tsx";
 const [rootChild, rootProvider] = root;
 const registers = {
 	menu,

@@ -24,6 +24,17 @@ export interface PopupModalCompatibility {
 	hide(): void;
 }
 
+export interface DaemonCapabilities {
+	available(): Promise<boolean>;
+	apply(): Promise<unknown>;
+	blockUpdates(): Promise<unknown>;
+	unblockUpdates(): Promise<unknown>;
+}
+
+export interface SnackbarCapabilities {
+	enqueueSnackbar(message: string, options?: { variant?: string }): unknown;
+}
+
 export interface ClientCapabilities {
 	readonly player: typeof Spicetify.Player;
 	readonly platform: typeof Spicetify.Platform;
@@ -41,6 +52,10 @@ export interface ClientCapabilities {
 	readonly popupModal: PopupModalCompatibility;
 	readonly config: typeof Spicetify.Config;
 	readonly modules: typeof Spicetify.Modules;
+	/** V3 manifest version, with the legacy wrapper config as a fallback. */
+	readonly spicetifyVersion: string | undefined;
+	readonly daemon: DaemonCapabilities | undefined;
+	readonly snackbar: SnackbarCapabilities | undefined;
 	readonly react: typeof Spicetify.React;
 	readonly reactDOM: typeof Spicetify.ReactDOM;
 	readonly tippy: typeof Spicetify.Tippy;
@@ -54,6 +69,9 @@ const runtime = (): SpicetifyRuntime => {
 	if (!value) throw new Error("Spicetify client runtime is unavailable");
 	return value;
 };
+
+const nonEmptyVersion = (value: unknown): string | undefined =>
+	typeof value === "string" && value.trim() ? value : undefined;
 
 let modalRequestGeneration = 0;
 const reportModalFailure = (error: unknown) => console.error("[stdlib] failed to load the owned modal:", error);
@@ -117,6 +135,26 @@ export const client: ClientCapabilities = {
 	},
 	get modules() {
 		return runtime().Modules;
+	},
+	get spicetifyVersion() {
+		const current = runtime() as unknown as {
+			Modules?: {
+				manifest?: { cliVersion?: unknown };
+				registry?: { manifest?: { cliVersion?: unknown } };
+			};
+			Config?: { version?: unknown };
+		};
+		return (
+			nonEmptyVersion(current.Modules?.manifest?.cliVersion) ??
+			nonEmptyVersion(current.Modules?.registry?.manifest?.cliVersion) ??
+			nonEmptyVersion(current.Config?.version)
+		);
+	},
+	get daemon() {
+		return (runtime() as unknown as { Daemon?: DaemonCapabilities }).Daemon;
+	},
+	get snackbar() {
+		return (runtime() as unknown as { Snackbar?: SnackbarCapabilities }).Snackbar;
 	},
 	get react() {
 		return runtime().React;

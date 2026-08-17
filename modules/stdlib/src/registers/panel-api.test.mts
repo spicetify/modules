@@ -69,7 +69,7 @@ describe("owned panel public API", () => {
 	});
 
 	it("ships the current stdlib release", () => {
-		assert.equal(metadata.version, "1.9.0");
-		assert.equal(kitPackage.spicetify.stdlibVersion, "1.9.0");
+		assert.equal(metadata.version, "1.10.0");
+		assert.equal(kitPackage.spicetify.stdlibVersion, "1.10.0");
 	});
 });

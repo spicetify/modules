@@ -27,6 +27,8 @@ test("client capabilities resolve lazily from the current runtime", () => {
 		contextMenu: "ContextMenu",
 		config: "Config",
 		modules: "Modules",
+		daemon: "Daemon",
+		snackbar: "Snackbar",
 		react: "React",
 		reactDOM: "ReactDOM",
 		tippy: "Tippy",
@@ -55,4 +57,18 @@ test("client capabilities resolve lazily from the current runtime", () => {
 test("client capabilities fail with a targeted error when the wrapper is absent", () => {
 	delete globalRecord.Spicetify;
 	assert.throws(() => client.player, /Spicetify client runtime is unavailable/);
+});
+
+test("spicetifyVersion prefers the v3 manifest and falls back to the legacy config", () => {
+	globalRecord.Spicetify = {
+		Modules: { manifest: { cliVersion: "3.2.0" } },
+		Config: { version: "2.40.0" },
+	};
+	assert.equal(client.spicetifyVersion, "3.2.0");
+
+	globalRecord.Spicetify = { Modules: {}, Config: { version: "2.40.0" } };
+	assert.equal(client.spicetifyVersion, "2.40.0");
+
+	globalRecord.Spicetify = { Modules: {}, Config: {} };
+	assert.equal(client.spicetifyVersion, undefined);
 });

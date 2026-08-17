@@ -54,7 +54,7 @@ describe("stdlib-owned floating surfaces", () => {
 	});
 
 	it("ships the floating API through the current kit", () => {
-		assert.equal(metadata.version, "1.9.0");
-		assert.equal(kit.spicetify.stdlibVersion, "1.9.0");
+		assert.equal(metadata.version, "1.10.0");
+		assert.equal(kit.spicetify.stdlibVersion, "1.10.0");
 	});
 });

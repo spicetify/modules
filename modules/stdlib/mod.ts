@@ -19,9 +19,11 @@ export * from "./src/storage.ts";
 export * from "./src/wpunpk.ts";
 export * from "./src/logger.ts";
 export { display as displayModal, hide as hideModal, type ModalOptions } from "./lib/modal.tsx";
+export { React, ReactDOM, ReactDOMServer } from "./src/expose/React.ts";
+export { Platform } from "./src/expose/Platform.ts";
+export { createIconComponent } from "./src/createIconComponent.tsx";
+export { startCase } from "./deps.ts";
 
-// Public barrel: everything dependent modules are allowed to deep-import.
-// Import from /modules/stdlib/mod.js at runtime; nothing else is public.
-export * from "./src/webpack/misc.xpui.ts";
-export * from "./src/webpack/ComponentLibrary.xpui.ts";
-export * from "./src/webpack/ReactComponents.xpui.ts";
+// Palette Manager needs the client's Color constructor and its companion
+// type. Export that semantic capability without exposing the webpack module.
+export { Color } from "./src/webpack/misc.xpui.ts";
