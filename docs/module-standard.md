@@ -49,12 +49,13 @@ build` → `pack` → `vault add <dist> --artifact <url>`, which writes the
 If you are doing something the happy path does not cover, that is a signal to
 check the rules below before hand-rolling around them.
 
-`spicetify-kit build` enforces the standard's **error tier**: error-tier
-findings (bad metadata, a missing loader shim) abort the build before any dist
-output; heuristic nudges stay advisory (they print, the build continues), and
-`--no-check` bypasses the check entirely. css-only theme modules declare no js
-entry, so the loader-shim rule does not apply to them. The dev loop prints
-findings but never blocks the hot-push.
+`spicetify-kit build` enforces the standard's **error tier**: bad metadata, a
+missing loader shim, private stdlib imports, missing stdlib dependencies, and
+stale boundary exceptions abort the build before any dist output. Heuristic
+nudges stay advisory (they print, the build continues), and `--no-check`
+bypasses the check entirely. css-only theme modules declare no js entry, so the
+loader-shim rule does not apply to them. The dev loop prints findings but never
+blocks the hot-push.
 
 Three **structural warnings** back the modularity rules for js modules —
 `tests` (no `*.test.mts` anywhere in the module), `exportable-logic` (nothing
@@ -96,13 +97,21 @@ give you all of them for free when you follow the standard — do not opt out.
   wrapper access inside one local `client.ts` adapter. This gives each runtime
   capability one replaceable, testable boundary rather than many call sites.
 
-- **Ship MAP-intact.** Reference client classes as `MAP.a.b.c`. The CLI remaps
-  them at apply/install time against the _exact_ installed classmap, so one
-  build serves every Spotify version. A hardcoded hashed classname silently
-  matches nothing on the next client update.
+- **One public stdlib surface.** Import runtime capabilities, React, registers,
+  and client-derived types from `/modules/stdlib/mod.ts`; import shared controls
+  only from `/modules/stdlib/lib/primitives*`. Everything under `stdlib/src/`
+  is an implementation detail. First-party enforcement and the deliberately
+  narrow first- and third-party exceptions are documented in
+  [the stdlib boundary](./stdlib-boundary.md).
 
-- **One React.** Import React only from stdlib (`expose/React`) or the shimmed
-  bare `react` specifier — never bundle a second copy. Hooks and context must
+- **Ship MAP-intact when direct client integration is unavoidable.** A module
+  with an approved client-DOM adapter references client classes as `MAP.a.b.c`;
+  the CLI remaps them against the installed classmap. Ordinary first-party
+  modules instead use stdlib-owned surfaces and carry no `MAP.*` at all. A
+  hardcoded hashed classname is never acceptable.
+
+- **One React.** Import React from stdlib's public barrel or the shimmed bare
+  `react` specifier — never bundle a second copy. Hooks and context must
   resolve to the client's own instance or renders die (#321).
 
 - **Self-subscribe to external state.** Registered elements are frozen; the
@@ -290,7 +299,8 @@ only source a feature depends on.
 ## Definition of a golden module
 
 - [ ] Scaffolded, typechecks, has unit tests, hot-reloads.
-- [ ] References client classes as `MAP.*` — zero hardcoded hashed classnames.
+- [ ] Uses stdlib-owned surfaces and carries no client classes; an approved
+      client-DOM adapter keeps any unavoidable references as `MAP.*`.
 - [ ] Goes through stdlib's typed surfaces, never raw needle destructures.
 - [ ] Builds its UI from the kit, and picked the tier with the recovery-vs-leaf test.
 - [ ] Self-subscribes to external state; disposes everything on unload.

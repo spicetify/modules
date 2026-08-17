@@ -52,12 +52,19 @@ Bound the loader. The loader `await`s this function, so an unbounded `await`
 (for example polling for a DOM node that never appears) hangs the loader and
 every module then fails to load, silently. Cap every wait and degrade.
 
+`spicetify-kit check` also audits this boundary for external modules. Private
+`stdlib/src/*` imports and missing direct stdlib dependencies block normal
+builds. If a feature intrinsically needs Spotify-owned DOM, ambient wrapper
+access, or `MAP.*`, document the exact file and reason with a
+`metadata.json#stdlibBoundary.exceptions` entry; see
+[the stdlib boundary](./stdlib-boundary.md#external-modules).
+
 ---
 
 ## 3. A page (navlink + route)
 
 ```ts
-import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
+import { NavLink } from "/modules/stdlib/mod.ts";
 
 const ROUTE = "/bespoke/my-module";
 
@@ -247,8 +254,8 @@ or `Menu`; those components inherit private Spotify markup and styling.
 
 Import `client` from stdlib instead of reading the ambient wrapper global. It
 is the v3 capability boundary for `player`, `platform`, `uri`, `icons`,
-`cosmos`, `graphQL`, `keyboard`, `contextMenu`, `popupModal`, `storage`, and
-the remaining client services:
+`cosmos`, `graphQL`, `keyboard`, `contextMenu`, `popupModal`, `storage`,
+`spicetifyVersion`, and the remaining client services:
 
 ```ts
 import { client } from "/modules/stdlib/mod.ts";
@@ -256,13 +263,23 @@ import { client } from "/modules/stdlib/mod.ts";
 client.player.next();
 client.platform.History.push("/search");
 client.notify("Done");
+console.log(client.spicetifyVersion);
 ```
 
 The getters resolve lazily, so capabilities attached later in client startup
 remain visible. stdlib currently adapts the compatibility wrapper internally;
 keeping that access behind one boundary lets it replace or harden a capability
-without changing every module. `spicetify-kit check` warns when ordinary module
+without changing every module. `spicetifyVersion` prefers the CLI version
+stamped into the v3 module manifest and falls back to the legacy
+`Spicetify.Config.version`. `spicetify-kit check` warns when ordinary module
 source reaches for the ambient global directly.
+
+`/modules/stdlib/mod.ts` is also the public home for React, registrar
+components, platform capture, and client-derived types. `lib/primitives*` is
+the other supported subpath. Do not import `stdlib/src/*`; those capture and
+register implementations may change within an otherwise compatible stdlib
+release. The first-party policy and audited exceptions are listed in
+[the stdlib boundary](./stdlib-boundary.md).
 
 `client.platform.<API>` autocompletes members such as `LibraryAPI`, `History`,
 `PlayerAPI`, and `ClipboardAPI`. Method calls stay permissive because Spotify's
@@ -289,7 +306,7 @@ and standalone survival:
 - **Type-only imports at the top.** `import type` from stdlib is erased at
   build time; runtime imports of `/modules/stdlib/*` stay inside functions.
 - **Acquire React lazily.** A module-level `let React` assigned by an exported
-  async loader (dynamic `import("/modules/stdlib/src/expose/React.js")`),
+  async loader (dynamic `import("/modules/stdlib/mod.js")`),
   awaited inside the enhanced path's try block. `ReactDOM` (with `createRoot`)
   is a named export of the same module.
 - **Classic JSX pragma.** `/* @jsxRuntime classic */` with
