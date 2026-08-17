@@ -87,8 +87,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		return `${header}
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { NavLink } from "/modules/stdlib/src/registers/navlink.tsx";
+import { NavLink, React } from "/modules/stdlib/mod.ts";
 import { Button } from "/modules/stdlib/lib/primitives.js";
 import { nowPlaying } from "./logic.ts";
 
@@ -114,8 +113,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	return `${header}
 import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { React } from "/modules/stdlib/src/expose/React.ts";
-import { Platform } from "/modules/stdlib/src/expose/Platform.ts";
+import { Platform, React } from "/modules/stdlib/mod.ts";
 import { nowPlaying } from "./logic.ts";
 
 const ROUTE = "${route}";

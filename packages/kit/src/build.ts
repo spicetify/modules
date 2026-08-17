@@ -31,6 +31,7 @@ import path from "node:path";
 
 import { checkModule } from "./check.ts";
 import { generateClassmapDts, loadConfig, resolveClassmap, type ClassmapResolution } from "./classmap.ts";
+import type { StdlibBoundaryExceptionRule } from "./stdlib-boundary.ts";
 
 export type ModuleKind = "extension" | "theme" | "snippet" | "app" | "lib";
 
@@ -43,6 +44,13 @@ export interface ModuleMetadata {
 	entries: { js?: string; css?: string };
 	hasMixins: boolean;
 	dependencies: Record<string, string>;
+	stdlibBoundary?: {
+		exceptions: Array<{
+			file: string;
+			rules: StdlibBoundaryExceptionRule[];
+			reason: string;
+		}>;
+	};
 	tree?: boolean;
 }
 

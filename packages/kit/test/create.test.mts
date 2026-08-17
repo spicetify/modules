@@ -87,9 +87,16 @@ test("JavaScript scaffolds use the stdlib client capability boundary", async () 
 	for (const template of ["basic", "extension", "app"] as const) {
 		const root = freshRoot();
 		await runCreate([`demo-client-${template}`, "--template", template], root);
-		const source = readFileSync(path.join(root, `demo-client-${template}`, "mod.tsx"), "utf8");
+		const project = path.join(root, `demo-client-${template}`);
+		const source = readFileSync(path.join(project, "mod.tsx"), "utf8");
 		assert.match(source, /\bclient\.player\b/);
 		assert.doesNotMatch(source, /\bSpicetify\./);
+		assert.doesNotMatch(source, /\/modules\/stdlib\/(?:src|deps)/);
+		const { checkModule } = await import("../src/check.ts");
+		assert.deepEqual(
+			checkModule(project).filter(({ rule }) => rule.startsWith("stdlib-boundary.")),
+			[],
+		);
 	}
 });
 

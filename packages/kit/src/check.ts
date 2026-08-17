@@ -16,6 +16,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { resolveModuleDir } from "./build.ts";
+import { checkExternalStdlibBoundary } from "./stdlib-boundary.ts";
 
 export type Severity = "error" | "warn";
 export interface Finding {
@@ -105,8 +106,8 @@ export function checkSource(rel: string, text: string, options: { clientCapabili
 			});
 		}
 		// A second React instance breaks hooks/context identity (one-React
-		// rule). expose/React.ts is stdlib's sanctioned single source and is
-		// exempt.
+		// rule). The public stdlib barrel and the build-time bare-specifier shim
+		// both resolve to the client's captured instance.
 		if (
 			/from\s+['"]https?:\/\/[^'"]*react[^'"]*['"]/.test(line) &&
 			!line.includes("jsx-runtime") &&
@@ -115,7 +116,7 @@ export function checkSource(rel: string, text: string, options: { clientCapabili
 			out.push({
 				severity: "warn",
 				rule: "one-react",
-				message: "import React from stdlib's expose or the bare 'react' shim, never a second copy",
+				message: "import React from stdlib's public barrel or the bare 'react' shim, never a second copy",
 				file: at,
 			});
 		}
@@ -284,11 +285,14 @@ export function checkModule(dir: string): Finding[] {
 		];
 	}
 	findings.push(...checkMetadata(meta));
+	findings.push(...checkExternalStdlibBoundary(dir, meta));
 	findings.push(...checkEntryShim(dir, meta as { entries?: { js?: string }; tree?: boolean }));
 	findings.push(...checkStructure(dir, meta as { entries?: { js?: string } }));
-	const enforceClientBoundary = (meta as { kind?: string }).kind === "extension";
 	for (const { file, text } of readSources(dir)) {
-		findings.push(...checkSource(path.relative(dir, file), text, { clientCapabilities: enforceClientBoundary }));
+		// The stdlib-boundary audit above owns ambient-client findings for full
+		// modules. Keep checkSource's standalone compatibility API but avoid a
+		// duplicate warning here.
+		findings.push(...checkSource(path.relative(dir, file), text, { clientCapabilities: false }));
 	}
 	return findings;
 }

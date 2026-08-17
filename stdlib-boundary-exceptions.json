@@ -1,0 +1,114 @@
+{
+	"schemaVersion": 1,
+	"categoryExceptions": [
+		{
+			"root": "themes",
+			"rules": ["ambient-client", "client-dom", "missing-stdlib-dependency"],
+			"reason": "Themes intentionally reshape Spotify-owned DOM and CSS. They are compatibility-tested as a separate category with theme-report instead of being presented as stdlib-insulated feature modules."
+		}
+	],
+	"exceptions": [
+		{
+			"module": "store",
+			"file": "modules/store/metadata.json",
+			"rules": ["missing-stdlib-dependency"],
+			"reason": "Store is the recovery path used to repair stdlib itself, so it cannot require stdlib to boot."
+		},
+		{
+			"module": "store",
+			"file": "modules/store/runtime.ts",
+			"rules": ["ambient-client"],
+			"reason": "This is Store's single recovery-tier adapter around the wrapper runtime."
+		},
+		{
+			"module": "manager",
+			"file": "modules/manager/runtime.ts",
+			"rules": ["ambient-client"],
+			"reason": "This is Manager's single recovery-tier adapter around the wrapper runtime, shared by the normal and plain-DOM recovery surfaces."
+		},
+		{
+			"module": "adblock",
+			"file": "modules/adblock/logic.ts",
+			"rules": ["client-dom"],
+			"reason": "Visual ad removal necessarily identifies Spotify-owned ad containers after preventive slot blocking has run."
+		},
+		{
+			"module": "bookmark",
+			"file": "modules/bookmark/index.scss",
+			"rules": ["client-dom"],
+			"reason": "Bookmark still carries two legacy Spotify typography/play-button selectors inside its owned panel; migrate these to owned classes."
+		},
+		{
+			"module": "bookmark",
+			"file": "modules/bookmark/mod.tsx",
+			"rules": ["client-dom"],
+			"reason": "Bookmark must inspect the active Spotify route to capture its title and artwork; its remaining legacy presentation classes are tracked here too."
+		},
+		{
+			"module": "hide-window-controls",
+			"file": "modules/hide-window-controls/mod.tsx",
+			"rules": ["client-dom"],
+			"reason": "The module's purpose requires correcting Spotify's native window-control spacer when the shell controls are hidden."
+		},
+		{
+			"module": "keyboard-shortcut",
+			"file": "modules/keyboard-shortcut/mod.tsx",
+			"rules": ["client-dom"],
+			"reason": "Keyboard spatial navigation traverses Spotify-owned focusable rows, library items, and scroll viewports by design."
+		},
+		{
+			"module": "loopy-loop",
+			"file": "modules/loopy-loop/mod.tsx",
+			"rules": ["client-dom"],
+			"reason": "Loop markers attach to Spotify's playback progress bar; the legacy context-menu markup remains identified migration debt."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/index.scss",
+			"rules": ["client-dom"],
+			"reason": "The port still adapts a small set of client typography, dropdown, and main-view layout classes."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/mod.tsx",
+			"rules": ["client-dom"],
+			"reason": "The full-page lyrics route needs the live Spotify main-view scroll host."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/options-menu.tsx",
+			"rules": ["client-dom"],
+			"reason": "The faithful port still names Spotify typography classes in its option rows; migrate these to owned primitives."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/pages.tsx",
+			"rules": ["client-dom"],
+			"reason": "Lyrics pages synchronize against Spotify's main viewport; legacy typography classes remain identified migration debt."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/playbar-lifecycle.ts",
+			"rules": ["client-dom"],
+			"reason": "Lyrics replacement must detect and suppress Spotify's native lyrics playbar control."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/settings.tsx",
+			"rules": ["client-dom"],
+			"reason": "One legacy dropdown class remains in the ported settings surface and is tracked for primitive migration."
+		},
+		{
+			"module": "lyrics-plus",
+			"file": "modules/lyrics-plus/tab-bar.tsx",
+			"rules": ["client-dom"],
+			"reason": "The route tab bar portals into Spotify's topbar and follows its main-view observer geometry."
+		},
+		{
+			"module": "trashbin",
+			"file": "modules/trashbin/mod.tsx",
+			"rules": ["client-dom"],
+			"reason": "Trashbin observes Spotify's native skip-back control to distinguish explicit replay from automatic track changes."
+		}
+	]
+}
