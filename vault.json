@@ -1125,6 +1125,14 @@
 					"providers": [],
 					"checksum": "sha256:86c57e2fe3feeb307a7feb3fc9709b14fb1f53313920b2f39a4ba4291cc4f828",
 					"updatedAt": "2026-08-12"
+				},
+				"0.3.8": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.8/palette-manager@0.3.8.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:0066722dee958b4727d519a58e99d30970b6b4c0ead86669a338bb321c51d577",
+					"updatedAt": "2026-08-17"
 				}
 			}
 		},
