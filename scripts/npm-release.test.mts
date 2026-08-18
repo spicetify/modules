@@ -49,3 +49,12 @@ test("npm publishing generates module declarations before typechecking", () => {
 	assert.notEqual(check, -1, "publication must typecheck the repository");
 	assert.ok(build < check, "module declarations must exist before tsc runs");
 });
+
+test("npm publishing can recover a partial release without overwriting registry versions", () => {
+	const workflow = readFileSync(path.join(ROOT, ".github/workflows/npm-publish.yml"), "utf8");
+	assert.match(workflow, /recover_npm:/);
+	assert.match(workflow, /npm view "\$package" versions --json/);
+	assert.match(workflow, /gh release view "\$tag"/);
+	assert.match(workflow, /if: steps\.plan\.outputs\.kit == 'true'/);
+	assert.match(workflow, /if: steps\.plan\.outputs\.launcher == 'true'/);
+});

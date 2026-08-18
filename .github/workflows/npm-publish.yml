@@ -5,6 +5,12 @@ on:
       branches:
          - main
    workflow_dispatch:
+      inputs:
+         recover_npm:
+            description: Publish current package versions that have a public GitHub release but are missing from npm
+            required: false
+            default: false
+            type: boolean
 
 concurrency:
    group: npm-release
@@ -57,7 +63,7 @@ jobs:
    publish:
       name: Publish released packages
       needs: release
-      if: needs.release.outputs.kit_released == 'true' || needs.release.outputs.launcher_released == 'true'
+      if: needs.release.outputs.kit_released == 'true' || needs.release.outputs.launcher_released == 'true' || (github.event_name == 'workflow_dispatch' && inputs.recover_npm)
       runs-on: ubuntu-latest
       environment: npm
       permissions:
@@ -71,7 +77,6 @@ jobs:
                persist-credentials: false
 
          -  name: Clone classmaps
-            if: needs.release.outputs.kit_released == 'true'
             uses: actions/checkout@v6
             with:
                repository: spicetify/classmaps
@@ -104,20 +109,61 @@ jobs:
                pnpm test
                pnpm --dir packages/kit test
 
+         # A GitHub release can be created before a later verification step
+         # fails. A protected manual recovery must be idempotent: publish only
+         # versions still absent from npm, and only when their public release
+         # already exists.
+         -  name: Resolve unpublished package versions
+            id: plan
+            env:
+               GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            run: |
+               set -euo pipefail
+
+               is_published() {
+                  local package="$1"
+                  local version="$2"
+                  local versions
+                  versions=$(npm view "$package" versions --json)
+                  node -e '
+                     const value = JSON.parse(process.argv[1]);
+                     const versions = Array.isArray(value) ? value : [value];
+                     process.exit(versions.includes(process.argv[2]) ? 0 : 1);
+                  ' "$versions" "$version"
+               }
+
+               plan() {
+                  local output="$1"
+                  local package="$2"
+                  local version="$3"
+                  local tag="$4"
+                  if is_published "$package" "$version"; then
+                     echo "$output=false" >> "$GITHUB_OUTPUT"
+                     return
+                  fi
+                  test "$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '(.isDraft == false) and (.isPrerelease == false)')" = true
+                  echo "$output=true" >> "$GITHUB_OUTPUT"
+               }
+
+               kit_version=$(node -p "require('./packages/kit/package.json').version")
+               launcher_version=$(node -p "require('./packages/create-spicetify-module/package.json').version")
+               plan kit @spicetify/kit "$kit_version" "kit@$kit_version"
+               plan launcher create-spicetify-module "$launcher_version" "create-spicetify-module@$launcher_version"
+
          # Dependency order is intentional: when both versions change, the
          # launcher must never point at a kit version that is not live yet.
          -  name: Inspect kit package
-            if: needs.release.outputs.kit_released == 'true'
+            if: steps.plan.outputs.kit == 'true'
             run: npm pack --dry-run --json ./packages/kit
 
          -  name: Publish kit package
-            if: needs.release.outputs.kit_released == 'true'
+            if: steps.plan.outputs.kit == 'true'
             run: npm publish ./packages/kit
 
          -  name: Inspect launcher package
-            if: needs.release.outputs.launcher_released == 'true'
+            if: steps.plan.outputs.launcher == 'true'
             run: npm pack --dry-run --json ./packages/create-spicetify-module
 
          -  name: Publish launcher package
-            if: needs.release.outputs.launcher_released == 'true'
+            if: steps.plan.outputs.launcher == 'true'
             run: npm publish ./packages/create-spicetify-module
