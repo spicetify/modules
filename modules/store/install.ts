@@ -3,7 +3,16 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { kindOf, type ModuleKind, proxiedFetch, type VaultModule } from "./catalog.ts";
+import {
+	type Catalog,
+	displayVersion,
+	kindOf,
+	loadCatalog,
+	type ModuleKind,
+	proxiedFetch,
+	satisfiesRange,
+	type VaultModule,
+} from "./catalog.ts";
 import { reportInstall } from "./counter.ts";
 import { DAEMON, M, toast } from "./runtime.ts";
 
@@ -158,24 +167,125 @@ export async function enforceSingleTheme(id: string): Promise<void> {
 	}
 }
 
-const installing = new Set<string>();
+// One in-flight promise per id: a second caller (a dependent resolving a
+// dependency two cards are racing on) joins the running install instead of
+// returning early as if it had completed.
+const installing = new Map<string, Promise<void>>();
 
-export async function installModule(mod: VaultModule, status: (msg: string) => void) {
-	if (installing.has(mod.id)) {
+export function installModule(mod: VaultModule, status: (msg: string) => void): Promise<void> {
+	const inFlight = installing.get(mod.id);
+	if (inFlight) {
 		status(`${mod.id} is already installing`);
-		return;
+		return inFlight;
 	}
-	installing.add(mod.id);
-	try {
-		await installModuleInner(mod, status);
-	} catch (e) {
-		// The toast is the only failure surface; callers just clear their
-		// progress line.
-		toast(`Failed to install ${mod.id}: ${(e as Error).message}`, "error");
-		throw e;
-	} finally {
-		installing.delete(mod.id);
+	const run = (async () => {
+		try {
+			await installModuleInner(mod, status);
+		} catch (e) {
+			// The toast is the only failure surface; callers just clear their
+			// progress line.
+			toast(`Failed to install ${mod.id}: ${(e as Error).message}`, "error");
+			throw e;
+		} finally {
+			installing.delete(mod.id);
+		}
+	})();
+	installing.set(mod.id, run);
+	return run;
+}
+
+// ---------- dependencies ----------
+
+type RegisteredState = { identifier: string; version: string; local: boolean };
+
+// Whether the registered copy satisfies the range the way the loader's own
+// checkDependencies will judge it: by its version, or by a historical version
+// its metadata vouches for (compat) that the range admits.
+function registeredSatisfies(id: string, range: string): boolean {
+	const state = ((M().list?.() ?? []) as RegisteredState[]).find((s) => s.identifier === id);
+	if (!state) return false;
+	if (satisfiesRange(state.version, range)) return true;
+	const metadata =
+		(state.local ? localRecords().find((r) => r.metadata.identifier === id)?.metadata : undefined) ??
+		((M().manifest?.modules ?? []) as Array<{ identifier: string; compat?: unknown }>).find(
+			(m) => m.identifier === id,
+		);
+	const compat = metadata?.compat;
+	return Array.isArray(compat) && compat.some((v: string) => satisfiesRange(v, range));
+}
+
+// A satisfying copy can already sit in localStorage waiting for a restart (a
+// tree module updated earlier this session); reinstalling it would only
+// re-download and toast a second time. Only a record the loader's localWins
+// rule will actually accept counts: remapped against this boot's classmap and
+// strictly newer than the registered copy — anything else defers to staged on
+// the next boot and a restart would not help.
+function pendingSatisfies(id: string, range: string): boolean {
+	const record = localRecords().find((r) => r.metadata.identifier === id) as
+		| {
+				metadata: { identifier: string; version?: string };
+				sidecar?: { installed_version?: string };
+				remapKey?: string;
+		  }
+		| undefined;
+	if (!record) return false;
+	const version = record.sidecar?.installed_version ?? record.metadata.version;
+	if (!version || !satisfiesRange(version, range)) return false;
+	const classmapKey = M().manifest?.classmapKey;
+	if (classmapKey && record.remapKey !== classmapKey) return false;
+	const state = ((M().list?.() ?? []) as RegisteredState[]).find((s) => s.identifier === id);
+	return !state || satisfiesRange(version, `>${state.version}`);
+}
+
+/**
+ * The loader enables a fresh install against the dependency versions it has
+ * registered right now, so installing a module whose new version needs a newer
+ * dependency than the running one persists fine and then fails to enable.
+ * Resolve that before touching the loader: bring an unsatisfied dependency up
+ * from the vault first. A dependency that only applies on the next boot (a
+ * tree module: its update returns requiresRestart and the registry keeps the
+ * old version) cannot satisfy this session at all, so the dependent is
+ * reported restart-gated rather than failed.
+ */
+export async function ensureDependencies(
+	dependencies: Record<string, string>,
+	status: (msg: string) => void,
+): Promise<{ requiresRestart: boolean }> {
+	let requiresRestart = false;
+	let catalog: Catalog | undefined;
+	for (const [dep, range] of Object.entries(dependencies)) {
+		if (registeredSatisfies(dep, range)) continue;
+		if (pendingSatisfies(dep, range)) {
+			requiresRestart = true;
+			continue;
+		}
+		catalog ??= await loadCatalog();
+		if (!catalog.ok) {
+			throw new Error(`needs ${dep}@${range}, and the vault could not be reached to install it`);
+		}
+		if (catalog.revoked[dep]) {
+			throw new Error(`needs ${dep}, which the vault revoked: ${catalog.revoked[dep]}`);
+		}
+		const entry = catalog.modules.find((m) => m.id === dep);
+		if (!entry || !satisfiesRange(entry.version, range)) {
+			throw new Error(
+				`needs ${dep}@${range}; the vault's newest is ${entry ? displayVersion(entry.version) : "none"}`,
+			);
+		}
+		status(`installing dependency ${dep}@${displayVersion(entry.version)}…`);
+		await installModule(entry, status);
+		if (!registeredSatisfies(dep, range)) requiresRestart = true;
 	}
+	return { requiresRestart };
+}
+
+// Modules.report is a function in some loader builds and a plain object in
+// others; the failure map lives behind whichever shape is present.
+export function enableFailureReason(id: string): string {
+	const raw: unknown = M().report;
+	const report = typeof raw === "function" ? (raw as () => unknown)() : raw;
+	const reason = (report as { failed?: Record<string, unknown> } | undefined)?.failed?.[id];
+	return typeof reason === "string" && reason ? reason : "unknown reason";
 }
 
 /**
@@ -265,6 +375,8 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	};
 	metadata.identifier = mod.id;
 
+	const deps = await ensureDependencies(metadata.dependencies ?? {}, status);
+
 	status("installing…");
 	// installLocal unloads any prior live instance itself, transiently, so no
 	// pre-disable here: a persisted disable before the install would outlive a
@@ -302,8 +414,19 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		await enforceSingleTheme(mod.id);
 		reportInstall(mod);
 	} else {
-		const reason = M().report?.failed?.[mod.id] ?? "unknown reason";
+		const reason = enableFailureReason(mod.id);
+		// A dependency-gated failure (" needs " is the loader's dependency
+		// message; "unknown reason" is an older loader recording nothing) with
+		// a restart-pending dependency is not a failure: the new files
+		// persisted and the restart brings the dependency up. Any other
+		// recorded reason is real and must surface.
+		const depGated = deps.requiresRestart && (reason === "unknown reason" || reason.includes(" needs "));
 		status("");
-		toast(`${name} installed but failed to enable: ${reason}`, "error");
+		if (depGated) {
+			toast(`${name} installed; restart Spotify to apply it`, "success");
+			reportInstall(mod);
+		} else {
+			toast(`${name} installed but failed to enable: ${reason}`, "error");
+		}
 	}
 }

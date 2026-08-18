@@ -111,6 +111,84 @@ export function compareVersions(a: string, b: string): number {
 	return buildTiebreak(a, b);
 }
 
+type ParsedVersion = { major: number; minor: number; patch: number };
+
+const parseVersion = (version: string): ParsedVersion | null => {
+	// Versions arrive from third-party metadata and localStorage records, so
+	// a non-string is possible despite the declared type.
+	if (typeof version !== "string") return null;
+	const m = version.trim().match(/^v?(\d+)\.(\d+)\.(\d+)/);
+	return m ? { major: +m[1]!, minor: +m[2]!, patch: +m[3]! } : null;
+};
+
+const compareParsed = (a: ParsedVersion, b: ParsedVersion): number =>
+	a.major - b.major || a.minor - b.minor || a.patch - b.patch;
+
+const comparatorHolds = (v: ParsedVersion, op: string, c: ParsedVersion): boolean => {
+	const cmp = compareParsed(v, c);
+	switch (op) {
+		case "":
+		case "=":
+			return cmp === 0;
+		case ">":
+			return cmp > 0;
+		case ">=":
+			return cmp >= 0;
+		case "<":
+			return cmp < 0;
+		case "<=":
+			return cmp <= 0;
+		default:
+			return false;
+	}
+};
+
+// Dependency-range satisfaction, a port of the loader's semver-lite
+// `satisfies` held to it by a parity test: the loader judges enables with its
+// copy and the store pre-checks installs with this one, so a divergence makes
+// the store promise an enable the loader then refuses. One deliberate
+// difference: unparseable input is unsatisfied here rather than an exception,
+// because mid-install is no place to throw over malformed third-party
+// metadata.
+export function satisfiesRange(version: string, range: string): boolean {
+	const v = parseVersion(version);
+	if (!v || typeof range !== "string") return false;
+	const trimmed = range.trim();
+	if (trimmed === "" || trimmed === "*" || trimmed.toLowerCase() === "x") return true;
+	return trimmed.split(/\s*\|\|\s*/).some((set) =>
+		set.split(/\s+/).every((part) => {
+			const m = part.match(/^(\^|~|>=|<=|>|<|=)?v?(\d+)(?:\.(\d+|x|\*))?(?:\.(\d+|x|\*))?/);
+			if (!m) return false;
+			const [, op = "", maj, min, pat] = m;
+			if (min === "x" || min === "*" || min === undefined) {
+				// ^1 and ~1 both mean >=1.0.0 <2.0.0; neither is a comparator.
+				if (op === "^" || op === "~") return v.major === +maj!;
+				return (
+					comparatorHolds(v, op || ">=", { major: +maj!, minor: 0, patch: 0 }) &&
+					(op ? true : v.major === +maj!)
+				);
+			}
+			if (pat === "x" || pat === "*" || pat === undefined) {
+				return v.major === +maj! && v.minor === +min;
+			}
+			const c = { major: +maj!, minor: +min, patch: +pat };
+			if (op === "^") {
+				const upper =
+					c.major > 0
+						? { major: c.major + 1, minor: 0, patch: 0 }
+						: c.minor > 0
+							? { major: 0, minor: c.minor + 1, patch: 0 }
+							: { major: 0, minor: 0, patch: c.patch + 1 };
+				return compareParsed(v, c) >= 0 && compareParsed(v, upper) < 0;
+			}
+			if (op === "~") {
+				return compareParsed(v, c) >= 0 && v.major === c.major && v.minor === c.minor;
+			}
+			return comparatorHolds(v, op, c);
+		}),
+	);
+}
+
 /**
  * Build metadata (`+cm-<classmap>`) is not part of semver precedence, so two
  * keys that differ only there are equal by the spec. They still have to order
