@@ -209,6 +209,13 @@ describe("autobump", () => {
 		git("add", "-A");
 		git("commit", "-m", "fix(zeta): internal only\n\nRelease-As: none");
 		assert.match(run("autobump", "--dry-run"), /zeta: skipped \(Release-As: none\)/);
+
+		writeFileSync(path.join(repo, "modules", "zeta", "code.ts"), "export const added = 4;\n");
+		git("add", "-A");
+		git("commit", "-m", "fix(zeta): later releasable correction");
+		const later = run("autobump", "--dry-run");
+		assert.doesNotMatch(later, /zeta: skipped/);
+		assert.match(later, /zeta: .* \(patch, own changes\)/);
 	});
 });
 
