@@ -49,6 +49,23 @@ function syncTags(): void {
 const LEVELS = ["patch", "minor", "major"] as const;
 type Level = (typeof LEVELS)[number];
 
+// A module opts a commit out of release calculation with this trailer. Later
+// releasable commits must still trigger a bump, so evaluate every touching
+// commit independently instead of letting one old trailer mask the whole
+// range.
+const SKIP_TRAILER = /^Release-As:\s*none$/im;
+
+function releaseCommitSubjects(id: string, since: string): string[] {
+	const hashes = git(["log", `${since}..HEAD`, "--format=%H", "--", moduleDir(id)])
+		.split("\n")
+		.filter(Boolean);
+	return hashes.flatMap((hash) => {
+		const body = git(["show", "-s", "--format=%B", hash]);
+		if (SKIP_TRAILER.test(body)) return [];
+		return [git(["show", "-s", "--format=%s", hash])];
+	});
+}
+
 function bumpVersion(version: string, level: Level): string {
 	const [coreAndPre, build] = version.split("+");
 	const [core] = coreAndPre.split("-");
@@ -69,9 +86,7 @@ function bumpVersion(version: string, level: Level): string {
 
 function suggestLevel(id: string, since: string | null): Level {
 	if (!since) return "patch";
-	const subjects = git(["log", `${since}..HEAD`, "--format=%s", "--", moduleDir(id)])
-		.split("\n")
-		.filter(Boolean);
+	const subjects = releaseCommitSubjects(id, since);
 	if (subjects.some((s) => /^[a-z]+(\([^)]*\))?!:/.test(s) || /BREAKING[ -]CHANGE/.test(s))) return "major";
 	if (subjects.some((s) => /^feat(\([^)]*\))?:/.test(s))) return "minor";
 	return "patch";
@@ -224,7 +239,7 @@ function status(soft: boolean): void {
 	const problems = [
 		...malformed,
 		...states
-			.filter((s) => s.kind === "needs-bump")
+			.filter((s) => s.kind === "needs-bump" && !stateSkipsRelease(s))
 			.map((s) => `${s.id}: changed since ${s.tag} but ${s.version} is already published (${s.hint})`),
 	];
 	if (problems.length) {
@@ -238,7 +253,9 @@ function status(soft: boolean): void {
 // Markdown for $GITHUB_STEP_SUMMARY: the per-module unreleased state,
 // computed fresh from git — the "which modules need a release" surface.
 function summary(soft: boolean): void {
-	const { states, malformed } = analyze();
+	const analyzed = analyze();
+	const states = analyzed.states.filter((state) => !stateSkipsRelease(state));
+	const { malformed } = analyzed;
 	const lines: string[] = ["## Unreleased work", ""];
 	if (!states.length && !malformed.length) {
 		lines.push("All module changes are released.");
@@ -306,14 +323,18 @@ function bump(id: string, level: Level): void {
 	console.log(`${id}: bumped to ${next}`);
 }
 
-// A module opts out of an automatic bump with this trailer in any commit
-// that touched it, so work can land on main without shipping.
-const SKIP_TRAILER = /^Release-As:\s*none$/im;
-
 function skipsRelease(id: string, since: string | null): boolean {
 	if (!since) return false;
-	const bodies = git(["log", `${since}..HEAD`, "--format=%B", "--", moduleDir(id)]);
-	return SKIP_TRAILER.test(bodies);
+	const touching = git(["log", `${since}..HEAD`, "--format=%H", "--", moduleDir(id)])
+		.split("\n")
+		.filter(Boolean);
+	return touching.length > 0 && releaseCommitSubjects(id, since).length === 0;
+}
+
+function stateSkipsRelease(state: ModuleState): boolean {
+	if (state.kind !== "needs-bump") return false;
+	const baseline = git(["tag", "--list", state.tag]) ? state.tag : lastModuleTag(state.tag.split("@")[0]);
+	return skipsRelease(state.id, baseline);
 }
 
 function rangeFor(version: string): string {
@@ -337,11 +358,11 @@ function autobump(apply: boolean): string[] {
 	const plan: Array<{ id: string; level: Level; reason: string }> = [];
 
 	for (const state of states.filter((s) => s.kind === "needs-bump")) {
-		const baseline = git(["tag", "--list", state.tag]) ? state.tag : lastModuleTag(state.tag.split("@")[0]);
-		if (skipsRelease(state.id, baseline)) {
+		if (stateSkipsRelease(state)) {
 			console.log(`${state.id}: skipped (Release-As: none)`);
 			continue;
 		}
+		const baseline = git(["tag", "--list", state.tag]) ? state.tag : lastModuleTag(state.tag.split("@")[0]);
 		plan.push({ id: state.id, level: suggestLevel(state.id, baseline), reason: "own changes" });
 	}
 

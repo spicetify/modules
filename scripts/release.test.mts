@@ -44,6 +44,8 @@ function fixture(): {
 	sh(dir, "git", "init", "-q");
 	sh(dir, "git", "config", "user.email", "t@t");
 	sh(dir, "git", "config", "user.name", "t");
+	sh(dir, "git", "config", "commit.gpgsign", "false");
+	sh(dir, "git", "config", "tag.gpgsign", "false");
 	writeFileSync(path.join(dir, "vault.json"), JSON.stringify({ modules: {} }, null, "\t"));
 	sh(dir, "git", "add", "-A");
 	sh(dir, "git", "commit", "-qm", "init");
@@ -151,6 +153,28 @@ describe("release.ts status", () => {
 		const res = run(f.dir, "status");
 		assert.equal(res.code, 0);
 		assert.match(res.stdout, /ok: every changed module/);
+	});
+
+	it("passes when every touching commit is explicitly excluded from release", () => {
+		const f = fixture();
+		f.addModule("mod", "0.1.0");
+		f.publish("mod", "0.1.0");
+		f.touch("mod", "internal.css", "refactor(mod): internal only\n\nRelease-As: none");
+		const res = run(f.dir, "status");
+		assert.equal(res.code, 0);
+		assert.match(res.stdout, /ok: every changed module/);
+	});
+
+	it("does not let an earlier exclusion hide a later releasable change", () => {
+		const f = fixture();
+		f.addModule("mod", "0.1.0");
+		f.publish("mod", "0.1.0");
+		f.touch("mod", "internal.css", "refactor(mod): internal only\n\nRelease-As: none");
+		f.touch("mod", "fix.css", "fix(mod): user-visible correction");
+		const res = run(f.dir, "status");
+		assert.equal(res.code, 1);
+		assert.match(res.stderr, /mod: changed since mod@0\.1\.0/);
+		assert.match(res.stderr, /suggest patch -> 0\.1\.1/);
 	});
 });
 
