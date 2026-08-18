@@ -40,3 +40,12 @@ test("npm publishing keeps OIDC isolated to the protected Node 24 job", () => {
 	assert.match(workflow, /googleapis\/release-please-action@[0-9a-f]{40}/);
 	assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN/);
 });
+
+test("npm publishing generates module declarations before typechecking", () => {
+	const workflow = readFileSync(path.join(ROOT, ".github/workflows/npm-publish.yml"), "utf8");
+	const build = workflow.indexOf("node scripts/stitch.ts");
+	const check = workflow.indexOf("pnpm check");
+	assert.notEqual(build, -1, "publication must generate classmap.d.ts files");
+	assert.notEqual(check, -1, "publication must typecheck the repository");
+	assert.ok(build < check, "module declarations must exist before tsc runs");
+});

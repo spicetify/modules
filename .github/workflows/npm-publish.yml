@@ -92,6 +92,12 @@ jobs:
          -  name: Install dependencies
             run: pnpm install --frozen-lockfile
 
+         # The build generates each module's classmap.d.ts. TypeScript checks
+         # consume those declarations, so publication must preserve the same
+         # build-before-check ordering as the required CI workflow.
+         -  name: Build modules
+            run: node scripts/stitch.ts
+
          -  name: Verify repository
             run: |
                pnpm check
