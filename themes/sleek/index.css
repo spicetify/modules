@@ -287,10 +287,6 @@ html.fullscreen .main-playPauseButton-button svg {
 	border-radius: 0px;
 }
 
-/* matching button colors */
-.main-nowPlayingBar-extraControls button {
-	color: rgba(var(--spice-rgb-selected-row), 0.7);
-}
 /*
 ---------------
 BUDDY FEED
