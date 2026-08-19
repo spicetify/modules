@@ -101,6 +101,16 @@
 	}
 }
 
+/* Topbar geometry guard. The client sizes the legacy topbar-right container
+   for exactly its own buttons (width: calc(135px / zoom)), so the module
+   buttons this register mounts overflow it and flex squeezes every icon in
+   the row (the native bell renders 6px wide). min-width beats the width
+   declaration, so the container grows to fit whatever is mounted. */
+.main-topBar-topbarContentRight,
+.main-actionButtons {
+	min-width: max-content;
+}
+
 /* Playbar button geometry guard. The classmap can resolve the playbar button
    wrapper (MAP.main.playbar.buttons.button.wrapper) to a container-level class
    on some clients (e.g. .player-controls__buttons: width:100%; gap:16px;
