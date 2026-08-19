@@ -11,9 +11,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { METHOD_TYPES, TypeGenerator } from "./platform-typegen.ts";
+import { METHOD_TYPES, type MethodType, TypeGenerator } from "./platform-typegen.ts";
 
-const generate = async (root: unknown, methodTypes: typeof METHOD_TYPES = []) => {
+const generate = async (root: unknown, methodTypes: readonly MethodType[] = []) => {
 	const generator = new TypeGenerator(root, "Platform", methodTypes);
 	return { output: await generator.generate(), stats: generator.stats };
 };
@@ -41,6 +41,8 @@ describe("TypeGenerator over a synthetic Platform", () => {
 		assert.match(output, /getSessionAPI: /);
 		assert.match(output, /getCount: /);
 		assert.ok(stats.invocations >= 2, "both safe getters were invoked");
+		// The runner consumes exactly these limit flags; pin the contract.
+		assert.deepEqual(Object.keys(stats.limits).sort(), ["awaits", "invocations", "nodes"]);
 	});
 
 	it("feeds listener-shaped methods a noop instead of recursing into them", async () => {
@@ -58,7 +60,7 @@ describe("TypeGenerator over a synthetic Platform", () => {
 	});
 
 	it("never invokes methods outside the get* pattern, and renders their METHOD_TYPES signature", async () => {
-		const table: typeof METHOD_TYPES = [
+		const table: readonly MethodType[] = [
 			{
 				on: "Platform.getDangerAPI().wipe",
 				args: ["everything: true"],

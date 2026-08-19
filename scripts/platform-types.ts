@@ -10,15 +10,20 @@
 // emitted declarations to the repo root, where kit's sync-vendor ships
 // them to module authors. Run it per Spotify build, like theme-report:
 //
-//   node scripts/platform-types.ts
+//   node scripts/platform-types.ts [--force]
 //
 // Spotify must be running with --remote-debugging-port=9229. The extractor
 // probes the raw wrapper surface on purpose: a diagnostic that depends on
-// stdlib cannot report on the day stdlib is what broke.
+// stdlib cannot report on the day stdlib is what broke. A run that hits
+// the extractor's internal limits refuses to overwrite the snapshot with
+// degraded output unless --force is passed, and a rerun whose only change
+// is the timestamp header leaves the file untouched, so a committed diff
+// always means the API surface actually moved.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const SCRIPTS = import.meta.dirname;
 const ROOT = path.dirname(SCRIPTS);
@@ -28,16 +33,16 @@ const PORT = Number(process.env.SPICETIFY_CDP_PORT ?? 9229);
 // a healthy run finishes in well under a minute.
 const EVAL_TIMEOUT_MS = 5 * 60 * 1000;
 
-// The engine stays strip-compatible (no parameter properties, enums, or
-// namespaces) so plain node can also import it for tests. Top-level
-// `export` keywords are dropped so the source evaluates as a classic
-// script inside the page.
-const engine = stripTypeScriptTypes(readFileSync(path.join(SCRIPTS, "platform-typegen.ts"), "utf8")).replace(
-	/^export /gm,
-	"",
-);
-
-const expression = `(async () => {
+/**
+ * The whole client-side payload: the engine compiled to plain JS, its
+ * top-level `export ` keywords dropped so it evaluates as a classic
+ * script, and an entry that runs it against the live Platform. The engine
+ * stays strip-compatible (no parameter properties, enums, or namespaces)
+ * so plain node can also import it for tests.
+ */
+export function buildExpression(engineSource: string): string {
+	const engine = stripTypeScriptTypes(engineSource).replace(/^export /gm, "");
+	return `(async () => {
 ${engine}
 const platform = globalThis.Spicetify?.Platform;
 if (!platform) throw new Error("Spicetify.Platform is not up yet; wait for the client to finish booting");
@@ -45,32 +50,62 @@ const generator = new TypeGenerator(platform, "Platform", METHOD_TYPES);
 const output = await generator.generate();
 return { output, stats: generator.stats };
 })()`;
+}
 
 type EvalResult = {
 	output: string;
-	stats: { types: number; invocations: number; awaits: number; limits: Record<string, boolean> };
+	stats: {
+		types: number;
+		invocations: number;
+		awaits: number;
+		limits: { nodes: boolean; invocations: boolean; awaits: boolean };
+	};
 };
 
 async function pageTarget(): Promise<string> {
-	const res = await fetch(`http://127.0.0.1:${PORT}/json/list`);
-	const targets = (await res.json()) as Array<{ url?: string; webSocketDebuggerUrl?: string }>;
+	let targets: Array<{ url?: string; webSocketDebuggerUrl?: string }>;
+	try {
+		const res = await fetch(`http://127.0.0.1:${PORT}/json/list`);
+		if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		targets = (await res.json()) as typeof targets;
+	} catch (cause) {
+		throw new Error(`no debugger on port ${PORT}; relaunch Spotify with --remote-debugging-port=${PORT}`, {
+			cause,
+		});
+	}
 	const page = targets.find((t) => (t.url ?? "").includes("xpui") && t.webSocketDebuggerUrl);
 	if (!page?.webSocketDebuggerUrl) {
-		throw new Error(`no xpui page target on port ${PORT}; relaunch Spotify with --remote-debugging-port=${PORT}`);
+		throw new Error(`no xpui page target on port ${PORT}; is the client still starting up?`);
 	}
 	return page.webSocketDebuggerUrl;
 }
 
-function evaluateInClient(wsUrl: string): Promise<EvalResult> {
+function evaluateInClient(wsUrl: string, expression: string): Promise<EvalResult> {
 	return new Promise((resolve, reject) => {
 		const ws = new WebSocket(wsUrl);
 		const timer = setTimeout(() => {
 			ws.close();
 			reject(new Error(`the client did not answer within ${EVAL_TIMEOUT_MS / 1000}s`));
 		}, EVAL_TIMEOUT_MS);
-		ws.addEventListener("error", () => {
+		const settle = (fn: () => void) => {
 			clearTimeout(timer);
-			reject(new Error("could not connect to the client's debug socket"));
+			ws.close();
+			fn();
+		};
+		ws.addEventListener("error", (event) => {
+			settle(() =>
+				reject(
+					new Error("could not connect to the client's debug socket", {
+						cause: (event as ErrorEvent).error ?? event,
+					}),
+				),
+			);
+		});
+		ws.addEventListener("close", (event) => {
+			// Settling is idempotent; this only bites when the target died
+			// before answering (Spotify quit, the page navigated away).
+			reject(new Error(`the debug socket closed (code ${event.code}) before the extractor answered`));
+			clearTimeout(timer);
 		});
 		ws.addEventListener("open", () => {
 			ws.send(
@@ -87,42 +122,93 @@ function evaluateInClient(wsUrl: string): Promise<EvalResult> {
 			);
 		});
 		ws.addEventListener("message", (event) => {
-			const msg = JSON.parse(String(event.data)) as {
+			if (typeof event.data !== "string") return;
+			let msg: {
 				id?: number;
+				error?: { code: number; message: string };
 				result?: {
 					result?: { value?: EvalResult };
 					exceptionDetails?: { exception?: { description?: string } };
 				};
 			};
+			try {
+				msg = JSON.parse(event.data) as typeof msg;
+			} catch (cause) {
+				settle(() => reject(new Error("unparseable CDP frame", { cause })));
+				return;
+			}
 			if (msg.id !== 1) return;
-			clearTimeout(timer);
-			ws.close();
+			if (msg.error) {
+				const { code, message } = msg.error;
+				settle(() => reject(new Error(`CDP error ${code}: ${message}`)));
+				return;
+			}
 			const exception = msg.result?.exceptionDetails;
 			if (exception) {
-				reject(new Error(exception.exception?.description ?? "the extractor threw in the client"));
+				settle(() =>
+					reject(new Error(exception.exception?.description ?? "the extractor threw in the client")),
+				);
 				return;
 			}
 			const value = msg.result?.result?.value;
-			if (!value?.output) {
-				reject(new Error("the extractor returned no output"));
+			if (typeof value?.output !== "string" || !value.stats?.limits) {
+				settle(() => reject(new Error("the extractor returned an unexpected shape")));
 				return;
 			}
-			resolve(value);
+			settle(() => resolve(value));
 		});
 	});
 }
 
-const { output, stats } = await evaluateInClient(await pageTarget());
-writeFileSync(OUT, `${output.trimEnd()}\n`);
+// A rerun against an unchanged client should not churn the snapshot: the
+// header timestamp is the only thing guaranteed to differ, so it is
+// ignored for the comparison and the old file (old stamp included) wins.
+const HEADER_LINE = /^\/\/ Auto-generated at .*$/m;
 
-const hitLimits = Object.entries(stats.limits)
-	.filter(([, hit]) => hit)
-	.map(([name]) => name);
-console.log(
-	`wrote ${path.relative(process.cwd(), OUT)}: ${stats.types} types ` +
-		`(${stats.invocations} invocations, ${stats.awaits} awaited probes)`,
-);
-if (hitLimits.length) {
-	console.warn(`WARNING: hit ${hitLimits.join(", ")} limit(s); some types degraded to unknown`);
-	process.exitCode = 1;
+function writeSnapshot(output: string): "written" | "unchanged" {
+	const next = `${output.trimEnd()}\n`;
+	let previous = "";
+	try {
+		previous = readFileSync(OUT, "utf8");
+	} catch {
+		/* first generation */
+	}
+	if (previous && previous.replace(HEADER_LINE, "") === next.replace(HEADER_LINE, "")) {
+		return "unchanged";
+	}
+	writeFileSync(OUT, next);
+	return "written";
+}
+
+async function main(): Promise<void> {
+	const engineSource = readFileSync(path.join(SCRIPTS, "platform-typegen.ts"), "utf8");
+	const { output, stats } = await evaluateInClient(await pageTarget(), buildExpression(engineSource));
+
+	const hitLimits = Object.entries(stats.limits)
+		.filter(([, hit]) => hit)
+		.map(([name]) => name);
+	if (hitLimits.length && !process.argv.includes("--force")) {
+		console.error(
+			`refusing to write: hit ${hitLimits.join(", ")} limit(s), so parts of the output degraded ` +
+				`to unknown; rerun with --force to keep the degraded snapshot`,
+		);
+		process.exitCode = 1;
+		return;
+	}
+
+	const outcome = writeSnapshot(output);
+	const relative = path.relative(process.cwd(), OUT);
+	console.log(
+		outcome === "unchanged"
+			? `${relative} unchanged: the Platform surface did not move (${stats.types} types)`
+			: `wrote ${relative}: ${stats.types} types (${stats.invocations} invocations, ${stats.awaits} awaited probes)`,
+	);
+	if (hitLimits.length) {
+		console.warn(`WARNING: hit ${hitLimits.join(", ")} limit(s); the kept snapshot is degraded`);
+		process.exitCode = 1;
+	}
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	await main();
 }

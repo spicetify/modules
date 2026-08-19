@@ -1,6 +1,9 @@
 {
 	"name": "spicetify-modules",
 	"private": true,
+	"engines": {
+		"node": ">=24"
+	},
 	"type": "module",
 	"scripts": {
 		"stitch": "node scripts/stitch.ts",
