@@ -5,7 +5,7 @@
 
 import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
 import { installedRecords, isCustomRecord } from "./install.ts";
-import { disposed, M, toast } from "./runtime.ts";
+import { disposed, dropStdlibDiskStaged, M, stdlibDiskStaged, toast } from "./runtime.ts";
 
 // Installed modules (localStorage or CLI-staged) the catalog has a different
 // version for, dependencies before dependents: "Update all" installs
@@ -39,23 +39,51 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
 
+// Once a boot runs a stdlib at least as new as the marker, the apply
+// happened and the hold can lift.
+export function clearSettledStdlibMarker(): void {
+	const marker = stdlibDiskStaged();
+	if (!marker) return;
+	const state = runningStdlib();
+	if (state && compareVersions(state.version, marker) >= 0) {
+		dropStdlibDiskStaged();
+	}
+}
+
+// A maintainer can withdraw the very release the marker is waiting on, by
+// pinning the vault back to an older version or revoking stdlib outright.
+// The marker would then hold every update for an apply that must not
+// happen, so it has to notice and stand down.
+export function stdlibMarkerWithdrawn(catalog: Catalog, marker: string): boolean {
+	if (catalog.revoked["stdlib"] !== undefined) return true;
+	const entry = catalog.modules.find((mod) => mod.id === "stdlib");
+	return !!entry && compareVersions(entry.version, marker) < 0;
+}
+
+function runningStdlib(): { identifier: string; version: string } | undefined {
+	return ((M().list?.() ?? []) as Array<{ identifier: string; version: string }>).find(
+		(s) => s.identifier === "stdlib",
+	);
+}
+
 // A stdlib update installed this session is only staged: the registry keeps
-// running the old version until the next boot, and once the record is
-// written pendingUpdates stops listing stdlib at all. While the staged
-// record is newer than the running copy, hot-applying anything else carries
-// the same hazard the batch gate exists for, so the gate has to keep
-// holding even though the batch itself no longer contains stdlib.
+// running the old version until the next boot (record path) or the next
+// apply (disk path), and once the record or marker is written,
+// pendingUpdates may stop listing stdlib at all. While either staged copy
+// is newer than the running one, hot-applying anything else carries the
+// same hazard the batch gate exists for, so the gate has to keep holding
+// even though the batch itself no longer contains stdlib.
 export function stdlibRestartPending(): boolean {
+	const state = runningStdlib();
+	if (!state) return false;
 	const record = (M().listLocal?.() ?? []).find(
 		(r: { metadata: { identifier: string; version?: string }; sidecar?: { installed_version?: string } }) =>
 			r.metadata.identifier === "stdlib",
 	);
 	const staged = record?.sidecar?.installed_version ?? record?.metadata?.version;
-	if (!staged) return false;
-	const state = ((M().list?.() ?? []) as Array<{ identifier: string; version: string }>).find(
-		(s) => s.identifier === "stdlib",
-	);
-	return !!state && compareVersions(staged, state.version) > 0;
+	if (staged && compareVersions(staged, state.version) > 0) return true;
+	const disk = stdlibDiskStaged();
+	return !!disk && compareVersions(disk, state.version) > 0;
 }
 
 // stdlib is a tree module: installing its update stages the new code, which
@@ -83,8 +111,14 @@ const ANNOUNCED_KEY = "spicetify:store:announcedUpdates";
 
 export async function announceUpdates(): Promise<void> {
 	try {
+		clearSettledStdlibMarker();
 		const catalog = await loadCatalog();
 		if (!catalog.ok || disposed) return;
+		const marker = stdlibDiskStaged();
+		if (marker && stdlibMarkerWithdrawn(catalog, marker)) {
+			dropStdlibDiskStaged();
+			toast(`the staged stdlib ${marker} was withdrawn by the vault and will not be applied automatically`);
+		}
 		const pending = pendingUpdates(catalog);
 		if (!pending.length) {
 			globalThis.localStorage?.removeItem(ANNOUNCED_KEY);

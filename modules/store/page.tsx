@@ -54,7 +54,15 @@ import {
 	removeLocalRecord,
 	uninstallStaged,
 } from "./install.ts";
-import { M, openDialogClosers, PLATFORM, setOnCountsChanged, toast } from "./runtime.ts";
+import {
+	M,
+	openDialogClosers,
+	PLATFORM,
+	setOnCountsChanged,
+	STAGING_DAEMON,
+	stdlibDiskStaged,
+	toast,
+} from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
 import { pendingUpdates, stdlibGate, stdlibRestartPending } from "./updates.ts";
 
@@ -1066,12 +1074,50 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		}
 	}, [catalog, registryEpoch]);
 
+	// A stdlib update the daemon staged on disk only takes over when an
+	// apply rebuilds the served tree, so the page offers that apply. It
+	// restarts Spotify, so it is armed first, like Reset and Uninstall.
+	// Gated on the same capability staging itself requires, so a staged
+	// update can never exist without the button that finishes it.
+	const stdlibApplyReady = !!STAGING_DAEMON() && !!stdlibDiskStaged();
+	const [applyArmed, setApplyArmed] = React.useState(false);
+	React.useEffect(() => {
+		if (!applyArmed || !stdlibApplyReady) {
+			if (applyArmed) setApplyArmed(false);
+			return;
+		}
+		const timer = setTimeout(() => setApplyArmed(false), 4000);
+		return () => clearTimeout(timer);
+	}, [applyArmed, stdlibApplyReady]);
+	const runApply = () => {
+		if (!applyArmed) {
+			setApplyArmed(true);
+			return;
+		}
+		setApplyArmed(false);
+		const api = STAGING_DAEMON();
+		if (!api) {
+			toast("this client cannot reach the daemon; run `spicetify apply` in a terminal", "error");
+			return;
+		}
+		toast("applying; Spotify will restart…");
+		void api
+			.apply()
+			.catch((e: Error) => toast(`apply failed: ${e.message}; run \`spicetify apply\` in a terminal`, "error"));
+	};
+
 	const runInstall = async (mod: VaultModule) => {
 		// Updating a running module hot-swaps it, and a staged stdlib update
 		// means the swap would run against the old stdlib; fresh installs are
 		// fine (a missing dependency restart-gates them instead).
 		if (mod.id !== "stdlib" && installedVersions.get(mod.id) !== undefined && stdlibRestartPending()) {
-			toast("a stdlib update is staged: restart Spotify before updating modules");
+			toast(
+				stdlibDiskStaged()
+					? stdlibApplyReady
+						? "a stdlib update is staged: apply it before updating modules"
+						: "a stdlib update is staged on disk: run `spicetify apply` in a terminal first"
+					: "a stdlib update is staged: restart Spotify before updating modules",
+			);
 			return;
 		}
 		try {
@@ -1139,9 +1185,14 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		}
 		if (hold !== null) {
 			const held = `${deferred.length} update${deferred.length === 1 ? "" : "s"} held back`;
+			const bringUp = stdlibDiskStaged()
+				? stdlibApplyReady
+					? "apply the stdlib update"
+					: "run `spicetify apply` in a terminal"
+				: "restart Spotify, then update again";
 			toast(
 				hold === "staged"
-					? `${held} until the new stdlib runs: restart Spotify, then update again`
+					? `${held} until the new stdlib runs: ${bringUp}`
 					: `${held}: they may need the new stdlib, and its update did not land`,
 			);
 		}
@@ -1355,7 +1406,10 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			{activeTheme && (
 				<ActiveThemeBar key={activeTheme.metadata.identifier} record={activeTheme} refresh={refreshRegistry} />
 			)}
-			<div className="spicetify-store-updates" style={pending.length ? undefined : { display: "none" }}>
+			<div
+				className="spicetify-store-updates"
+				style={pending.length || stdlibDiskStaged() ? undefined : { display: "none" }}
+			>
 				{pending.length > 0 && (
 					<>
 						<span>{`${pending.length} update${pending.length === 1 ? "" : "s"} available`}</span>
@@ -1368,6 +1422,20 @@ function StorePage(props: { api: PageApi }): ReactElement {
 							Update all
 						</button>
 					</>
+				)}
+				{stdlibApplyReady && (
+					<>
+						{pending.length === 0 && <span>{`stdlib ${stdlibDiskStaged()} is staged on disk`}</span>}
+						<button type="button" className="spicetify-store-danger" onClick={() => runApply()}>
+							{applyArmed ? "Confirm — restarts Spotify" : "Apply stdlib update"}
+						</button>
+					</>
+				)}
+				{/* Without the daemon the staged copy can only be brought up
+				    from a terminal; saying nothing here would hold every
+				    update behind a control that never renders. */}
+				{!stdlibApplyReady && !!stdlibDiskStaged() && (
+					<span>{`stdlib ${stdlibDiskStaged()} is staged on disk: run \`spicetify apply\` in a terminal to bring it up`}</span>
 				)}
 			</div>
 			<div className="spicetify-store-status">{status}</div>

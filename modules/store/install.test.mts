@@ -17,6 +17,7 @@ import {
 	installModule,
 	isCustomRecord,
 	removeLocalRecord,
+	stageStdlibViaDaemon,
 } from "./install.ts";
 
 type LocalRecord = {
@@ -293,5 +294,69 @@ describe("isCustomRecord", () => {
 		assert.equal(isCustomRecord({ kind: "extension", tags: ["extension"] } as never), false);
 		assert.equal(isCustomRecord(undefined), false);
 		assert.equal(isCustomRecord({}), false);
+	});
+});
+
+describe("stageStdlibViaDaemon", () => {
+	const spicetify = (globalThis as never as Record<string, any>).Spicetify;
+	const noStatus = () => {};
+	const stdlibMod = (version: string): VaultModule => ({
+		id: "stdlib",
+		version,
+		artifacts: ["https://example.com/stdlib.zip"],
+		vault: "default",
+	});
+
+	beforeEach(() => {
+		spicetify.Daemon = undefined;
+	});
+
+	it("declines when the wrapper cannot both stage and apply", async () => {
+		// Staging through a send-only wrapper would latch a hold whose
+		// Apply button can never render.
+		spicetify.Daemon = { available: () => Promise.resolve(true), send: () => Promise.resolve("ok") };
+		assert.equal(await stageStdlibViaDaemon(stdlibMod("1.10.1"), noStatus), "unavailable");
+		assert.equal(localStorage.getItem("spicetify:store:stdlibDiskStaged"), null);
+	});
+
+	it("stages once and stores the plain semver even for a +cm vault key", async () => {
+		// The running version after an apply is the module's own
+		// metadata.json version, which never carries build metadata.
+		const sent: string[] = [];
+		spicetify.Daemon = {
+			available: () => Promise.resolve(true),
+			send: (uri: string) => {
+				sent.push(uri);
+				return Promise.resolve("ok");
+			},
+			apply: () => Promise.resolve(),
+		};
+		assert.equal(await stageStdlibViaDaemon(stdlibMod("1.10.1+cm-1020096-abc"), noStatus), "staged");
+		assert.equal(localStorage.getItem("spicetify:store:stdlibDiskStaged"), "1.10.1");
+		assert.match(sent[0], /fast-enable/);
+		assert.equal(await stageStdlibViaDaemon(stdlibMod("1.10.1+cm-1020096-abc"), noStatus), "already-staged");
+		assert.equal(sent.length, 1);
+	});
+
+	it("reports a dispatched-but-unanswered request as pending, without the marker", async () => {
+		// The daemon keeps working after the socket dies, so the record
+		// path must not run and stage the same version twice.
+		spicetify.Daemon = {
+			available: () => Promise.resolve(true),
+			send: () => Promise.reject(new Error("daemon did not answer spicetify:stdlib:fast-enable within 15000ms")),
+			apply: () => Promise.resolve(),
+		};
+		assert.equal(await stageStdlibViaDaemon(stdlibMod("1.10.1"), noStatus), "pending");
+		assert.equal(localStorage.getItem("spicetify:store:stdlibDiskStaged"), null);
+	});
+
+	it("degrades to the record path on an error reply", async () => {
+		spicetify.Daemon = {
+			available: () => Promise.resolve(true),
+			send: () => Promise.reject(new Error("registry-verified artifact required")),
+			apply: () => Promise.resolve(),
+		};
+		assert.equal(await stageStdlibViaDaemon(stdlibMod("1.10.1"), noStatus), "unavailable");
+		assert.equal(localStorage.getItem("spicetify:store:stdlibDiskStaged"), null);
 	});
 });

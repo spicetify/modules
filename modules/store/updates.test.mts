@@ -10,7 +10,14 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
-import { pendingUpdates, stdlibGate, stdlibRestartPending } from "./updates.ts";
+import { markStdlibDiskStaged, stdlibDiskStaged } from "./runtime.ts";
+import {
+	clearSettledStdlibMarker,
+	pendingUpdates,
+	stdlibGate,
+	stdlibMarkerWithdrawn,
+	stdlibRestartPending,
+} from "./updates.ts";
 
 type LocalRecord = {
 	metadata: { identifier: string; kind?: string; custom?: boolean; dependencies?: Record<string, string> };
@@ -20,6 +27,12 @@ type LocalRecord = {
 let locals: LocalRecord[] = [];
 let stagedStates: Array<{ identifier: string; version: string; local: boolean }> = [];
 let manifestModules: Array<Record<string, unknown>> = [];
+const storage = new Map<string, string>();
+(globalThis as never as Record<string, unknown>).localStorage = {
+	getItem: (key: string) => storage.get(key) ?? null,
+	setItem: (key: string, value: string) => void storage.set(key, String(value)),
+	removeItem: (key: string) => void storage.delete(key),
+};
 (globalThis as never as Record<string, unknown>).Spicetify = {
 	Modules: {
 		listLocal: () => locals,
@@ -43,6 +56,7 @@ beforeEach(() => {
 	locals = [];
 	stagedStates = [];
 	manifestModules = [];
+	storage.clear();
 });
 
 describe("pendingUpdates", () => {
@@ -215,6 +229,40 @@ describe("stdlibRestartPending", () => {
 		locals = [{ metadata: { identifier: "stdlib" }, sidecar: { installed_version: "1.10.0" } }];
 		stagedStates = [{ identifier: "stdlib", version: "1.10.0", local: true }];
 		assert.equal(stdlibRestartPending(), false);
+	});
+
+	it("also holds while a daemon-staged stdlib waits for its apply", () => {
+		// The disk path writes no record at all; only the marker knows the
+		// new version is sitting in the store tree.
+		stagedStates = [{ identifier: "stdlib", version: "1.10.0", local: false }];
+		markStdlibDiskStaged("1.10.1");
+		assert.equal(stdlibRestartPending(), true);
+	});
+});
+
+describe("the disk-staged marker", () => {
+	it("lifts once a boot runs a stdlib at least as new", () => {
+		markStdlibDiskStaged("1.10.1");
+		stagedStates = [{ identifier: "stdlib", version: "1.10.1", local: false }];
+		clearSettledStdlibMarker();
+		assert.equal(stdlibDiskStaged(), null);
+	});
+
+	it("keeps holding while the running stdlib is still older", () => {
+		markStdlibDiskStaged("1.10.1");
+		stagedStates = [{ identifier: "stdlib", version: "1.10.0", local: false }];
+		clearSettledStdlibMarker();
+		assert.equal(stdlibDiskStaged(), "1.10.1");
+	});
+
+	it("stands down when the vault withdraws the release it waits on", () => {
+		// A pin back to an older version or a revocation means the staged
+		// copy must not be applied; holding every update for it would wedge
+		// the client with no legitimate way out.
+		assert.equal(stdlibMarkerWithdrawn(catalog([entry("stdlib", "1.10.0")]), "1.10.1"), true);
+		assert.equal(stdlibMarkerWithdrawn(catalog([entry("stdlib", "1.10.1")]), "1.10.1"), false);
+		assert.equal(stdlibMarkerWithdrawn(catalog([entry("stdlib", "1.10.2")]), "1.10.1"), false);
+		assert.equal(stdlibMarkerWithdrawn(catalog([], { stdlib: "compromised" }), "1.10.1"), true);
 	});
 });
 

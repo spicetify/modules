@@ -14,7 +14,7 @@ import {
 	type VaultModule,
 } from "./catalog.ts";
 import { reportInstall } from "./counter.ts";
-import { DAEMON, M, toast } from "./runtime.ts";
+import { DAEMON, M, markStdlibDiskStaged, STAGING_DAEMON, stdlibDiskStaged, toast } from "./runtime.ts";
 
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 	const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -316,7 +316,79 @@ async function downloadArtifact(mod: VaultModule, status: (msg: string) => void)
 	throw new Error(`download failed: ${failures.join("; ")}`);
 }
 
+// "staged": the disk copy is enabled and the marker is set.
+// "already-staged": a previous run staged this exact version; nothing was
+// sent and nothing should be re-reported. "pending": the request was
+// dispatched but the daemon had not finished within the RPC timeout; it
+// keeps working after the socket closes, so the record path must NOT run
+// (it would stage the same version twice) and a retry will find the
+// download already done. "unavailable": nothing was dispatched, so the
+// record path is safe to take over.
+export type DaemonStaging = "staged" | "already-staged" | "pending" | "unavailable";
+
+/**
+ * The record path for a stdlib update rides on the loader's import map and
+ * mixes generations whenever a specifier escapes it; the disk path has no
+ * such layer. The daemon resolves the checksum from the registry itself
+ * (never from this caller) and refuses to stage a stdlib the registry does
+ * not vouch for; the served tree only changes on the next apply, which the
+ * page offers.
+ */
+export async function stageStdlibViaDaemon(mod: VaultModule, status: (msg: string) => void): Promise<DaemonStaging> {
+	const api = STAGING_DAEMON();
+	if (!api) return "unavailable";
+	try {
+		if (!(await api.available())) return "unavailable";
+	} catch {
+		return "unavailable";
+	}
+	if (!mod.artifacts.length) return "unavailable";
+	// Already staged this exact version: re-sending would only re-download.
+	if (stdlibDiskStaged() === displayVersion(mod.version)) return "already-staged";
+	status(`staging stdlib@${displayVersion(mod.version)} on disk…`);
+	const query = [
+		`id=${encodeURIComponent(`stdlib@${mod.version}`)}`,
+		...mod.artifacts.map((artifact) => `artifacts=${encodeURIComponent(artifact)}`),
+	].join("&");
+	try {
+		// The daemon downloads and verifies the artifact before answering,
+		// with serial mirror fallbacks; the default RPC timeout is sized for
+		// commands that answer immediately.
+		await api.send(`spicetify:stdlib:fast-enable?${query}`, { timeoutMs: 120_000 });
+	} catch (e) {
+		status("");
+		// The wrapper's timeout means "dispatched, no answer yet", and the
+		// daemon runs the command to completion after the socket dies.
+		if ((e as Error).message.includes("did not answer")) return "pending";
+		toast(`daemon staging failed (${(e as Error).message}); installing as a record instead`);
+		return "unavailable";
+	}
+	// The marker stores the plain semver: the vault key can carry +cm build
+	// metadata while the running version reported after an apply is the
+	// module's own metadata.json version, and the two have to compare equal.
+	markStdlibDiskStaged(displayVersion(mod.version));
+	status("");
+	return "staged";
+}
+
 async function installModuleInner(mod: VaultModule, status: (msg: string) => void): Promise<InstallOutcome> {
+	if (mod.id === "stdlib") {
+		const staging = await stageStdlibViaDaemon(mod, status);
+		if (staging === "staged") {
+			toast(`stdlib ${displayVersion(mod.version)} staged on disk; apply to bring it up`, "success");
+			reportInstall(mod);
+			return { requiresRestart: true, enabled: false };
+		}
+		if (staging === "already-staged") {
+			toast(`stdlib ${displayVersion(mod.version)} is already staged; apply to bring it up`);
+			return { requiresRestart: true, enabled: false };
+		}
+		if (staging === "pending") {
+			toast("the daemon is still staging stdlib; try again in a moment");
+			return { requiresRestart: true, enabled: false };
+		}
+	}
+
 	let metadata: any = null;
 	let files: Record<string, string>;
 
