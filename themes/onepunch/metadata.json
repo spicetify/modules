@@ -1,7 +1,7 @@
 {
 	"name": "onepunch",
 	"kind": "theme",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"authors": ["okarin001"],
 	"description": "A simple gruvbox-flavored theme, dark and light",
 	"entries": {
