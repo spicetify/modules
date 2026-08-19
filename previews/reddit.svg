@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0%" stop-color="#1b1b1b"/>
+			<stop offset="100%" stop-color="#0e0e0e"/>
+		</linearGradient>
+		<radialGradient id="glow" cx="50%" cy="40%" r="75%">
+			<stop offset="0%" stop-color="#ff4500" stop-opacity="0.24"/>
+			<stop offset="100%" stop-color="#ff4500" stop-opacity="0"/>
+		</radialGradient>
+	</defs>
+	<rect width="1600" height="900" fill="url(#bg)"/>
+	<rect width="1600" height="900" fill="url(#glow)"/>
+	<g transform="translate(800 430)" text-anchor="middle" font-family="CircularSp, 'Spotify Circular', 'Helvetica Neue', Arial, sans-serif">
+		<g transform="translate(-56 -186) scale(7)" fill="#ffffff">
+			<path d="M13.7 8a2 2 0 0 0-1.2-1.8c-.8-.4-1.7-.6-2.6-.7l.5-2.1 1.5.3a1.4 1.4 0 1 0 .2-.8l-2-.4a.4.4 0 0 0-.5.3L9 5.4a9 9 0 0 0-3.5.7A2 2 0 0 0 2.3 8a2 2 0 0 0 .7 1.5v.4c0 2.5 2.2 4.5 5 4.5s5-2 5-4.5v-.4a2 2 0 0 0 .7-1.5ZM5.5 9.2a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm5 3.1c-.7.7-1.5 1-2.5 1s-1.8-.3-2.5-1a.4.4 0 0 1 .6-.6c.5.5 1.2.8 1.9.8s1.4-.3 1.9-.8a.4.4 0 0 1 .6.6Zm0-1.1a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/>
+		</g>
+		<text y="90" font-size="76" font-weight="700" fill="#ffffff">Reddit</text>
+		<text y="152" font-size="30" font-weight="600" letter-spacing="7" fill="#ff4500">APP</text>
+	</g>
+</svg>
