@@ -167,12 +167,18 @@ export async function enforceSingleTheme(id: string): Promise<void> {
 	}
 }
 
+// What an install actually did, so callers stop inferring it from whether
+// the promise threw: `requiresRestart` means the new files persisted but
+// only take over on the next boot (a tree module, or a dependency that is
+// itself restart-gated); `enabled` means the new code is live right now.
+export type InstallOutcome = { requiresRestart: boolean; enabled: boolean };
+
 // One in-flight promise per id: a second caller (a dependent resolving a
 // dependency two cards are racing on) joins the running install instead of
 // returning early as if it had completed.
-const installing = new Map<string, Promise<void>>();
+const installing = new Map<string, Promise<InstallOutcome>>();
 
-export function installModule(mod: VaultModule, status: (msg: string) => void): Promise<void> {
+export function installModule(mod: VaultModule, status: (msg: string) => void): Promise<InstallOutcome> {
 	const inFlight = installing.get(mod.id);
 	if (inFlight) {
 		status(`${mod.id} is already installing`);
@@ -180,7 +186,7 @@ export function installModule(mod: VaultModule, status: (msg: string) => void): 
 	}
 	const run = (async () => {
 		try {
-			await installModuleInner(mod, status);
+			return await installModuleInner(mod, status);
 		} catch (e) {
 			// The toast is the only failure surface; callers just clear their
 			// progress line.
@@ -310,7 +316,7 @@ async function downloadArtifact(mod: VaultModule, status: (msg: string) => void)
 	throw new Error(`download failed: ${failures.join("; ")}`);
 }
 
-async function installModuleInner(mod: VaultModule, status: (msg: string) => void) {
+async function installModuleInner(mod: VaultModule, status: (msg: string) => void): Promise<InstallOutcome> {
 	let metadata: any = null;
 	let files: Record<string, string>;
 
@@ -398,7 +404,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		status("");
 		toast(`${name} installed; restart Spotify to apply it`, "success");
 		reportInstall(mod);
-		return;
+		return { requiresRestart: true, enabled: false };
 	}
 	// Updating a module the user had turned off: the new files are in, but the
 	// loader left it off on purpose. Say so rather than "failed to enable".
@@ -406,13 +412,14 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		status("");
 		toast(`${name} updated; still disabled`, "success");
 		reportInstall(mod);
-		return;
+		return { requiresRestart: false, enabled: false };
 	}
 	if (result) {
 		status("");
 		toast(`${name} installed and enabled`, "success");
 		await enforceSingleTheme(mod.id);
 		reportInstall(mod);
+		return { requiresRestart: false, enabled: true };
 	} else {
 		const reason = enableFailureReason(mod.id);
 		// A dependency-gated failure (" needs " is the loader's dependency
@@ -425,8 +432,9 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		if (depGated) {
 			toast(`${name} installed; restart Spotify to apply it`, "success");
 			reportInstall(mod);
-		} else {
-			toast(`${name} installed but failed to enable: ${reason}`, "error");
+			return { requiresRestart: true, enabled: false };
 		}
+		toast(`${name} installed but failed to enable: ${reason}`, "error");
+		return { requiresRestart: false, enabled: false };
 	}
 }

@@ -5,7 +5,7 @@
 
 import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
 import { installedRecords, isCustomRecord } from "./install.ts";
-import { disposed, toast } from "./runtime.ts";
+import { disposed, M, toast } from "./runtime.ts";
 
 // Installed modules (localStorage or CLI-staged) the catalog has a different
 // version for, dependencies before dependents: "Update all" installs
@@ -39,17 +39,40 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
 
+// A stdlib update installed this session is only staged: the registry keeps
+// running the old version until the next boot, and once the record is
+// written pendingUpdates stops listing stdlib at all. While the staged
+// record is newer than the running copy, hot-applying anything else carries
+// the same hazard the batch gate exists for, so the gate has to keep
+// holding even though the batch itself no longer contains stdlib.
+export function stdlibRestartPending(): boolean {
+	const record = (M().listLocal?.() ?? []).find(
+		(r: { metadata: { identifier: string; version?: string }; sidecar?: { installed_version?: string } }) =>
+			r.metadata.identifier === "stdlib",
+	);
+	const staged = record?.sidecar?.installed_version ?? record?.metadata?.version;
+	if (!staged) return false;
+	const state = ((M().list?.() ?? []) as Array<{ identifier: string; version: string }>).find(
+		(s) => s.identifier === "stdlib",
+	);
+	return !!state && compareVersions(staged, state.version) > 0;
+}
+
 // stdlib is a tree module: installing its update stages the new code, which
 // only takes over on the next boot, while every other update hot-swaps into
 // the running client immediately. A batch that mixes the two hot-swaps
 // dependents built against the newer stdlib onto the old one still running,
 // which is how "Update all" once filled the console with import errors. So a
-// batch containing a stdlib update installs stdlib alone, and the rest wait
-// for the restart that actually brings it up.
-export function stdlibGate(pending: VaultModule[]): { install: VaultModule[]; deferred: VaultModule[] } {
+// batch containing a stdlib update (or run while a staged stdlib waits for
+// its restart) installs at most stdlib itself, and the rest wait for the
+// restart that actually brings it up.
+export function stdlibGate(
+	pending: VaultModule[],
+	restartPending = false,
+): { install: VaultModule[]; deferred: VaultModule[] } {
 	const stdlib = pending.find((mod) => mod.id === "stdlib");
-	if (!stdlib) return { install: pending, deferred: [] };
-	return { install: [stdlib], deferred: pending.filter((mod) => mod.id !== "stdlib") };
+	if (!stdlib && !restartPending) return { install: pending, deferred: [] };
+	return { install: stdlib ? [stdlib] : [], deferred: pending.filter((mod) => mod.id !== "stdlib") };
 }
 
 // Boot-time nudge: check the vault once and toast when installed modules

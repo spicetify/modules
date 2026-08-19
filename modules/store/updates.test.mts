@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
-import { pendingUpdates, stdlibGate } from "./updates.ts";
+import { pendingUpdates, stdlibGate, stdlibRestartPending } from "./updates.ts";
 
 type LocalRecord = {
 	metadata: { identifier: string; kind?: string; custom?: boolean; dependencies?: Record<string, string> };
@@ -167,6 +167,54 @@ describe("stdlibGate", () => {
 			["stdlib"],
 		);
 		assert.deepEqual(deferred, []);
+	});
+
+	it("keeps holding the batch while a staged stdlib waits for its restart", () => {
+		// Once the stdlib record is written, pendingUpdates stops listing
+		// stdlib, so a second "Update all" click would otherwise hot-apply
+		// the deferred modules against the old running stdlib.
+		const pending = [entry("a", "1.1.0"), entry("b", "2.1.0")];
+		assert.deepEqual(stdlibGate(pending, true), { install: [], deferred: pending });
+	});
+});
+
+describe("the second Update-all click after staging stdlib", () => {
+	it("no longer lists stdlib as pending, so only restartPending keeps the batch held", () => {
+		// A store-driven stdlib update writes a record with the new version
+		// while the registry keeps running the old one. pendingUpdates then
+		// stops offering stdlib, and without the restartPending signal the
+		// gate would wave the deferred modules through against old stdlib.
+		locals = [
+			{ metadata: { identifier: "stdlib" }, sidecar: { installed_version: "1.11.0" } },
+			{ metadata: { identifier: "bookmark" }, sidecar: { installed_version: "0.4.0" } },
+		];
+		stagedStates = [{ identifier: "stdlib", version: "1.10.0", local: true }];
+		const pending = pendingUpdates(catalog([entry("stdlib", "1.11.0"), entry("bookmark", "0.4.1")]));
+		assert.deepEqual(
+			pending.map((m) => m.id),
+			["bookmark"],
+		);
+		assert.equal(stdlibRestartPending(), true);
+		assert.deepEqual(stdlibGate(pending, stdlibRestartPending()), { install: [], deferred: pending });
+	});
+});
+
+describe("stdlibRestartPending", () => {
+	it("is false with no stdlib record at all", () => {
+		stagedStates = [{ identifier: "stdlib", version: "1.9.0", local: false }];
+		assert.equal(stdlibRestartPending(), false);
+	});
+
+	it("is true while the written record is newer than the running copy", () => {
+		locals = [{ metadata: { identifier: "stdlib" }, sidecar: { installed_version: "1.10.0" } }];
+		stagedStates = [{ identifier: "stdlib", version: "1.9.0", local: false }];
+		assert.equal(stdlibRestartPending(), true);
+	});
+
+	it("is false once the restart has brought the new version up", () => {
+		locals = [{ metadata: { identifier: "stdlib" }, sidecar: { installed_version: "1.10.0" } }];
+		stagedStates = [{ identifier: "stdlib", version: "1.10.0", local: true }];
+		assert.equal(stdlibRestartPending(), false);
 	});
 });
 

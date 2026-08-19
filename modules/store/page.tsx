@@ -56,7 +56,7 @@ import {
 } from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged, toast } from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
-import { pendingUpdates, stdlibGate } from "./updates.ts";
+import { pendingUpdates, stdlibGate, stdlibRestartPending } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
 
@@ -1067,6 +1067,13 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	}, [catalog, registryEpoch]);
 
 	const runInstall = async (mod: VaultModule) => {
+		// Updating a running module hot-swaps it, and a staged stdlib update
+		// means the swap would run against the old stdlib; fresh installs are
+		// fine (a missing dependency restart-gates them instead).
+		if (mod.id !== "stdlib" && installedVersions.get(mod.id) !== undefined && stdlibRestartPending()) {
+			toast("a stdlib update is staged: restart Spotify before updating modules");
+			return;
+		}
 		try {
 			await installModule(mod, setStatus);
 		} catch {
@@ -1106,22 +1113,36 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 	const updateAll = async () => {
 		setUpdatingAll(true);
-		const { install, deferred } = stdlibGate(pending);
-		let stdlibStaged = true;
+		const { install, deferred } = stdlibGate(pending, stdlibRestartPending());
+		// "staged" when the new stdlib only arrives with the next boot,
+		// "failed" when it did not land at all, null when it is live (or was
+		// never part of the batch) and the deferred updates can proceed.
+		let hold: "staged" | "failed" | null = deferred.length ? "staged" : null;
 		for (const mod of install) {
+			try {
+				const outcome = await installModule(mod, setStatus);
+				if (mod.id === "stdlib" && outcome.enabled) hold = null;
+				if (mod.id === "stdlib" && !outcome.enabled && !outcome.requiresRestart) hold = "failed";
+			} catch (e) {
+				if (mod.id === "stdlib") hold = "failed";
+				toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
+				setStatus("");
+			}
+		}
+		for (const mod of hold === null ? deferred : []) {
 			try {
 				await installModule(mod, setStatus);
 			} catch (e) {
-				if (mod.id === "stdlib") stdlibStaged = false;
 				toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
+				setStatus("");
 			}
 		}
-		if (deferred.length) {
+		if (hold !== null) {
 			const held = `${deferred.length} update${deferred.length === 1 ? "" : "s"} held back`;
 			toast(
-				stdlibStaged
+				hold === "staged"
 					? `${held} until the new stdlib runs: restart Spotify, then update again`
-					: `${held}: they may need the new stdlib, and its update failed`,
+					: `${held}: they may need the new stdlib, and its update did not land`,
 			);
 		}
 		setUpdatingAll(false);
