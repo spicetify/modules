@@ -17,7 +17,10 @@ function resolvePlatform(): any {
 	return cached ?? undefined;
 }
 
-export const Platform: any = new Proxy(
+// Typed as the generated Platform surface; the Proxy target is an empty
+// shell whose members only exist at get time, so the assertion is the
+// honest spelling.
+export const Platform = new Proxy(
 	{},
 	{
 		get: (_, key) => {
@@ -45,4 +48,4 @@ export const Platform: any = new Proxy(
 			return false;
 		},
 	},
-);
+) as typeof Spicetify.Platform;
