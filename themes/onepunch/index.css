@@ -403,11 +403,6 @@ input {
 	gap: 5px;
 }
 
-.main-addButton-button,
-.main-nowPlayingBar-extraControls button {
-	color: rgba(var(--spice-rgb-selected-row), 0.7);
-}
-
 /* replace icons */
 .main-navBar-mainNav a[href="/"] path {
 	d: path(
