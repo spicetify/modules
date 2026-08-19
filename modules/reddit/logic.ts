@@ -4,6 +4,7 @@
  */
 
 export const DEFAULT_SUBREDDITS = ["spotify", "makemeaplaylist", "SpotifyPlaylists", "music", "edm", "popheads"];
+export const MAX_SUBREDDITS = 24;
 export const SORTS = ["hot", "new", "top", "controversial", "rising"] as const;
 export const TIMES = ["hour", "day", "week", "month", "year", "all"] as const;
 
@@ -42,18 +43,33 @@ export function readSubreddits(raw: string | null): string[] {
 	try {
 		const parsed = JSON.parse(raw ?? "null");
 		if (!Array.isArray(parsed)) return [...DEFAULT_SUBREDDITS];
-		const unique = [...new Set(parsed.map((item) => (typeof item === "string" ? normalizeSubreddit(item) : null)))];
-		const valid = unique.filter((item): item is string => item !== null).slice(0, 24);
+		// Subreddit names are case-insensitive on Reddit's side, so the
+		// dedupe is too; the first spelling wins and keeps its casing.
+		const seen = new Set<string>();
+		const valid: string[] = [];
+		for (const item of parsed) {
+			const name = typeof item === "string" ? normalizeSubreddit(item) : null;
+			if (!name || seen.has(name.toLowerCase())) continue;
+			seen.add(name.toLowerCase());
+			valid.push(name);
+			if (valid.length === MAX_SUBREDDITS) break;
+		}
 		return valid.length ? valid : [...DEFAULT_SUBREDDITS];
 	} catch {
 		return [...DEFAULT_SUBREDDITS];
 	}
 }
 
+// Whether a sort takes the `t=` window parameter; also decides whether the
+// page renders the time select at all.
+export function isTimeAware(sort: Sort): boolean {
+	return sort === "top" || sort === "controversial";
+}
+
 export function buildFeedUrl(subreddit: string, sort: Sort, time: Time): string {
 	const url = new URL(`https://www.reddit.com/r/${encodeURIComponent(subreddit)}/${sort}.rss`);
 	url.searchParams.set("limit", "100");
-	if (sort === "top" || sort === "controversial") url.searchParams.set("t", time);
+	if (isTimeAware(sort)) url.searchParams.set("t", time);
 	return url.toString();
 }
 
@@ -78,6 +94,9 @@ export function spotifyUri(value: string): { uri: string; kind: SpotifyKind } | 
 export function parseRedditFeed(xml: string, Parser: typeof DOMParser = DOMParser): FeedPost[] {
 	const document = new Parser().parseFromString(xml, "text/xml");
 	if (document.querySelector("parsererror")) throw new Error("Reddit returned invalid Atom XML");
+	// A block page or interstitial can be well-formed XML/XHTML; treating it
+	// as an empty feed would cache "no links" for the whole TTL.
+	if (document.documentElement?.localName !== "feed") throw new Error("Reddit did not return an Atom feed");
 
 	const posts: FeedPost[] = [];
 	const seen = new Set<string>();
@@ -111,16 +130,22 @@ export function retryAfterMs(headers: Pick<Headers, "get">, now = Date.now()): n
 		const timestamp = Date.parse(retryAfter);
 		if (!Number.isNaN(timestamp)) return Math.max(0, timestamp - now);
 	}
-	if (headers.get("x-ratelimit-remaining") === "0") {
+	// Reddit sends the remaining budget as a float ("0.0"), so compare
+	// numerically rather than against the literal string.
+	const remaining = headers.get("x-ratelimit-remaining");
+	if (remaining !== null && Number(remaining) === 0) {
 		const seconds = Number(headers.get("x-ratelimit-reset"));
 		if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
 	}
 	return null;
 }
 
-export function validateCache(value: unknown, version: number): CacheShape | null {
+export function validateCache(value: unknown, version: number, now = Date.now()): CacheShape | null {
 	const cache = value as CacheShape | null;
 	if (!cache || cache.v !== version || !Number.isFinite(cache.fetchedAt) || !Array.isArray(cache.items)) return null;
+	// A future timestamp (clock skew, a hand-edited record) would count as
+	// fresh forever.
+	if (cache.fetchedAt > now) return null;
 	return cache.items.every(
 		(item) =>
 			item &&
@@ -128,7 +153,9 @@ export function validateCache(value: unknown, version: number): CacheShape | nul
 			(item.kind === "playlist" || item.kind === "album" || item.kind === "track") &&
 			typeof item.title === "string" &&
 			typeof item.subtitle === "string" &&
-			typeof item.imageUrl === "string",
+			typeof item.imageUrl === "string" &&
+			typeof item.postTitle === "string" &&
+			(item.followers === undefined || typeof item.followers === "number"),
 	)
 		? cache
 		: null;

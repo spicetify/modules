@@ -9,6 +9,7 @@ import { Window } from "happy-dom";
 
 import {
 	DEFAULT_SUBREDDITS,
+	MAX_SUBREDDITS,
 	buildFeedUrl,
 	imageUrl,
 	normalizeSubreddit,
@@ -38,6 +39,18 @@ describe("Reddit feed URL and subreddit config", () => {
 		assert.equal(normalizeSubreddit("bad/name"), null);
 		assert.deepEqual(readSubreddits('["spotify","spotify","r/music","bad/name"]'), ["spotify", "music"]);
 		assert.deepEqual(readSubreddits("broken"), DEFAULT_SUBREDDITS);
+	});
+
+	it("dedupes case-insensitively, keeping the first spelling", () => {
+		assert.deepEqual(readSubreddits('["SpotifyPlaylists","spotifyplaylists","music"]'), [
+			"SpotifyPlaylists",
+			"music",
+		]);
+	});
+
+	it("caps the stored list at the add limit", () => {
+		const many = JSON.stringify(Array.from({ length: 30 }, (_, i) => `sub_${i}`));
+		assert.equal(readSubreddits(many).length, MAX_SUBREDDITS);
 	});
 });
 
@@ -76,6 +89,15 @@ describe("Spotify links", () => {
 			/invalid Atom XML/,
 		);
 	});
+
+	it("rejects well-formed XML that is not an Atom feed", () => {
+		// A block page or interstitial parses cleanly; caching it as an
+		// empty feed would show "no links" for the whole TTL.
+		assert.throws(
+			() => parseRedditFeed("<html><body>blocked</body></html>", Parser as unknown as typeof DOMParser),
+			/not return an Atom feed/,
+		);
+	});
 });
 
 describe("cache and response helpers", () => {
@@ -88,6 +110,9 @@ describe("cache and response helpers", () => {
 	it("derives cooldowns from standard and Reddit rate-limit headers", () => {
 		assert.equal(retryAfterMs(new Headers({ "retry-after": "12" })), 12000);
 		assert.equal(retryAfterMs(new Headers({ "x-ratelimit-remaining": "0", "x-ratelimit-reset": "30" })), 30000);
+		// Reddit sends the remaining budget as a float.
+		assert.equal(retryAfterMs(new Headers({ "x-ratelimit-remaining": "0.0", "x-ratelimit-reset": "30" })), 30000);
+		assert.equal(retryAfterMs(new Headers({ "x-ratelimit-remaining": "42.0", "x-ratelimit-reset": "30" })), null);
 		assert.equal(retryAfterMs(new Headers()), null);
 	});
 
@@ -109,5 +134,22 @@ describe("cache and response helpers", () => {
 		assert.equal(validateCache(good, 1), good);
 		assert.equal(validateCache({ ...good, v: 2 }, 1), null);
 		assert.equal(validateCache({ ...good, items: [{ uri: 4 }] }, 1), null);
+	});
+
+	it("rejects tampered optional fields and future timestamps", () => {
+		const item = {
+			uri: "spotify:playlist:a",
+			kind: "playlist",
+			postTitle: "post",
+			title: "title",
+			subtitle: "subtitle",
+			imageUrl: "",
+		};
+		const good = { v: 1, fetchedAt: 10, items: [item] };
+		assert.equal(validateCache({ ...good, items: [{ ...item, followers: 12 }] }, 1)?.items.length, 1);
+		// followers: null would throw in render (`followers.toLocaleString()`).
+		assert.equal(validateCache({ ...good, items: [{ ...item, followers: null }] }, 1), null);
+		assert.equal(validateCache({ ...good, items: [{ ...item, postTitle: 4 }] }, 1), null);
+		assert.equal(validateCache({ ...good, fetchedAt: 50 }, 1, 40), null);
 	});
 });
