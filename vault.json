@@ -1040,6 +1040,14 @@
 					"providers": [],
 					"checksum": "sha256:a7e8bde3d4fb69df2c0dedd46f9f8eb0452cfd9fdf00d3da129cb68c9dab4255",
 					"updatedAt": "2026-08-18"
+				},
+				"0.1.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/onepunch@0.1.3/onepunch@0.1.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:0738e0e1ca8d4040979cace8ce4ee35b7ed37e912d239111a76bb8215d0482a7",
+					"updatedAt": "2026-08-19"
 				}
 			},
 			"metadata": {
