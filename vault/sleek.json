@@ -17,6 +17,12 @@
 			"providers": [],
 			"checksum": "sha256:18bf8b626846fc7f12e277df14fc9b15f55ae97339944aae5d3e33a4f78081e7",
 			"updatedAt": "2026-08-04"
+		},
+		"0.1.3": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.3/sleek@0.1.3.zip"],
+			"providers": [],
+			"checksum": "sha256:2780b3f2cad668c60c2974db3ef5d2202227030926d33244cfc4ebad5748f88e",
+			"updatedAt": "2026-08-19"
 		}
 	},
 	"metadata": {
@@ -28,6 +34,7 @@
 			}
 		],
 		"kind": "theme",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/sleek.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
