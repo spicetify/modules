@@ -145,7 +145,8 @@
 .player-controls__buttons button:not(.main-playPauseButton-button) {
 	color: var(--spice-button) !important;
 }
-.main-genericButton-button {
+.main-genericButton-button,
+.main-nowPlayingBar-volumeBar button {
 	color: var(--spice-button) !important;
 }
 .connect-device-list-content {
