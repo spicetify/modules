@@ -23,7 +23,7 @@ const settingsPageModules = [
 // These features own a visible surface where their controls have immediate,
 // obvious effects. Their preferences stay next to that surface rather than
 // being duplicated on the global settings page.
-const contextualSettingsModules = ["full-app-display", "new-releases"] as const;
+const contextualSettingsModules = ["full-app-display", "new-releases", "reddit"] as const;
 
 // These modules own content or transient UI state, not module-wide preferences.
 // Keeping the list explicit forces every new first-party app/extension through
