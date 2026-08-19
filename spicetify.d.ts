@@ -831,12 +831,12 @@ declare namespace Spicetify {
   };
 
   /**
-   * The client's internal platform APIs. Typed from the generated
-   * PlatformAutoGen surface, exposing both the property form the client uses
-   * (`Platform.LibraryAPI`) and the generated `getLibraryAPI()` methods:
-   * every `getFooAPI(): R` yields a `FooAPI: R` property too.
+   * The client's internal platform APIs, typed from platform.d.ts, the
+   * committed snapshot scripts/platform-types.ts regenerates per Spotify
+   * build. The snapshot's root is the property form the client uses
+   * (`Platform.LibraryAPI`).
    */
-  type PlatformAutoGen = import("/hooks/PlatformAutoGen").PlatformAutoGen;
+  type PlatformAutoGen = import("./platform").Platform;
   // One level of member names per API — enough to autocomplete which methods an
   // API exposes (Platform.LibraryAPI.getContents…), with every value left `any`.
   // The generated method signatures are unreliable (arg counts and nullability
@@ -848,22 +848,10 @@ declare namespace Spicetify {
     : T extends object
       ? { [M in keyof T]: any }
       : T;
-  // Both forms the client offers: the getFooAPI() methods (permissive args,
-  // shaped return) and each getFooAPI(): R also as a FooAPI: R property (the
-  // form the client uses). The Record<string, any> tail keeps unknown keys open.
-  type PlatformApis =
-    & {
-        [K in keyof PlatformAutoGen]: PlatformAutoGen[K] extends (...args: any[]) => infer R
-          ? (...args: any[]) => Shape<R>
-          : PlatformAutoGen[K];
-      }
-    & {
-        [K in keyof PlatformAutoGen as K extends `get${infer Name}` ? Name : never]: PlatformAutoGen[K] extends (
-          ...args: any[]
-        ) => infer R
-          ? Shape<R>
-          : never;
-      };
+  // The Record<string, any> tail keeps unknown keys open.
+  type PlatformApis = {
+    [K in keyof PlatformAutoGen]: Shape<PlatformAutoGen[K]>;
+  };
   const Platform: PlatformApis & Record<string, any>;
   /**
    * Queue object contains list of queuing tracks,
