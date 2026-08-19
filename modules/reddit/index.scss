@@ -172,6 +172,14 @@
 	transform: none;
 }
 
+// Without hover there is no reveal gesture, so Play stays visible.
+@media (hover: none) {
+	.reddit-v3-play {
+		opacity: 1;
+		transform: none;
+	}
+}
+
 .reddit-v3-card-copy {
 	display: flex;
 	min-width: 0;

@@ -65,6 +65,17 @@ export const RedditCard = ({ item }: { item: RedditItem }) => {
 							className="reddit-v3-card-link"
 							href={path}
 							onClick={(event) => {
+								// A modified or non-primary click keeps its
+								// native link meaning.
+								if (
+									event.button !== 0 ||
+									event.metaKey ||
+									event.ctrlKey ||
+									event.shiftKey ||
+									event.altKey
+								) {
+									return;
+								}
 								event.preventDefault();
 								client.platform.History.push(path);
 							}}
