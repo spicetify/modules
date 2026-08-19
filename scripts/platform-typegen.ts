@@ -323,22 +323,22 @@ export interface MethodType {
 
 export const METHOD_TYPES: readonly MethodType[] = [
 	{
-		on: "Platform.getRemoteConfigDebugAPI().setOverride",
+		on: "Platform.RemoteConfigDebugAPI.setOverride",
 		args: ["config: { source: string; type: string; name: string }", "value: string | number | boolean"],
 		returns: "void",
 	},
 	{
-		on: "Platform.getPlaylistAPI().getMetadata",
+		on: "Platform.PlaylistAPI.getMetadata",
 		args: ["uri: string", "options?: unknown"],
 		returns: "Promise<unknown>",
 	},
 	{
-		on: "Platform.getPlaylistAPI().updateDetails",
+		on: "Platform.PlaylistAPI.updateDetails",
 		args: ["uri: string", "details: object"],
 		returns: "Promise<unknown>",
 	},
 	{
-		on: "Platform.getProductStateAPI().productStateApi.putValues",
+		on: "Platform.ProductStateAPI.productStateApi.putValues",
 		args: ["values: { pairs: Record<string, string> }", "options?: unknown"],
 		returns: "unknown",
 	},
