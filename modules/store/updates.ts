@@ -39,6 +39,19 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
 
+// stdlib is a tree module: installing its update stages the new code, which
+// only takes over on the next boot, while every other update hot-swaps into
+// the running client immediately. A batch that mixes the two hot-swaps
+// dependents built against the newer stdlib onto the old one still running,
+// which is how "Update all" once filled the console with import errors. So a
+// batch containing a stdlib update installs stdlib alone, and the rest wait
+// for the restart that actually brings it up.
+export function stdlibGate(pending: VaultModule[]): { install: VaultModule[]; deferred: VaultModule[] } {
+	const stdlib = pending.find((mod) => mod.id === "stdlib");
+	if (!stdlib) return { install: pending, deferred: [] };
+	return { install: [stdlib], deferred: pending.filter((mod) => mod.id !== "stdlib") };
+}
+
 // Boot-time nudge: check the vault once and toast when installed modules
 // have updates waiting. Purely informational; installing stays
 // user-initiated in the store page. The last announced set is remembered

@@ -56,7 +56,7 @@ import {
 } from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged, toast } from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
-import { pendingUpdates } from "./updates.ts";
+import { pendingUpdates, stdlibGate } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
 
@@ -1106,12 +1106,23 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 	const updateAll = async () => {
 		setUpdatingAll(true);
-		for (const mod of pending) {
+		const { install, deferred } = stdlibGate(pending);
+		let stdlibStaged = true;
+		for (const mod of install) {
 			try {
 				await installModule(mod, setStatus);
 			} catch (e) {
+				if (mod.id === "stdlib") stdlibStaged = false;
 				toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
 			}
+		}
+		if (deferred.length) {
+			const held = `${deferred.length} update${deferred.length === 1 ? "" : "s"} held back`;
+			toast(
+				stdlibStaged
+					? `${held} until the new stdlib runs: restart Spotify, then update again`
+					: `${held}: they may need the new stdlib, and its update failed`,
+			);
 		}
 		setUpdatingAll(false);
 		refreshRegistry();

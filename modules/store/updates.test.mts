@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
-import { pendingUpdates } from "./updates.ts";
+import { pendingUpdates, stdlibGate } from "./updates.ts";
 
 type LocalRecord = {
 	metadata: { identifier: string; kind?: string; custom?: boolean; dependencies?: Record<string, string> };
@@ -135,6 +135,38 @@ describe("pendingUpdates", () => {
 			out.map((m) => m.id),
 			["lib", "app"],
 		);
+	});
+});
+
+describe("stdlibGate", () => {
+	it("passes a batch with no stdlib update through untouched", () => {
+		const pending = [entry("a", "1.1.0"), entry("b", "2.1.0")];
+		assert.deepEqual(stdlibGate(pending), { install: pending, deferred: [] });
+	});
+
+	it("installs stdlib alone and defers everything else", () => {
+		// stdlib only takes over on the next boot; hot-swapping the rest of
+		// the batch onto the old running stdlib is what broke "Update all".
+		const pending = [entry("a", "1.1.0"), entry("stdlib", "1.10.0"), entry("b", "2.1.0")];
+		const { install, deferred } = stdlibGate(pending);
+		assert.deepEqual(
+			install.map((m) => m.id),
+			["stdlib"],
+		);
+		assert.deepEqual(
+			deferred.map((m) => m.id),
+			["a", "b"],
+		);
+	});
+
+	it("lets a batch that is only the stdlib update install it", () => {
+		const pending = [entry("stdlib", "1.10.0")];
+		const { install, deferred } = stdlibGate(pending);
+		assert.deepEqual(
+			install.map((m) => m.id),
+			["stdlib"],
+		);
+		assert.deepEqual(deferred, []);
 	});
 });
 
