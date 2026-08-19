@@ -15,6 +15,7 @@
 		"packages/kit/vendor",
 		"modules/stdlib/vendor",
 		"spicetify.d.ts",
+		"platform.d.ts",
 		"**/*.gen.ts",
 		"**/CODEGEN.ts",
 		"**/classmap.d.ts"

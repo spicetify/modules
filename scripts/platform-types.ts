@@ -29,8 +29,9 @@ const SCRIPTS = import.meta.dirname;
 const ROOT = path.dirname(SCRIPTS);
 const OUT = path.join(ROOT, "platform.d.ts");
 const PORT = Number(process.env.SPICETIFY_CDP_PORT ?? 9229);
-// The extractor caps itself at 1500 awaited probes with a 2s timeout each;
-// a healthy run finishes in well under a minute.
+// The extractor races its awaited probes against one shared 2s window, so
+// a healthy run finishes in well under a minute; the margin is for a
+// wedged client, not for the probes.
 const EVAL_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
@@ -49,7 +50,8 @@ if (!platform) throw new Error("Spicetify.Platform is not up yet; wait for the c
 const generator = new TypeGenerator(platform, "Platform", METHOD_TYPES);
 const output = await generator.generate();
 return { output, stats: generator.stats };
-})()`;
+})()
+//# sourceURL=platform-typegen.ts`;
 }
 
 type EvalResult = {
@@ -128,7 +130,7 @@ function evaluateInClient(wsUrl: string, expression: string): Promise<EvalResult
 				error?: { code: number; message: string };
 				result?: {
 					result?: { value?: EvalResult };
-					exceptionDetails?: { exception?: { description?: string } };
+					exceptionDetails?: { text?: string; exception?: { description?: string } };
 				};
 			};
 			try {
@@ -145,9 +147,8 @@ function evaluateInClient(wsUrl: string, expression: string): Promise<EvalResult
 			}
 			const exception = msg.result?.exceptionDetails;
 			if (exception) {
-				settle(() =>
-					reject(new Error(exception.exception?.description ?? "the extractor threw in the client")),
-				);
+				const detail = exception.exception?.description ?? exception.text ?? JSON.stringify(exception);
+				settle(() => reject(new Error(detail)));
 				return;
 			}
 			const value = msg.result?.result?.value;
@@ -191,6 +192,25 @@ async function main(): Promise<void> {
 		console.error(
 			`refusing to write: hit ${hitLimits.join(", ")} limit(s), so parts of the output degraded ` +
 				`to unknown; rerun with --force to keep the degraded snapshot`,
+		);
+		process.exitCode = 1;
+		return;
+	}
+
+	// Platform populates progressively during boot, so a too-early run
+	// yields a plausible but truncated surface with no limit flagged. A
+	// shrink past what any real API removal could explain is that, not
+	// drift.
+	let previousTypes = 0;
+	try {
+		previousTypes = (readFileSync(OUT, "utf8").match(/^(export )?(interface|type) /gm) ?? []).length;
+	} catch {
+		/* first generation */
+	}
+	if (previousTypes && stats.types < previousTypes * 0.8 && !process.argv.includes("--force")) {
+		console.error(
+			`refusing to write: only ${stats.types} types against a snapshot of ${previousTypes}; ` +
+				`the client is probably still booting (rerun with --force to override)`,
 		);
 		process.exitCode = 1;
 		return;

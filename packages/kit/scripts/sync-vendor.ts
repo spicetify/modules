@@ -84,4 +84,4 @@ if (classmapsSrc) {
 	}
 }
 
-console.log(`vendored ${stdlib} stdlib files, 3 shims, classmap ${vendoredClassmap} -> ${VENDOR}`);
+console.log(`vendored ${stdlib} stdlib files, 4 shims, classmap ${vendoredClassmap} -> ${VENDOR}`);
