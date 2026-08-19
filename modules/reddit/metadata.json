@@ -1,0 +1,16 @@
+{
+	"name": "reddit",
+	"kind": "app",
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "Discover Spotify playlists, albums, and songs shared by Reddit music communities.",
+	"entries": {
+		"js": "index.js",
+		"css": "index.css"
+	},
+	"hasMixins": false,
+	"dependencies": {
+		"stdlib": "^1.10.0"
+	},
+	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/reddit.svg"
+}
