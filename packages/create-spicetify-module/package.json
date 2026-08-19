@@ -1,6 +1,6 @@
 {
 	"name": "create-spicetify-module",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"description": "Scaffold a spicetify v3 module (delegates to @spicetify/kit)",
 	"license": "GPL-3.0-or-later",
 	"homepage": "https://github.com/spicetify/modules#readme",
@@ -26,6 +26,6 @@
 		"access": "public"
 	},
 	"dependencies": {
-		"@spicetify/kit": "^0.2.0"
+		"@spicetify/kit": "^0.3.0"
 	}
 }

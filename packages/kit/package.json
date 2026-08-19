@@ -1,6 +1,6 @@
 {
 	"name": "@spicetify/kit",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Developer kit for spicetify v3 modules: scaffold, build, hot-push, and pack",
 	"license": "GPL-3.0-or-later",
 	"homepage": "https://github.com/spicetify/modules#readme",

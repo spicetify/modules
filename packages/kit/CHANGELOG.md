@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/spicetify/modules/compare/kit@0.2.0...kit@0.3.0) (2026-08-19)
+
+
+### Features
+
+* **kit:** vendor the generated Platform typings ([133e95b](https://github.com/spicetify/modules/commit/133e95b28301b315e008443dc89c91c5dd3af752))
+
+
+### Bug Fixes
+
+* **kit:** track stdlib 1.10.1 ([06f5ca0](https://github.com/spicetify/modules/commit/06f5ca0eaf2dd4f7a6954f60cc4cc8c1018f3620))
+* **scripts:** finish hardening the platform-types runner ([eccc4eb](https://github.com/spicetify/modules/commit/eccc4eba0a7bd323f64e2b525c0a31a192d456fd))
+
 ## [0.2.0](https://github.com/spicetify/modules/compare/kit@0.1.0...kit@0.2.0) (2026-08-18)
 
 ### Features
