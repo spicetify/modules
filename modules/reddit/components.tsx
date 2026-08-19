@@ -28,31 +28,18 @@ const Placeholder = ({ kind }: { kind: RedditItem["kind"] }) => (
 	</div>
 );
 
-const navigate = (uri: string): void => {
+const clientPath = (uri: string): string | null => {
 	try {
-		const path = client.uri.fromString(uri).toURLPath(true);
-		if (path) client.platform.History.push(path);
+		return client.uri.fromString(uri).toURLPath(true) || null;
 	} catch {
-		/* malformed or unsupported client URI: leave the card inert */
+		return null;
 	}
 };
 
 export const RedditCard = ({ item }: { item: RedditItem }) => {
-	const open = () => navigate(item.uri);
+	const path = clientPath(item.uri);
 	return (
-		<article
-			className="reddit-v3-card"
-			role="link"
-			tabIndex={0}
-			aria-label={`Open ${item.title}`}
-			onClick={open}
-			onKeyDown={(event) => {
-				if (event.key === "Enter" || event.key === " ") {
-					event.preventDefault();
-					open();
-				}
-			}}
-		>
+		<article className="reddit-v3-card">
 			<div className="reddit-v3-cover-wrap">
 				{item.imageUrl ? (
 					<img className="reddit-v3-cover" src={item.imageUrl} alt="" loading="lazy" />
@@ -63,22 +50,37 @@ export const RedditCard = ({ item }: { item: RedditItem }) => {
 					type="button"
 					className="reddit-v3-play"
 					aria-label={`Play ${item.title}`}
-					onClick={(event) => {
-						event.stopPropagation();
-						client.player.playUri(item.uri);
-					}}
+					onClick={() => client.player.playUri(item.uri)}
 				>
 					<PlayIcon />
 				</button>
 			</div>
 			<div className="reddit-v3-card-copy">
-				<strong title={item.title}>{item.title}</strong>
+				<strong title={item.title}>
+					{/* A real anchor, stretched over the card by its ::after, so
+					    the title is the card's accessible name and Enter/Space
+					    keep their native meanings on both the link and Play. */}
+					{path ? (
+						<a
+							className="reddit-v3-card-link"
+							href={path}
+							onClick={(event) => {
+								event.preventDefault();
+								client.platform.History.push(path);
+							}}
+						>
+							{item.title}
+						</a>
+					) : (
+						item.title
+					)}
+				</strong>
 				<span title={item.subtitle}>{item.subtitle}</span>
 				<div className="reddit-v3-card-detail">
 					<Badge>
 						{item.kind === "track" ? "Song" : `${item.kind[0].toUpperCase()}${item.kind.slice(1)}`}
 					</Badge>
-					{item.followers === undefined ? null : <span>{item.followers.toLocaleString()} likes</span>}
+					{typeof item.followers === "number" ? <span>{item.followers.toLocaleString()} likes</span> : null}
 				</div>
 			</div>
 		</article>
