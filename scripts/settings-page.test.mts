@@ -135,8 +135,8 @@ describe("standalone Spicetify Settings", () => {
 
 		assert.equal(manager.version, "1.2.2");
 		assert.equal(manager.dependencies.stdlib, "^1.10.0");
-		const installedMinor = Number(stdlib.version.match(/^1\.(\d+)\.0$/)?.[1]);
-		const requiredMinor = Number(lyricsPlus.dependencies.stdlib.match(/^\^1\.(\d+)\.0$/)?.[1]);
+		const installedMinor = Number(stdlib.version.match(/^1\.(\d+)\.\d+$/)?.[1]);
+		const requiredMinor = Number(lyricsPlus.dependencies.stdlib.match(/^\^1\.(\d+)\.\d+$/)?.[1]);
 		assert.ok(installedMinor >= requiredMinor, "Lyrics Plus must accept the installed stdlib");
 		assert.equal(kit.spicetify.stdlibVersion, stdlib.version);
 	});

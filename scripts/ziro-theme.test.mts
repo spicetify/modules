@@ -24,6 +24,6 @@ describe("ziro current-client compatibility", () => {
 	});
 
 	it("ships as a patch release", () => {
-		assert.equal(metadata.version, "0.1.2");
+		assert.equal(metadata.version, "0.1.3");
 	});
 });
