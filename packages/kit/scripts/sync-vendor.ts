@@ -53,6 +53,9 @@ cpSync(path.join(REPO, "remote-modules.d.ts"), path.join(shims, "remote-modules.
 cpSync(path.join(REPO, "modules", "stdlib", "src", "chunks.d.ts"), path.join(shims, "chunks.d.ts"));
 // Ambient Spicetify global types, so scaffolded modules are typed by default.
 cpSync(path.join(REPO, "spicetify.d.ts"), path.join(shims, "spicetify.d.ts"));
+// The generated Platform surface (scripts/platform-types.ts), regenerated
+// per Spotify build; authors import its types explicitly.
+cpSync(path.join(REPO, "platform.d.ts"), path.join(shims, "platform.d.ts"));
 
 // Vendor the newest verified classmap so a standalone author's first build
 // resolves one offline (U5). Copy only the classmap json under <key>/.
