@@ -68,8 +68,9 @@ describe("owned panel public API", () => {
 		assert.match(panelLogicSource, /event\.defaultPrevented/);
 	});
 
-	it("ships the current stdlib release", () => {
-		assert.equal(metadata.version, "1.10.0");
-		assert.equal(kitPackage.spicetify.stdlibVersion, "1.10.0");
+	it("ships through the current kit", () => {
+		// The kit's pin must track the workspace stdlib, whatever its
+		// version; a literal here breaks on every routine bump.
+		assert.equal(kitPackage.spicetify.stdlibVersion, metadata.version);
 	});
 });
