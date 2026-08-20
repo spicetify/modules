@@ -17,6 +17,7 @@
 		"**/*.gen.ts",
 		"**/CODEGEN.ts",
 		"**/package.json",
+		"**/CHANGELOG.md",
 		"pnpm-lock.yaml",
 		".github",
 		"**/*.yml",
