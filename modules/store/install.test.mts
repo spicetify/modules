@@ -360,3 +360,22 @@ describe("stageStdlibViaDaemon", () => {
 		assert.equal(localStorage.getItem("spicetify:store:stdlibDiskStaged"), null);
 	});
 });
+
+describe("a hung live swap", () => {
+	it("declares the update restart-gated instead of pinning installing forever", async (t) => {
+		// The loader saves the record before unloading the old instance, so
+		// a dispose that never settles (seen live: adblock's unbounded slot
+		// restorer) leaves a durable update that only needs a restart.
+		t.mock.timers.enable({ apis: ["setTimeout"] });
+		installLocalImpl = () => new Promise(() => {});
+		const outcome = installModule(
+			{ id: "adblock", version: "0.1.8", artifacts: [], vault: "default", files: { "index.css": "/* x */" } },
+			() => {},
+		);
+		// Let the async install reach the watchdog's setTimeout before the
+		// fake clock advances; the inline path is microtask-only up to it.
+		for (let i = 0; i < 25; i++) await Promise.resolve();
+		t.mock.timers.tick(15_001);
+		assert.deepEqual(await outcome, { requiresRestart: true, enabled: false });
+	});
+});

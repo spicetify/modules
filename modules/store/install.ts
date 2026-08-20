@@ -173,6 +173,10 @@ export async function enforceSingleTheme(id: string): Promise<void> {
 // itself restart-gated); `enabled` means the new code is live right now.
 export type InstallOutcome = { requiresRestart: boolean; enabled: boolean };
 
+// How long a live swap may take before the update is declared restart-gated;
+// unloading and re-enabling a module is normally sub-second work.
+export const INSTALL_SWAP_TIMEOUT_MS = 15_000;
+
 // One in-flight promise per id: a second caller (a dependent resolving a
 // dependency two cards are racing on) joins the running install instead of
 // returning early as if it had completed.
@@ -459,7 +463,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	// installLocal unloads any prior live instance itself, transiently, so no
 	// pre-disable here: a persisted disable before the install would outlive a
 	// failure and silently skip the module on every later boot.
-	const result = (await M().installLocal(mod.id, {
+	const swap = M().installLocal(mod.id, {
 		metadata,
 		files,
 		sidecar: {
@@ -468,8 +472,22 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			allow_stale: false,
 			checksum: mod.checksum ?? "",
 		},
-	})) as { requiresRestart?: boolean; disabled?: boolean } | boolean | null;
+	}) as Promise<{ requiresRestart?: boolean; disabled?: boolean } | boolean | null>;
 	const name = metadata?.name ?? mod.id;
+	// The loader persists the new record before it unloads the old instance,
+	// so if that instance's dispose hangs (an unbounded await in module
+	// teardown), the update is already durable and a restart finishes it.
+	// Waiting forever here just pins "installing…" on screen.
+	const result = await Promise.race([
+		swap,
+		new Promise<"hung-swap">((resolve) => setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS)),
+	]);
+	if (result === "hung-swap") {
+		status("");
+		toast(`${name} installed, but the old copy would not shut down; restart Spotify to finish`, "success");
+		reportInstall(mod);
+		return { requiresRestart: true, enabled: false };
+	}
 	// Tree modules (stdlib-style) apply on the next boot; the loader keeps
 	// the running code and says so instead of pretending a live swap.
 	if (result && typeof result === "object" && result.requiresRestart) {
