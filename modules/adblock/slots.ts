@@ -115,12 +115,37 @@ function watchAdSlot(connector: AdSlotConnector, slotId: string, handler: SlotHa
 	return { cancel: () => (watcher.handler = null) };
 }
 
+// A cosmos request through the connector can simply never settle (the ad
+// session may be torn down under it), and an unbounded await here hangs the
+// loader's unload: the store then shows "installing…" forever while the old
+// instance's dispose waits on a reply that is not coming. Every slot call
+// is therefore raced against a deadline and treated as answered-empty when
+// it misses it.
+export const SLOT_CALL_TIMEOUT_MS = 4000;
+
+export function bounded<T>(work: T | Promise<T> | null | undefined, label: string): Promise<Awaited<T> | undefined> {
+	if (work == null) return Promise.resolve(undefined);
+	return new Promise((resolve) => {
+		const timer = setTimeout(() => {
+			console.warn(`[adblock] ${label} did not answer within ${SLOT_CALL_TIMEOUT_MS}ms; continuing`);
+			resolve(undefined);
+		}, SLOT_CALL_TIMEOUT_MS);
+		Promise.resolve(work).then(
+			(value) => {
+				clearTimeout(timer);
+				resolve(value);
+			},
+			(error) => {
+				clearTimeout(timer);
+				console.warn(`[adblock] ${label} failed`, error);
+				resolve(undefined);
+			},
+		);
+	});
+}
+
 async function clearAdSlot(connector: AdSlotConnector, slotId: string): Promise<void> {
-	try {
-		await connector.clearSlot?.(slotId);
-	} catch (error) {
-		console.warn(`[adblock] could not clear slot ${slotId}`, error);
-	}
+	await bounded(connector.clearSlot?.(slotId), `clearSlot(${slotId})`);
 }
 
 /** Disables ad inventory at its source and returns an exact state restorer. */
@@ -141,14 +166,10 @@ export async function blockAdSlots(
 		if (existing) return existing;
 
 		const read = (async () => {
-			try {
-				const response = await settings.getSlotSettings({ slotId });
-				const state = response.slotSettings?.find((entry) => entry.id === slotId) ?? response.slotSettings?.[0];
-				if (!previousStates.has(slotId) && typeof state?.enabled === "boolean") {
-					previousStates.set(slotId, state.enabled);
-				}
-			} catch (error) {
-				console.warn(`[adblock] could not read slot ${slotId}`, error);
+			const response = await bounded(settings.getSlotSettings({ slotId }), `getSlotSettings(${slotId})`);
+			const state = response?.slotSettings?.find((entry) => entry.id === slotId) ?? response?.slotSettings?.[0];
+			if (!previousStates.has(slotId) && typeof state?.enabled === "boolean") {
+				previousStates.set(slotId, state.enabled);
 			}
 		})();
 		stateReads.set(slotId, read);
@@ -161,11 +182,7 @@ export async function blockAdSlots(
 		if (!active) return;
 		await readPreviousState(slotId);
 		if (!active || !previousStates.has(slotId)) return;
-		try {
-			await settings.updateSlotEnabled({ slotId, enabled: false });
-		} catch (error) {
-			console.warn(`[adblock] could not disable slot ${slotId}`, error);
-		}
+		await bounded(settings.updateSlotEnabled({ slotId, enabled: false }), `updateSlotEnabled(${slotId})`);
 	};
 
 	const track = (operation: Promise<void>) => {
@@ -197,15 +214,11 @@ export async function blockAdSlots(
 				console.warn("[adblock] could not cancel a slot subscription", error);
 			}
 		}
-		await Promise.allSettled(inFlight);
+		await bounded(Promise.allSettled(inFlight), "draining in-flight slot calls");
 		await Promise.all(
-			[...previousStates].map(async ([slotId, enabled]) => {
-				try {
-					await settings.updateSlotEnabled({ slotId, enabled });
-				} catch (error) {
-					console.warn(`[adblock] could not restore slot ${slotId}`, error);
-				}
-			}),
+			[...previousStates].map(([slotId, enabled]) =>
+				bounded(settings.updateSlotEnabled({ slotId, enabled }), `restoreSlot(${slotId})`),
+			),
 		);
 	};
 }
