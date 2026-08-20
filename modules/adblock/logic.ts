@@ -179,6 +179,10 @@ export const UPSELL_CSS = `
 	li:has(> a[href*="/premium"]),
 	.main-topBar-UpgradeButton,
 	[data-testid="upgrade-button"],
+	/* The whole portal, not just the dialog: the GenericModal backdrop is
+	   the dialog's parent, and hiding only the content leaves a full-screen
+	   click-blocking overlay with nothing in it. */
+	.ReactModalPortal:has([data-testid="inAppMessageContainer"]),
 	[role="presentation"]:has([data-testid="inAppMessageContainer"]),
 	[role="dialog"]:has([data-testid="inAppMessageContainer"]),
 	[data-testid="inAppMessageContainer"],

@@ -127,6 +127,13 @@ describe("UPSELL_CSS", () => {
 		assert.match(UPSELL_CSS, /\[data-testid="inAppMessageIframe"\]/);
 		assert.match(UPSELL_CSS, /\[role="presentation"\]:has\(\[data-testid="inAppMessageContainer"\]\)/);
 	});
+
+	it("takes the whole modal portal down, not just the dialog inside it", () => {
+		// Hiding only the dialog leaves the GenericModal backdrop (its
+		// parent) as an invisible full-screen click blocker; seen live on
+		// 1.2.96 as "a dark overlay blocking the app".
+		assert.match(UPSELL_CSS, /\.ReactModalPortal:has\(\[data-testid="inAppMessageContainer"\]\)/);
+	});
 });
 
 describe("injectStyle", () => {
