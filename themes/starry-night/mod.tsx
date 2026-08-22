@@ -8,7 +8,7 @@
  * (https://codepen.io/delroyprithvi/pen/LYyJROR), MIT.
  */
 
-import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+import { type ModuleRuntimeContext, client } from "/modules/stdlib/mod.ts";
 
 // One star per this much backdrop area, at either 1px or 2px across.
 const STAR_AREA_PER_STAR = 4000;
@@ -17,7 +17,7 @@ const TWINKLE_VARIANTS = 4;
 const SHOOTING_STAR_COUNT = 4;
 // The width the client persists for the right sidebar. The playbar tracks
 // the sidebar so the two stacked panels share an edge.
-const PANEL_WIDTH_KEY = "223ni6f2epqcidhx5etjafeai:panel-width-saved";
+const PANEL_WIDTH_KEY = `${client.platform.username}:panel-width`;
 const FALLBACK_PANEL_WIDTH = 420;
 
 const random = (min: number, max: number) => Math.random() * (max - min) + min;
