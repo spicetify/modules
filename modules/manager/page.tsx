@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { client, React } from "/modules/stdlib/mod.ts";
+import { client, React, type DaemonCapabilities, type UpdateAndApplyStatus } from "/modules/stdlib/mod.ts";
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
@@ -119,7 +119,7 @@ const ModuleRow = ({
 // older apply, and unusable when the daemon is not running, so the panel has
 // to degrade to copy-a-command rather than assume it.
 type DaemonMethod = "apply" | "blockUpdates" | "unblockUpdates";
-type DaemonApi = Record<DaemonMethod, () => Promise<unknown>> & { available: () => Promise<boolean> };
+type DaemonApi = DaemonCapabilities & Record<DaemonMethod, () => Promise<unknown>>;
 
 const daemonApi = (): DaemonApi | null => (client.daemon as DaemonApi | undefined) ?? null;
 
@@ -130,12 +130,15 @@ export const ManagerPage = () => {
 	const [busy, setBusy] = React.useState(false);
 	const [support, setSupport] = React.useState<SpotifyAvailabilityStatus | null>(null);
 	const [daemon, setDaemon] = React.useState<DaemonApi | null>(null);
+	const [updateStatus, setUpdateStatus] = React.useState<UpdateAndApplyStatus>({ kind: "idle" });
 
 	React.useEffect(() => {
 		const api = daemonApi();
 		if (!api?.available) return;
 		void api.available().then((up) => setDaemon(up ? api : null));
 	}, []);
+
+	React.useEffect(() => daemon?.updateAndApply?.observe(setUpdateStatus), [daemon]);
 
 	React.useEffect(() => {
 		void fetchSupportStatus().then(setSupport);
@@ -318,18 +321,38 @@ export const ManagerPage = () => {
 					<button
 						type="button"
 						disabled={busy}
-						onClick={() =>
-							onAction(label, async () => {
-								if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
-								await fn();
-							})
-						}
+						onClick={() => {
+							if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
+							onAction(label, fn);
+						}}
 					>
 						{label}
 					</button>
 				);
 				const action = (label: string, method: DaemonMethod, fallback: string) =>
 					daemon ? run(label, () => daemon[method]()) : cmd(fallback, label);
+				const updateMessage = (() => {
+					switch (updateStatus.kind) {
+						case "idle":
+							return null;
+						case "accepted":
+							return "Update accepted. Spotify's updater is starting.";
+						case "waiting-for-update":
+							return "Waiting for Spotify to offer the verified update.";
+						case "downloading":
+							return `Downloading Spotify ${updateStatus.targetVersion}.`;
+						case "installing-spotify":
+							return `Installing Spotify ${updateStatus.targetVersion}. Spotify will restart.`;
+						case "applying-spicetify":
+							return `Spotify ${updateStatus.targetVersion} is installed; reapplying the customization.`;
+						case "securing":
+							return updateStatus.message ?? "Restoring and verifying the Spotify update block.";
+						case "complete":
+							return `Updated Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}, reapplied Spicetify, and restored the update block.`;
+						case "failed-safe":
+							return `Update stopped safely: ${updateStatus.message}`;
+					}
+				})();
 				return (
 					<section>
 						<div className="spicetify-manager-section-head">
@@ -356,10 +379,21 @@ export const ManagerPage = () => {
 								? "Update handling runs through the local daemon. Spotify restarts."
 								: "The daemon is not running, so these are set from a terminal. Copy a command:"}
 						</p>
+						{updateMessage && (
+							<p className="spicetify-manager-update spicetify-manager-update--ready">{updateMessage}</p>
+						)}
 						<div className="spicetify-manager-update-actions">
 							{action("block", "blockUpdates", "spicetify spotify-updates block")}
 							{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
-							{advice.kind === "ready" && action("update & apply", "apply", "spicetify apply")}
+							{advice.kind === "ready" &&
+								(daemon?.updateAndApply
+									? run("update & apply", async () => {
+											const admission = await daemon.updateAndApply!();
+											return admission.disposition === "joined"
+												? "joined existing update"
+												: "update accepted";
+										})
+									: cmd("spicetify self-update && spicetify apply", "copy update instructions"))}
 						</div>
 					</section>
 				);
