@@ -30,6 +30,35 @@ export interface DaemonCapabilities {
 	apply(): Promise<unknown>;
 	blockUpdates(): Promise<unknown>;
 	unblockUpdates(): Promise<unknown>;
+	updateAndApply?: UpdateAndApplyCapability;
+}
+
+export type UpdateFailureCode =
+	| "unsupported-target"
+	| "update-unavailable"
+	| "renderer-timeout"
+	| "spotify-update-failed"
+	| "apply-failed";
+
+export type UpdateAndApplyStatus =
+	| { kind: "idle" }
+	| { kind: "accepted"; jobId: string; fromVersion: string }
+	| { kind: "waiting-for-update"; jobId: string; fromVersion: string }
+	| { kind: "downloading"; jobId: string; targetVersion: string }
+	| { kind: "installing-spotify"; jobId: string; targetVersion: string }
+	| { kind: "applying-spicetify"; jobId: string; targetVersion: string }
+	| { kind: "securing"; jobId: string; targetVersion?: string; message?: string }
+	| { kind: "complete"; jobId: string; fromVersion: string; toVersion: string }
+	| { kind: "failed-safe"; jobId: string; code: UpdateFailureCode; message: string };
+
+export interface UpdateAdmission {
+	jobId: string;
+	disposition: "accepted" | "joined";
+}
+
+export interface UpdateAndApplyCapability {
+	(): Promise<UpdateAdmission>;
+	observe(listener: (status: UpdateAndApplyStatus) => void): () => void;
 }
 
 export interface SnackbarCapabilities {
