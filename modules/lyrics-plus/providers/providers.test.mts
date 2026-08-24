@@ -25,6 +25,7 @@ import {
 } from "./musixmatch.ts";
 import { createProviders } from "./index.ts";
 import { ProviderNetease } from "./netease.ts";
+import { configureLyricsClient } from "../runtime-client.ts";
 
 describe("import contract", () => {
 	it("all four providers import with no client present", () => {
@@ -152,6 +153,113 @@ describe("ProviderMusixmatch", () => {
 			[{ text: "♪ Instrumental ♪", startTime: "0000" }],
 		);
 		assert.equal(ProviderMusixmatch.getSynced({}), null);
+	});
+
+	it("loads compact karaoke from the macro response without another request", async () => {
+		const requests: string[] = [];
+		const macroCalls = {
+			"matcher.track.get": {
+				message: {
+					header: { status_code: 200 },
+					body: {
+						track: {
+							has_richsync: true,
+							instrumental: false,
+						},
+					},
+				},
+			},
+			"track.lyrics.get": { message: { body: {} } },
+			"track.richsync.get": {
+				message: {
+					header: { status_code: 200 },
+					body: {
+						richsync: {
+							richsync_body: JSON.stringify([
+								{
+									ts: 1,
+									te: 3,
+									l: [
+										{ c: "Hello", o: 0 },
+										{ c: " world", o: 1.5 },
+									],
+								},
+							]),
+						},
+					},
+				},
+			},
+		};
+		configureLyricsClient({
+			cosmos: {
+				get: async (url) => {
+					requests.push(url);
+					return { message: { header: { status_code: 200 }, body: { macro_calls: macroCalls } } };
+				},
+			},
+		});
+
+		const lyrics = await ProviderMusixmatch.findLyrics({
+			album: "Album",
+			artist: "Artist",
+			duration: 3000,
+			title: "Track",
+			uri: "spotify:track:test",
+		});
+		const karaoke = await ProviderMusixmatch.getKaraoke(lyrics);
+		const request = new URL(requests[0]);
+
+		assert.equal(request.searchParams.get("optional_calls"), "track.richsync");
+		assert.equal(request.searchParams.get("richsync_compact_type"), "words");
+		assert.equal(requests.length, 1);
+		assert.deepEqual(karaoke, [
+			{
+				startTime: 1000,
+				endTime: 3000,
+				text: [
+					{ word: "Hello", time: 1500 },
+					{ word: " world", time: 500 },
+				],
+				performer: null,
+			},
+		]);
+	});
+
+	it("returns null for incomplete optional richsync responses", async () => {
+		const matcher = {
+			"matcher.track.get": {
+				message: { body: { track: { has_richsync: true, instrumental: false } } },
+			},
+		};
+
+		assert.equal(await ProviderMusixmatch.getKaraoke(matcher), null);
+		assert.equal(
+			await ProviderMusixmatch.getKaraoke({
+				...matcher,
+				"track.richsync.get": { message: { header: { status_code: 500 } } },
+			}),
+			null,
+		);
+		assert.equal(
+			await ProviderMusixmatch.getKaraoke({
+				...matcher,
+				"track.richsync.get": { message: { header: { status_code: 200 } } },
+			}),
+			null,
+		);
+
+		const withRichsyncBody = (richsync_body) => ({
+			...matcher,
+			"track.richsync.get": {
+				message: {
+					header: { status_code: 200 },
+					body: { richsync: { richsync_body } },
+				},
+			},
+		});
+		assert.equal(await ProviderMusixmatch.getKaraoke(withRichsyncBody("not json")), null);
+		assert.equal(await ProviderMusixmatch.getKaraoke(withRichsyncBody("{}")), null);
+		assert.equal(await ProviderMusixmatch.getKaraoke(withRichsyncBody(JSON.stringify([{ ts: 1, te: 2 }]))), null);
 	});
 
 	it("token state notifies subscribers only on real transitions", () => {

@@ -135,6 +135,8 @@ export const ProviderMusixmatch = (() => {
 			track_spotify_id: info.uri,
 			q_duration: durr,
 			f_subtitle_length: Math.floor(durr),
+			optional_calls: "track.richsync",
+			richsync_compact_type: "words",
 			part: "track_lyrics_translation_status,track_structure,track_performer_tagging",
 		};
 
@@ -307,26 +309,35 @@ export const ProviderMusixmatch = (() => {
 			return null;
 		}
 
-		const baseURL =
-			"https://apic-appmobile.musixmatch.com/ws/1.1/track.richsync.get?format=json&subtitle_format=mxm&app_id=mac-ios-v2.0&";
-
-		const params = {
-			f_subtitle_length: meta.track.track_length,
-			q_duration: meta.track.track_length,
-			commontrack_id: meta.track.commontrack_id,
-		};
-
-		let result = await request(buildRequestUrl(baseURL, params));
-
-		if (result?.message?.header?.status_code !== 200) {
+		const richsyncCall = body?.["track.richsync.get"];
+		if (richsyncCall?.message?.header?.status_code !== 200 || !richsyncCall?.message?.body?.richsync) {
 			return null;
 		}
 
-		result = result.message.body;
+		const result = richsyncCall.message.body;
+		let rawKaraoke;
+		try {
+			rawKaraoke = JSON.parse(result.richsync.richsync_body);
+		} catch {
+			return null;
+		}
+
+		if (
+			!Array.isArray(rawKaraoke) ||
+			rawKaraoke.some(
+				(line) =>
+					typeof line?.ts !== "number" ||
+					typeof line?.te !== "number" ||
+					!Array.isArray(line?.l) ||
+					line.l.some((word) => typeof word?.c !== "string" || typeof word?.o !== "number"),
+			)
+		) {
+			return null;
+		}
 
 		const snippetQueue = parsePerformerData(meta);
 
-		const parsedKaraoke = JSON.parse(result.richsync.richsync_body).map((line) => {
+		const parsedKaraoke = rawKaraoke.map((line) => {
 			const startTime = line.ts * 1000;
 			const endTime = line.te * 1000;
 			const words = line.l;

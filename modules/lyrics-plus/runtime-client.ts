@@ -5,7 +5,9 @@
 
 import type { ClientCapabilities } from "/modules/stdlib/mod.ts";
 
-type LyricsClient = Pick<ClientCapabilities, "cosmos">;
+type LyricsClient = {
+	readonly cosmos: Pick<ClientCapabilities["cosmos"], "get">;
+};
 
 let configuredClient: LyricsClient | undefined;
 
