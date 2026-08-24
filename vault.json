@@ -778,6 +778,14 @@
 					"providers": [],
 					"checksum": "sha256:750851ff20673eaeb171b9f026e9c2ea11eb0ba9b2606941fcdb0f315155784c",
 					"updatedAt": "2026-08-17"
+				},
+				"0.2.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/lyrics-plus@0.2.4/lyrics-plus@0.2.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:0c908ab2b1b85ada09eb536874e294c4f3df987e5569bfca6feaf433e22c2fb6",
+					"updatedAt": "2026-08-24"
 				}
 			},
 			"metadata": {
