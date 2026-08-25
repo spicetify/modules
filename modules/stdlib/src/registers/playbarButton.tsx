@@ -5,7 +5,6 @@
 
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../createIconComponent.tsx";
-import { transformer } from "../../mixin.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { classnames } from "../webpack/ClassNames.ts";
@@ -26,24 +25,6 @@ const registry = new (class extends Registry<React.ReactNode> {
 export default registry;
 
 let refresh: React.DispatchWithoutAction | undefined;
-
-declare global {
-	var __renderPlaybarBarControls: any;
-}
-
-globalThis.__renderPlaybarBarControls = () => registry.all().reverse();
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace(/(children:\[)([^\[]*djJumpButtonFactory)/, "$1...__renderPlaybarBarControls(),$2");
-
-		return str;
-	},
-	{
-		glob: /^\/xpui\.js/,
-	},
-);
 
 mountRegistryAnchor({
 	className: "spicetify-playbar-buttons",

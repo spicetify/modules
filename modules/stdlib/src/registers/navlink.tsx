@@ -5,11 +5,10 @@
 
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../createIconComponent.tsx";
-import { transformer } from "../../mixin.ts";
 import { Platform } from "../expose/Platform.ts";
 import { warn } from "../logger.ts";
 import { classnames } from "../webpack/ClassNames.ts";
-import { ScrollableContainer, Tooltip } from "../webpack/ReactComponents.ts";
+import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { mountRegistryAnchor } from "./mount.ts";
 import { Registry } from "./registry.ts";
@@ -28,52 +27,6 @@ const registry = new (class extends Registry<React.ReactNode> {
 export default registry;
 
 let refresh: React.DispatchWithoutAction | undefined;
-
-declare global {
-	var __renderNavLinks: () => React.ReactNode;
-}
-
-globalThis.__renderNavLinks = () =>
-	React.createElement(() => {
-		[, refresh] = React.useReducer((n) => n + 1, 0);
-
-		if (!ScrollableContainer) {
-			return;
-		}
-
-		return (
-			<ScrollableContainer className="custom-navlinks-scrollable_container" onlyHorizontalWheel>
-				{registry.all()}
-			</ScrollableContainer>
-		);
-	});
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace(
-			/{(?=[^{}]*(?:{[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}[^{}]*)*(?<=[,{])"data-testid":"global-nav-bar")([^{}]*(?:{[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}[^{}]*)*(?<=[,{]))children:([^{}]*(?:{[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}[^{}]*)*)(,[^{}]*(?:{[^{}]*(?:{[^{}]*(?:{[^{}]*}[^{}]*)*}[^{}]*)*}[^{}]*)*|)}/,
-			"{$1children:(function(children){const p=children[0].props;p.children=[p.children,__renderNavLinks()].flat();return children})($2)$3}",
-		);
-
-		return str;
-	},
-	{
-		glob: /^\/xpui\.js/,
-	},
-);
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace('["","/","/home/",', '["","/","/home/","/bespoke/*",');
-
-		return str;
-	},
-	{
-		glob: /^\/dwp\-top\-bar\.js/,
-	},
-);
 
 mountRegistryAnchor({
 	className: "spicetify-navlinks-anchor",

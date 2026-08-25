@@ -5,7 +5,6 @@
 
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../createIconComponent.tsx";
-import { transformer } from "../../mixin.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { mountRegistryAnchor } from "./mount.ts";
@@ -25,29 +24,6 @@ const registry = new (class extends Registry<React.ReactNode> {
 export default registry;
 
 let refresh: React.DispatchWithoutAction | undefined;
-
-declare global {
-	var __renderTopbarLeftButtons: () => React.ReactNode;
-}
-
-globalThis.__renderTopbarLeftButtons = () =>
-	React.createElement(() => {
-		[, refresh] = React.useReducer((n) => n + 1, 0);
-
-		return <>{registry.all()}</>;
-	});
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace(/("top-bar-forward-button"[^\]]*)/g, "$1,__renderTopbarLeftButtons()");
-
-		return str;
-	},
-	{
-		glob: /^\/xpui\.js/,
-	},
-);
 
 mountRegistryAnchor({
 	className: "spicetify-topbar-left-buttons",

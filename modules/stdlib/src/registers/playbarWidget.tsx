@@ -5,7 +5,6 @@
 
 import { React } from "../expose/React.ts";
 import { createIconComponent } from "../createIconComponent.tsx";
-import { transformer } from "../../mixin.ts";
 import { Tooltip } from "../webpack/ReactComponents.ts";
 import { UI } from "../webpack/ComponentLibrary.ts";
 import { mountRegistryAnchor } from "./mount.ts";
@@ -25,24 +24,6 @@ const registry = new (class extends Registry<React.ReactNode> {
 export default registry;
 
 let refresh: React.DispatchWithoutAction | undefined;
-
-declare global {
-	var __renderNowPlayingWidgets: any;
-}
-
-globalThis.__renderNowPlayingWidgets = () => registry.all();
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace(/(hideButtonFactory[^\]]*)/, "$1,...__renderNowPlayingWidgets()");
-
-		return str;
-	},
-	{
-		glob: /^\/xpui\.js/,
-	},
-);
 
 mountRegistryAnchor({
 	className: "spicetify-playbar-widgets",

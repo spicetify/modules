@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { transformer } from "../../mixin.ts";
 import { Platform } from "../expose/Platform.ts";
 import { React } from "../expose/React.ts";
 import { mountRegistryAnchor } from "./mount.ts";
@@ -25,28 +24,7 @@ export default registry;
 let refresh: (() => void) | undefined;
 let historyHooked = false;
 
-declare global {
-	var __renderRoutes: any;
-}
-
-globalThis.__renderRoutes = () => registry.all();
-transformer(
-	(emit) => (str) => {
-		emit();
-
-		str = str.replace(
-			/(\(0,[a-zA-Z_$][\w$]*\.jsx\)\([a-zA-Z_$][\w$]*\.[a-zA-Z_$][\w$]*,\{[^{]*path:"\/search\/\*")/,
-			"...__renderRoutes(),$1",
-		);
-
-		return str;
-	},
-	{
-		glob: /^\/xpui\.js/,
-	},
-);
-
-// Transform-free path: the client router never learns module routes, so a
+// The client router never learns module routes, so a
 // history-driven overlay covers the main view whenever the current path
 // matches a registered <Route>. The client renders its own not-found page
 // underneath; back/forward keep working because only real history is used.
