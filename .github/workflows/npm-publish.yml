@@ -20,6 +20,7 @@ jobs:
    release:
       name: Prepare release
       runs-on: ubuntu-latest
+      if: github.repository_owner == 'spicetify'
       permissions:
          actions: write
          contents: write
@@ -63,7 +64,7 @@ jobs:
    publish:
       name: Publish released packages
       needs: release
-      if: needs.release.outputs.kit_released == 'true' || needs.release.outputs.launcher_released == 'true' || (github.event_name == 'workflow_dispatch' && inputs.recover_npm)
+      if: github.repository_owner == 'spicetify' && (needs.release.outputs.kit_released == 'true' || needs.release.outputs.launcher_released == 'true' || (github.event_name == 'workflow_dispatch' && inputs.recover_npm))
       runs-on: ubuntu-latest
       environment: npm
       permissions:

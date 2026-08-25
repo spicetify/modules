@@ -33,6 +33,7 @@ jobs:
    detect:
       name: Detect pending releases
       runs-on: ubuntu-latest
+      if: github.repository_owner == 'spicetify'
       outputs:
          pending: ${{ steps.pending.outputs.pending }}
       steps:
@@ -63,7 +64,7 @@ jobs:
    publish:
       name: Publish ${{ matrix.tag }}
       needs: detect
-      if: needs.detect.outputs.pending != '[]'
+      if: github.repository_owner == 'spicetify' && (needs.detect.outputs.pending != '[]')
       runs-on: ubuntu-latest
       permissions:
          contents: write
