@@ -245,6 +245,10 @@ function status(soft: boolean): void {
 	if (problems.length) {
 		console.error("modules not safe to publish:");
 		for (const p of problems) console.error(`  ${p}`);
+		console.error(
+			"the bump is manual and belongs in the same change: run `node scripts/release.ts autobump` " +
+				"(or `bump <id> <level>`) and commit the metadata.json it writes",
+		);
 		process.exit(soft ? 0 : 1);
 	}
 	console.log("ok: every changed module carries a new, unpublished version");

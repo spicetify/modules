@@ -142,9 +142,12 @@ files. Executable code always arrives as a checksummed zip.
 
 Modules under `modules/` publish themselves: land a version bump on `main` and
 the release workflow tags, releases, and writes the vault entry, in dependency
-order. They inherit this repository's license rather than restating it in every
-`metadata.json`. See [`pr-flow.md`](./pr-flow.md) for recovery when a publish
-fails.
+order. The bump itself is manual and belongs in the same pull request as the
+change: CI refuses a change to a module whose current version is already
+published, so run `node scripts/release.ts autobump` (or
+`node scripts/release.ts bump <id> <level>`) and commit the `metadata.json` it
+writes before opening the PR. Modules inherit this repository's license rather
+than restating it in every `metadata.json`.
 
 ---
 
