@@ -420,7 +420,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		}
 
 		status("extracting…");
-		const { default: JSZip } = await import("https://esm.sh/jszip@3.10.1");
+		const { default: JSZip } = await import("jszip");
 		const zip = await JSZip.loadAsync(zipBytes);
 
 		files = {};
