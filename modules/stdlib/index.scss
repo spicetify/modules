@@ -33,10 +33,17 @@
 }
 
 /* The v3 navlink anchor is a flex box (see navlink register): keep its links
-   vertically centred on the bar. Inter-link spacing comes from the client's
-   own navlink margins, so no gap is set here. */
+   vertically centred on the bar and 8px apart, the client's own control
+   rhythm. The anchor owns that spacing: builds differ in whether the client
+   margins its navlink class at all (1.2.84 does not), so the links' client
+   margins are zeroed inside the anchor and the gap does the work. */
 .spicetify-navlinks-anchor {
 	align-items: center;
+	gap: 8px;
+
+	.main-globalNav-navLink {
+		margin: 0;
+	}
 }
 
 /* A custom panel owns the right-sidebar grid track while open. Spotify's

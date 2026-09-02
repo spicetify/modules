@@ -41,8 +41,8 @@ mountRegistryAnchor({
 	// A real flex box, not the default display:contents. The history-buttons
 	// wrapper spaces its children with a wide gap meant to separate button
 	// groups; as one box the anchor takes that gap once (separating our links
-	// from the back/forward group), while the nav links inside space
-	// themselves with the client's own 8px navlink margins.
+	// from the back/forward group), while the nav links inside are spaced by
+	// the anchor's own gap (stdlib index.scss).
 	hostDisplay: "flex",
 });
 
