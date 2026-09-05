@@ -590,7 +590,7 @@
 			},
 			"metadata": {
 				"name": "hide-window-controls",
-				"description": "Hide the native window controls (macOS traffic lights). Toggle in Settings.",
+				"description": "Hide Windows window buttons and macOS traffic lights, including their reserved space. Toggle in Settings.",
 				"authors": [
 					{
 						"name": "spicetify"
