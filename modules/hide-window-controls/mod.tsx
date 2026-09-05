@@ -32,10 +32,17 @@ const setButtonsVisible = async (visible: boolean) => {
 // starting 106px in from the edge for no reason anyone can see.
 //
 // Keyed on :empty and on the css-map name of the wrapper rather than the
-// spacer's own class, which is a per-build hash. If the client ever puts
-// something in that slot the rule stops matching instead of crushing it.
+// spacer's own class, which is a per-build hash. Windows reserves a separate
+// empty slot on the right, with a negative margin to meet the window edge.
+// Only collapse empty slots so real controls remain visible.
 const SPACER_CSS = `.spotify__os--is-macos .main-globalNav-historyButtonsWrapper > div:first-child:empty {
 	width: 0 !important;
+}
+.spotify__os--is-windows .main-globalNav-contentRight > .main-topBar-topbarContentRight:last-child:empty {
+	display: none !important;
+}
+.spotify__container--is-desktop.spotify__os--is-windows .main-globalNav-contentRight {
+	margin-inline-end: 0 !important;
 }`;
 
 const SPACER_STYLE_ID = "spicetify-hide-window-controls-spacer";
