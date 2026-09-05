@@ -33,11 +33,13 @@ const setButtonsVisible = async (visible: boolean) => {
 //
 // Keyed on :empty and on the css-map name of the wrapper rather than the
 // spacer's own class, which is a per-build hash. Windows reserves a separate
-// empty slot on the right, with a negative margin to meet the window edge.
+// menu slot on the left and a window-button slot on the right, with a negative
+// margin to meet the window edge.
 // Only collapse empty slots so real controls remain visible.
 const SPACER_CSS = `.spotify__os--is-macos .main-globalNav-historyButtonsWrapper > div:first-child:empty {
 	width: 0 !important;
 }
+.spotify__os--is-windows .main-globalNav-historyButtonsWrapper > div:first-child:empty,
 .spotify__os--is-windows .main-globalNav-contentRight > .main-topBar-topbarContentRight:last-child:empty {
 	display: none !important;
 }
