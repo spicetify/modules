@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/spicetify/modules/compare/kit@0.3.0...kit@0.3.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **kit:** track the stdlib native window controls capability release ([9a00bc4](https://github.com/spicetify/modules/commit/9a00bc4237d91df02825587eb8226f4f10ef7f24))
+* **stdlib:** space navlinks with the anchor's own gap ([8ec5d71](https://github.com/spicetify/modules/commit/8ec5d713760b608170619483f04daa4dbf4e195f))
+
 ## [0.3.0](https://github.com/spicetify/modules/compare/kit@0.2.0...kit@0.3.0) (2026-08-19)
 
 
