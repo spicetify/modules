@@ -21,6 +21,52 @@ export function resolveHiddenState(stored: string | null, required: boolean): bo
 	return required || shouldHide(stored);
 }
 
+export function createNativeWindowControls(
+	acquire: (onDisconnect: (error: Error) => void) => Promise<{ release(): Promise<void> }>,
+	setHidden: (hidden: boolean) => Promise<void>,
+	onError: (error: unknown) => void,
+) {
+	let lease: { release(): Promise<void> } | undefined;
+	let generation = 0;
+	const restore = async () => {
+		const previous = lease;
+		lease = undefined;
+		try {
+			await setHidden(false);
+		} finally {
+			await previous?.release();
+		}
+	};
+	return async (hidden: boolean) => {
+		if (!hidden) {
+			// Show the buttons before restoring their native mouse targets.
+			await restore();
+			return;
+		}
+		try {
+			const current = generation;
+			if (!lease) {
+				const acquired = await acquire((error) => {
+					generation++;
+					lease = undefined;
+					void setHidden(false).catch(onError);
+					onError(error);
+				});
+				if (current !== generation) {
+					await acquired.release();
+					throw new Error("Native window controls disconnected while enabling");
+				}
+				lease = acquired;
+			}
+			await setHidden(true);
+			if (current !== generation) await setHidden(false);
+		} catch (error) {
+			await restore().catch(onError);
+			throw error;
+		}
+	};
+}
+
 export function createStateReconciler(apply: (hidden: boolean) => Promise<void>) {
 	let active = true;
 	let desired = false;

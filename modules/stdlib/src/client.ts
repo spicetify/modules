@@ -25,6 +25,7 @@ export interface PopupModalCompatibility {
 }
 
 export interface DaemonCapabilities {
+	acquireWindowControls?(onDisconnect: (error: Error) => void): Promise<{ release(): Promise<void> }>;
 	available(): Promise<boolean>;
 	apply(): Promise<unknown>;
 	blockUpdates(): Promise<unknown>;

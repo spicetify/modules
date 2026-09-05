@@ -8,6 +8,7 @@ import { SettingsRow, Toggle } from "/modules/stdlib/lib/primitives.js";
 
 import {
 	createDebouncedReassertion,
+	createNativeWindowControls,
 	createSharedStateReconciler,
 	HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE,
 	resolveHiddenState,
@@ -23,7 +24,8 @@ const isEnabled = () => resolveHiddenState(localStorage.getItem(STORAGE_KEY), is
 // window buttons on other platforms, where the shell draws them).
 const setButtonsVisible = async (visible: boolean) => {
 	const updateUiClient = client.platform?.ControlMessageAPI?._updateUiClient;
-	await updateUiClient?.setButtonsVisibility?.({ showButtons: visible });
+	if (!updateUiClient?.setButtonsVisibility) throw new Error("Spotify's window controls API is unavailable");
+	await updateUiClient.setButtonsVisibility({ showButtons: visible });
 };
 
 // The client parks an empty 52px div at the head of the nav's history buttons
@@ -66,12 +68,40 @@ const setSpacerCollapsed = (collapsed: boolean) => {
 // --global-nav-margin-top is the text theme's documented hook for the space
 // it reserves under the traffic lights; unused by other themes, so setting
 // it is harmless there.
-const apply = async (hidden: boolean) => {
+const setHidden = async (hidden: boolean) => {
 	await setButtonsVisible(!hidden);
 	const style = document.documentElement.style;
 	if (hidden) style.setProperty("--global-nav-margin-top", "0px");
 	else style.removeProperty("--global-nav-margin-top");
 	setSpacerCollapsed(hidden);
+};
+
+let nativeFailureReported = false;
+const reportNativeFailure = (error: unknown) => {
+	console.warn("[hide-window-controls] native window controls unavailable", error);
+	if (!nativeFailureReported) {
+		nativeFailureReported = true;
+		client.notify("Window controls remain visible. Update Spicetify and make sure its daemon is running.", true);
+	}
+};
+const nativeWindowControls = createNativeWindowControls(
+	(onDisconnect) => {
+		const acquire = client.daemon?.acquireWindowControls;
+		if (!acquire) throw new Error("Hiding Windows controls requires a newer Spicetify CLI and daemon");
+		return acquire(onDisconnect);
+	},
+	setHidden,
+	reportNativeFailure,
+);
+const apply = async (hidden: boolean) => {
+	if (!document.documentElement.classList.contains("spotify__os--is-windows")) return setHidden(hidden);
+	try {
+		await nativeWindowControls(hidden);
+		if (hidden) nativeFailureReported = false;
+	} catch (error) {
+		reportNativeFailure(error);
+		throw error;
+	}
 };
 
 export default async function (ctx: ModuleRuntimeContext) {

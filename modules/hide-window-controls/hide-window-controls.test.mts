@@ -10,11 +10,93 @@ import { test } from "node:test";
 
 import {
 	createDebouncedReassertion,
+	createNativeWindowControls,
 	createSharedStateReconciler,
 	createStateReconciler,
 	resolveHiddenState,
 	shouldHide,
 } from "./logic.ts";
+
+test("Windows controls stay visible when the native daemon is unavailable", async () => {
+	const states: boolean[] = [];
+	const apply = createNativeWindowControls(
+		async () => {
+			throw new Error("unsupported daemon");
+		},
+		async (hidden) => {
+			states.push(hidden);
+		},
+		() => {},
+	);
+	await assert.rejects(apply(true), /unsupported daemon/);
+	assert.deepEqual(states, [false]);
+});
+
+test("native ownership is released even if showing Spotify's buttons fails", async () => {
+	let released = false;
+	const apply = createNativeWindowControls(
+		async () => ({
+			release: async () => {
+				released = true;
+			},
+		}),
+		async (hidden) => {
+			if (!hidden) throw new Error("visibility failed");
+		},
+		() => {},
+	);
+	await apply(true);
+	await assert.rejects(apply(false), /visibility failed/);
+	assert.equal(released, true);
+});
+
+test("Windows acquires hit filtering before hiding and shows controls before releasing", async () => {
+	const events: string[] = [];
+	const apply = createNativeWindowControls(
+		async () => {
+			events.push("acquire");
+			return {
+				release: async () => {
+					events.push("release");
+				},
+			};
+		},
+		async (hidden) => {
+			events.push(hidden ? "hide" : "show");
+		},
+		() => {},
+	);
+	await apply(true);
+	await apply(true);
+	await apply(false);
+	assert.deepEqual(events, ["acquire", "hide", "hide", "show", "release"]);
+});
+
+test("daemon disconnect during an in-flight hide leaves Windows controls visible", async () => {
+	let disconnect: (error: Error) => void = () => {};
+	let finishHide: () => void = () => {};
+	const pending = new Promise<void>((resolve) => {
+		finishHide = resolve;
+	});
+	let visible = true;
+	const apply = createNativeWindowControls(
+		async (onDisconnect) => {
+			disconnect = onDisconnect;
+			return { release: async () => {} };
+		},
+		async (hidden) => {
+			if (hidden) await pending;
+			visible = !hidden;
+		},
+		() => {},
+	);
+	const hiding = apply(true);
+	await Promise.resolve();
+	disconnect(new Error("daemon stopped"));
+	finishHide();
+	await hiding.catch(() => {});
+	assert.equal(visible, true);
+});
 
 test("shouldHide defaults on and stays off only for an explicit opt-out", () => {
 	assert.equal(shouldHide("1"), true);
