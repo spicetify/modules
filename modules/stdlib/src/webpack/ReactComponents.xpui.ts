@@ -43,11 +43,11 @@ const requireExports = (id: ReturnType<typeof findModuleId>): Record<string, any
 	id === undefined ? {} : (webpackRequire(id) as Record<string, any>);
 
 const ContextMenuModuleID = findModuleId("toggleContextMenu", (s) => s.includes("toggleContextMenu"));
-// Dead since 1.2.9x: no module carries value:"playlist" + canView +
-// permissions anymore; Menus.Playlist stays undefined until re-needled.
+
+// Updated needle for Spotify 1.2.99+ (matches module 84828 via canPin/canView capability properties)
 const playlistMenuModuleID = findModuleId(
-	'value:"playlist" + canView + permissions',
-	(s) => s.includes('value:"playlist"') && s.includes("canView") && s.includes("permissions"),
+	"canPin + canView",
+	(s) => /canPin:[^,]{1,60},\s*canView:|canView:[^,]{1,60},\s*canPin:/.test(s),
 );
 
 Menus.Playlist = Object.values(requireExports(playlistMenuModuleID)).find(
