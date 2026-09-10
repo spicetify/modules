@@ -1,30 +1,38 @@
 {
-  "v": {
-    "7.2.0": {
-      "artifacts": [
-        "https://github.com/JosEffigy/spicy-lyrics-v3/releases/download/v7.2.0/sakura-lyrics@7.2.0.zip"
-      ],
-      "providers": [],
-      "checksum": "sha256:a0844832918fef7c3e49b73bcda01b49d58b2c2c7f2588ded81abb17fad6a4d7",
-      "updatedAt": "2026-09-09"
-    }
-  },
-  "metadata": {
-    "name": "sakura-lyrics",
-    "description": "Sakura Lyrics: an unofficial, vibe-coded fork of Spikerko's Spicy Lyrics, focused on Japanese romaji and rendering optimizations.",
-    "authors": [
-      {
-        "name": "Spikerko",
-        "github": "Spikerko"
-      },
-      {
-        "name": "JosEffigy",
-        "github": "JosEffigy"
-      }
-    ],
-    "preview": "https://raw.githubusercontent.com/Spikerko/spicy-lyrics/main/previews/V3latest_smallcard_preview.webp",
-    "repository": "https://github.com/JosEffigy/spicy-lyrics-v3",
-    "license": "AGPL-3.0-only",
-    "kind": "extension"
-  }
+	"v": {
+		"7.2.0": {
+			"artifacts": [
+				"https://github.com/JosEffigy/spicy-lyrics-v3/releases/download/v7.2.0/sakura-lyrics@7.2.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:a0844832918fef7c3e49b73bcda01b49d58b2c2c7f2588ded81abb17fad6a4d7",
+			"updatedAt": "2026-09-09"
+		},
+		"7.2.1": {
+			"artifacts": [
+				"https://github.com/JosEffigy/spicy-lyrics-v3/releases/download/v7.2.1/sakura-lyrics@7.2.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:78603b9c1cdfdc6ed0a7a0eb680ddb88a852da2d4cc43f186e4ede684d199628",
+			"updatedAt": "2026-09-10"
+		}
+	},
+	"metadata": {
+		"name": "sakura-lyrics",
+		"description": "Sakura Lyrics: an unofficial, vibe-coded fork of Spikerko's Spicy Lyrics, focused on Japanese romaji and rendering optimizations.",
+		"authors": [
+			{
+				"name": "Spikerko",
+				"github": "Spikerko"
+			},
+			{
+				"name": "JosEffigy",
+				"github": "JosEffigy"
+			}
+		],
+		"preview": "https://raw.githubusercontent.com/Spikerko/spicy-lyrics/main/previews/V3latest_smallcard_preview.webp",
+		"repository": "https://github.com/JosEffigy/spicy-lyrics-v3",
+		"license": "AGPL-3.0-only",
+		"kind": "extension"
+	}
 }
