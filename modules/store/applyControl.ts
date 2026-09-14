@@ -36,6 +36,7 @@ export function createApplyControl() {
 	let disposed = false;
 	let checking = false;
 	let restartTimer: ReturnType<typeof setTimeout> | undefined;
+	let handoffTimer: ReturnType<typeof setTimeout> | undefined;
 	const healthTimers = new Set<ReturnType<typeof setTimeout>>();
 
 	function button(label: string, onClick: () => void) {
@@ -126,8 +127,16 @@ export function createApplyControl() {
 					link.rel = "noopener noreferrer";
 					// Keep the real link's default action: the OS, not page JS,
 					// launches the registered app during this user gesture.
-					link.addEventListener("click", () => {
-						queueMicrotask(() => waitForRestart("app"));
+					link.addEventListener("click", (event) => {
+						if (handoffTimer !== undefined) {
+							event.preventDefault();
+							return;
+						}
+						// The anchor must remain connected through the native default action.
+						handoffTimer = setTimeout(() => {
+							handoffTimer = undefined;
+							waitForRestart("app");
+						}, 0);
 					});
 					actions.append(link);
 				} else {
@@ -190,6 +199,7 @@ export function createApplyControl() {
 		refresh,
 		dispose() {
 			disposed = true;
+			clearTimeout(handoffTimer);
 			clearTimeout(restartTimer);
 			for (const timer of healthTimers) clearTimeout(timer);
 			healthTimers.clear();

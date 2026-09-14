@@ -128,9 +128,17 @@ describe("Store apply and recovery", () => {
 		const link = control.node.querySelector("a");
 		assert.ok(link);
 		assert.equal(link.target, "_blank");
-		link.addEventListener("click", (event) => event.preventDefault());
+		const prevented: boolean[] = [];
+		link.addEventListener("click", (event) => {
+			prevented.push(event.defaultPrevented);
+			event.preventDefault();
+		});
 		link.click();
+		link.click();
+		assert.deepEqual(prevented, [false, true], "only the first activation can launch the handler");
 		await flush();
+		assert.equal(link.isConnected, true, "keep the anchor alive through the native default action");
+		t.mock.timers.tick(0);
 		assert.match(control.node.textContent ?? "", /Accept the Open Spicetify prompt/);
 		t.mock.timers.tick(30000);
 		await flush();
