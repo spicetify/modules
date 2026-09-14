@@ -400,8 +400,8 @@ export const ManagerPage = () => {
 								? updateAndApplySupported === true
 									? "Update handling runs through the local daemon. Spotify restarts."
 									: updateAndApplySupported === false
-										? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then apply Spicetify."
-										: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or update and apply Spicetify; otherwise choose allow, update Spotify normally, then apply Spicetify."
+										? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
+										: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or run spicetify self-update and spicetify apply; otherwise choose allow, update Spotify normally, then run spicetify apply."
 								: "The daemon is not running, so these are set from a terminal. Copy a command:"}
 						</p>
 						{updateMessage && (
