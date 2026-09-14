@@ -130,12 +130,33 @@ export const ManagerPage = () => {
 	const [busy, setBusy] = React.useState(false);
 	const [support, setSupport] = React.useState<SpotifyAvailabilityStatus | null>(null);
 	const [daemon, setDaemon] = React.useState<DaemonApi | null>(null);
+	const [updateAndApplySupported, setUpdateAndApplySupported] = React.useState<boolean | null>(null);
 	const [updateStatus, setUpdateStatus] = React.useState<UpdateAndApplyStatus>({ kind: "idle" });
 
 	React.useEffect(() => {
-		const api = daemonApi();
-		if (!api?.available) return;
-		void api.available().then((up) => setDaemon(up ? api : null));
+		let cancelled = false;
+		let probing = false;
+		const probe = async () => {
+			if (probing) return;
+			probing = true;
+			try {
+				const api = daemonApi();
+				const up = (await api?.available?.()) ?? false;
+				if (cancelled) return;
+				const supported = up && api ? ((await api.updateAndApplySupported?.()) ?? null) : null;
+				if (cancelled) return;
+				setDaemon(up && api ? api : null);
+				setUpdateAndApplySupported(supported);
+			} finally {
+				probing = false;
+			}
+		};
+		void probe();
+		const timer = globalThis.setInterval(() => void probe(), 5000);
+		return () => {
+			cancelled = true;
+			globalThis.clearInterval(timer);
+		};
 	}, []);
 
 	React.useEffect(() => daemon?.updateAndApply?.observe(setUpdateStatus), [daemon]);
@@ -376,24 +397,34 @@ export const ManagerPage = () => {
 						)}
 						<p className="spicetify-manager-note">
 							{daemon
-								? "Update handling runs through the local daemon. Spotify restarts."
+								? updateAndApplySupported === true
+									? "Update handling runs through the local daemon. Spotify restarts."
+									: updateAndApplySupported === false
+										? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then apply Spicetify."
+										: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or update and apply Spicetify; otherwise choose allow, update Spotify normally, then apply Spicetify."
 								: "The daemon is not running, so these are set from a terminal. Copy a command:"}
 						</p>
 						{updateMessage && (
-							<p className="spicetify-manager-update spicetify-manager-update--ready">{updateMessage}</p>
+							<p
+								className={`spicetify-manager-update spicetify-manager-update--${updateStatus.kind === "securing" && updateStatus.manualRecovery ? "unsupported" : "ready"}`}
+							>
+								{updateMessage}
+							</p>
 						)}
 						<div className="spicetify-manager-update-actions">
 							{action("block", "blockUpdates", "spicetify spotify-updates block")}
 							{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
 							{advice.kind === "ready" &&
-								(daemon?.updateAndApply
+								(updateAndApplySupported && daemon?.updateAndApply
 									? run("update & apply", async () => {
 											const admission = await daemon.updateAndApply!();
 											return admission.disposition === "joined"
 												? "joined existing update"
 												: "update accepted";
 										})
-									: cmd("spicetify self-update && spicetify apply", "copy update instructions"))}
+									: updateAndApplySupported === null
+										? cmd("spicetify self-update && spicetify apply", "copy update instructions")
+										: cmd("spicetify apply", "copy apply command"))}
 						</div>
 					</section>
 				);
