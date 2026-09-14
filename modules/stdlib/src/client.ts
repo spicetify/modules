@@ -30,10 +30,12 @@ export interface DaemonCapabilities {
 	apply(): Promise<unknown>;
 	blockUpdates(): Promise<unknown>;
 	unblockUpdates(): Promise<unknown>;
+	updateAndApplySupported?(): Promise<boolean | null>;
 	updateAndApply?: UpdateAndApplyCapability;
 }
 
 export type UpdateFailureCode =
+	| "unsupported-platform"
 	| "unsupported-target"
 	| "update-unavailable"
 	| "renderer-timeout"
@@ -47,7 +49,7 @@ export type UpdateAndApplyStatus =
 	| { kind: "downloading"; jobId: string; targetVersion: string }
 	| { kind: "installing-spotify"; jobId: string; targetVersion: string }
 	| { kind: "applying-spicetify"; jobId: string; targetVersion: string }
-	| { kind: "securing"; jobId: string; targetVersion?: string; message?: string }
+	| { kind: "securing"; jobId: string; targetVersion?: string; message?: string; manualRecovery?: boolean }
 	| { kind: "complete"; jobId: string; fromVersion: string; toVersion: string }
 	| { kind: "failed-safe"; jobId: string; code: UpdateFailureCode; message: string };
 
