@@ -23,6 +23,12 @@
 			"providers": [],
 			"checksum": "sha256:2780b3f2cad668c60c2974db3ef5d2202227030926d33244cfc4ebad5748f88e",
 			"updatedAt": "2026-08-19"
+		},
+		"0.1.4": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.4/sleek@0.1.4.zip"],
+			"providers": [],
+			"checksum": "sha256:cd5ca2a396646c1f390b49fbd0a8b9f34d156262514c7ecfbdba59c82f66534b",
+			"updatedAt": "2026-09-14"
 		}
 	},
 	"metadata": {
