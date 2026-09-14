@@ -488,6 +488,10 @@
 	font-size: 14px;
 }
 
+.spicetify-store-apply[hidden] {
+	display: none;
+}
+
 .spicetify-store-apply {
 	margin: 8px 0;
 	padding: 12px 14px;

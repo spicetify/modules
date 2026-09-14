@@ -4,6 +4,7 @@
  */
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { Window } from "happy-dom";
 
@@ -169,6 +170,20 @@ describe("Store apply and recovery", () => {
 		await control.refresh(true);
 		assert.equal(stdlibDiskStaged(), null);
 		assert.equal(control.node.hidden, true);
+	});
+
+	it("hides the healthy control despite Spotify's section display reset", async () => {
+		const css = readFileSync(new URL("./index.scss", import.meta.url), "utf8");
+		const hiddenRule = css.match(/\.spicetify-store-apply\[hidden\]\s*\{[^}]+\}/)?.[0];
+		assert.ok(hiddenRule);
+		const style = document.createElement("style");
+		style.textContent = "section { display: block; }";
+		document.head.append(style);
+		running = "1.11.2";
+		await mount();
+		assert.equal(window.getComputedStyle(control.node).display, "block", "Spotify overrides native hidden");
+		style.textContent += hiddenRule;
+		assert.equal(window.getComputedStyle(control.node).display, "none");
 	});
 
 	it("offers service recovery even when there is no stdlib update left to apply", async () => {
