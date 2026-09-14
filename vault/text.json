@@ -29,6 +29,12 @@
 			"providers": [],
 			"checksum": "sha256:a3fbd9748aac3fe10030847cb484828941bb3e9e8a66ec974ce76faac51af162",
 			"updatedAt": "2026-08-13"
+		},
+		"0.1.5": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/text@0.1.5/text@0.1.5.zip"],
+			"providers": [],
+			"checksum": "sha256:0a7a7648359397f54f8cfce561c6819cb6d8dc877c8a911cf1deadbf9380cbf0",
+			"updatedAt": "2026-09-14"
 		}
 	},
 	"metadata": {
