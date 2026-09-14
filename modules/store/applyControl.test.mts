@@ -181,9 +181,11 @@ describe("Store apply and recovery", () => {
 		document.head.append(style);
 		running = "1.11.2";
 		await mount();
-		assert.equal(window.getComputedStyle(control.node).display, "block", "Spotify overrides native hidden");
+		const rendered = window.document.querySelector(".spicetify-store-apply");
+		assert.ok(rendered);
+		assert.equal(window.getComputedStyle(rendered).display, "block", "Spotify overrides native hidden");
 		style.textContent += hiddenRule;
-		assert.equal(window.getComputedStyle(control.node).display, "none");
+		assert.equal(window.getComputedStyle(rendered).display, "none");
 	});
 
 	it("offers service recovery even when there is no stdlib update left to apply", async () => {
