@@ -9,6 +9,7 @@ import { matchLast } from "../util.ts";
 
 import { warn } from "../logger.ts";
 import { transformer } from "../../mixin.ts";
+import { placeMenuItemsHost } from "./menu-order.ts";
 import { Registry } from "./registry.ts";
 
 type __MenuContext = React.Context<MenuContext>;
@@ -125,14 +126,17 @@ if (
 		);
 
 		const ItemBoundary = createItemBoundary(R, "menu");
-		const live: Array<{ menu: Element; root: { unmount: () => void } }> = [];
+		const live: Array<{ menu: Element; host: HTMLElement; root: { unmount: () => void } }> = [];
 		const processed = new WeakSet<Element>();
 
-		const sweep = () => {
+		const sweep = (records: MutationRecord[] = []) => {
+			const changedMenus = new Set(records.map((record) => record.target));
 			for (let i = live.length - 1; i >= 0; i--) {
 				if (!live[i].menu.isConnected) {
 					live[i].root.unmount();
 					live.splice(i, 1);
+				} else if (changedMenus.has(live[i].menu)) {
+					placeMenuItemsHost(live[i].menu, live[i].host);
 				}
 			}
 			if (items.size === 0) return;
@@ -142,7 +146,7 @@ if (
 				const host = document.createElement("li");
 				host.setAttribute("role", "presentation");
 				host.className = "spicetify-menu-items";
-				menu.appendChild(host);
+				placeMenuItemsHost(menu, host);
 				const root = createRoot(host);
 				globalThis.__MenuContext ??= R.createContext(null);
 				root.render(
@@ -152,7 +156,7 @@ if (
 						...items.all().map((item, i) => R.createElement(ItemBoundary, { key: i }, item)),
 					),
 				);
-				live.push({ menu, root });
+				live.push({ menu, host, root });
 			}
 		};
 		new MutationObserver(sweep).observe(document.body, { childList: true, subtree: true });
