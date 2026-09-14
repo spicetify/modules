@@ -21,21 +21,26 @@ as completion.
 
 ## Repair an unavailable service
 
-The desktop client can open the installed Spicetify app even when the background
-service is unavailable. This recovery path does not require a terminal.
+The Store provides a recovery link that your browser can open even when the
+background service is unavailable. This path does not require a terminal.
+Spotify may silently ignore direct links to other apps, so open the recovery
+link in your browser instead.
 
 1. Select **Repair Spicetify** in the Store.
-2. Read the restart notice, then select **Open Spicetify and restart**.
-3. If your system asks whether to open Spicetify, accept that prompt.
+2. Read the restart notice, then select **Copy recovery link**. Paste it into
+   your browser's address bar and press Enter. If copying fails, select and copy
+   the displayed link manually.
+3. Approve **Open Spicetify** in the browser prompt. Playback stops during repair.
 4. Wait for Spotify to restart, then return to the Store to check the result.
 
 This action uses the app handler registered by a v3 apply on macOS, Windows, or
 Linux. The Store does not offer it in web or mobile clients. Availability also
-depends on the local installation and the operating system allowing Spotify to
-open the handler; a platform check alone does not prove that it works.
+depends on the local installation and the browser allowing the app handler to
+open. Browser recovery is live-tested on macOS; Windows and Linux still need
+live verification.
 
-If the handler is missing or nothing opens, the Store keeps a diagnostic visible
-instead of reporting success. Repair the Spicetify installation using your
+If the handler is missing or nothing opens, copying the link does not count as
+a successful repair. Repair the Spicetify installation using your
 installation method. **Check connection** tests the service again without
 restarting Spotify.
 

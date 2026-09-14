@@ -16,6 +16,7 @@ let running = "1.10.0";
 let available = true;
 let applies = 0;
 let applyError: Error | undefined;
+let copied: string | undefined;
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 function click(label: string) {
@@ -37,12 +38,20 @@ beforeEach(() => {
 	available = true;
 	applies = 0;
 	applyError = undefined;
+	copied = undefined;
 	Object.defineProperties(globalThis, {
 		document: { configurable: true, value: window.document },
 		localStorage: { configurable: true, value: window.localStorage },
 		navigator: {
 			configurable: true,
-			value: { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Spotify/1.2.97" },
+			value: {
+				userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Spotify/1.2.97",
+				clipboard: {
+					writeText: async (text: string) => {
+						copied = text;
+					},
+				},
+			},
 		},
 		Spicetify: {
 			configurable: true,
@@ -73,9 +82,9 @@ describe("Store apply and recovery", () => {
 		assert.match(control.node.textContent ?? "", /service is unavailable/);
 		click("Repair Spicetify");
 		assert.equal(applies, 0);
-		const link = control.node.querySelector("a");
-		assert.equal(link?.getAttribute("href"), APPLY_URI);
-		assert.equal(link?.textContent, "Open Spicetify and restart");
+		const link = control.node.querySelector("input");
+		assert.equal(link?.value, APPLY_URI);
+		assert.equal(link?.readOnly, true);
 	});
 
 	it("keeps confirmation until Confirm or Cancel instead of expiring after four seconds", async (t) => {
@@ -117,32 +126,40 @@ describe("Store apply and recovery", () => {
 		assert.match(control.node.textContent ?? "", /Apply failed: daemon refused/);
 		assert.equal(control.node.querySelector("a"), null);
 		click("Open Spicetify app instead");
-		assert.equal(control.node.querySelector("a")?.getAttribute("href"), APPLY_URI);
+		assert.equal(control.node.querySelector("input")?.value, APPLY_URI);
 	});
 
-	it("does not redirect the Spotify page or claim an external app launch succeeded", async (t) => {
+	it("copies a browser recovery link without claiming the app launched", async (t) => {
 		t.mock.timers.enable({ apis: ["setTimeout"] });
 		available = false;
 		await mount();
 		click("Repair Spicetify");
-		const link = control.node.querySelector("a");
-		assert.ok(link);
-		assert.equal(link.target, "_blank");
-		const prevented: boolean[] = [];
-		link.addEventListener("click", (event) => {
-			prevented.push(event.defaultPrevented);
-			event.preventDefault();
-		});
-		link.click();
-		link.click();
-		assert.deepEqual(prevented, [false, true], "only the first activation can launch the handler");
+		click("Copy recovery link");
 		await flush();
-		assert.equal(link.isConnected, true, "keep the anchor alive through the native default action");
-		t.mock.timers.tick(0);
-		assert.match(control.node.textContent ?? "", /Accept the Open Spicetify prompt/);
+		assert.equal(copied, APPLY_URI);
+		assert.equal(control.node.querySelector("a"), null, "Spotify silently drops native scheme links");
+		assert.match(control.node.textContent ?? "", /Paste it into your browser's address bar/);
 		t.mock.timers.tick(30000);
 		await flush();
-		assert.match(control.node.textContent ?? "", /handler may be missing or unavailable/);
+		assert.match(control.node.textContent ?? "", /Recovery link copied/);
+		assert.equal(applies, 0);
+	});
+
+	it("provides a selectable recovery link when the clipboard is unavailable", async () => {
+		Object.defineProperty(globalThis, "navigator", {
+			configurable: true,
+			value: { userAgent: "Macintosh Spotify/1.2.97" },
+		});
+		available = false;
+		await mount();
+		click("Repair Spicetify");
+		click("Copy recovery link");
+		await flush();
+		assert.match(control.node.textContent ?? "", /Clipboard unavailable/);
+		const input = control.node.querySelector("input");
+		assert.equal(input?.value, APPLY_URI);
+		assert.equal(document.activeElement, input);
+		assert.equal(input?.selectionEnd, APPLY_URI.length);
 	});
 
 	it("removes the stale banner once the loader lists the newer running stdlib", async () => {

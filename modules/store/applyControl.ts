@@ -15,7 +15,7 @@ type State =
 	| { kind: "checking" }
 	| { kind: "ready"; transport: Transport }
 	| { kind: "confirm"; transport: Transport }
-	| { kind: "waiting"; transport: Transport }
+	| { kind: "waiting" }
 	| { kind: "error"; message: string };
 
 // The registered app handler exists on desktop targets, not on web/mobile.
@@ -36,7 +36,6 @@ export function createApplyControl() {
 	let disposed = false;
 	let checking = false;
 	let restartTimer: ReturnType<typeof setTimeout> | undefined;
-	let handoffTimer: ReturnType<typeof setTimeout> | undefined;
 	const healthTimers = new Set<ReturnType<typeof setTimeout>>();
 
 	function button(label: string, onClick: () => void) {
@@ -53,15 +52,13 @@ export function createApplyControl() {
 		render();
 	}
 
-	function waitForRestart(transport: Transport) {
-		setState({ kind: "waiting", transport });
+	function waitForRestart() {
+		setState({ kind: "waiting" });
 		restartTimer = setTimeout(() => {
 			setState({
 				kind: "error",
 				message:
-					transport === "app"
-						? "Spotify has not restarted. If an Open Spicetify prompt appeared, accept it. If nothing opened, the Spicetify app handler may be missing or unavailable."
-						: "The apply request was sent, but Spotify has not restarted. It may still be running; check the connection before trying again.",
+					"The apply request was sent, but Spotify has not restarted. It may still be running; check the connection before trying again.",
 			});
 		}, RESTART_TIMEOUT_MS);
 	}
@@ -75,7 +72,7 @@ export function createApplyControl() {
 			});
 			return;
 		}
-		waitForRestart("daemon");
+		waitForRestart();
 		try {
 			await api.apply();
 		} catch (error) {
@@ -104,7 +101,7 @@ export function createApplyControl() {
 				const transport = state.transport;
 				message.textContent =
 					transport === "app"
-						? "The Spicetify service is unavailable. Open the installed Spicetify app to apply changes and restore the connection. Spotify will restart."
+						? "The Spicetify service is unavailable. Use a recovery link in your browser to open the installed app and apply changes. Spotify will restart."
 						: `stdlib ${staged} is staged. Apply it to restart Spotify with the update.`;
 				if (transport === "daemon" || supportsAppHandoff()) {
 					button(transport === "daemon" ? "Apply stdlib update" : "Repair Spicetify", () =>
@@ -121,24 +118,32 @@ export function createApplyControl() {
 				message.textContent =
 					"Apply changes and restart Spotify? Playback will stop. Your modules and preferences will be kept.";
 				if (transport === "app") {
-					const link = el("a", "spicetify-store-cta", "Open Spicetify and restart");
-					link.href = APPLY_URI;
-					link.target = "_blank";
-					link.rel = "noopener noreferrer";
-					// Keep the real link's default action: the OS, not page JS,
-					// launches the registered app during this user gesture.
-					link.addEventListener("click", (event) => {
-						if (handoffTimer !== undefined) {
-							event.preventDefault();
-							return;
-						}
-						// The anchor must remain connected through the native default action.
-						handoffTimer = setTimeout(() => {
-							handoffTimer = undefined;
-							waitForRestart("app");
-						}, 0);
-					});
+					message.textContent +=
+						" Copy the recovery link, paste it into your browser's address bar, press Enter, then approve the Open Spicetify prompt. If no prompt appears, the app handler may be missing.";
+					const link = el("input", "spicetify-store-recovery-link");
+					link.value = APPLY_URI;
+					link.readOnly = true;
+					link.setAttribute("aria-label", "Recovery link");
+					link.addEventListener("focus", () => link.select());
 					actions.append(link);
+					const copy = button("Copy recovery link", () => {
+						copy.disabled = true;
+						void (async () => {
+							try {
+								await navigator.clipboard.writeText(APPLY_URI);
+								if (disposed || !node.contains(copy)) return;
+								message.textContent =
+									"Recovery link copied. Paste it into your browser's address bar, press Enter, then approve the Open Spicetify prompt. Playback will stop and Spotify will restart.";
+							} catch {
+								if (disposed || !node.contains(copy)) return;
+								message.textContent =
+									"Clipboard unavailable. Select and copy the recovery link below, then paste it into your browser's address bar and approve the Open Spicetify prompt. Playback will stop and Spotify will restart.";
+								link.focus();
+							} finally {
+								if (!disposed && node.contains(copy)) copy.disabled = false;
+							}
+						})();
+					});
 				} else {
 					button("Apply and restart", () => void applyViaDaemon());
 				}
@@ -146,10 +151,7 @@ export function createApplyControl() {
 				break;
 			}
 			case "waiting":
-				message.textContent =
-					state.transport === "app"
-						? "Opening the Spicetify app. Accept the Open Spicetify prompt if shown, then wait for Spotify to restart."
-						: "Apply requested. Waiting for Spotify to restart…";
+				message.textContent = "Apply requested. Waiting for Spotify to restart…";
 				break;
 			case "error":
 				message.textContent = state.message;
@@ -199,7 +201,6 @@ export function createApplyControl() {
 		refresh,
 		dispose() {
 			disposed = true;
-			clearTimeout(handoffTimer);
 			clearTimeout(restartTimer);
 			for (const timer of healthTimers) clearTimeout(timer);
 			healthTimers.clear();
