@@ -120,6 +120,12 @@ const ModuleRow = ({
 // to degrade to copy-a-command rather than assume it.
 type DaemonMethod = "apply" | "blockUpdates" | "unblockUpdates";
 type DaemonApi = DaemonCapabilities & Record<DaemonMethod, () => Promise<unknown>>;
+type DaemonProbeState =
+	| { kind: "checking" }
+	| { kind: "unavailable" }
+	| { kind: "available"; api: DaemonApi; updateAndApplySupported: boolean | null }
+	| { kind: "availability-error" }
+	| { kind: "support-error"; api: DaemonApi };
 
 const daemonApi = (): DaemonApi | null => (client.daemon as DaemonApi | undefined) ?? null;
 
@@ -129,9 +135,10 @@ export const ManagerPage = () => {
 	const [status, setStatus] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
 	const [support, setSupport] = React.useState<SpotifyAvailabilityStatus | null>(null);
-	const [daemon, setDaemon] = React.useState<DaemonApi | null>(null);
-	const [updateAndApplySupported, setUpdateAndApplySupported] = React.useState<boolean | null>(null);
+	const [daemonProbe, setDaemonProbe] = React.useState<DaemonProbeState>({ kind: "checking" });
 	const [updateStatus, setUpdateStatus] = React.useState<UpdateAndApplyStatus>({ kind: "idle" });
+	const daemon = daemonProbe.kind === "available" || daemonProbe.kind === "support-error" ? daemonProbe.api : null;
+	const updateAndApplySupported = daemonProbe.kind === "available" ? daemonProbe.updateAndApplySupported : null;
 
 	React.useEffect(() => {
 		let cancelled = false;
@@ -141,12 +148,30 @@ export const ManagerPage = () => {
 			probing = true;
 			try {
 				const api = daemonApi();
-				const up = (await api?.available?.()) ?? false;
+				if (!api) {
+					if (!cancelled) setDaemonProbe({ kind: "unavailable" });
+					return;
+				}
+				let up: boolean;
+				try {
+					up = await api.available();
+				} catch {
+					if (!cancelled) setDaemonProbe({ kind: "availability-error" });
+					return;
+				}
 				if (cancelled) return;
-				const supported = up && api ? ((await api.updateAndApplySupported?.()) ?? null) : null;
-				if (cancelled) return;
-				setDaemon(up && api ? api : null);
-				setUpdateAndApplySupported(supported);
+				if (!up) {
+					setDaemonProbe({ kind: "unavailable" });
+					return;
+				}
+				try {
+					const updateSupported = (await api.updateAndApplySupported?.()) ?? null;
+					if (!cancelled) {
+						setDaemonProbe({ kind: "available", api, updateAndApplySupported: updateSupported });
+					}
+				} catch {
+					if (!cancelled) setDaemonProbe({ kind: "support-error", api });
+				}
 			} finally {
 				probing = false;
 			}
@@ -352,6 +377,24 @@ export const ManagerPage = () => {
 				);
 				const action = (label: string, method: DaemonMethod, fallback: string) =>
 					daemon ? run(label, () => daemon[method]()) : cmd(fallback, label);
+				const daemonMessage = (() => {
+					switch (daemonProbe.kind) {
+						case "checking":
+							return "Checking the local daemon. These actions may be unavailable until the check finishes.";
+						case "unavailable":
+							return "The daemon is not running, so these are set from a terminal. Copy a command:";
+						case "availability-error":
+							return "Manager could not check whether the daemon is running. It will retry; until then, copy a terminal command below.";
+						case "support-error":
+							return "The daemon is running, but Manager could not check Update & Apply support. Block and allow still use the daemon, and Manager will retry the check.";
+						case "available":
+							return daemonProbe.updateAndApplySupported === true
+								? "Update handling runs through the local daemon. Spotify restarts."
+								: daemonProbe.updateAndApplySupported === false
+									? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
+									: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or run spicetify self-update and spicetify apply; otherwise choose allow, update Spotify normally, then run spicetify apply.";
+					}
+				})();
 				const updateMessage = (() => {
 					switch (updateStatus.kind) {
 						case "idle":
@@ -395,15 +438,7 @@ export const ManagerPage = () => {
 								chrome may be off. It self-heals once one ships.
 							</p>
 						)}
-						<p className="spicetify-manager-note">
-							{daemon
-								? updateAndApplySupported === true
-									? "Update handling runs through the local daemon. Spotify restarts."
-									: updateAndApplySupported === false
-										? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
-										: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or run spicetify self-update and spicetify apply; otherwise choose allow, update Spotify normally, then run spicetify apply."
-								: "The daemon is not running, so these are set from a terminal. Copy a command:"}
-						</p>
+						<p className="spicetify-manager-note">{daemonMessage}</p>
 						{updateMessage && (
 							<p
 								className={`spicetify-manager-update spicetify-manager-update--${updateStatus.kind === "securing" && updateStatus.manualRecovery ? "unsupported" : "ready"}`}
