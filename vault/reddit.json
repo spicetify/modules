@@ -5,6 +5,12 @@
 			"providers": [],
 			"checksum": "sha256:ab0cf715006dcab6deb55879d0e15328aeb2479843226efd4432a4c6ebd032e5",
 			"updatedAt": "2026-08-19"
+		},
+		"0.1.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/reddit@0.1.1/reddit@0.1.1.zip"],
+			"providers": [],
+			"checksum": "sha256:72134a91000c7f3298fae84bf0d5734ce17636950eb18b977f0a337a248e42e8",
+			"updatedAt": "2026-09-14"
 		}
 	},
 	"metadata": {
