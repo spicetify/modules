@@ -44,6 +44,8 @@ are no per-version prebuilds.
 
 ## Docs
 
+- [`docs/updating-modules.md`](docs/updating-modules.md) — updating and repairing
+  modules from the Spotify UI
 - [`docs/authoring-guide.md`](docs/authoring-guide.md) — building a module
 - [`docs/module-standard.md`](docs/module-standard.md) — the module contract
 - [`docs/publishing.md`](docs/publishing.md) — submitting a module to the store

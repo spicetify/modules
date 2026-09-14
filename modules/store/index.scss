@@ -488,6 +488,36 @@
 	font-size: 14px;
 }
 
+.spicetify-store-apply {
+	margin: 8px 0;
+	padding: 12px 14px;
+	border: 1px solid var(--spice-button-disabled, #555);
+	border-radius: 8px;
+	color: var(--spice-text, #fff);
+	font-size: 14px;
+
+	p {
+		margin: 0 0 10px;
+	}
+
+	.spicetify-store-apply-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.spicetify-store-cta {
+		display: inline-block;
+		padding: 6px 16px;
+		border: 1px solid var(--spice-button-disabled, #555);
+		background: var(--spice-main, #121212);
+		color: var(--spice-text, #fff);
+		font: inherit;
+		text-decoration: none;
+		cursor: pointer;
+	}
+}
+
 .spicetify-store-detail-preview {
 	width: 100%;
 	max-height: 260px;
