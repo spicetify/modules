@@ -394,8 +394,45 @@ export const ROUTES: Record<string, string> = {
 	"/preferences": "settings",
 };
 
+/** Runs in the real client; geometry from a DOM emulator is not evidence. */
+export function readSettingsControls() {
+	const appearance = (element: Element | null) => {
+		if (!element) return null;
+		const rect = element.getBoundingClientRect();
+		const style = getComputedStyle(element);
+		return {
+			classes: element.getAttribute("class"),
+			x: rect.x,
+			y: rect.y,
+			width: rect.width,
+			height: rect.height,
+			color: style.color,
+			background: style.backgroundColor,
+			radius: style.borderRadius,
+			opacity: style.opacity,
+		};
+	};
+	return {
+		buttons: [...document.querySelectorAll(".x-settings-row :is(button, a[data-encore-id])")].map((element) => ({
+			id: element.id,
+			tag: element.tagName,
+			label: element.textContent?.trim(),
+			appearance: appearance(element),
+			icon: appearance(element.querySelector("svg")),
+		})),
+		toggles: [...document.querySelectorAll('.x-settings-row input[type="checkbox"]')].map((input) => ({
+			id: input.id,
+			checked: input.matches(":checked"),
+			disabled: input.matches(":disabled"),
+			track: appearance(input.parentElement?.querySelector(".x-toggle-indicatorWrapper") ?? null),
+			thumb: appearance(input.parentElement?.querySelector(".x-toggle-indicator") ?? null),
+		})),
+	};
+}
+
 export interface LiveShot {
 	theme: string;
+	themeVersion?: string;
 	scheme: string | null;
 	route: string;
 	surface: string;
@@ -404,6 +441,8 @@ export interface LiveShot {
 	main: string;
 	/** False when the surface never stopped moving, so it animates. */
 	stable: boolean;
+	/** Present on Settings captures; empty arrays mean controls were not found. */
+	settingsControls?: ReturnType<typeof readSettingsControls>;
 }
 
 export interface LiveFailure {
@@ -607,17 +646,23 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 	const shots: LiveShot[] = [];
 	const failures: LiveFailure[] = [];
 
-	const clientVersion = await cdp.eval<string | null>(`return window.Spicetify?.Platform?.version ?? null;`);
+	const clientVersion = await cdp.eval<string | null>(
+		`return navigator.userAgent.match(/Spotify\\/(\\S+)/)?.[1] ?? null;`,
+	);
 
-	const known = await cdp.eval<{ installed: string[]; active: string | null; scheme: string | null }>(`
+	const known = await cdp.eval<{
+		installed: { identifier: string; version: string }[];
+		active: string | null;
+		scheme: string | null;
+	}>(`
     const active = localStorage.getItem("spicetify:modules:activeTheme");
     return {
-      installed: window.Spicetify.Modules.list().map((m) => m.identifier),
+      installed: window.Spicetify.Modules.list().map(({ identifier, version }) => ({ identifier, version })),
       active,
       scheme: active ? localStorage.getItem("spicetify:scheme:" + active) : null,
     };`);
 
-	const installed = new Set(known.installed);
+	const installed = new Map(known.installed.map(({ identifier, version }) => [identifier, version]));
 	const wanted = opts.themes?.length ? opts.themes : (opts.candidates ?? []);
 	const restoreTo = opts.restoreTo ?? known.active;
 
@@ -630,7 +675,23 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 			await cdp.eval(STABILISE);
 			const file = path.join(opts.outDir, `${label}--${surface}.png`);
 			const stable = await cdp.shootStable(file);
-			shots.push({ theme: label, scheme, route, surface, file: path.basename(file), main, stable });
+			const settingsControls =
+				route === "/preferences"
+					? await cdp.eval<ReturnType<typeof readSettingsControls>>(
+							`return (${readSettingsControls.toString()})();`,
+						)
+					: undefined;
+			shots.push({
+				theme: label,
+				themeVersion: installed.get(label),
+				scheme,
+				route,
+				surface,
+				file: path.basename(file),
+				main,
+				stable,
+				settingsControls,
+			});
 		}
 	};
 
@@ -854,6 +915,7 @@ function page(opts: {
 	) => `<figure${c.status === "changed" || c.status === "resized" ? ' class="hit"' : ""}>
   <a href="current/${encodeURIComponent(c.shot.file)}"><img src="current/${encodeURIComponent(c.shot.file)}" alt="${esc(c.shot.theme)} ${esc(c.shot.surface)}" loading="lazy"></a>
   <figcaption>${esc(c.shot.surface)}${badge(c)}${c.deltaFile ? ` <a class="delta" href="delta/${encodeURIComponent(c.deltaFile)}">delta</a>` : ""}</figcaption>
+  ${c.shot.settingsControls ? `<details><summary>Settings control styles and geometry</summary><pre>${esc(JSON.stringify(c.shot.settingsControls, null, 2))}</pre></details>` : ""}
 </figure>`;
 
 	const themeBlock = (theme: string) => {
@@ -863,7 +925,7 @@ function page(opts: {
 		const worst = issues.length ? Math.min(...issues.map((f) => f.ratio)) : null;
 		return `<section class="theme" id="theme-${esc(theme)}">
   <header>
-    <h3>${esc(theme)}</h3>
+    <h3>${esc(theme)}${first?.themeVersion ? ` <small>${esc(first.themeVersion)}</small>` : ""}</h3>
     <span class="dim"><span class="sw" style="background:${esc(first?.main ?? "#000")}"></span>${esc(first?.scheme ?? "no scheme")} · ${esc(first?.main ?? "")}</span>
     ${bindingByTheme.has(theme) ? `<span class="dim${bindingByTheme.get(theme)! < BINDING_FLOOR ? " hit" : ""}">repaints ${(bindingByTheme.get(theme)! * 100).toFixed(0)}% of the bare client${bindingByTheme.get(theme)! < BINDING_FLOOR ? " — not binding" : ""}</span>` : ""}
     ${worst !== null ? `<span class="dim warn">${issues.length} contrast issue${issues.length === 1 ? "" : "s"}, worst ${worst.toFixed(2)}:1</span>` : ""}
@@ -895,6 +957,7 @@ function page(opts: {
 body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 ui-sans-serif,system-ui,-apple-system,sans-serif;
   -webkit-font-smoothing:antialiased}
 .wrap{max-width:1500px;margin:0 auto;padding:36px 24px 80px}
+figure pre{max-height:28rem;overflow:auto;font-size:12px}
 .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
   color:var(--faint);margin:0 0 8px}
 h1{font-size:27px;margin:0 0 10px;letter-spacing:-.015em;font-weight:650}

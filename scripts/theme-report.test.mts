@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, describe, it } from "node:test";
 import { PNG } from "pngjs";
+import { Window } from "happy-dom";
 
 import {
 	auditAll,
@@ -31,7 +32,58 @@ import {
 	resolveScheme,
 	schemeVars,
 	THEMED_CLASS,
+	readSettingsControls,
 } from "./theme-report.ts";
+
+describe("settings control capture", () => {
+	for (const encore of ["e-10750", "e-10800"]) {
+		it(`includes links and both toggle states with ${encore} classes`, async () => {
+			const window = new Window();
+			try {
+				window.document.body.innerHTML = `
+					<div class="x-settings-row">
+						<a class="${encore}-legacy-button" data-encore-id="buttonSecondary">View<svg></svg></a>
+						<button>Action</button>
+						<label><input id="off" type="checkbox"><span class="x-toggle-indicatorWrapper"><span class="x-toggle-indicator"></span></span></label>
+						<label><input id="on" type="checkbox" checked disabled><span class="x-toggle-indicatorWrapper"><span class="x-toggle-indicator"></span></span></label>
+					</div>`;
+				// Only test discovery here. Layout and the cascade require Spotify.
+				const result: ReturnType<typeof readSettingsControls> = structuredClone(
+					window.eval(`(${readSettingsControls.toString()})()`),
+				);
+				assert.deepEqual(
+					result.buttons.map((button) => button.tag),
+					["A", "BUTTON"],
+				);
+				assert.ok(result.buttons[0].icon);
+				assert.deepEqual(
+					result.toggles.map(({ id, checked, disabled }) => ({ id, checked, disabled })),
+					[
+						{ id: "off", checked: false, disabled: false },
+						{ id: "on", checked: true, disabled: true },
+					],
+				);
+				assert.ok(result.toggles.every((toggle) => toggle.track && toggle.thumb));
+			} finally {
+				await window.happyDOM.close();
+			}
+		});
+	}
+	it("reports missing toggle parts instead of silently skipping the control", async () => {
+		const window = new Window();
+		try {
+			window.document.body.innerHTML = '<div class="x-settings-row"><input type="checkbox"></div>';
+			const result: ReturnType<typeof readSettingsControls> = structuredClone(
+				window.eval(`(${readSettingsControls.toString()})()`),
+			);
+			assert.equal(result.toggles.length, 1);
+			assert.equal(result.toggles[0].track, null);
+			assert.equal(result.toggles[0].thumb, null);
+		} finally {
+			await window.happyDOM.close();
+		}
+	});
+});
 
 const roots: string[] = [];
 

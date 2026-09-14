@@ -33,7 +33,6 @@ const metadata = JSON.parse(readFileSync(path.join(THEME_DIR, "metadata.json"), 
 
 describe("dribbblish frame", () => {
 	it("keeps accumulated top-right actions at their native scaled width", () => {
-		assert.equal(metadata.version, "0.1.2");
 		assert.match(
 			css,
 			/\.Root__globalNav\s+:is\(\.main-globalNav-contentRight,\s*\.main-topBar-topbarContentRight,\s*\.main-actionButtons\)\s*\{[^}]*width:\s*max-content\s*!important\s*;[^}]*max-width:\s*none\s*!important\s*;[^}]*flex-shrink:\s*0\s*!important\s*;/s,

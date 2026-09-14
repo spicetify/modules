@@ -1119,7 +1119,8 @@ img.playlist-picture[src$=".svg"] {
 	height: 56px !important;
 }
 
-.Button-md-buttonSecondary-useBrowserDefaultFocusStyle {
+.Button-md-buttonSecondary-useBrowserDefaultFocusStyle,
+[data-encore-id="buttonSecondary"] {
 	border: 1px solid var(--spice-text);
 }
 

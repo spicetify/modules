@@ -194,6 +194,29 @@ html.spicetify-themed {
 	}
 }
 
+/* Match the client's specificity so theme rules can still override the
+   defaults. Keep geometry, disabled opacity, and focus treatment native. */
+:where(html.spicetify-themed) {
+	.x-toggle-indicatorWrapper {
+		background-color: var(--spice-button-disabled);
+	}
+	.x-toggle-indicator {
+		background-color: var(--spice-text);
+	}
+	input:hover:not([disabled], :active) ~ .x-toggle-indicatorWrapper {
+		background-color: var(--spice-subtext);
+	}
+	input:checked ~ .x-toggle-indicatorWrapper {
+		background-color: var(--spice-button);
+	}
+	input:checked:hover:not([disabled], :active) ~ .x-toggle-indicatorWrapper {
+		background-color: var(--spice-button-active);
+	}
+	input:checked ~ .x-toggle-indicatorWrapper .x-toggle-indicator {
+		background-color: var(--spice-main);
+	}
+}
+
 /* The shared carousel wrapper already reads these variables, but the client
    defines both to a translucent #121212 on each shelf. :where() keeps the
    themed scope specificity-neutral: the default beats the inherited client
