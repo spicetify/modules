@@ -412,7 +412,7 @@ export const ManagerPage = () => {
 						case "securing":
 							return updateStatus.message ?? "Restoring and verifying the Spotify update block.";
 						case "complete":
-							return `Updated Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}, reapplied Spicetify, and restored the update block.`;
+							return `Last update completed: Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}. Spicetify was reapplied and the update block restored.`;
 						case "failed-safe":
 							return `Update stopped safely: ${updateStatus.message}`;
 					}

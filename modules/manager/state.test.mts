@@ -138,17 +138,42 @@ describe("effectiveSupport", () => {
 		assert.equal(updateAdvice("1.2.97.10", merged).kind, "unsupported");
 	});
 
-	it("rejects an unverified selected map even when its build is indexed as supported", () => {
+	it("distinguishes an unverified local map from an unsupported Spotify release", () => {
 		const merged = effectiveSupport(
-			{
-				spotifyVersion: "1.2.96.518",
-				classmapVerified: false,
-				supportedSpotify: "1.2.96.518",
-			},
+			{ spotifyVersion: "1.3.0", classmapVerified: false, supportedSpotify: "1.3.0" },
 			null,
 		);
 		assert.equal(merged?.installedSupported, false);
-		assert.equal(updateAdvice("1.2.96.518", merged).kind, "unsupported");
+		const advice = updateAdvice("1.3.0", merged);
+		assert.equal(advice.kind, "unverified");
+		assert.match(advice.message, /could not be verified.*1\.3\.0/);
+		assert.doesNotMatch(advice.message, /isn't fully supported|catches up/);
+	});
+
+	it("does not offer an update while the applied map is unverified", () => {
+		const merged = effectiveSupport(
+			{ spotifyVersion: "1.2.97", classmapVerified: false, supportedSpotify: "1.3.0" },
+			null,
+		);
+		assert.equal(updateAdvice("1.2.97", merged).kind, "unverified");
+	});
+
+	it("keeps a failed verification visible when the support index is unavailable", () => {
+		const merged = effectiveSupport({ spotifyVersion: "1.3.0", classmapVerified: false }, null);
+		assert.equal(updateAdvice("1.3.0", merged).kind, "unverified");
+	});
+
+	it("reports current after applying the published verified map", () => {
+		const merged = effectiveSupport(
+			{
+				spotifyVersion: "1.3.0",
+				classmapSpotify: "1.3.0.277",
+				classmapVerified: true,
+				supportedSpotify: "1.3.0",
+			},
+			null,
+		);
+		assert.equal(updateAdvice("1.3.0", merged).kind, "current");
 	});
 
 	it("can declare a future Spotify update ready before it is installed", () => {
