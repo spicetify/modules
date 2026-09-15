@@ -284,6 +284,16 @@ export type UpdateAdvice =
 	| { kind: "ready"; message: string }
 	| { kind: "unsupported"; message: string };
 
+const upgradeCommand = "spicetify self-update && spicetify apply";
+export const SPICETIFY_UPGRADE = {
+	command: upgradeCommand,
+	label: "copy Spicetify upgrade command",
+	instructions:
+		`Run ${upgradeCommand} in a terminal to update Spicetify and restart Spotify. ` +
+		"This does not update Spotify. Then return to Spicetify Manager and choose Update & Apply. " +
+		"If that action is still unavailable, choose allow, update Spotify normally, then run spicetify apply.",
+};
+
 export function updateAdvice(installed: string | undefined, support: SpotifySupportStatus | null): UpdateAdvice {
 	const installedLine = spotifyVersionLine(installed);
 	const supportedLine = spotifyVersionLine(support?.supportedSpotify);
@@ -312,7 +322,7 @@ export function updateAdvice(installed: string | undefined, support: SpotifySupp
 	if (supportedLine && compareSpotifyVersions(supportedLine, latestLine) >= 0) {
 		return {
 			kind: "ready",
-			message: `Spotify ${latestLine} is available and spicetify supports it — update via the CLI`,
+			message: `Spotify ${latestLine} is available and Spicetify supports it.`,
 		};
 	}
 	return {

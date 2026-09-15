@@ -8,6 +8,7 @@ import {
 	effectiveSupport,
 	latestPublishedVersions,
 	spotifyVersionLine,
+	SPICETIFY_UPGRADE,
 	updateAdvice,
 	type ManagerModuleRow,
 } from "./state.ts";
@@ -54,6 +55,7 @@ describe("updateAdvice", () => {
 		const a = updateAdvice("1.2.94.583", { latestSpotify: "1.2.95.100", supportedSpotify: "1.2.95.100" });
 		assert.equal(a.kind, "ready");
 		assert.ok(a.message.length > 0);
+		assert.doesNotMatch(a.message, /CLI|terminal/i, "availability must not contradict the Update & Apply button");
 	});
 
 	it("is waiting when a newer build exists but is not yet supported", () => {
@@ -71,6 +73,20 @@ describe("updateAdvice", () => {
 	it("does not raise a false unsupported alarm when the feed is unavailable", () => {
 		assert.notEqual(updateAdvice("1.2.95.100", null).kind, "unsupported");
 		assert.notEqual(updateAdvice("1.2.95.100", { latestSpotify: "1.2.95.100" }).kind, "unsupported");
+	});
+});
+
+describe("Spicetify upgrade guidance", () => {
+	it("labels the copied command as a Spicetify upgrade, not a Spotify update", () => {
+		assert.equal(SPICETIFY_UPGRADE.command, "spicetify self-update && spicetify apply");
+		assert.equal(SPICETIFY_UPGRADE.label, "copy Spicetify upgrade command");
+	});
+
+	it("explains the prerequisite and the next in-app action", () => {
+		assert.ok(SPICETIFY_UPGRADE.instructions.includes(SPICETIFY_UPGRADE.command));
+		assert.match(SPICETIFY_UPGRADE.instructions, /does not update Spotify/);
+		assert.match(SPICETIFY_UPGRADE.instructions, /return to Spicetify Manager.*Update & Apply/);
+		assert.match(SPICETIFY_UPGRADE.instructions, /If.*unavailable.*allow.*update Spotify.*spicetify apply/);
 	});
 });
 
