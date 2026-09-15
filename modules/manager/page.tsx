@@ -330,8 +330,8 @@ export const ManagerPage = () => {
 					</Badge>
 				</div>
 				<p className="spicetify-manager-note">
-					Installing or staging modules on disk happens outside the client — after changing staged modules,
-					run <code>spicetify restore backup apply</code>.
+					After changing modules staged on disk, run <code>spicetify apply</code> to rebuild the client and
+					restart Spotify.
 				</p>
 				{staleStaged.length > 0 && (
 					<>
@@ -343,10 +343,9 @@ export const ManagerPage = () => {
 							))}
 						</div>
 						<p className="spicetify-manager-note">
-							These staged modules are behind the vault and never update on their own — a stale stdlib is
-							how fixes silently fail to arrive. Refresh the copies under{" "}
-							<code>~/.config/spicetify/Modules</code>, then run{" "}
-							<code>spicetify restore backup apply</code>.
+							These staged modules are behind the vault. Run <code>spicetify apply</code> to refresh
+							store-managed system modules and rebuild the client. Update other modules in the Store, or
+							at their source if you installed them manually. Applying restarts Spotify.
 						</p>
 					</>
 				)}
