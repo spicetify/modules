@@ -28,12 +28,37 @@ import {
 	listSchemes,
 	MIN_RATIO,
 	parseColorSchemes,
+	cropScreenshot,
 	relativeLuminance,
 	resolveScheme,
 	schemeVars,
 	THEMED_CLASS,
 	readSettingsControls,
 } from "./theme-report.ts";
+
+describe("screenshot region", () => {
+	it("converts CSS coordinates using the client's zoom-adjusted pixel ratio", () => {
+		const source = new PNG({ width: 20, height: 20 });
+		source.data.fill(0);
+		source.data[(4 * 20 + 2) * 4] = 255;
+		const result = PNG.sync.read(
+			cropScreenshot(PNG.sync.write(source), { x: 1, y: 2, width: 3, height: 4, dpr: 2 }),
+		);
+		assert.equal(result.width, 6);
+		assert.equal(result.height, 8);
+		assert.equal(result.data[0], 255);
+	});
+	it("refuses empty or offscreen regions instead of recording an unrelated frame", () => {
+		for (const clip of [
+			{ x: 0, y: 0, width: 0, height: 2, dpr: 1 },
+			{ x: 0.5, y: 0, width: 0, height: 2, dpr: 1 },
+			{ x: -1, y: 0, width: 2, height: 2, dpr: 1 },
+			{ x: 19, y: 0, width: 2, height: 2, dpr: 1 },
+			{ x: NaN, y: 0, width: 2, height: 2, dpr: 1 },
+		])
+			assert.throws(() => cropScreenshot(png(20, 20, [0, 0, 0]), clip), /visible box/);
+	});
+});
 
 describe("settings control capture", () => {
 	for (const encore of ["e-10750", "e-10800"]) {

@@ -17,6 +17,7 @@
  *   node scripts/theme-report.ts --no-capture     rebuild the page from disk
  *   node scripts/theme-report.ts --themes flow    just one
  *   node scripts/theme-report.ts --routes /       just one route
+ *   node scripts/theme-report.ts --selector .main-actionButtons  toolbar only
  *
  * Spotify must be running with --remote-debugging-port=9229. Output defaults
  * to ../scratchpad/theme-shots, which is outside every repo.
@@ -455,6 +456,41 @@ export interface LiveResult {
 	failures: LiveFailure[];
 	restored: string | null;
 	clientVersion: string | null;
+	viewport?: { width: number; height: number; dpr: number };
+	selector?: string;
+}
+
+interface CaptureClip {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	dpr: number;
+}
+
+export function cropScreenshot(buffer: Buffer, clip: CaptureClip): Buffer {
+	const source = PNG.sync.read(buffer);
+	const x = Math.floor(clip.x * clip.dpr);
+	const y = Math.floor(clip.y * clip.dpr);
+	const width = Math.ceil((clip.x + clip.width) * clip.dpr) - x;
+	const height = Math.ceil((clip.y + clip.height) * clip.dpr) - y;
+	if (
+		clip.width <= 0 ||
+		clip.height <= 0 ||
+		clip.dpr <= 0 ||
+		![x, y, width, height].every(Number.isFinite) ||
+		x < 0 ||
+		y < 0 ||
+		width <= 0 ||
+		height <= 0 ||
+		x + width > source.width ||
+		y + height > source.height
+	) {
+		throw new Error("Screenshot selector must have a visible box fully inside the viewport");
+	}
+	const cropped = new PNG({ width, height });
+	PNG.bitblt(source, cropped, x, y, width, height, 0, 0);
+	return PNG.sync.write(cropped);
 }
 
 /** Minimal CDP client: one socket, request/response by id. */
@@ -529,11 +565,20 @@ export class Cdp {
 	 * poison every capture. Genuinely animated themes move an order of
 	 * magnitude more than that, so the two stay distinguishable.
 	 */
-	async shootStable(file: string, tries = 8, gapMs = 300): Promise<boolean> {
+	async shootStable(file: string, tries = 8, gapMs = 300, selector?: string): Promise<boolean> {
 		let previous: Buffer | null = null;
 		for (let i = 0; i < tries; i++) {
+			const clip = selector
+				? await this.eval<CaptureClip>(`
+        const element = document.querySelector(${JSON.stringify(selector)});
+        if (!element) throw new Error("Screenshot selector did not match");
+        const { x, y, width, height } = element.getBoundingClientRect();
+        return { x, y, width, height, dpr: devicePixelRatio };
+      `)
+				: null;
 			const shot = await this.call("Page.captureScreenshot", { format: "png" });
-			const current = Buffer.from(shot.data, "base64");
+			const buffer = Buffer.from(shot.data, "base64");
+			const current = clip ? cropScreenshot(buffer, clip) : buffer;
 			if (previous) {
 				const drift = comparePng(previous, current);
 				if (!drift.mismatch && drift.changedRatio <= STABLE_EPSILON) {
@@ -611,6 +656,7 @@ async function settle(cdp: Cdp, before: string): Promise<string> {
 
 export interface LiveOptions {
 	outDir: string;
+	selector?: string;
 	port?: number;
 	themes?: string[];
 	routes?: string[];
@@ -642,6 +688,9 @@ export const UNTHEMED = "_unthemed";
 
 export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 	const cdp = await Cdp.attach(opts.port ?? DEFAULT_PORT);
+	const viewport = await cdp.eval<{ width: number; height: number; dpr: number }>(
+		`return { width: innerWidth, height: innerHeight, dpr: devicePixelRatio };`,
+	);
 	const routes = opts.routes?.length ? opts.routes : Object.keys(ROUTES);
 	const shots: LiveShot[] = [];
 	const failures: LiveFailure[] = [];
@@ -674,7 +723,7 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 			await cdp.wait(900);
 			await cdp.eval(STABILISE);
 			const file = path.join(opts.outDir, `${label}--${surface}.png`);
-			const stable = await cdp.shootStable(file);
+			const stable = await cdp.shootStable(file, 8, 300, opts.selector);
 			const settingsControls =
 				route === "/preferences"
 					? await cdp.eval<ReturnType<typeof readSettingsControls>>(
@@ -751,7 +800,7 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 		cdp.close();
 	}
 
-	return { shots, failures, restored: restoreTo, clientVersion };
+	return { shots, failures, restored: restoreTo, clientVersion, viewport, selector: opts.selector };
 }
 
 /* ----------------------------------------- Report: comparison, binding, page */
@@ -1042,6 +1091,10 @@ async function main(): Promise<void> {
 			?.split(",")
 			.map((s) => s.trim())
 			.filter(Boolean);
+	const selector = flag("selector");
+	if (argv.includes("--selector") && (!selector || selector.startsWith("--"))) {
+		throw new Error("--selector requires a CSS selector");
+	}
 
 	const outDir = path.resolve(flag("out") ?? path.join(REPO, "..", "scratchpad", "theme-shots"));
 	const currentDir = path.join(outDir, "current");
@@ -1059,6 +1112,7 @@ async function main(): Promise<void> {
 		console.log("capturing from the live client…");
 		live = await captureLive({
 			outDir: currentDir,
+			selector,
 			port: flag("port") ? Number(flag("port")) : undefined,
 			themes: list("themes"),
 			routes: list("routes"),
@@ -1076,7 +1130,7 @@ async function main(): Promise<void> {
 		: live.shots.map((shot) => ({ shot, status: "new" as const, changedPixels: 0, changedRatio: 0 }));
 
 	const findings = auditAll(path.join(REPO, "themes")).findings;
-	const bindings = checkBinding(currentDir, live.shots);
+	const bindings = live.selector ? [] : checkBinding(currentDir, live.shots);
 	const unbound = bindings.filter((b) => !b.bound);
 
 	writeFileSync(
