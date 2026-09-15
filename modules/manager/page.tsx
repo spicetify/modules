@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { client, React } from "/modules/stdlib/mod.ts";
+import { client, React, type DaemonCapabilities, type UpdateAndApplyStatus } from "/modules/stdlib/mod.ts";
 import { TextInput } from "/modules/stdlib/lib/primitives.js";
 import {
 	deriveManagerState,
@@ -119,7 +119,13 @@ const ModuleRow = ({
 // older apply, and unusable when the daemon is not running, so the panel has
 // to degrade to copy-a-command rather than assume it.
 type DaemonMethod = "apply" | "blockUpdates" | "unblockUpdates";
-type DaemonApi = Record<DaemonMethod, () => Promise<unknown>> & { available: () => Promise<boolean> };
+type DaemonApi = DaemonCapabilities & Record<DaemonMethod, () => Promise<unknown>>;
+type DaemonProbeState =
+	| { kind: "checking" }
+	| { kind: "unavailable" }
+	| { kind: "available"; api: DaemonApi; updateAndApplySupported: boolean | null }
+	| { kind: "availability-error" }
+	| { kind: "support-error"; api: DaemonApi };
 
 const daemonApi = (): DaemonApi | null => (client.daemon as DaemonApi | undefined) ?? null;
 
@@ -129,13 +135,56 @@ export const ManagerPage = () => {
 	const [status, setStatus] = React.useState("");
 	const [busy, setBusy] = React.useState(false);
 	const [support, setSupport] = React.useState<SpotifyAvailabilityStatus | null>(null);
-	const [daemon, setDaemon] = React.useState<DaemonApi | null>(null);
+	const [daemonProbe, setDaemonProbe] = React.useState<DaemonProbeState>({ kind: "checking" });
+	const [updateStatus, setUpdateStatus] = React.useState<UpdateAndApplyStatus>({ kind: "idle" });
+	const daemon = daemonProbe.kind === "available" || daemonProbe.kind === "support-error" ? daemonProbe.api : null;
+	const updateAndApplySupported = daemonProbe.kind === "available" ? daemonProbe.updateAndApplySupported : null;
 
 	React.useEffect(() => {
-		const api = daemonApi();
-		if (!api?.available) return;
-		void api.available().then((up) => setDaemon(up ? api : null));
+		let cancelled = false;
+		let probing = false;
+		const probe = async () => {
+			if (probing) return;
+			probing = true;
+			try {
+				const api = daemonApi();
+				if (!api) {
+					if (!cancelled) setDaemonProbe({ kind: "unavailable" });
+					return;
+				}
+				let up: boolean;
+				try {
+					up = await api.available();
+				} catch {
+					if (!cancelled) setDaemonProbe({ kind: "availability-error" });
+					return;
+				}
+				if (cancelled) return;
+				if (!up) {
+					setDaemonProbe({ kind: "unavailable" });
+					return;
+				}
+				try {
+					const updateSupported = (await api.updateAndApplySupported?.()) ?? null;
+					if (!cancelled) {
+						setDaemonProbe({ kind: "available", api, updateAndApplySupported: updateSupported });
+					}
+				} catch {
+					if (!cancelled) setDaemonProbe({ kind: "support-error", api });
+				}
+			} finally {
+				probing = false;
+			}
+		};
+		void probe();
+		const timer = globalThis.setInterval(() => void probe(), 5000);
+		return () => {
+			cancelled = true;
+			globalThis.clearInterval(timer);
+		};
 	}, []);
+
+	React.useEffect(() => daemon?.updateAndApply?.observe(setUpdateStatus), [daemon]);
 
 	React.useEffect(() => {
 		void fetchSupportStatus().then(setSupport);
@@ -318,18 +367,56 @@ export const ManagerPage = () => {
 					<button
 						type="button"
 						disabled={busy}
-						onClick={() =>
-							onAction(label, async () => {
-								if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
-								await fn();
-							})
-						}
+						onClick={() => {
+							if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
+							onAction(label, fn);
+						}}
 					>
 						{label}
 					</button>
 				);
 				const action = (label: string, method: DaemonMethod, fallback: string) =>
 					daemon ? run(label, () => daemon[method]()) : cmd(fallback, label);
+				const daemonMessage = (() => {
+					switch (daemonProbe.kind) {
+						case "checking":
+							return "Checking the local daemon. These actions may be unavailable until the check finishes.";
+						case "unavailable":
+							return "The daemon is not running, so these are set from a terminal. Copy a command:";
+						case "availability-error":
+							return "Manager could not check whether the daemon is running. It will retry; until then, copy a terminal command below.";
+						case "support-error":
+							return "The daemon is running, but Manager could not check Update & Apply support. Block and allow still use the daemon, and Manager will retry the check.";
+						case "available":
+							return daemonProbe.updateAndApplySupported === true
+								? "Update handling runs through the local daemon. Spotify restarts."
+								: daemonProbe.updateAndApplySupported === false
+									? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
+									: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or run spicetify self-update and spicetify apply; otherwise choose allow, update Spotify normally, then run spicetify apply.";
+					}
+				})();
+				const updateMessage = (() => {
+					switch (updateStatus.kind) {
+						case "idle":
+							return null;
+						case "accepted":
+							return "Update accepted. Spotify's updater is starting.";
+						case "waiting-for-update":
+							return "Waiting for Spotify to offer the verified update.";
+						case "downloading":
+							return `Downloading Spotify ${updateStatus.targetVersion}.`;
+						case "installing-spotify":
+							return `Installing Spotify ${updateStatus.targetVersion}. Spotify will restart.`;
+						case "applying-spicetify":
+							return `Spotify ${updateStatus.targetVersion} is installed; reapplying the customization.`;
+						case "securing":
+							return updateStatus.message ?? "Restoring and verifying the Spotify update block.";
+						case "complete":
+							return `Updated Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}, reapplied Spicetify, and restored the update block.`;
+						case "failed-safe":
+							return `Update stopped safely: ${updateStatus.message}`;
+					}
+				})();
 				return (
 					<section>
 						<div className="spicetify-manager-section-head">
@@ -351,15 +438,28 @@ export const ManagerPage = () => {
 								chrome may be off. It self-heals once one ships.
 							</p>
 						)}
-						<p className="spicetify-manager-note">
-							{daemon
-								? "Update handling runs through the local daemon. Spotify restarts."
-								: "The daemon is not running, so these are set from a terminal. Copy a command:"}
-						</p>
+						<p className="spicetify-manager-note">{daemonMessage}</p>
+						{updateMessage && (
+							<p
+								className={`spicetify-manager-update spicetify-manager-update--${updateStatus.kind === "securing" && updateStatus.manualRecovery ? "unsupported" : "ready"}`}
+							>
+								{updateMessage}
+							</p>
+						)}
 						<div className="spicetify-manager-update-actions">
 							{action("block", "blockUpdates", "spicetify spotify-updates block")}
 							{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
-							{advice.kind === "ready" && action("update & apply", "apply", "spicetify apply")}
+							{advice.kind === "ready" &&
+								(updateAndApplySupported && daemon?.updateAndApply
+									? run("update & apply", async () => {
+											const admission = await daemon.updateAndApply!();
+											return admission.disposition === "joined"
+												? "joined existing update"
+												: "update accepted";
+										})
+									: updateAndApplySupported === null
+										? cmd("spicetify self-update && spicetify apply", "copy update instructions")
+										: cmd("spicetify apply", "copy apply command"))}
 						</div>
 					</section>
 				);

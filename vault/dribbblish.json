@@ -23,6 +23,14 @@
 			"providers": [],
 			"checksum": "sha256:109bbf0a960483dea3a06ca49606fa62fe9591cd9891950397427b15444ea6a6",
 			"updatedAt": "2026-08-14"
+		},
+		"0.1.3": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/dribbblish@0.1.3/dribbblish@0.1.3.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:76b4f5668534959077665b4c29cd81e867ad6441eaf36255cb46aad01efd5d97",
+			"updatedAt": "2026-09-14"
 		}
 	},
 	"metadata": {

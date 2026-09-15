@@ -501,6 +501,9 @@ dialog::backdrop {
 
 /* inputs */
 button,
+[data-encore-id="buttonPrimary"],
+[data-encore-id="buttonSecondary"],
+[data-encore-id="buttonTertiary"],
 .x-toggle-indicatorWrapper,
 select {
 	border-radius: var(--border-radius) !important;

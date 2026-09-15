@@ -274,6 +274,44 @@ A hash left inline simply stops matching when it goes stale, which degrades to
 the unthemed state rather than breaking something else — but it does mean the
 bug comes back silently on the next Spotify release.
 
+## Settings controls across versions
+
+Keep compatibility and appearance separate. The shared colour bridge in
+`modules/stdlib/_client-colors.scss` maps native toggle colours to the active
+theme's variables. It leaves dimensions, corner radii, disabled opacity, and
+keyboard focus to Spotify and the theme. Its `:where()` scope adds no
+specificity. A theme with custom toggle colours must still win against both
+the bridge and Spotify's lazily loaded Settings stylesheet. Sleek uses
+explicit colour overrides for this reason.
+
+Spotify can render an Encore button as either `<button>` or `<a>`. For
+theme-specific button shapes, include the appropriate stable
+`data-encore-id` attributes as well as any legacy selectors you still support.
+Do not change links into buttons: **View** and **Import library** must keep
+their navigation behavior, focus handling, and external-link icons.
+
+Run the shared report against each available supported Spotify version:
+
+```sh
+node scripts/theme-report.ts --themes text,sleek,onepunch,ziro,dribbblish \
+  --routes /preferences --out ../scratchpad/settings-theme-report
+```
+
+The report captures installed theme versions, not unbuilt source edits.
+Build and stage your changes first. Each Settings frame includes control
+colours, dimensions, corner radii, toggle states, and icon geometry in the
+HTML report and JSON. Missing toggle parts appear as `null`; empty control
+lists mean discovery failed or the page had no matching controls. Neither
+counts as a successful check. The capture records the current state without
+toggling user preferences or following external links.
+
+Inspect checked, unchecked, hover, disabled, and keyboard-focus states, plus
+both a light and a dark scheme. Confirm that icons remain inside their
+controls and that theme-specific toggle geometry survives shared defaults.
+Do not require every theme to change the same properties. Some intentionally
+keep Spotify's shapes. A DOM-only test verifies discovery, not browser layout
+or the CSS cascade; record any Spotify versions you could not test live.
+
 ## Checklist for a light theme
 
 - [ ] Encore token bridge in place

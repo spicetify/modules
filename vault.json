@@ -81,6 +81,14 @@
 					"providers": [],
 					"checksum": "sha256:b5a63724dfe2cbe202c8b4132810acbce2c220cd64844a991c573f2b16354e74",
 					"updatedAt": "2026-08-20"
+				},
+				"0.1.10": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/adblock@0.1.10/adblock@0.1.10.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:024e0fd4b04bee3b891c4fdd61317fe1c4235c2e462256ee9f997a6175bb7109",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -135,6 +143,14 @@
 					"providers": [],
 					"checksum": "sha256:8e078bdfdbdcae0285720775c8d302021f3d99351b9f0262e74eadb67248027b",
 					"updatedAt": "2026-08-12"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-explicit@0.1.4/auto-skip-explicit@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:de3c89d3fb220823251c3bf4e0bb510400168e0f4a9de55e6edd5e7a722e8abf",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -183,6 +199,14 @@
 					"providers": [],
 					"checksum": "sha256:dec0575d5ab3a27f754847c335a5893fc0fa4fd5ffa463505ad81a43c6f4f198",
 					"updatedAt": "2026-08-12"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/auto-skip-video@0.1.4/auto-skip-video@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:545183b06d2a37ccce8d6f873df6a9bd66e7675624b5f14e4d11fa23c3e0222a",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -319,6 +343,14 @@
 					"providers": [],
 					"checksum": "sha256:523da23ffa0f0f15d33b1f0b07e574ba972fbb1288ba21067b6919e37e91d59e",
 					"updatedAt": "2026-08-17"
+				},
+				"0.4.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/bookmark@0.4.2/bookmark@0.4.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:cabfa2bad66d1ad14c7e537dfd2ea75b7d24fff5ab9dd1043daa32236e442151",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -422,6 +454,14 @@
 					"providers": [],
 					"checksum": "sha256:109bbf0a960483dea3a06ca49606fa62fe9591cd9891950397427b15444ea6a6",
 					"updatedAt": "2026-08-14"
+				},
+				"0.1.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/dribbblish@0.1.3/dribbblish@0.1.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:76b4f5668534959077665b4c29cd81e867ad6441eaf36255cb46aad01efd5d97",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -530,6 +570,14 @@
 					"providers": [],
 					"checksum": "sha256:7dd2246beae6220c677e7b005a2c57fd1acae3e8fdec6cb3275c5aca1739fd15",
 					"updatedAt": "2026-08-17"
+				},
+				"0.2.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/full-app-display@0.2.2/full-app-display@0.2.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:7503140d655331d1320291cd9877a8da5ad6b1c7117ceadea515e7a21a578b61",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -602,6 +650,14 @@
 					"providers": [],
 					"checksum": "sha256:7be843de361b84791acb12f84f6ffa9bb64bf63044c855348c9306a3500a13a6",
 					"updatedAt": "2026-09-05"
+				},
+				"0.1.8": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/hide-window-controls@0.1.8/hide-window-controls@0.1.8.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:e1255684f748d7c2967c6b766580976d32d80bceafcdf2e5edb01d4396aec4b1",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -642,6 +698,14 @@
 					"providers": [],
 					"checksum": "sha256:d44fdffef177d681b0d482fc204c1658aa29852fcaeaeb3a8323098b48b65e3a",
 					"updatedAt": "2026-08-12"
+				},
+				"0.1.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/keyboard-shortcut@0.1.3/keyboard-shortcut@0.1.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:ff20de268b907f8881133925a27f3579ab49d327214fa27416b7f73bcc02d5fb",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -690,6 +754,14 @@
 					"providers": [],
 					"checksum": "sha256:52bb392e7d9bd47fe58ae875f177661059596098ade3f8596d099971627b9e21",
 					"updatedAt": "2026-08-13"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/loopy-loop@0.1.4/loopy-loop@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:1456ae49ef5b40c36cf19258c65e4b9685555926ac0a97c0e574c8341d98cc26",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -802,6 +874,14 @@
 					"providers": [],
 					"checksum": "sha256:0c908ab2b1b85ada09eb536874e294c4f3df987e5569bfca6feaf433e22c2fb6",
 					"updatedAt": "2026-08-24"
+				},
+				"0.2.5": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/lyrics-plus@0.2.5/lyrics-plus@0.2.5.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:5a26b235c8fb46dcd5a16c0a35ab805d8476728f7d6bde332d5b69322c319c99",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -917,6 +997,15 @@
 					"checksum": "sha256:403f4c4d38573ad50f689f6cdb783aede8fedc7cd6971609bc6c8713ddcc2b98",
 					"updatedAt": "2026-08-17",
 					"hidden": true
+				},
+				"1.3.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/manager@1.3.0/manager@1.3.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:9654a3564f57b0ac9a28975efce1e2788fc6a54b7e3582365832b9742e8aac95",
+					"updatedAt": "2026-09-14",
+					"hidden": true
 				}
 			},
 			"metadata": {
@@ -1009,6 +1098,14 @@
 					"providers": [],
 					"checksum": "sha256:c5a88ad9ec1ffa3ccb748fad2c0f37f5839b3240904872e9db6710fa6c587bc4",
 					"updatedAt": "2026-08-17"
+				},
+				"0.2.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/new-releases@0.2.2/new-releases@0.2.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2e48959a185f767fb46a2637d6761fad3f8a7d01247637851e75885ae4daacf1",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -1189,6 +1286,14 @@
 					"providers": [],
 					"checksum": "sha256:0066722dee958b4727d519a58e99d30970b6b4c0ead86669a338bb321c51d577",
 					"updatedAt": "2026-08-17"
+				},
+				"0.3.9": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.9/palette-manager@0.3.9.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:3ef3db928196b5ca53992907f0137dd8df374015bed9b81e546390bc1d30a70f",
+					"updatedAt": "2026-09-14"
 				}
 			}
 		},
@@ -1265,6 +1370,14 @@
 					"providers": [],
 					"checksum": "sha256:71d2f379d1c9adf7c7a556723804bbb4a59ce97f8807e697296e422f302352a4",
 					"updatedAt": "2026-08-17"
+				},
+				"0.2.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/popup-lyrics@0.2.3/popup-lyrics@0.2.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:ec3ecca0ef7239f3e6788928d629719112249e04ea5b244ab328a8601628a76c",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -1289,6 +1402,14 @@
 					"providers": [],
 					"checksum": "sha256:ab0cf715006dcab6deb55879d0e15328aeb2479843226efd4432a4c6ebd032e5",
 					"updatedAt": "2026-08-19"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/reddit@0.1.1/reddit@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:72134a91000c7f3298fae84bf0d5734ce17636950eb18b977f0a337a248e42e8",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -1376,6 +1497,14 @@
 					"providers": [],
 					"checksum": "sha256:c6ddab09b122385966f3171964c82a0587840843e2090faa539be4a26aa3a242",
 					"updatedAt": "2026-08-13"
+				},
+				"0.2.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.2.4/shuffle-plus@0.2.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:60ce26792647de9076028f9aea28a9741883c490def8eb1254efe356859abe9b",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -1416,6 +1545,12 @@
 					"providers": [],
 					"checksum": "sha256:2780b3f2cad668c60c2974db3ef5d2202227030926d33244cfc4ebad5748f88e",
 					"updatedAt": "2026-08-19"
+				},
+				"0.1.4": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/sleek@0.1.4/sleek@0.1.4.zip"],
+					"providers": [],
+					"checksum": "sha256:cd5ca2a396646c1f390b49fbd0a8b9f34d156262514c7ecfbdba59c82f66534b",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -3833,6 +3968,33 @@
 					"checksum": "sha256:a5c3705da310fdf39e447fce92bd0e212922a9b01668f1fcaf2a4e9cecda0197",
 					"updatedAt": "2026-09-05",
 					"hidden": true
+				},
+				"1.11.0": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.11.0/stdlib@1.11.0.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:73fc33e0439bcdc370e8dd0ac174f372e42deec84b01fc18fa216b8086346ade",
+					"updatedAt": "2026-09-14",
+					"hidden": true
+				},
+				"1.11.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.11.1/stdlib@1.11.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:7a10c5e879627f98fbc6f0062d39863e9faf38a501205606eb715bc8e98db049",
+					"updatedAt": "2026-09-14",
+					"hidden": true
+				},
+				"1.11.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.11.2/stdlib@1.11.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:018bff89f68d52c745d30c97b0bdd9a91b4a0767312e4c852f1e85c9f88ef15c",
+					"updatedAt": "2026-09-14",
+					"hidden": true
 				}
 			}
 		},
@@ -3998,6 +4160,34 @@
 					"checksum": "sha256:7c0f1a13299a750b02f75533b4c15c5afa32aaaf9ac54bdda32976e570c41aa7",
 					"updatedAt": "2026-09-01",
 					"hidden": true
+				},
+				"1.7.3": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.7.3/store@1.7.3.zip"],
+					"providers": [],
+					"checksum": "sha256:3e398bc56fdf3f60109dc5501abd520f92d853198420de12eb0d1f937d958173",
+					"updatedAt": "2026-09-14",
+					"hidden": true
+				},
+				"1.7.4": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.7.4/store@1.7.4.zip"],
+					"providers": [],
+					"checksum": "sha256:0fab685760e600374b8d0a52eac66599e0b555d2b1660b81968434ba103c9c0a",
+					"updatedAt": "2026-09-14",
+					"hidden": true
+				},
+				"1.7.5": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.7.5/store@1.7.5.zip"],
+					"providers": [],
+					"checksum": "sha256:b11d081ba24621cd14ae4393194c03376e09fa802b62891239db11cd6e91770a",
+					"updatedAt": "2026-09-14",
+					"hidden": true
+				},
+				"1.7.6": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.7.6/store@1.7.6.zip"],
+					"providers": [],
+					"checksum": "sha256:2ffde1b5b601439bb79e70783e3d5ae71bc5f64d5d72d953587d3229225601ed",
+					"updatedAt": "2026-09-14",
+					"hidden": true
 				}
 			},
 			"metadata": {
@@ -4043,6 +4233,12 @@
 					"providers": [],
 					"checksum": "sha256:a3fbd9748aac3fe10030847cb484828941bb3e9e8a66ec974ce76faac51af162",
 					"updatedAt": "2026-08-13"
+				},
+				"0.1.5": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/text@0.1.5/text@0.1.5.zip"],
+					"providers": [],
+					"checksum": "sha256:0a7a7648359397f54f8cfce561c6819cb6d8dc877c8a911cf1deadbf9380cbf0",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -4099,6 +4295,14 @@
 					"providers": [],
 					"checksum": "sha256:811841f0123b7ab1ae903a400b48cac730736a53023732f38f135218ddd2287c",
 					"updatedAt": "2026-08-17"
+				},
+				"0.2.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/trashbin@0.2.4/trashbin@0.2.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2815884bf3d9c34b7183a4733eb1bcabbfd0778d7867b67a2568a87818f78dcc",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {
@@ -4162,6 +4366,14 @@
 					"providers": [],
 					"checksum": "sha256:1255d7ab03df2a54fe37da5728852475e1a30144469231834324912d2cf4b064",
 					"updatedAt": "2026-08-12"
+				},
+				"0.1.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/webnowplaying@0.1.3/webnowplaying@0.1.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:cbdd85b24372ebb96a5c4ec8a5477432db33a1a3e1e6f6b6ac98dea12db90249",
+					"updatedAt": "2026-09-14"
 				}
 			},
 			"metadata": {

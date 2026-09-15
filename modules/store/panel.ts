@@ -6,6 +6,7 @@
 import { type Catalog, displayVersion, loadCatalog, searchHaystack } from "./catalog.ts";
 import { installModule, removeLocalRecord } from "./install.ts";
 import { el, M } from "./runtime.ts";
+import { createApplyControl } from "./applyControl.ts";
 
 // ---------- fallback popover panel (standalone survival) ----------
 
@@ -36,14 +37,16 @@ export function createPanel() {
 	search.placeholder = "Search modules…";
 	const list = el("div", "spicetify-store-list");
 	const installed = el("div", "spicetify-store-installed");
+	const applyControl = createApplyControl();
 
-	panel.append(header, search, status, list, installed);
+	panel.append(header, applyControl.node, search, status, list, installed);
 	document.body.appendChild(panel);
 
 	let catalog: Catalog = { modules: [], revoked: {}, ok: false };
 	let filter = "";
 
 	async function renderInstalled() {
+		void applyControl.refresh(true);
 		installed.replaceChildren();
 		installed.appendChild(el("h3", undefined, "Installed"));
 		const local = M().listLocal();
@@ -126,6 +129,7 @@ export function createPanel() {
 	return {
 		node: panel,
 		async ensureLoaded() {
+			void applyControl.refresh(true);
 			// Retry until at least one vault has actually answered.
 			if (catalog.ok || loading) return;
 			loading = true;
@@ -147,6 +151,9 @@ export function createPanel() {
 				status.textContent = `failed to load installs: ${(e as Error).message}`;
 			}
 		},
-		remove: () => panel.remove(),
+		remove: () => {
+			applyControl.dispose();
+			panel.remove();
+		},
 	};
 }
