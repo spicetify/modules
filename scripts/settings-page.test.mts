@@ -129,6 +129,15 @@ describe("standalone Spicetify Settings", () => {
 		assert.doesNotMatch(lyrics, /id:\s*`\$\{APP_NAME\}-config-container`/);
 	});
 
+	it("gives the v3 apply command and explains staged-module refresh", () => {
+		const page = read("modules/manager/page.tsx");
+		assert.doesNotMatch(page, /spicetify restore backup apply|never update on their own/);
+		assert.match(page, /run <code>spicetify apply<\/code> to rebuild the client and\s+restart Spotify/);
+		assert.match(page, /store-managed system modules/);
+		assert.match(page, /Update other modules in the Store/);
+		assert.match(page, /at their source if you installed them manually/);
+	});
+
 	it("ships compatible stdlib and settings contracts", () => {
 		const stdlib = readJson("modules/stdlib/metadata.json");
 		const manager = readJson("modules/manager/metadata.json");
