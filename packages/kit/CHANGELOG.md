@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.2](https://github.com/spicetify/modules/compare/kit@0.3.1...kit@0.3.2) (2026-09-15)
+
+
+### Bug Fixes
+
+* **ci:** bump changed module releases ([97f97f9](https://github.com/spicetify/modules/commit/97f97f97b8ad135826474fa3ae97b7c224b2db0a))
+* **stdlib:** pin profile settings below Spotify settings ([ab85f91](https://github.com/spicetify/modules/commit/ab85f9157c4aff9ce29e772b4445ad7534742a5a))
+* **stdlib:** resolve the actual playlist menu component ([7e914ce](https://github.com/spicetify/modules/commit/7e914cee43a4323769a97f7e0c6d125732e4ba65))
+* **themes:** style native Settings controls consistently ([098579d](https://github.com/spicetify/modules/commit/098579da23874e03137666e0664f6ac6d52313f9))
+
 ## [0.3.1](https://github.com/spicetify/modules/compare/kit@0.3.0...kit@0.3.1) (2026-09-05)
 
 
