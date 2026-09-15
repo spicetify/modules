@@ -8,6 +8,7 @@
 // capture half needs a running Spotify and is exercised by running the tool.
 
 import assert from "node:assert/strict";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -17,10 +18,23 @@ import { PNG } from "pngjs";
 import { Window } from "happy-dom";
 
 import {
+	accept,
 	auditAll,
 	auditScheme,
 	auditTheme,
 	comparePng,
+	compareRun,
+	classmapShots,
+	classmapCompleteness,
+	inspectClassmapState,
+	maskClassmapPrivacy,
+	hasAlbumsOnlyLibrary,
+	isLayoutPreference,
+	CLASSMAP_VIEWPORT,
+	prepareClassmapBaseline,
+	snapshotBaseline,
+	requireOutsideGit,
+	type LiveResult,
 	contrastRatio,
 	DERIVED_COLORS,
 	fillCanonical,
@@ -474,5 +488,374 @@ describe("comparePng", () => {
 		const result = comparePng(png(40, 40, [0, 0, 0]), png(40, 41, [0, 0, 0]));
 		assert.match(result.mismatch ?? "", /40x40.*40x41/);
 		assert.equal(result.delta, null);
+	});
+});
+
+describe("classmaps suite", () => {
+	function completeRun(): { live: LiveResult; current: string } {
+		const current = tmp();
+		const shots = classmapShots().map((shot) => ({
+			...shot,
+			stable: true,
+			themeVersion: shot.theme === "text" ? "1.0.0" : undefined,
+		}));
+		const image = png(1440, 1000, [0, 0, 0]);
+		for (const shot of shots) {
+			mkdirSync(path.dirname(path.join(current, shot.file)), { recursive: true });
+			writeFileSync(path.join(current, shot.file), image);
+		}
+		return {
+			current,
+			live: {
+				shots,
+				failures: [],
+				restored: "text",
+				clientVersion: "1.3.0",
+				moduleVersions: { text: "1.0.0", stdlib: "1.3.0" },
+				suite: "classmaps",
+				viewport: CLASSMAP_VIEWPORT,
+				cleanupVerified: true,
+			},
+		};
+	}
+
+	it("requires the Your Library settings heading and its control, not the sidebar heading", () => {
+		const window = new Window({ url: "https://xpui.app.spotify.com/index.html" });
+		try {
+			window.eval(
+				`Element.prototype.getBoundingClientRect = function() { return { width: 100, height: 20, top: 20, bottom: 40 }; };`,
+			);
+			window.document.body.innerHTML =
+				'<h2>Your Library</h2><div class="x-settings-container"><h1>Settings</h1></div>';
+			const inspect = () =>
+				window.eval(`(${inspectClassmapState.toString()})("settings-library", "/preferences")`);
+			assert.equal(inspect(), false);
+			window.document.querySelector(".x-settings-container")!.innerHTML += "<h2>Your Library</h2>";
+			assert.equal(inspect(), false);
+			window.document.querySelector(".x-settings-container")!.innerHTML +=
+				'<div class="x-settings-row"><input id="settings.library.compact-mode"></div>';
+			assert.equal(inspect(), true);
+			assert.equal(window.eval(`(${inspectClassmapState.toString()})("settings-library", "/index.html")`), false);
+		} finally {
+			void window.happyDOM.close();
+		}
+	});
+
+	it("uses the same fourteen theme/state filenames across Spotify versions", () => {
+		const shots = classmapShots();
+		const older: LiveResult = { shots, failures: [], restored: null, clientVersion: "1.2.97" };
+		const newer = { ...older, clientVersion: "1.3.0" };
+		assert.deepEqual(
+			older.shots.map((shot) => shot.file),
+			newer.shots.map((shot) => shot.file),
+		);
+		assert.equal(shots.length, 14);
+		assert.equal(new Set(shots.map((shot) => shot.file)).size, 14);
+		assert.equal(shots.find((shot) => shot.theme === "text")?.scheme, "Spicetify");
+		assert.ok(shots.every((shot) => /^(text|unthemed)\/[a-z-]+\.png$/.test(shot.file)));
+	});
+
+	it("reports a small localized change regardless of its full-frame percentage", () => {
+		const current = tmp();
+		const baseline = tmp();
+		const delta = tmp();
+		const shot = { ...classmapShots()[0], stable: true };
+		for (const root of [current, baseline])
+			mkdirSync(path.dirname(path.join(root, shot.file)), { recursive: true });
+		writeFileSync(path.join(baseline, shot.file), png(1000, 1000, [0, 0, 0]));
+		writeFileSync(
+			path.join(current, shot.file),
+			png(1000, 1000, [0, 0, 0], { x: 500, y: 500, w: 2, h: 2, colour: [255, 255, 255] }),
+		);
+		const [change] = compareRun(current, baseline, [shot], delta, true);
+		assert.equal(change.status, "changed");
+		assert.equal(change.changedPixels, 4);
+		assert.ok(change.changedRatio < 0.00001);
+		assert.ok(existsSync(path.join(delta, shot.file)));
+	});
+
+	it("distinguishes missing references, resized frames, missing captures, and unstable states", () => {
+		const current = tmp();
+		const baseline = tmp();
+		const delta = tmp();
+		const shot = { ...classmapShots()[0], stable: true };
+		mkdirSync(path.dirname(path.join(current, shot.file)), { recursive: true });
+		writeFileSync(path.join(current, shot.file), png(20, 20, [0, 0, 0]));
+		assert.equal(compareRun(current, baseline, [shot], delta, true)[0].status, "new");
+		mkdirSync(path.dirname(path.join(baseline, shot.file)), { recursive: true });
+		writeFileSync(path.join(baseline, shot.file), png(21, 20, [0, 0, 0]));
+		assert.equal(compareRun(current, baseline, [shot], delta, true)[0].status, "resized");
+		assert.equal(compareRun(current, baseline, [{ ...shot, stable: false }], delta, true)[0].status, "incomplete");
+		rmSync(path.join(current, shot.file));
+		assert.equal(compareRun(current, baseline, [shot], delta, true)[0].status, "missing");
+	});
+
+	it("requires every state, correct scheme and dimensions, stability, and verified cleanup", () => {
+		const { current, live } = completeRun();
+		assert.deepEqual(classmapCompleteness(live, current), []);
+		assert.match(
+			classmapCompleteness({ ...live, shots: live.shots.slice(1) }, current).join("\n"),
+			/exactly one capture/,
+		);
+		assert.match(classmapCompleteness({ ...live, cleanupVerified: false }, current).join("\n"), /cleanup/);
+		assert.match(
+			classmapCompleteness(
+				{ ...live, shots: live.shots.map((shot) => ({ ...shot, stable: false })) },
+				current,
+			).join("\n"),
+			/unstable/,
+		);
+		assert.match(
+			classmapCompleteness(
+				{ ...live, shots: live.shots.map((shot) => ({ ...shot, scheme: "Other" })) },
+				current,
+			).join("\n"),
+			/scheme mismatch/,
+		);
+		writeFileSync(path.join(current, live.shots[0].file), png(1, 1, [0, 0, 0]));
+		assert.match(classmapCompleteness(live, current).join("\n"), /resized PNG/);
+	});
+
+	it("prepares PNG-only candidates without replacing an existing directory", () => {
+		const { current, live } = completeRun();
+		const destination = path.join(tmp(), "candidates");
+		writeFileSync(path.join(current, "report.json"), "{}");
+		assert.equal(prepareClassmapBaseline(current, destination, live), 14);
+		assert.ok(!existsSync(path.join(destination, "report.json")));
+		assert.deepEqual(
+			readFileSync(path.join(destination, live.shots[0].file)),
+			readFileSync(path.join(current, live.shots[0].file)),
+		);
+		assert.throws(() => prepareClassmapBaseline(current, destination, live), /already exists/);
+		assert.throws(
+			() =>
+				prepareClassmapBaseline(current, path.join(tmp(), "incomplete"), {
+					...live,
+					failures: [{ theme: "text", error: "navigation failed" }],
+				}),
+			/incomplete suite/,
+		);
+	});
+
+	it("refuses artifact directories inside repositories", () => {
+		const repo = tmp();
+		mkdirSync(path.join(repo, ".git"));
+		assert.throws(() => requireOutsideGit(path.join(repo, "new", "candidates")), /outside git/);
+		const approved = path.join(repo, "baseline");
+		mkdirSync(approved);
+		writeFileSync(path.join(approved, "keep.png"), png(1, 1, [0, 0, 0]));
+		assert.throws(() => accept(tmp(), approved), /outside git/);
+		assert.ok(existsSync(path.join(approved, "keep.png")));
+	});
+
+	it("compares against the target commit even when working-tree baselines were replaced", () => {
+		const repo = tmp();
+		const destination = path.join(tmp(), "reference");
+		const git = (...args: string[]) =>
+			execFileSync("git", ["-C", repo, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+		git("init", "--initial-branch=main");
+		const baseline = path.join(repo, "visual", "baseline");
+		mkdirSync(path.join(baseline, "text"), { recursive: true });
+		const original = png(2, 2, [0, 0, 0]);
+		writeFileSync(path.join(baseline, "text", "home.png"), original);
+		git("add", ".");
+		git(
+			"-c",
+			"user.name=Test",
+			"-c",
+			"user.email=test@example.invalid",
+			"-c",
+			"commit.gpgsign=false",
+			"-c",
+			"core.hooksPath=/dev/null",
+			"commit",
+			"-m",
+			"baseline",
+		);
+		writeFileSync(path.join(baseline, "text", "home.png"), png(2, 2, [255, 255, 255]));
+		const snapshot = snapshotBaseline(baseline, destination, "main");
+		assert.deepEqual(readFileSync(path.join(snapshot.directory, "text", "home.png")), original);
+		assert.match(snapshot.source, /^[a-f0-9]{40}:visual\/baseline$/);
+		assert.throws(() => snapshotBaseline(baseline, destination, "main"), /already exists/);
+		const reuseOut = tmp();
+		writeFileSync(
+			path.join(reuseOut, "shots.json"),
+			JSON.stringify({ suite: "classmaps", shots: [], failures: [], restored: null, clientVersion: "1.3.0" }),
+		);
+		const replay = spawnSync(
+			process.execPath,
+			[
+				path.join(HERE, "theme-report.ts"),
+				"--suite",
+				"classmaps",
+				"--no-capture",
+				"--no-open",
+				"--baseline-dir",
+				baseline,
+				"--baseline-ref",
+				"main",
+				"--out",
+				reuseOut,
+			],
+			{ encoding: "utf8" },
+		);
+		assert.equal(replay.status, 1, "missing capture states must remain incomplete");
+		assert.deepEqual(
+			readFileSync(path.join(reuseOut, "reference", "text", "home.png")),
+			original,
+			"no-capture must snapshot the target branch when no prior snapshot exists",
+		);
+		assert.match(
+			JSON.parse(readFileSync(path.join(reuseOut, "report.json"), "utf8")).baselineSource,
+			/^[a-f0-9]{40}:visual\/baseline$/,
+		);
+	});
+});
+
+describe("layout preferences", () => {
+	it("recognizes account-prefixed pane settings without selecting credentials or other storage", () => {
+		for (const key of [
+			"ui.right_sidebar_content",
+			"column-widths",
+			"ylx-default-state-nav-bar-width",
+			"ylx-expanded-state-nav-bar-width",
+			"left-sidebar-default-state-width",
+			"left-sidebar-expanded-state-width",
+			"panel-width",
+			"left-sidebar-state",
+		]) {
+			assert.equal(isLayoutPreference(`fixture-account:${key}`), true);
+		}
+		assert.equal(isLayoutPreference("fixture-account:api-token"), false);
+		assert.equal(isLayoutPreference("fixture-account:playlist-cache"), false);
+	});
+});
+
+describe("classmaps privacy", () => {
+	it("clips playlist masks to their scrolling viewport", () => {
+		const window = new Window();
+		try {
+			window.document.body.innerHTML =
+				'<div id="viewport" style="overflow-x:hidden;overflow-y:hidden"><a href="/playlist/private"><img id="art" src="private.png"></a></div>';
+			window.eval(
+				`Element.prototype.getBoundingClientRect = function() { return this.id === "viewport" ? new DOMRect(100, 100, 200, 200) : new DOMRect(250, 250, 150, 150); };`,
+			);
+			window.eval(`(${maskClassmapPrivacy.toString()})();`);
+			const mask = window.document.getElementById("spicetify-report-privacy")!.querySelector("span")!;
+			assert.deepEqual(
+				[mask.style.left, mask.style.top, mask.style.width, mask.style.height],
+				["250px", "250px", "50px", "50px"],
+			);
+			const menu = window.document.createElement("div");
+			menu.setAttribute("role", "menu");
+			menu.getBoundingClientRect = () => new window.DOMRect(275, 250, 100, 50);
+			window.document.body.append(menu);
+			window.eval(`(${maskClassmapPrivacy.toString()})();`);
+			const clipped = window.document.getElementById("spicetify-report-privacy")!.querySelector("span")!;
+			assert.deepEqual(
+				[clipped.style.left, clipped.style.width],
+				["250px", "25px"],
+				"playlist masks must not paint over an open menu",
+			);
+		} finally {
+			void window.happyDOM.close();
+		}
+	});
+	it("requires Albums selection and rejects remaining library playlist rows", () => {
+		const window = new Window();
+		try {
+			const check = () => window.eval(`(${hasAlbumsOnlyLibrary.toString()})();`);
+			assert.equal(check(), false);
+			window.document.body.innerHTML =
+				'<div data-encore-id="chip" aria-label="Albums" aria-checked="false"></div><nav class="Root__nav-bar"></nav>';
+			assert.equal(check(), false);
+			window.document.querySelector('[aria-label="Albums"]')!.setAttribute("aria-checked", "true");
+			assert.equal(check(), true);
+			window.document.querySelector("nav")!.innerHTML =
+				'<p id="listrow-subtitle-spotify:playlist:private">Playlist</p>';
+			assert.equal(check(), false);
+		} finally {
+			void window.happyDOM.close();
+		}
+	});
+	function maskedCount(markup: string): number {
+		const window = new Window();
+		try {
+			window.document.body.innerHTML = markup;
+			const before = window.document.body.innerHTML;
+			window.eval(
+				`Element.prototype.getBoundingClientRect = function() { return new DOMRect(10, 20, 200, 40); }; Range.prototype.getClientRects = function() { return [new DOMRect(15, 25, 80, 20)]; };`,
+			);
+			window.eval(`(${maskClassmapPrivacy.toString()})();`);
+			const layer = window.document.getElementById("spicetify-report-privacy")!;
+			const count = layer.children.length;
+			layer.remove();
+			assert.equal(window.document.body.innerHTML, before, "masking must preserve the source content and layout");
+			return count;
+		} finally {
+			void window.happyDOM.close();
+		}
+	}
+
+	for (const markup of [
+		'<input aria-label="Musixmatch token" value="fixture">',
+		'<input placeholder="Last.fm API key" value="fixture">',
+		'<label for="provider">Provider credential</label><input id="provider" value="fixture">',
+		'<span id="field-label">Provider secret</span><input aria-labelledby="field-label" value="fixture">',
+	])
+		it("masks credentials identified by accessible labels and placeholders", () => {
+			assert.equal(maskedCount(markup), 1);
+		});
+
+	it("does not mask toggles or hidden inputs whose labels mention credentials", () => {
+		assert.equal(
+			maskedCount(
+				'<label>Musixmatch token<input type="checkbox" checked></label><input type="hidden" name="token" value="fixture"><input aria-label="Token" value="fixture" style="opacity:0">',
+			),
+			0,
+		);
+	});
+
+	it("preserves noncredential input values and empty credential placeholders", () => {
+		assert.equal(
+			maskedCount('<input aria-label="Search" value="Song title"><input placeholder="Musixmatch token">'),
+			0,
+		);
+	});
+
+	it("masks playlist shortcut and recommendation artwork and names while preserving albums", () => {
+		assert.equal(
+			maskedCount(
+				'<a href="/playlist/private"><img src="private.png"></a><a href="/playlist/private">Private title</a><div data-encore-id="card"><img src="recommendation.png"><a href="/playlist/recommended">Playlist title</a></div><a href="/album/public"><img src="album.png">Album title</a>',
+			),
+			4,
+		);
+	});
+
+	it("masks creator names in identity regions while preserving matching music text and Profile", () => {
+		assert.equal(
+			maskedCount(
+				'<p data-encore-id="listRowSubtitle" id="listrow-subtitle-spotify:playlist:1">Playlist • Casey Example</p><h2>Casey Example</h2><a href="/user/123">Profile</a><a href="/user/spotify">Spotify</a>',
+			),
+			1,
+		);
+	});
+
+	it("masks the adjacent account avatar in Liked Songs metadata while preserving artwork", () => {
+		assert.equal(
+			maskedCount(
+				'<button data-testid="user-widget-link" aria-label="Alex Example"></button><div class="main-entityHeader-metaData"><img class="main-avatar-image" alt="Alex Example" src="avatar.png"><span>Alex Example</span><img alt="Album artwork" src="album.png"></div>',
+			),
+			2,
+		);
+	});
+
+	it("masks personal recommendations and owner avatars without changing music text", () => {
+		assert.equal(
+			maskedCount(
+				'<button data-testid="user-widget-link" aria-label="Alex Example"></button><h2>Made for Alex Example</h2><p>Alex Example song title</p><a href="/user/123"><img src="avatar.png">Alex Example</a>',
+			),
+			3,
+		);
 	});
 });

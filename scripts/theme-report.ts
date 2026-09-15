@@ -10,13 +10,16 @@
  * A local tool, not a gate. It drives the running Spotify client over CDP,
  * captures every theme across a handful of routes, compares each frame with
  * the last accepted run, checks each theme still binds to this build, folds in
- * a contrast audit of every scheme, and writes a page you open.
+ * a contrast audit of every scheme, and opens the generated report.
  *
  *   node scripts/theme-report.ts                  capture, compare, write
  *   node scripts/theme-report.ts --accept         make this run the baseline
  *   node scripts/theme-report.ts --no-capture     rebuild the page from disk
+ *   node scripts/theme-report.ts --no-open        write without opening a browser
  *   node scripts/theme-report.ts --themes flow    just one
  *   node scripts/theme-report.ts --routes /       just one route
+ *   node scripts/theme-report.ts --suite classmaps --baseline-dir ../classmaps/visual/baseline --out /tmp/classmaps-run
+ *   node scripts/theme-report.ts --suite classmaps --baseline-dir ../classmaps/visual/baseline --out /tmp/classmaps-run --no-capture --prepare-baseline /tmp/classmaps-candidates
  *   node scripts/theme-report.ts --selector .main-actionButtons  toolbar only
  *
  * Spotify must be running with --remote-debugging-port=9229. Output defaults
@@ -34,8 +37,19 @@
  *                  so beats reporting it as changed every run
  */
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+	copyFileSync,
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	readdirSync,
+	realpathSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 
@@ -456,8 +470,12 @@ export interface LiveResult {
 	failures: LiveFailure[];
 	restored: string | null;
 	clientVersion: string | null;
+	moduleVersions?: Record<string, string>;
 	viewport?: { width: number; height: number; dpr: number };
 	selector?: string;
+	suite?: "classmaps";
+	cleanupVerified?: boolean;
+	navigation?: string;
 }
 
 interface CaptureClip {
@@ -497,7 +515,7 @@ export function cropScreenshot(buffer: Buffer, clip: CaptureClip): Buffer {
 export class Cdp {
 	private ws!: WebSocket;
 	private id = 0;
-	private pending = new Map<number, (v: unknown) => void>();
+	private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 
 	static async attach(port: number): Promise<Cdp> {
 		const targets = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()) as {
@@ -513,7 +531,9 @@ export class Cdp {
 		cdp.ws.addEventListener("message", (ev: MessageEvent) => {
 			const m = JSON.parse(String(ev.data));
 			if (m.id && cdp.pending.has(m.id)) {
-				cdp.pending.get(m.id)!(m.result ?? m.error);
+				const pending = cdp.pending.get(m.id)!;
+				if (m.error) pending.reject(new Error(JSON.stringify(m.error)));
+				else pending.resolve(m.result);
 				cdp.pending.delete(m.id);
 			}
 		});
@@ -525,8 +545,21 @@ export class Cdp {
 
 	call(method: string, params: Record<string, unknown> = {}): Promise<any> {
 		const id = ++this.id;
-		return new Promise((resolve) => {
-			this.pending.set(id, resolve as (v: unknown) => void);
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				this.pending.delete(id);
+				reject(new Error(`CDP ${method} timed out`));
+			}, 20000);
+			this.pending.set(id, {
+				resolve: (value) => {
+					clearTimeout(timer);
+					resolve(value);
+				},
+				reject: (error) => {
+					clearTimeout(timer);
+					reject(error);
+				},
+			});
 			this.ws.send(JSON.stringify({ id, method, params }));
 		});
 	}
@@ -565,9 +598,21 @@ export class Cdp {
 	 * poison every capture. Genuinely animated themes move an order of
 	 * magnitude more than that, so the two stay distinguishable.
 	 */
-	async shootStable(file: string, tries = 8, gapMs = 300, selector?: string): Promise<boolean> {
+	async shootStable(
+		file: string,
+		options: {
+			tries?: number;
+			gapMs?: number;
+			selector?: string;
+			epsilon?: number;
+			beforeCapture?: () => Promise<unknown>;
+			viewport?: { width: number; height: number };
+		} = {},
+	): Promise<boolean> {
+		const { tries = 8, gapMs = 300, selector, epsilon = STABLE_EPSILON, beforeCapture, viewport } = options;
 		let previous: Buffer | null = null;
 		for (let i = 0; i < tries; i++) {
+			await beforeCapture?.();
 			const clip = selector
 				? await this.eval<CaptureClip>(`
         const element = document.querySelector(${JSON.stringify(selector)});
@@ -576,12 +621,15 @@ export class Cdp {
         return { x, y, width, height, dpr: devicePixelRatio };
       `)
 				: null;
-			const shot = await this.call("Page.captureScreenshot", { format: "png" });
+			const shot = await this.call("Page.captureScreenshot", {
+				format: "png",
+				...(viewport ? { clip: { x: 0, y: 0, ...viewport, scale: 1 }, captureBeyondViewport: false } : {}),
+			});
 			const buffer = Buffer.from(shot.data, "base64");
 			const current = clip ? cropScreenshot(buffer, clip) : buffer;
 			if (previous) {
 				const drift = comparePng(previous, current);
-				if (!drift.mismatch && drift.changedRatio <= STABLE_EPSILON) {
+				if (!drift.mismatch && drift.changedRatio <= epsilon) {
 					mkdirSync(path.dirname(file), { recursive: true });
 					writeFileSync(file, current);
 					return true;
@@ -723,7 +771,7 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 			await cdp.wait(900);
 			await cdp.eval(STABILISE);
 			const file = path.join(opts.outDir, `${label}--${surface}.png`);
-			const stable = await cdp.shootStable(file, 8, 300, opts.selector);
+			const stable = await cdp.shootStable(file, { selector: opts.selector });
 			const settingsControls =
 				route === "/preferences"
 					? await cdp.eval<ReturnType<typeof readSettingsControls>>(
@@ -803,9 +851,593 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 	return { shots, failures, restored: restoreTo, clientVersion, viewport, selector: opts.selector };
 }
 
+export const CLASSMAP_STATES = [
+	{ surface: "home", route: "/" },
+	{ surface: "home-profile", route: "/" },
+	{ surface: "settings-top", route: "/preferences" },
+	{ surface: "settings-library", route: "/preferences" },
+	{ surface: "search", route: "/search" },
+	{ surface: "liked-songs", route: "/collection/tracks" },
+	{ surface: "spicetify-settings", route: "/bespoke/settings" },
+];
+export const CLASSMAP_VIEWPORT = { width: 1440, height: 1000, dpr: 1 };
+
+export function classmapShots(): LiveShot[] {
+	return ["unthemed", "text"].flatMap((theme) =>
+		CLASSMAP_STATES.map(({ surface, route }) => ({
+			theme,
+			surface,
+			route,
+			scheme: theme === "text" ? "Spicetify" : null,
+			file: `${theme}/${surface}.png`,
+			main: "",
+			stable: false,
+		})),
+	);
+}
+
+/** Missing or failed states never become reference images. */
+export function classmapCompleteness(live: LiveResult, currentDir: string): string[] {
+	const problems = live.failures.map((failure) => `${failure.theme}: ${failure.error}`);
+	if (live.suite !== "classmaps") problems.push("not a classmaps suite");
+	if (!live.clientVersion) problems.push("Spotify version was not recorded");
+	if (!live.moduleVersions?.text) problems.push("module versions were not recorded");
+	if (!live.cleanupVerified) problems.push("client cleanup was not verified");
+	if (
+		live.viewport?.width !== CLASSMAP_VIEWPORT.width ||
+		live.viewport?.height !== CLASSMAP_VIEWPORT.height ||
+		live.viewport?.dpr !== CLASSMAP_VIEWPORT.dpr
+	)
+		problems.push("viewport must be 1440x1000 at DPR 1");
+	for (const expected of classmapShots()) {
+		const shots = live.shots.filter((shot) => shot.file === expected.file);
+		if (shots.length !== 1) {
+			problems.push(`${expected.file}: expected exactly one capture`);
+			continue;
+		}
+		const shot = shots[0];
+		if (
+			shot.theme !== expected.theme ||
+			shot.surface !== expected.surface ||
+			shot.route !== expected.route ||
+			shot.scheme !== expected.scheme
+		)
+			problems.push(`${expected.file}: state or scheme mismatch`);
+		if (shot.theme === "text" && shot.themeVersion !== live.moduleVersions?.text)
+			problems.push(`${expected.file}: theme version mismatch`);
+		if (!shot.stable) problems.push(`${expected.file}: unstable capture`);
+		const file = path.join(currentDir, expected.file);
+		if (!existsSync(file)) {
+			problems.push(`${expected.file}: missing PNG`);
+			continue;
+		}
+		try {
+			const image = PNG.sync.read(readFileSync(file));
+			if (image.width !== CLASSMAP_VIEWPORT.width || image.height !== CLASSMAP_VIEWPORT.height)
+				problems.push(`${expected.file}: resized PNG`);
+		} catch {
+			problems.push(`${expected.file}: invalid PNG`);
+		}
+	}
+	if (live.shots.length !== classmapShots().length) problems.push("unexpected capture count");
+	return problems;
+}
+
+function existingAncestor(directory: string): string {
+	let current = path.resolve(directory);
+	while (!existsSync(current)) current = path.dirname(current);
+	return current;
+}
+
+function owningRepo(directory: string): string | null {
+	let current = realpathSync(existingAncestor(directory));
+	while (true) {
+		if (existsSync(path.join(current, ".git"))) return current;
+		const parent = path.dirname(current);
+		if (parent === current) return null;
+		current = parent;
+	}
+}
+
+export function requireOutsideGit(directory: string): void {
+	if (owningRepo(directory)) throw new Error(`Capture artifacts must stay outside git: ${directory}`);
+}
+
+/** Copies candidates only; never replaces or approves an existing baseline. */
+export function prepareClassmapBaseline(currentDir: string, destination: string, live: LiveResult): number {
+	const problems = classmapCompleteness(live, currentDir);
+	if (problems.length) throw new Error(`Cannot prepare incomplete suite:\n${problems.join("\n")}`);
+	requireOutsideGit(destination);
+	if (existsSync(destination)) throw new Error("Candidate destination already exists; choose a new directory");
+	mkdirSync(destination, { recursive: true });
+	try {
+		for (const { file } of classmapShots()) {
+			mkdirSync(path.dirname(path.join(destination, file)), { recursive: true });
+			copyFileSync(path.join(currentDir, file), path.join(destination, file));
+		}
+	} catch (error) {
+		rmSync(destination, { recursive: true, force: true });
+		throw error;
+	}
+	return classmapShots().length;
+}
+
+/** A working branch's proposed replacements cannot compare against themselves. */
+export function snapshotBaseline(
+	baselineDir: string,
+	destination: string,
+	ref = "origin/main",
+): { directory: string; source: string } {
+	const repo = owningRepo(baselineDir);
+	if (!repo) return { directory: baselineDir, source: `directory:${baselineDir}` };
+	const ancestor = existingAncestor(baselineDir);
+	const canonicalBaseline = path.join(realpathSync(ancestor), path.relative(ancestor, path.resolve(baselineDir)));
+	const prefix = path.relative(repo, canonicalBaseline).split(path.sep).join("/");
+	const commit = execFileSync("git", ["-C", repo, "rev-parse", "--verify", `${ref}^{commit}`], {
+		encoding: "utf8",
+	}).trim();
+	const names = execFileSync("git", ["-C", repo, "ls-tree", "-r", "--name-only", commit, "--", prefix], {
+		encoding: "utf8",
+	})
+		.trim()
+		.split("\n")
+		.filter((name) => name.endsWith(".png"));
+	requireOutsideGit(destination);
+	if (existsSync(destination)) throw new Error("Reference snapshot destination already exists");
+	mkdirSync(destination, { recursive: true });
+	for (const name of names) {
+		const file = path.join(destination, path.relative(prefix, name));
+		mkdirSync(path.dirname(file), { recursive: true });
+		writeFileSync(
+			file,
+			execFileSync("git", ["-C", repo, "show", `${commit}:${name}`], { maxBuffer: 30 * 1024 * 1024 }),
+		);
+	}
+	return { directory: destination, source: `${commit}:${prefix}` };
+}
+
+/** Runs in Spotify. A route change alone does not prove the requested state. */
+export function inspectClassmapState(surface: string, pathname: string): boolean {
+	const visible = (element: Element | null) => {
+		if (!element) return false;
+		const r = element.getBoundingClientRect();
+		return (
+			r.width > 0 &&
+			r.height > 0 &&
+			r.top >= 0 &&
+			r.bottom <= innerHeight &&
+			getComputedStyle(element).visibility !== "hidden"
+		);
+	};
+	const heading = (root: Element | Document, text: string) =>
+		[...root.querySelectorAll("h1,h2,h3,[role=heading]")].find((element) => element.textContent?.trim() === text);
+	const settings = document.querySelector(".x-settings-container");
+	switch (surface) {
+		case "home": {
+			const home = document.querySelector('[data-testid="home-page"]');
+			const rect = home?.getBoundingClientRect();
+			return pathname === "/" && !!rect && rect.width > 0 && rect.bottom > 0 && rect.top < innerHeight;
+		}
+		case "home-profile":
+			return (
+				pathname === "/" &&
+				visible(document.querySelector('[role="menu"]')) &&
+				[...document.querySelectorAll('[role="menuitem"]')].some(
+					(item) => item.textContent?.trim() === "Settings" && visible(item),
+				)
+			);
+		case "settings-top":
+			return pathname === "/preferences" && !!settings && visible(heading(settings, "Settings"));
+		case "settings-library":
+			return (
+				pathname === "/preferences" &&
+				!!settings &&
+				visible(heading(settings, "Your Library")) &&
+				visible(
+					settings.querySelector('[id="settings.library.compact-mode"]')?.closest(".x-settings-row") ?? null,
+				)
+			);
+		case "search":
+			return pathname === "/search" && visible(heading(document, "Browse all"));
+		case "liked-songs":
+			return pathname === "/collection/tracks" && visible(heading(document, "Liked Songs"));
+		case "spicetify-settings":
+			return pathname === "/bespoke/settings" && visible(heading(document, "Spicetify Settings"));
+		default:
+			return false;
+	}
+}
+
+export function maskClassmapPrivacy(): void {
+	document.getElementById("spicetify-report-privacy")?.remove();
+	const layer = document.createElement("div");
+	layer.id = "spicetify-report-privacy";
+	layer.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:2147483647";
+	const cover = (rect: DOMRect, element?: Element) => {
+		if (element) {
+			let left = Math.max(0, rect.left),
+				top = Math.max(0, rect.top);
+			let right = Math.min(innerWidth, rect.right),
+				bottom = Math.min(innerHeight, rect.bottom);
+			for (let parent: Element | null = element; parent; parent = parent.parentElement) {
+				const style = getComputedStyle(parent);
+				if (style.display === "none" || style.visibility === "hidden" || style.opacity === "0") return;
+				const bounds = parent.getBoundingClientRect();
+				if (/hidden|clip|auto|scroll/.test(style.overflowX)) {
+					left = Math.max(left, bounds.left);
+					right = Math.min(right, bounds.right);
+				}
+				if (/hidden|clip|auto|scroll/.test(style.overflowY)) {
+					top = Math.max(top, bounds.top);
+					bottom = Math.min(bottom, bounds.bottom);
+				}
+			}
+			rect = new DOMRect(left, top, right - left, bottom - top);
+		}
+		if (rect.width <= 0 || rect.height <= 0) return;
+		let regions = [rect];
+		if (element && !element.closest('[role="menu"]')) {
+			for (const menu of document.querySelectorAll('[role="menu"]')) {
+				const bounds = menu.getBoundingClientRect();
+				regions = regions.flatMap((region) => {
+					const left = Math.max(region.left, bounds.left),
+						right = Math.min(region.right, bounds.right);
+					const top = Math.max(region.top, bounds.top),
+						bottom = Math.min(region.bottom, bounds.bottom);
+					if (right <= left || bottom <= top) return [region];
+					return [
+						new DOMRect(region.left, region.top, region.width, top - region.top),
+						new DOMRect(region.left, bottom, region.width, region.bottom - bottom),
+						new DOMRect(region.left, top, left - region.left, bottom - top),
+						new DOMRect(right, top, region.right - right, bottom - top),
+					].filter((part) => part.width > 0 && part.height > 0);
+				});
+			}
+		}
+		for (const region of regions) {
+			const mask = document.createElement("span");
+			mask.style.cssText = `position:fixed;left:${region.x}px;top:${region.y}px;width:${region.width}px;height:${region.height}px;background:#555`;
+			layer.append(mask);
+		}
+	};
+	const coverText = (root: Element, text: string) => {
+		if (root.getBoundingClientRect().height <= 0) return;
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+		while (walker.nextNode()) {
+			const node = walker.currentNode;
+			let offset = node.textContent?.indexOf(text) ?? -1;
+			while (offset >= 0) {
+				const range = document.createRange();
+				range.setStart(node, offset);
+				range.setEnd(node, offset + text.length);
+				for (const rect of range.getClientRects()) cover(rect, node.parentElement ?? root);
+				offset = node.textContent?.indexOf(text, offset + text.length) ?? -1;
+			}
+		}
+	};
+	for (const input of document.querySelectorAll("input")) {
+		if (!["text", "password", "email", "search", "url", "tel", "number"].includes(input.type)) continue;
+		const inputStyle = getComputedStyle(input);
+		if (inputStyle.opacity === "0" || inputStyle.visibility === "hidden" || inputStyle.display === "none") continue;
+		const labels = [...(input.labels ?? [])].map((label) => label.textContent ?? "").join(" ");
+		const labelledBy = (input.getAttribute("aria-labelledby") ?? "")
+			.split(/\s+/)
+			.map((id) => document.getElementById(id)?.textContent ?? "")
+			.join(" ");
+		const description = [
+			input.id,
+			input.name,
+			input.autocomplete,
+			input.getAttribute("aria-label"),
+			input.placeholder,
+			labels,
+			labelledBy,
+		].join(" ");
+		if (
+			input.value &&
+			(/password|email/.test(input.type) ||
+				/token|secret|password|api.?key|credential|username/i.test(description))
+		) {
+			const rect = input.getBoundingClientRect();
+			const style = getComputedStyle(input);
+			const inset = (value: string) => Number.parseFloat(value) || 0;
+			const left = inset(style.borderLeftWidth) + inset(style.paddingLeft);
+			const right = inset(style.borderRightWidth) + inset(style.paddingRight);
+			const top = inset(style.borderTopWidth) + inset(style.paddingTop);
+			const bottom = inset(style.borderBottomWidth) + inset(style.paddingBottom);
+			cover(new DOMRect(rect.x + left, rect.y + top, rect.width - left - right, rect.height - top - bottom));
+		}
+	}
+	for (const avatar of document.querySelectorAll(
+		'[data-testid="user-widget-link"] img, [data-testid="user-widget-avatar"]',
+	))
+		cover(avatar.getBoundingClientRect());
+	const playlistImages = new Set<Element>();
+	for (const link of document.querySelectorAll('a[href^="/playlist/"], a[href^="spotify:playlist:"]')) {
+		const text = link.textContent?.trim();
+		if (text) coverText(link, text);
+		const artworkRoot = link.closest('[data-encore-id="card"]') ?? link;
+		for (const image of artworkRoot.querySelectorAll("img")) playlistImages.add(image);
+	}
+	for (const image of playlistImages) cover(image.getBoundingClientRect(), image);
+	for (const subtitle of document.querySelectorAll(
+		'p[data-encore-id="listRowSubtitle"][id^="listrow-subtitle-spotify:playlist:"]',
+	)) {
+		const text = subtitle.textContent ?? "";
+		const separator = text.indexOf("•");
+		const creator = separator === -1 ? "" : text.slice(separator + 1).trim();
+		if (creator && creator !== "Spotify") coverText(subtitle, creator);
+	}
+	const ownerNames = new Set<string>();
+	for (const owner of document.querySelectorAll('a[href^="/user/"], a[href^="spotify:user:"]')) {
+		const name = owner.textContent?.trim();
+		if (name && !/^(Spotify|Profile|Your profile)$/i.test(name)) {
+			ownerNames.add(name);
+			coverText(owner, name);
+			for (const avatar of owner.querySelectorAll("img")) cover(avatar.getBoundingClientRect());
+		}
+	}
+	const account = document.querySelector('[data-testid="user-widget-link"]')?.getAttribute("aria-label")?.trim();
+	if (account && account !== "User menu") {
+		ownerNames.add(account);
+		for (const region of document.querySelectorAll(
+			'[data-testid="user-widget-link"], [role="menu"], [role="tooltip"], .main-entityHeader-metaData, h1, h2, h3',
+		)) {
+			if (
+				region.matches("h1,h2,h3") &&
+				!/^Made for\b/i.test(region.textContent?.trim() ?? "") &&
+				region.textContent?.trim() !== account
+			)
+				continue;
+			coverText(region, account);
+		}
+	}
+
+	for (const avatar of document.querySelectorAll<HTMLImageElement>(
+		".main-entityHeader-metaData img.main-avatar-image",
+	)) {
+		if (ownerNames.has(avatar.alt.trim())) cover(avatar.getBoundingClientRect());
+	}
+	document.body.append(layer);
+}
+
+export function isLayoutPreference(key: string): boolean {
+	return /(?:^|:)(?:ui\.right_sidebar_content|column-widths|ylx-(?:default|expanded)-state-nav-bar-width|left-sidebar-(?:default|expanded)-state-width|panel-width|left-sidebar-state)$/.test(
+		key,
+	);
+}
+
+export function hasAlbumsOnlyLibrary(): boolean {
+	return (
+		document.querySelector('[data-encore-id="chip"][aria-label="Albums"]')?.getAttribute("aria-checked") ===
+			"true" && !document.querySelector('.Root__nav-bar [id^="listrow-subtitle-spotify:playlist:"]')
+	);
+}
+
+export async function captureClassmaps(opts: Pick<LiveOptions, "outDir" | "port">): Promise<LiveResult> {
+	const cdp = await Cdp.attach(opts.port ?? DEFAULT_PORT);
+	const live: LiveResult = {
+		shots: [],
+		failures: [],
+		restored: null,
+		clientVersion: null,
+		suite: "classmaps",
+		cleanupVerified: false,
+		viewport: CLASSMAP_VIEWPORT,
+		navigation: "History.push for pages; profile dropdown opened through its visible button",
+	};
+	let saved: {
+		route: string;
+		active: string | null;
+		scheme: string | null;
+		width: number;
+		height: number;
+		dpr: number;
+		zoom: number;
+		storage: Record<string, string | null>;
+		scroll: Array<{ index: number; top: number; left: number }>;
+	} | null = null;
+	try {
+		saved = await cdp.eval(`
+      const M = window.Spicetify?.Modules;
+      if (!M?.unload || !M?.setScheme) throw new Error("Current module loader required");
+      const zoom = window.Spicetify.Platform.SettingsAPI?.viewportZoom;
+      if (!zoom?.getValue || !zoom?.setValue || typeof await zoom.getValue() !== "number") throw new Error("Spotify viewport zoom API unavailable");
+      if (!/^en(?:-|$)/i.test(document.documentElement.lang)) throw new Error("Set Spotify UI language to English and restart before capturing");
+      const preferred = localStorage.getItem("spicetify:modules:activeTheme");
+      const active = M.list().some(module => module.identifier === preferred && module.loaded) ? preferred : null;
+      const keys = ["spicetify:modules:activeTheme", "spicetify:modules:disabled", "spicetify:scheme:text", ...(active ? ["spicetify:scheme:" + active] : []), ...Object.keys(localStorage).filter(${isLayoutPreference.toString()})];
+      const route = window.Spicetify.Platform.History.location;
+      return { route: route.pathname + (route.search ?? "") + (route.hash ?? ""), active, scheme: active ? M.schemes(active)?.active ?? null : null, width: innerWidth, height: innerHeight, dpr: devicePixelRatio, zoom: await zoom.getValue(), storage: Object.fromEntries(keys.map(key => [key, localStorage.getItem(key)])), scroll: [...document.querySelectorAll("[data-overlayscrollbars-viewport], .main-view-container__scroll-node")].map((el, index) => ({ index, top: el.scrollTop, left: el.scrollLeft })) };
+    `);
+		live.clientVersion = await cdp.eval(`return navigator.userAgent.match(/Spotify\\/(\\S+)/)?.[1] ?? null;`);
+		live.moduleVersions = await cdp.eval(
+			`return Object.fromEntries(window.Spicetify.Modules.list().map(module => [module.identifier, module.version]));`,
+		);
+		if (!(await cdp.eval(`return (${hasAlbumsOnlyLibrary.toString()})();`)))
+			throw new Error("Select Albums in Your Library before capturing to exclude playlist titles and artwork");
+		await cdp.eval(`await window.Spicetify.Platform.SettingsAPI.viewportZoom.setValue(0); return true;`);
+		await cdp.wait(300);
+		await cdp.call("Emulation.setDeviceMetricsOverride", {
+			width: CLASSMAP_VIEWPORT.width,
+			height: CLASSMAP_VIEWPORT.height,
+			deviceScaleFactor: CLASSMAP_VIEWPORT.dpr,
+			mobile: false,
+		});
+		const dimensions = await cdp.eval<{ width: number; height: number; dpr: number }>(
+			`return { width: innerWidth, height: innerHeight, dpr: devicePixelRatio };`,
+		);
+		if (
+			dimensions.width !== CLASSMAP_VIEWPORT.width ||
+			dimensions.height !== CLASSMAP_VIEWPORT.height ||
+			Math.abs(dimensions.dpr - 1) > 0.000001
+		)
+			throw new Error("Could not establish 1440x1000 DPR 1 viewport");
+		if (saved.active)
+			await cdp.eval(`await window.Spicetify.Modules.unload(${JSON.stringify(saved.active)}); return true;`);
+		for (const theme of ["unthemed", "text"]) {
+			try {
+				await cdp.eval(
+					theme === "text"
+						? `const M = window.Spicetify.Modules; if (!await M.enable("text") || !M.setScheme("text", "Spicetify")) throw new Error("Text Spicetify scheme unavailable"); return true;`
+						: `if (document.documentElement.classList.contains("spicetify-themed")) throw new Error("Theme remains active in unthemed reference"); return true;`,
+				);
+				await cdp.wait(500);
+				for (const state of CLASSMAP_STATES) {
+					try {
+						await cdp.call("Input.dispatchKeyEvent", {
+							type: "keyDown",
+							key: "Escape",
+							code: "Escape",
+							windowsVirtualKeyCode: 27,
+						});
+						await cdp.call("Input.dispatchKeyEvent", {
+							type: "keyUp",
+							key: "Escape",
+							code: "Escape",
+							windowsVirtualKeyCode: 27,
+						});
+						await cdp.eval(
+							`window.Spicetify.Platform.History.push(${JSON.stringify(state.route)}); return true;`,
+						);
+						await cdp.wait(1000);
+						await cdp.eval(
+							`for (const el of document.querySelectorAll("[data-overlayscrollbars-viewport], .main-view-container__scroll-node")) el.scrollTop = 0; window.scrollTo(0, 0); return true;`,
+						);
+						if (state.surface === "home-profile") {
+							const point = await cdp.eval<{ x: number; y: number }>(
+								`const button = document.querySelector('[data-testid="user-widget-link"]'); if (!button) throw new Error("Profile button missing"); const rect = button.getBoundingClientRect(); return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };`,
+							);
+							await cdp.call("Input.dispatchMouseEvent", { type: "mouseMoved", ...point });
+							await cdp.call("Input.dispatchMouseEvent", {
+								type: "mousePressed",
+								button: "left",
+								clickCount: 1,
+								...point,
+							});
+							await cdp.call("Input.dispatchMouseEvent", {
+								type: "mouseReleased",
+								button: "left",
+								clickCount: 1,
+								...point,
+							});
+						}
+						if (state.surface === "settings-library")
+							await cdp.eval(
+								`const heading = [...document.querySelectorAll(".x-settings-container h2")].find(el => el.textContent.trim() === "Your Library"); if (!heading) throw new Error("Your Library settings heading missing"); heading.scrollIntoView({ block: "center" }); return true;`,
+							);
+						await cdp.call("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 });
+						await cdp.wait(500);
+						const check = `return (${inspectClassmapState.toString()})(${JSON.stringify(state.surface)}, window.Spicetify.Platform.History.location.pathname);`;
+						if (!(await cdp.eval(check))) throw new Error("Requested page state is not visible");
+						const file = `${theme}/${state.surface}.png`;
+						const stable = await cdp.shootStable(path.join(opts.outDir, file), {
+							tries: 12,
+							gapMs: 350,
+							epsilon: 0,
+							beforeCapture: () =>
+								cdp.eval(
+									`if (!(${hasAlbumsOnlyLibrary.toString()})()) throw new Error("Albums-only library filter changed during capture"); (${maskClassmapPrivacy.toString()})(); return true;`,
+								),
+							viewport: { width: CLASSMAP_VIEWPORT.width, height: CLASSMAP_VIEWPORT.height },
+						});
+						if (!(await cdp.eval(check))) throw new Error("Requested state disappeared during capture");
+						live.shots.push({
+							theme,
+							...state,
+							themeVersion: live.moduleVersions?.[theme],
+							file,
+							scheme: theme === "text" ? "Spicetify" : null,
+							main: await mainColour(cdp),
+							stable,
+						});
+						if (!stable) live.failures.push({ theme, error: `${state.surface}: unstable capture` });
+					} catch (error) {
+						live.failures.push({
+							theme,
+							error: `${state.surface}: ${error instanceof Error ? error.message : String(error)}`,
+						});
+					}
+				}
+			} catch (error) {
+				live.failures.push({ theme, error: error instanceof Error ? error.message : String(error) });
+			}
+		}
+	} catch (error) {
+		live.failures.push({ theme: "suite", error: error instanceof Error ? error.message : String(error) });
+	} finally {
+		if (saved) {
+			try {
+				await cdp
+					.eval(`
+          const saved = ${JSON.stringify(saved)}; const M = window.Spicetify.Modules;
+          try {
+            await M.unload("text");
+            if (saved.active) { if (!await M.enable(saved.active)) throw new Error("Could not restore original theme"); if (saved.scheme && !M.setScheme(saved.active, saved.scheme)) throw new Error("Could not restore original scheme"); }
+          } finally {
+            for (const [key, value] of Object.entries(saved.storage)) { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }
+            document.getElementById("spicetify-report-privacy")?.remove();
+            window.Spicetify.Platform.History.push(saved.route);
+          }
+          return true;
+        `)
+					.catch((error) =>
+						live.failures.push({
+							theme: "cleanup",
+							error: error instanceof Error ? error.message : String(error),
+						}),
+					);
+				await cdp
+					.eval(
+						`await window.Spicetify.Platform.SettingsAPI.viewportZoom.setValue(${saved.zoom}); return true;`,
+					)
+					.catch((error) =>
+						live.failures.push({
+							theme: "cleanup",
+							error: error instanceof Error ? error.message : String(error),
+						}),
+					);
+				await cdp.wait(300);
+				await cdp.call("Emulation.clearDeviceMetricsOverride");
+				const native = await cdp.eval<{ width: number; height: number; dpr: number }>(
+					`return { width: innerWidth, height: innerHeight, dpr: devicePixelRatio };`,
+				);
+				if (
+					native.width !== saved.width ||
+					native.height !== saved.height ||
+					Math.abs(native.dpr - saved.dpr) > 0.00001
+				)
+					await cdp.call("Emulation.setDeviceMetricsOverride", {
+						width: saved.width,
+						height: saved.height,
+						deviceScaleFactor: saved.dpr,
+						mobile: false,
+					});
+				await cdp.wait(750);
+				live.cleanupVerified = await cdp.eval(`
+          const saved = ${JSON.stringify(saved)};
+          for (const key of Object.keys(localStorage).filter(${isLayoutPreference.toString()})) if (!(key in saved.storage)) localStorage.removeItem(key);
+          for (const [key, value] of Object.entries(saved.storage)) { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); }
+          const scroll = [...document.querySelectorAll("[data-overlayscrollbars-viewport], .main-view-container__scroll-node")];
+          for (const entry of saved.scroll) if (scroll[entry.index]) { scroll[entry.index].scrollTop = entry.top; scroll[entry.index].scrollLeft = entry.left; }
+          const scrollRestored = saved.scroll.every(entry => scroll[entry.index] && Math.abs(scroll[entry.index].scrollTop - entry.top) <= 1 && Math.abs(scroll[entry.index].scrollLeft - entry.left) <= 1);
+          return scrollRestored && await window.Spicetify.Platform.SettingsAPI.viewportZoom.getValue() === saved.zoom && window.Spicetify.Platform.History.location.pathname + (window.Spicetify.Platform.History.location.search ?? "") + (window.Spicetify.Platform.History.location.hash ?? "") === saved.route && innerWidth === saved.width && innerHeight === saved.height && Math.abs(devicePixelRatio - saved.dpr) < 0.00001 && Object.entries(saved.storage).every(([key, value]) => localStorage.getItem(key) === value) && (saved.active ? window.Spicetify.Modules.list().some(module => module.identifier === saved.active && module.loaded) && (window.Spicetify.Modules.schemes(saved.active)?.active ?? null) === saved.scheme : !document.documentElement.classList.contains("spicetify-themed")) && !document.getElementById("spicetify-report-privacy");
+        `);
+				if (!live.cleanupVerified)
+					live.failures.push({ theme: "cleanup", error: "Original client state did not restore exactly" });
+				live.restored = saved.active;
+			} catch (error) {
+				live.failures.push({ theme: "cleanup", error: error instanceof Error ? error.message : String(error) });
+			}
+		}
+		cdp.close();
+	}
+	return live;
+}
+
 /* ----------------------------------------- Report: comparison, binding, page */
 
-export type ChangeStatus = "new" | "changed" | "same" | "resized" | "animated";
+export type ChangeStatus = "new" | "changed" | "same" | "resized" | "animated" | "missing" | "incomplete";
 
 export interface ShotChange {
 	shot: LiveShot;
@@ -825,10 +1457,18 @@ export interface ShotChange {
  */
 export const CHANGE_RATIO = 0.002;
 
-export function compareRun(currentDir: string, baselineDir: string, shots: LiveShot[], deltaDir: string): ShotChange[] {
+export function compareRun(
+	currentDir: string,
+	baselineDir: string,
+	shots: LiveShot[],
+	deltaDir: string,
+	strict = false,
+): ShotChange[] {
 	return shots.map((shot) => {
 		const current = path.join(currentDir, shot.file);
 		const baseline = path.join(baselineDir, shot.file);
+		if (!existsSync(current)) return { shot, status: "missing", changedPixels: 0, changedRatio: 0 };
+		if (strict && !shot.stable) return { shot, status: "incomplete", changedPixels: 0, changedRatio: 0 };
 		if (!existsSync(baseline)) return { shot, status: "new", changedPixels: 0, changedRatio: 0 };
 
 		const result = comparePng(readFileSync(baseline), readFileSync(current));
@@ -841,19 +1481,19 @@ export function compareRun(currentDir: string, baselineDir: string, shots: LiveS
 			return { shot, status: "animated", changedPixels: result.changedPixels, changedRatio: result.changedRatio };
 		}
 
-		if (result.changedRatio <= CHANGE_RATIO) {
+		if (strict ? result.changedPixels === 0 : result.changedRatio <= CHANGE_RATIO) {
 			return { shot, status: "same", changedPixels: result.changedPixels, changedRatio: result.changedRatio };
 		}
 
-		mkdirSync(deltaDir, { recursive: true });
 		const deltaFile = path.join(deltaDir, shot.file);
+		mkdirSync(path.dirname(deltaFile), { recursive: true });
 		if (result.delta) writeFileSync(deltaFile, result.delta);
 		return {
 			shot,
 			status: "changed",
 			changedPixels: result.changedPixels,
 			changedRatio: result.changedRatio,
-			deltaFile: path.basename(deltaFile),
+			deltaFile: shot.file,
 		};
 	});
 }
@@ -887,10 +1527,12 @@ export interface Binding {
  * that repaints almost none of the client has stopped binding to this build.
  */
 export function checkBinding(currentDir: string, shots: LiveShot[], floor = BINDING_FLOOR): Binding[] {
-	const bare = new Map(shots.filter((s) => s.theme === UNTHEMED).map((s) => [s.surface, s.file]));
+	const bare = new Map(
+		shots.filter((s) => s.theme === UNTHEMED || s.theme === "unthemed").map((s) => [s.surface, s.file]),
+	);
 	const rows: Binding[] = [];
 	for (const shot of shots) {
-		if (shot.theme === UNTHEMED) continue;
+		if (shot.theme === UNTHEMED || shot.theme === "unthemed") continue;
 		const reference = bare.get(shot.surface);
 		if (!reference) continue;
 		const result = comparePng(
@@ -916,6 +1558,7 @@ export function checkBinding(currentDir: string, shots: LiveShot[], floor = BIND
 
 /** Promote the run just taken to be what the next one is measured against. */
 export function accept(currentDir: string, baselineDir: string): number {
+	requireOutsideGit(baselineDir);
 	rmSync(baselineDir, { recursive: true, force: true });
 	mkdirSync(baselineDir, { recursive: true });
 	const files = readdirSync(currentDir).filter((f) => f.endsWith(".png"));
@@ -953,6 +1596,7 @@ function page(opts: {
 
 	const badge = (c: ShotChange) => {
 		if (c.status === "same") return "";
+		if (c.status === "missing" || c.status === "incomplete") return `<span class="badge moved">${c.status}</span>`;
 		if (c.status === "new") return '<span class="badge new">new</span>';
 		if (c.status === "animated") return '<span class="badge anim">animated</span>';
 		if (c.status === "resized") return '<span class="badge moved">size changed</span>';
@@ -962,8 +1606,8 @@ function page(opts: {
 	const shotFigure = (
 		c: ShotChange,
 	) => `<figure${c.status === "changed" || c.status === "resized" ? ' class="hit"' : ""}>
-  <a href="current/${encodeURIComponent(c.shot.file)}"><img src="current/${encodeURIComponent(c.shot.file)}" alt="${esc(c.shot.theme)} ${esc(c.shot.surface)}" loading="lazy"></a>
-  <figcaption>${esc(c.shot.surface)}${badge(c)}${c.deltaFile ? ` <a class="delta" href="delta/${encodeURIComponent(c.deltaFile)}">delta</a>` : ""}</figcaption>
+  <a href="current/${c.shot.file.split("/").map(encodeURIComponent).join("/")}"><img src="current/${c.shot.file.split("/").map(encodeURIComponent).join("/")}" alt="${esc(c.shot.theme)} ${esc(c.shot.surface)}" loading="lazy"></a>
+  <figcaption>${esc(c.shot.surface)}${badge(c)}${c.deltaFile ? ` <a class="delta" href="delta/${c.deltaFile.split("/").map(encodeURIComponent).join("/")}">delta</a>` : ""}</figcaption>
   ${c.shot.settingsControls ? `<details><summary>Settings control styles and geometry</summary><pre>${esc(JSON.stringify(c.shot.settingsControls, null, 2))}</pre></details>` : ""}
 </figure>`;
 
@@ -1063,9 +1707,9 @@ footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--rule);color:v
 ${
 	hasBaseline
 		? moved.length
-			? `<p class="banner">${moved.length} frame${moved.length === 1 ? " has" : "s have"} moved since the last accepted run. Open the delta beside a frame to see where. If the change was intended, re-run with <code>--accept</code> to make this the new baseline.</p>`
+			? `<p class="banner">${moved.length} frame${moved.length === 1 ? " has" : "s have"} moved since the last accepted run. Open the delta beside a frame to see where. ${live.suite === "classmaps" ? "Inspect localized differences even when their percentage rounds to zero. Propose intentional replacements in the classmaps PR; approval and merge establish the reference." : "If the change was intended, re-run with <code>--accept</code> to make this the new baseline."}</p>`
 			: `<p class="banner">Nothing moved since the last accepted run.</p>`
-		: `<p class="banner">No baseline yet, so nothing could be compared. Run with <code>--accept</code> to record this run as the reference for next time.</p>`
+		: `<p class="banner">No baseline yet, so nothing could be compared. ${live.suite === "classmaps" ? "Prepare candidate PNGs with --prepare-baseline after inspecting a complete run. Approval and merge of the classmaps PR establish the reference." : "Run with <code>--accept</code> to record this run as the reference for next time."}</p>`
 }
 
 ${themes.map(themeBlock).join("\n")}
@@ -1096,9 +1740,34 @@ async function main(): Promise<void> {
 		throw new Error("--selector requires a CSS selector");
 	}
 
+	const suite = flag("suite");
+	if (suite && suite !== "classmaps") throw new Error(`Unknown suite: ${suite}`);
+	if (suite && argv.includes("--accept"))
+		throw new Error("Classmaps baselines require PR approval and merge; use --prepare-baseline for candidates");
+	if (suite && ["themes", "routes", "selector"].some((name) => flag(name)))
+		throw new Error("The classmaps suite captures all seven whole-viewport states for both themes");
+	if (suite && !flag("baseline-dir"))
+		throw new Error("--suite classmaps requires --baseline-dir pointing at the classmaps baseline directory");
+	if (!suite && flag("prepare-baseline")) throw new Error("--prepare-baseline requires --suite classmaps");
+	if (flag("baseline-dir") && argv.includes("--accept"))
+		throw new Error("--baseline-dir is read-only; prepare reviewed replacements instead");
 	const outDir = path.resolve(flag("out") ?? path.join(REPO, "..", "scratchpad", "theme-shots"));
 	const currentDir = path.join(outDir, "current");
-	const baselineDir = path.join(outDir, "baseline");
+	let baselineDir = path.resolve(flag("baseline-dir") ?? path.join(outDir, "baseline"));
+	if (suite) requireOutsideGit(outDir);
+	let baselineSource = `directory:${baselineDir}`;
+	if (suite && argv.includes("--no-capture") && existsSync(path.join(outDir, "reference"))) {
+		baselineDir = path.join(outDir, "reference");
+		baselineSource = JSON.parse(readFileSync(path.join(outDir, "report.json"), "utf8")).baselineSource;
+	} else if (suite) {
+		const snapshot = snapshotBaseline(
+			baselineDir,
+			path.join(outDir, "reference"),
+			flag("baseline-ref") ?? "origin/main",
+		);
+		baselineDir = snapshot.directory;
+		baselineSource = snapshot.source;
+	}
 	const deltaDir = path.join(outDir, "delta");
 
 	mkdirSync(currentDir, { recursive: true });
@@ -1110,24 +1779,34 @@ async function main(): Promise<void> {
 		console.log(`reusing ${live.shots.length} frames already on disk`);
 	} else {
 		console.log("capturing from the live client…");
-		live = await captureLive({
-			outDir: currentDir,
-			selector,
-			port: flag("port") ? Number(flag("port")) : undefined,
-			themes: list("themes"),
-			routes: list("routes"),
-			candidates: themeIds(),
-			includeUnthemed: true,
-		});
+		live = suite
+			? await captureClassmaps({ outDir: currentDir, port: flag("port") ? Number(flag("port")) : undefined })
+			: await captureLive({
+					outDir: currentDir,
+					selector,
+					port: flag("port") ? Number(flag("port")) : undefined,
+					themes: list("themes"),
+					routes: list("routes"),
+					candidates: themeIds(),
+					includeUnthemed: true,
+				});
 		writeFileSync(path.join(outDir, "shots.json"), JSON.stringify(live, null, "\t") + "\n");
 		for (const f of live.failures) console.error(`  FAILED ${f.theme}: ${f.error}`);
 		console.log(`  ${live.shots.length} frames, ${new Set(live.shots.map((s) => s.theme)).size} themes`);
 	}
 
-	const hasBaseline = existsSync(baselineDir) && readdirSync(baselineDir).some((f) => f.endsWith(".png"));
-	const changes = hasBaseline
-		? compareRun(currentDir, baselineDir, live.shots, deltaDir)
-		: live.shots.map((shot) => ({ shot, status: "new" as const, changedPixels: 0, changedRatio: 0 }));
+	const hasBaseline =
+		existsSync(baselineDir) &&
+		readdirSync(baselineDir, { recursive: true }).some((f) => String(f).endsWith(".png"));
+	const expected = suite
+		? classmapShots().map((shot) => live.shots.find((actual) => actual.file === shot.file) ?? shot)
+		: live.shots;
+	const changes = compareRun(currentDir, baselineDir, expected, deltaDir, !!suite);
+	const incomplete = suite ? classmapCompleteness(live, currentDir) : [];
+	if (incomplete.length) {
+		for (const error of incomplete) console.error(`INCOMPLETE ${error}`);
+		process.exitCode = 1;
+	}
 
 	const findings = auditAll(path.join(REPO, "themes")).findings;
 	const bindings = live.selector ? [] : checkBinding(currentDir, live.shots);
@@ -1139,7 +1818,11 @@ async function main(): Promise<void> {
 	);
 	writeFileSync(
 		path.join(outDir, "report.json"),
-		JSON.stringify({ changes, findings, bindings, failures: live.failures }, null, "\t") + "\n",
+		JSON.stringify(
+			{ changes, findings, bindings, failures: live.failures, incomplete, baselineSource },
+			null,
+			"\t",
+		) + "\n",
 	);
 
 	const moved = changes.filter((c) => c.status === "changed" || c.status === "resized");
@@ -1161,11 +1844,30 @@ async function main(): Promise<void> {
 	console.log(hasBaseline ? `changed since baseline: ${moved.length}` : "no baseline yet, nothing compared");
 	for (const c of moved) console.log(`  ${c.shot.theme}/${c.shot.surface}: ${(c.changedRatio * 100).toFixed(2)}%`);
 
+	if (flag("prepare-baseline")) {
+		const destination = path.resolve(flag("prepare-baseline")!);
+		const n = prepareClassmapBaseline(currentDir, destination, live);
+		console.log(
+			`Prepared ${n} candidate PNGs in ${destination}; approval and merge are required to establish baselines`,
+		);
+	}
 	if (argv.includes("--accept")) {
 		const n = accept(currentDir, baselineDir);
 		console.log(`baseline updated (${n} frames)`);
 	}
-	console.log(`\nopen ${path.join(outDir, "index.html")}`);
+	const report = path.join(outDir, "index.html");
+	console.log(`\nReport: ${report}`);
+	if (!argv.includes("--no-open")) {
+		try {
+			const url = pathToFileURL(report).href;
+			if (process.platform === "darwin") execFileSync("open", [url], { stdio: "ignore" });
+			else if (process.platform === "win32")
+				execFileSync("rundll32.exe", ["url.dll,FileProtocolHandler", url], { stdio: "ignore" });
+			else execFileSync("xdg-open", [url], { stdio: "ignore", timeout: 10000 });
+		} catch {
+			console.error(`Could not open the report automatically. Open ${report} in your browser.`);
+		}
+	}
 }
 
 /** The repo's themes: a directory with a stylesheet in it is one. */
