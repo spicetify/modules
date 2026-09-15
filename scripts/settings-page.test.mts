@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { compareVersions } from "./validate-submission.ts";
+
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const readJson = (path: string) => JSON.parse(read(path));
 
@@ -133,7 +135,10 @@ describe("standalone Spicetify Settings", () => {
 		const lyricsPlus = readJson("modules/lyrics-plus/metadata.json");
 		const kit = readJson("packages/kit/package.json");
 
-		assert.equal(manager.version, "1.3.0");
+		assert.ok(
+			compareVersions(manager.version, "1.3.0") >= 0,
+			"Manager must include the standalone settings contract",
+		);
 		assert.equal(manager.dependencies.stdlib, "^1.11.0");
 		const installedMinor = Number(stdlib.version.match(/^1\.(\d+)\.\d+$/)?.[1]);
 		const requiredMinor = Number(lyricsPlus.dependencies.stdlib.match(/^\^1\.(\d+)\.\d+$/)?.[1]);

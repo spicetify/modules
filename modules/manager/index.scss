@@ -253,7 +253,8 @@
 	font-size: 13px;
 	color: var(--spice-subtext, #a7a7a7);
 
-	&--waiting {
+	&--waiting,
+	&--unverified {
 		color: #ffd166;
 	}
 
