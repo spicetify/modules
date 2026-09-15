@@ -29,7 +29,7 @@ function isMenuComponent(value: unknown): boolean {
 	if (/^async\b/.test(text)) return false;
 	if (hasPlaylistMenuActions(text)) return /\b(?:jsx|jsxs|createElement)\s*\)?\s*\(/.test(text);
 	// Current clients export a thin JSX wrapper around the unexported memo.
-	// Whole-function matching excludes page roots that also contain menu code.
+	// Match the whole wrapper, not JSX nested inside a page root.
 	return /^\(?([$\w]+)\)?=>\(0,[$\w]+\.jsx\)\([$\w]+,\{\.\.\.\1\}\)$/.test(text.replace(/\s/g, ""));
 }
 
@@ -39,11 +39,16 @@ export function findPlaylistMenu(
 	requireModule: (id: PropertyKey) => unknown,
 ): unknown {
 	const components = new Set<unknown>();
-	for (const [id, factory] of modules) {
-		if (!isPlaylistMenuFactory(factory)) continue;
-		const exports = requireModule(id);
-		if (typeof exports !== "object" || exports === null) continue;
-		for (const value of Object.values(exports)) if (isMenuComponent(value)) components.add(value);
+	try {
+		for (const [id, factory] of modules) {
+			if (!isPlaylistMenuFactory(factory)) continue;
+			const exports = requireModule(id);
+			if (typeof exports !== "object" || exports === null) continue;
+			for (const value of Object.values(exports)) if (isMenuComponent(value)) components.add(value);
+		}
+	} catch {
+		// An unreadable client export leaves uniqueness unproven; degrade only this menu.
+		return undefined;
 	}
 	return components.size === 1 ? components.values().next().value : undefined;
 }

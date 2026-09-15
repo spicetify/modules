@@ -80,6 +80,28 @@ describe("playlist menu discovery", () => {
 		}
 	});
 
+	it("contains failing client exports without selecting a partially inspected menu", () => {
+		const failure = () => {
+			throw new Error("unavailable client export");
+		};
+		const unreadableNamespace = Object.defineProperty({}, "W", { enumerable: true, get: failure });
+		const unreadableComponent = new Proxy({}, { has: failure });
+		for (const load of [failure, () => unreadableNamespace, () => ({ W: unreadableComponent })]) {
+			for (const failedId of [1, 2]) {
+				assert.equal(
+					findPlaylistMenu(
+						[
+							[1, currentMenuFactory],
+							[2, legacyMenuFactory],
+						],
+						(id) => (id === failedId ? load() : { W: wrapper }),
+					),
+					undefined,
+				);
+			}
+		}
+	});
+
 	it("ignores a loaded library page that also contains playlist menu actions", () => {
 		const libraryRoot = () => jsx(innerMenu, { children: jsx(innerMenu, {}) });
 		assert.equal(
