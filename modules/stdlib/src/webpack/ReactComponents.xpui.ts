@@ -11,6 +11,7 @@ import { Platform } from "../expose/Platform.ts";
 import { exportedFunctions, exportedMemos, modules, src } from "./index.ts";
 import { webpackRequire } from "../wpunpk.mix.ts";
 import { React } from "../expose/React.ts";
+import { findPlaylistMenu } from "./playlist-menu.ts";
 
 type SnackbarProviderT = any;
 
@@ -44,15 +45,8 @@ const requireExports = (id: ReturnType<typeof findModuleId>): Record<string, any
 
 const ContextMenuModuleID = findModuleId("toggleContextMenu", (s) => s.includes("toggleContextMenu"));
 
-// Updated needle for Spotify 1.2.99+ (matches module 84828 via canPin/canView capability properties)
-const playlistMenuModuleID = findModuleId(
-	"canPin + canView",
-	(s) => /canPin:[^,]{1,60},\s*canView:|canView:[^,]{1,60},\s*canPin:/.test(s),
-);
-
-Menus.Playlist = Object.values(requireExports(playlistMenuModuleID)).find(
-	(m) => typeof m === "function" || typeof m === "object",
-);
+Menus.Playlist = findPlaylistMenu(modules, requireExports);
+if (Menus.Playlist === undefined) warn("[stdlib] webpack needle miss: playlist menu component");
 
 export const Cards: any = Object.assign(
 	{
