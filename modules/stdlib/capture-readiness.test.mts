@@ -57,7 +57,7 @@ test("capture readiness starts its timeout only when preload waits", async () =>
 		timeoutMs: 5,
 		scheduleTimeout: () => {
 			scheduleCount++;
-			return 1 as never;
+			return 1;
 		},
 		clearScheduledTimeout: () => {},
 	});
@@ -77,7 +77,7 @@ test("a capture arriving after timeout still analyzes and populates", async () =
 		timeoutMs: 5,
 		scheduleTimeout: (callback) => {
 			releaseTimeout = callback;
-			return 1 as never;
+			return 1;
 		},
 		clearScheduledTimeout: () => {},
 	});

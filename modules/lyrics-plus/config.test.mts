@@ -76,13 +76,26 @@ describe("CONFIG", () => {
 		const { CONFIG } = await import(`./config.ts?malformed=${Date.now()}`);
 		assert.deepEqual(CONFIG.providersOrder, Object.keys(CONFIG.providers));
 		// The repaired order is written back so the next load is clean.
-		assert.deepEqual(JSON.parse(localStorage.getItem("lyrics-plus:services-order")), Object.keys(CONFIG.providers));
+		const storedOrder = localStorage.getItem("lyrics-plus:services-order");
+		assert.ok(storedOrder);
+		assert.deepEqual(JSON.parse(storedOrder), Object.keys(CONFIG.providers));
 	});
 
 	it("falls back when services-order length does not match the provider set", async () => {
 		localStorage.setItem("lyrics-plus:services-order", JSON.stringify(["lrclib"]));
 		const { CONFIG } = await import(`./config.ts?short=${Date.now()}`);
 		assert.equal(CONFIG.providersOrder.length, Object.keys(CONFIG.providers).length);
+	});
+
+	it("rejects duplicate and non-string provider keys from stored JSON", async () => {
+		for (const order of [
+			["lrclib", "lrclib", "musixmatch", "spotify", "local"],
+			["lrclib", "netease", "musixmatch", "spotify", {}],
+		]) {
+			localStorage.setItem("lyrics-plus:services-order", JSON.stringify(order));
+			const { CONFIG } = await import(`./config.ts?invalid-order=${JSON.stringify(order)}`);
+			assert.deepEqual(CONFIG.providersOrder, Object.keys(CONFIG.providers));
+		}
 	});
 
 	it("removes Genius from a previously stored provider order", async () => {
@@ -93,7 +106,9 @@ describe("CONFIG", () => {
 		const { CONFIG } = await import(`./config.ts?without-genius=${Date.now()}`);
 		assert.equal(CONFIG.providersOrder.includes("genius"), false);
 		assert.deepEqual(CONFIG.providersOrder, Object.keys(CONFIG.providers));
-		assert.deepEqual(JSON.parse(localStorage.getItem("lyrics-plus:services-order")), Object.keys(CONFIG.providers));
+		const storedOrder = localStorage.getItem("lyrics-plus:services-order");
+		assert.ok(storedOrder);
+		assert.deepEqual(JSON.parse(storedOrder), Object.keys(CONFIG.providers));
 	});
 
 	// The most intricate part of the moved block: three chained conditionals

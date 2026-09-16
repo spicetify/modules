@@ -35,9 +35,10 @@ describe("Bookmark owned panel", () => {
 		assert.doesNotMatch(moduleSource, /inner\.setAttribute\("role",\s*"link"\)/);
 	});
 
-	it("ships as a Bookmark feature release against the owned-panel stdlib", () => {
-		assert.equal(metadata.version, "0.4.2");
-		assert.equal(metadata.dependencies.stdlib, "^1.11.0");
+	it("requires stdlib with owned panels", () => {
+		const minimum = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(metadata.dependencies.stdlib);
+		assert.ok(minimum);
+		assert.ok(Number(minimum[1]) > 1 || (Number(minimum[1]) === 1 && Number(minimum[2]) >= 11));
 		assert.match(metadata.description, /sidebar panel/i);
 	});
 });

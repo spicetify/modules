@@ -17,6 +17,12 @@ import {
 	type PanelController,
 } from "/modules/stdlib/mod.ts";
 import { filterBookmarks, idToProperName, largestImage, withNewEntry, withoutEntry } from "./logic.ts";
+import {
+	parseEpisodeMetadata,
+	parsePlaylistMetadata,
+	parseShowMetadata,
+	parseTrackMetadata,
+} from "./cosmos-responses.ts";
 
 // UI Text
 const BUTTON_NAME_TEXT = "Bookmark";
@@ -472,9 +478,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		});
 		return {
 			uri,
-			title: res.header.showMetadata.name,
-			description: "Podcast",
-			imageUrl: res.header.showMetadata.covers.standardLink,
+			...parseShowMetadata(res),
 		};
 	};
 
@@ -505,9 +509,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		}
 		return {
 			uri,
-			title: res.name,
-			description: res.artists[0].name,
-			imageUrl: res.album.images[0].url,
+			...parseTrackMetadata(res),
 			context: newContext ?? context,
 		};
 	};
@@ -517,9 +519,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const res = await CosmosAsync.get(`https://api.spotify.com/v1/episodes/${base62}`);
 		return {
 			uri,
-			title: res.name,
-			description: `${res.show.name} episode`,
-			imageUrl: res.show.images[0].url,
+			...parseEpisodeMetadata(res),
 		};
 	};
 
@@ -529,9 +529,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 		});
 		return {
 			uri,
-			title: res.metadata.name,
-			description: "Playlist",
-			imageUrl: res.metadata.picture,
+			...parsePlaylistMetadata(res),
 		};
 	};
 

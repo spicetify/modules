@@ -21,6 +21,15 @@ function createGlobalThisShadow() {
 
 type CosmosRequest = { uri: string; method: string; body: string };
 
+declare global {
+	var sendCosmosRequest: (request: {
+		request: string;
+		persistent?: boolean;
+		onSuccess?: (response: string) => void;
+		onFailure?: (error: unknown) => void;
+	}) => unknown;
+}
+
 const CosmosRequestSubject = new Subject<CosmosRequest>();
 export const UpdateTitlebarSubject = new BehaviorSubject<number>(-1);
 

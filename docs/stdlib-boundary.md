@@ -23,6 +23,7 @@ requires:
 
 - executable feature modules declare a direct `stdlib` dependency;
 - runtime and types come from `/modules/stdlib/mod.js` (`.ts` in source);
+- module-owned query clients come from `/modules/stdlib/query.js`;
 - shared React UI comes from `/modules/stdlib/lib/primitives.js`;
 - plain-DOM recovery UI comes from `primitives-vanilla.js`;
 - no private `stdlib/src/*`, webpack-capture, or register implementation is
@@ -38,6 +39,57 @@ the stdlib tree does not make it public.
 The dependency range is the compatibility record. If a module begins using a
 new stdlib API, it raises its minimum stdlib range. If stdlib preserves the API,
 the module does not need a Spotify-specific release or compatibility floor.
+
+## Imports between modules
+
+`pnpm check` also checks imports between all workspace modules, themes, and
+snippets. Import another module through its root `mod.ts` or `mod.js` entry.
+Stdlib additionally exposes its documented primitives and `query` entry.
+Private paths are rejected for runtime and type-only imports, including
+relative imports that cross module directories.
+
+Declare every runtime module import in `metadata.json` dependencies. Type-only
+imports contribute to changed-module verification without adding a runtime
+requirement. Store's audited recovery exception permits deferred public stdlib
+imports so its fallback can repair stdlib. It does not permit static imports.
+
+## Data requests and cleanup
+
+`client.cosmos` returns `unknown` payloads. Parse the fields you consume at the
+response boundary before passing typed data into your module. Supplying a type
+assertion does not validate a response.
+
+For cached asynchronous reads, stdlib 1.12.0 provides a pinned copy of TanStack
+Query Core. Create one query client inside your module's load function:
+
+```ts
+import { createModuleQueryClient } from "/modules/stdlib/query.ts";
+import type { ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
+
+export default function load(ctx: ModuleRuntimeContext) {
+	const queries = createModuleQueryClient(ctx);
+	return queries.fetchQuery({
+		queryKey: ["catalog", "recent"],
+		queryFn: async ({ signal }) => {
+			const response = await fetch("https://example.com/catalog/recent", { signal });
+			if (!response.ok) throw new Error("Could not load catalog");
+			return response.text();
+		},
+	});
+}
+```
+
+Clients cache successful reads for five minutes and retain inactive data for
+ten minutes. Automatic retries, focus refetch, and reconnect refetch are off.
+Override query options when your feature needs different behavior. Include all
+request parameters in query keys, and keep credentials out of keys. Use
+`invalidateQueries` or `removeQueries` after changing the underlying data.
+
+Module unload cancels queries and clears that module's cache. Pass the query's
+signal to transports that support cancellation. Cosmos has no transport abort
+API: Lyrics Plus cancels its wait, rejects late results, and stops subsequent
+provider calls. Its fetch transport receives an abort signal. Provider waits
+and translator loads time out after 15 seconds so the user can retry.
 
 ## External modules
 
@@ -74,10 +126,9 @@ all findings at once. The build command fails on structural errors—private
 imports, a missing dependency, malformed exception metadata, or stale
 exceptions—unless the author explicitly uses `--no-check`.
 
-Themes remain the same explicit client-coupled category described below: they
-do not need a stdlib dependency and do not receive DOM/global warnings, but a
-JavaScript-enabled theme still cannot import private stdlib implementation
-paths.
+Themes do not receive DOM/global warnings. A CSS-only theme does not need a
+stdlib dependency. A JavaScript theme that imports stdlib declares that
+dependency and uses its public entry points.
 
 ## Exceptions we actually have
 

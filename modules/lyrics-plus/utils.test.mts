@@ -38,6 +38,7 @@ const SYNCED_LRC = [
 describe("parseLocalLyrics", () => {
 	it("parses a synced LRC body into timed entries", () => {
 		const { synced } = parseLocalLyrics(SYNCED_LRC);
+		assert.ok(synced);
 		assert.equal(synced.length, 3);
 		assert.equal(synced[0].text, "We're talking away");
 		assert.equal(synced[0].startTime, 34130);
@@ -58,6 +59,7 @@ describe("parseLocalLyrics", () => {
 
 	it("parses word-level karaoke markers into per-word timings", () => {
 		const { karaoke } = parseLocalLyrics("[00:10.00] <00:10.00>Hello <00:10.50>world<00:11.00>");
+		assert.ok(karaoke);
 		assert.equal(karaoke.length, 1);
 		assert.equal(karaoke[0].startTime, 10000);
 		// Upstream quirk, pinned rather than corrected: the first word keeps its
@@ -76,14 +78,19 @@ describe("parseLocalLyrics", () => {
 		// The closing <mm:ss.xx> is absent, so the parser falls back. Passing a
 		// duration is what replaced the old client read.
 		const withDuration = parseLocalLyrics("[00:10.00] <00:10.00>Hello", 75000);
+		assert.ok(withDuration.karaoke);
 		const last = withDuration.karaoke[0].text.at(-1);
+		assert.ok(last);
 		assert.equal(last.time, 65000, "end time should be duration minus the word start");
 	});
 
 	it("defaults the duration to zero when the caller omits it", () => {
 		// formatTime(0) -> "00:00.00" -> 0, minus the 10s word start.
 		const parsed = parseLocalLyrics("[00:10.00] <00:10.00>Hello");
-		assert.equal(parsed.karaoke[0].text.at(-1).time, -10000);
+		assert.ok(parsed.karaoke);
+		const last = parsed.karaoke[0].text.at(-1);
+		assert.ok(last);
+		assert.equal(last.time, -10000);
 	});
 
 	it("returns an empty unsynced list for an empty body without throwing", () => {
@@ -93,12 +100,21 @@ describe("parseLocalLyrics", () => {
 		assert.equal(karaoke, null);
 	});
 
+	it("keeps untimed karaoke content available as plain lyrics", () => {
+		const parsed = parseLocalLyrics("Hello<00:01.00> world<00:02.00>");
+		assert.deepEqual(parsed.karaoke, []);
+		assert.deepEqual(parsed.unsynced, [{ text: "Hello world" }]);
+	});
+
 	it("parses the client-reading branch without a client present", () => {
 		// The karaoke end-time fallback is the one line that used to reach for
 		// Spicetify. Exercise exactly that branch with no client defined.
 		assert.equal(typeof globalThis.Spicetify, "undefined");
 		const parsed = parseLocalLyrics("[00:10.00] <00:10.00>Hello", 30000);
-		assert.equal(parsed.karaoke[0].text.at(-1).time, 20000);
+		assert.ok(parsed.karaoke);
+		const last = parsed.karaoke[0].text.at(-1);
+		assert.ok(last);
+		assert.equal(last.time, 20000);
 	});
 });
 
@@ -108,11 +124,18 @@ describe("formatTime", () => {
 		assert.equal(formatTime(34130), "00:34.13");
 		assert.equal(formatTime(65000), "01:05.00");
 	});
+
+	it("preserves negative and nonfinite timestamp formatting", () => {
+		assert.equal(formatTime(-65000), "0-1:0-5.00");
+		assert.equal(formatTime(Number.NaN), "NaN");
+		assert.equal(formatTime(Number.POSITIVE_INFINITY), "Infinity:NaN");
+	});
 });
 
 describe("convertParsedToLRC", () => {
 	it("round-trips synced entries back into LRC timestamps", () => {
 		const { synced } = parseLocalLyrics(SYNCED_LRC);
+		assert.ok(synced);
 		const { original, conver } = convertParsedToLRC(synced, false);
 		assert.match(original, /\[00:34\.13\]/);
 		assert.ok(original.includes("We're talking away"));
@@ -131,9 +154,25 @@ describe("convertParsedToLRC", () => {
 describe("convertParsedToUnsynced", () => {
 	it("emits one untimed line per entry", () => {
 		const { synced } = parseLocalLyrics(SYNCED_LRC);
+		assert.ok(synced);
 		const { original } = convertParsedToUnsynced(synced, false);
 		assert.equal(original.trim().split("\n").length, 3);
 		assert.doesNotMatch(original, /\[\d/);
+	});
+
+	it("exports karaoke words without leaking object representations", () => {
+		const { original } = convertParsedToUnsynced(
+			[
+				{
+					text: [
+						{ word: "Take ", time: 500 },
+						{ word: "me", time: 300 },
+					],
+				},
+			],
+			false,
+		);
+		assert.equal(original, "Take me\n");
 	});
 });
 
@@ -170,7 +209,12 @@ describe("string helpers", () => {
 });
 
 describe("detectLanguage", () => {
-	const lines = (text) => [{ text }];
+	const lines = (text: string) => [{ text }];
+
+	it("returns undefined when lyrics have not loaded or are empty", () => {
+		assert.equal(detectLanguage(null), undefined);
+		assert.equal(detectLanguage([]), undefined);
+	});
 
 	it("detects Japanese", () => {
 		assert.equal(detectLanguage(lines("ひらがなカタカナ漢字のテスト")), "ja");
@@ -221,6 +265,15 @@ describe("formatTextWithTimestamps", () => {
 		assert.equal(
 			formatTextWithTimestamps({ props: { children: ["ruby ", { props: { children: ["base"] } }] } }),
 			"ruby base",
+		);
+	});
+
+	it("omits ruby pronunciation annotations from exported text", () => {
+		assert.equal(
+			formatTextWithTimestamps({
+				props: { children: [{ props: { children: ["漢字", { props: { children: "かんじ" } }] } }, " text"] },
+			}),
+			"漢字 text",
 		);
 	});
 });

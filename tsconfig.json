@@ -9,7 +9,7 @@
 		"noEmit": true,
 		"jsx": "react-jsx",
 		"lib": ["ES2024", "DOM", "DOM.Iterable"],
-		"strict": false,
+		"strict": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
 		"types": ["node"],

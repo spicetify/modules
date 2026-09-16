@@ -14,6 +14,7 @@ import {
 	fetchSupportStatus,
 	show,
 	showBool,
+	SPICETIFY_UPGRADE,
 	updateAdvice,
 	type ManagerModuleRow,
 	type SpotifyAvailabilityStatus,
@@ -355,7 +356,10 @@ export const ManagerPage = () => {
 				const sup = effectiveSupport(state, support);
 				const advice = updateAdvice(state.spotifyVersion, sup);
 				const cmd = (text: string, label: string) => (
-					<button type="button" onClick={() => void copyToClipboard(text, `${label} copied`)}>
+					<button
+						type="button"
+						onClick={() => void copyToClipboard(text, `${label.replace(/^copy /, "")} copied`)}
+					>
 						{label}
 					</button>
 				);
@@ -381,7 +385,7 @@ export const ManagerPage = () => {
 						case "checking":
 							return "Checking the local daemon. These actions may be unavailable until the check finishes.";
 						case "unavailable":
-							return "The daemon is not running, so these are set from a terminal. Copy a command:";
+							return "Manager cannot reach the daemon. The buttons below copy terminal commands; they do not run them.";
 						case "availability-error":
 							return "Manager could not check whether the daemon is running. It will retry; until then, copy a terminal command below.";
 						case "support-error":
@@ -391,7 +395,7 @@ export const ManagerPage = () => {
 								? "Update handling runs through the local daemon. Spotify restarts."
 								: daemonProbe.updateAndApplySupported === false
 									? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
-									: "One-step Update & Apply needs a current daemon and wrapper. Restart the daemon or run spicetify self-update and spicetify apply; otherwise choose allow, update Spotify normally, then run spicetify apply.";
+									: "One-step Update & Apply needs a current Spicetify daemon and wrapper.";
 					}
 				})();
 				const updateMessage = (() => {
@@ -413,7 +417,7 @@ export const ManagerPage = () => {
 						case "complete":
 							return `Last update completed: Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}. Spicetify was reapplied and the update block restored.`;
 						case "failed-safe":
-							return `Update stopped safely: ${updateStatus.message}`;
+							return `Last update attempt stopped safely: ${updateStatus.message}`;
 					}
 				})();
 				return (
@@ -438,6 +442,9 @@ export const ManagerPage = () => {
 							</p>
 						)}
 						<p className="spicetify-manager-note">{daemonMessage}</p>
+						{advice.kind === "ready" && updateAndApplySupported === null && (
+							<p className="spicetify-manager-note">{SPICETIFY_UPGRADE.instructions}</p>
+						)}
 						{updateMessage && (
 							<p
 								className={`spicetify-manager-update spicetify-manager-update--${updateStatus.kind === "securing" && updateStatus.manualRecovery ? "unsupported" : "ready"}`}
@@ -457,7 +464,7 @@ export const ManagerPage = () => {
 												: "update accepted";
 										})
 									: updateAndApplySupported === null
-										? cmd("spicetify self-update && spicetify apply", "copy update instructions")
+										? cmd(SPICETIFY_UPGRADE.command, SPICETIFY_UPGRADE.label)
 										: cmd("spicetify apply", "copy apply command"))}
 						</div>
 					</section>

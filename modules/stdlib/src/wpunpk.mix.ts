@@ -42,7 +42,7 @@ export { Subject, BehaviorSubject };
 
 export const chunkLoadedSubjectPre = new Subject<unknown>();
 export const chunkLoadedSubjectPost = new Subject<unknown>();
-export const moduleLoadedSubject = new Subject<unknown>();
+export const moduleLoadedSubject = new Subject<[string, WebpackModule]>();
 
 const pendingHooks: Array<(wpr: any) => void> = [];
 export const postWebpackRequireHooks = {

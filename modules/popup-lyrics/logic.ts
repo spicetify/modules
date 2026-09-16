@@ -62,41 +62,88 @@ export const LyricUtils = {
 	},
 };
 
-export function parseSpotifyLyrics(body: {
-	lyrics?: { syncType?: string; lines?: { startTimeMs: string; words: string }[] };
-}): LyricResult {
-	const lyricsData = body.lyrics;
-	if (!lyricsData || lyricsData.syncType !== "LINE_SYNCED") {
+function record(value: unknown): Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value)
+		? Object.fromEntries(Object.entries(value))
+		: {};
+}
+
+export function parseMusixmatchResponse(value: unknown) {
+	const message = record(record(value).message);
+	const body = record(message.body);
+	const token = body.user_token;
+	return {
+		status: record(message.header).status_code,
+		token: typeof token === "string" && token && !token.startsWith("UpgradeOnly") ? token : null,
+		macroCalls: body.macro_calls,
+	};
+}
+
+export function parseNeteaseSearch(value: unknown) {
+	const songs = record(record(value).result).songs;
+	if (!Array.isArray(songs)) return [];
+	return songs.flatMap((song: unknown) => {
+		const item = record(song);
+		const album = record(item.album);
+		if (
+			(typeof item.id !== "string" && typeof item.id !== "number") ||
+			typeof album.name !== "string" ||
+			typeof item.duration !== "number" ||
+			!Number.isFinite(item.duration)
+		)
+			return [];
+		return [{ id: item.id, album: { name: album.name }, duration: item.duration }];
+	});
+}
+
+export function parseNeteaseResponse(value: unknown): LyricResult {
+	const lyric = record(record(value).lrc).lyric;
+	return typeof lyric === "string" && lyric ? parseNeteaseLyrics(lyric) : { error: "No lyrics" };
+}
+
+export function parseSpotifyLyrics(body: unknown): LyricResult {
+	const lyricsData = record(record(body).lyrics);
+	if (lyricsData.syncType !== "LINE_SYNCED") {
 		return { error: "No lyrics" };
 	}
 
-	const lines = lyricsData.lines;
-	const lyrics = (lines ?? []).map((a) => ({
-		startTime: Number(a.startTimeMs) / 1000,
-		text: a.words,
-	}));
+	const lines = lyricsData.lines ?? [];
+	if (!Array.isArray(lines)) return { error: "No lyrics" };
+	const lyrics: Lyric[] = [];
+	for (const line of lines) {
+		const value = record(line);
+		if (
+			typeof value.startTimeMs !== "string" ||
+			!value.startTimeMs.trim() ||
+			!Number.isFinite(Number(value.startTimeMs)) ||
+			typeof value.words !== "string"
+		)
+			return { error: "No lyrics" };
+		lyrics.push({ startTime: Number(value.startTimeMs) / 1000, text: value.words });
+	}
 
 	return { lyrics };
 }
 
 // Takes body.message.body.macro_calls; the fetcher owns the token/401 dance.
-// biome-ignore lint/suspicious/noExplicitAny: untyped upstream response
-export function parseMusixmatchMacro(body: any): LyricResult {
-	if (body?.["matcher.track.get"]?.message?.header?.status_code !== 200) {
-		const head = body?.["matcher.track.get"]?.message?.header;
+export function parseMusixmatchMacro(value: unknown): LyricResult {
+	const body = record(value);
+	const matcher = record(record(body["matcher.track.get"]).message);
+	const head = record(matcher.header);
+	if (head.status_code !== 200) {
 		return {
-			error: head
+			error: matcher.header
 				? `Requested error: ${head.status_code}: ${head.hint} - ${head.mode}`
 				: "Musixmatch request failed",
 		};
 	}
 
-	const meta = body["matcher.track.get"].message.body;
-	const hasSynced = meta.track.has_subtitles;
+	const track = record(record(matcher.body).track);
+	const hasSynced = track.has_subtitles;
+	const lyricsResponse = record(record(body["track.lyrics.get"]).message);
 	const isRestricted =
-		body["track.lyrics.get"].message.header.status_code === 200 &&
-		body["track.lyrics.get"].message.body.lyrics.restricted;
-	const isInstrumental = meta.track.instrumental;
+		record(lyricsResponse.header).status_code === 200 && record(record(lyricsResponse.body).lyrics).restricted;
+	const isInstrumental = track.instrumental;
 
 	if (isRestricted) return { error: "Unfortunately we're not authorized to show these lyrics." };
 	if (isInstrumental) return { error: "Instrumental" };
@@ -104,13 +151,21 @@ export function parseMusixmatchMacro(body: any): LyricResult {
 		// The classic code let a malformed subtitle_body throw into the fetcher's
 		// catch, which returned { error: message } — same contract, caught here.
 		try {
-			const subtitle = body["track.subtitles.get"].message.body.subtitle_list[0].subtitle;
-			const lyrics = JSON.parse(subtitle.subtitle_body).map(
-				(line: { text: string; time: { total: number } }) => ({
-					text: line.text || "♪",
-					startTime: line.time.total,
-				}),
-			);
+			const subtitleResponse = record(record(body["track.subtitles.get"]).message);
+			const list = record(subtitleResponse.body).subtitle_list;
+			const subtitle = record(record(Array.isArray(list) ? list[0] : undefined).subtitle);
+			if (typeof subtitle.subtitle_body !== "string") return { error: "Invalid Musixmatch subtitles" };
+			const lines: unknown = JSON.parse(subtitle.subtitle_body);
+			if (!Array.isArray(lines)) return { error: "Invalid Musixmatch subtitles" };
+			const lyrics: Lyric[] = [];
+			for (const line of lines) {
+				const item = record(line);
+				const time = record(item.time).total;
+				if (typeof item.text !== "string" || typeof time !== "number" || !Number.isFinite(time)) {
+					return { error: "Invalid Musixmatch subtitles" };
+				}
+				lyrics.push({ text: item.text || "♪", startTime: time });
+			}
 			return { lyrics };
 		} catch (err) {
 			return { error: (err as Error).message };
@@ -141,9 +196,7 @@ export function parseNeteaseLyrics(lyricStr: string): LyricResult {
 	const lyrics = lines
 		.flatMap((line: string) => {
 			const matchResult = line.match(/(\[.*?\])|([^[\]]+)/g) || [line];
-			if (!matchResult.length || matchResult.length === 1) {
-				return;
-			}
+			if (matchResult.length <= 1) return [];
 			const textIndex = matchResult.findIndex((slice) => !slice.endsWith("]"));
 			let text = "";
 			if (textIndex > -1) {
@@ -151,29 +204,16 @@ export function parseNeteaseLyrics(lyricStr: string): LyricResult {
 				text = LyricUtils.capitalize(LyricUtils.normalize(text, false));
 			}
 			if (text === "纯音乐, 请欣赏") noLyrics = true;
-			return matchResult.map((slice) => {
-				const result: Partial<Lyric> = {};
+			return matchResult.flatMap((slice) => {
 				const innerMatch = slice.match(/[^[\]]+/g);
-				const [key, value] = innerMatch![0].split(":") || [];
+				if (!innerMatch) return [];
+				const [key, value] = innerMatch[0].split(":");
 				const [min, sec] = [Number.parseFloat(key), Number.parseFloat(value)];
-				if (!Number.isNaN(min) && !Number.isNaN(sec) && !otherInfoRegexp.test(text)) {
-					result.startTime = min * 60 + sec;
-					result.text = text || "♪";
-					return result;
-				}
-				return;
+				if (Number.isNaN(min) || Number.isNaN(sec) || otherInfoRegexp.test(text)) return [];
+				return [{ startTime: min * 60 + sec, text: text || "♪" }];
 			});
 		})
-		.sort((a: Lyric, b: Lyric) => {
-			if (a.startTime === null) {
-				return 0;
-			}
-			if (b.startTime === null) {
-				return 1;
-			}
-			return a.startTime - b.startTime;
-		})
-		.filter(Boolean) as Lyric[];
+		.sort((a, b) => a.startTime - b.startTime);
 
 	if (noLyrics) {
 		return { error: "No lyrics" };

@@ -3,20 +3,64 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // Pages.js — the 11 lyrics page components, the largest UI leaf. No references
 // to lyricContainerUpdate/reloadLyrics, so no callback plumbing lives here.
 
+import type { CSSProperties, ReactNode, ChangeEvent, MouseEvent as ReactMouseEvent } from "react";
+import type { DisplayLyricLine, RenderedLyricLine, LyricWord, GeniusVersion } from "./types.ts";
 import { client, React as react } from "/modules/stdlib/mod.ts";
 import { CONFIG } from "./config.ts";
 import { ProviderGenius } from "./providers/genius.ts";
-import { convertParsedToLRC, convertParsedToUnsynced } from "./utils.ts";
+import { convertParsedToLRC, convertParsedToUnsynced, lyricText, isKaraokeWords } from "./utils.ts";
 
 const { useState, useEffect, useMemo, useRef } = react;
 
-export const CreditFooter = react.memo(({ provider, copyright }) => {
+interface CreditProps {
+	reRenderLyricsPage?: boolean;
+	provider?: string | null;
+	copyright?: string | null;
+}
+interface LyricsPageProps extends CreditProps {
+	lyrics: DisplayLyricLine[];
+	isKara?: boolean;
+	trackUri?: string;
+}
+type IndicatorStyle = CSSProperties & { "--position-index"?: number; "--animation-index"?: number };
+interface IdlingIndicatorProps {
+	isActive?: boolean;
+	progress: number;
+	delay: number;
+	className?: string;
+	style?: IndicatorStyle;
+}
+interface KaraokeLineProps {
+	text: LyricWord[];
+	isActive: boolean;
+	position: number;
+	startTime?: number;
+	endTime?: number;
+}
+interface VersionSelectorProps {
+	items: GeniusVersion[];
+	index?: number;
+	callback: (items: GeniusVersion[], index: number) => void;
+}
+interface GeniusPageProps extends CreditProps {
+	lyrics: string;
+	versions: GeniusVersion[];
+	versionIndex?: number;
+	onVersionChange: VersionSelectorProps["callback"];
+	isSplitted: boolean;
+	lyrics2?: string | null;
+	versionIndex2?: number;
+	onVersionChange2: VersionSelectorProps["callback"];
+	trackUri?: string;
+}
+function renderLineText(text: DisplayLyricLine["text"]): ReactNode {
+	return isKaraokeWords(text) ? text.map(({ word }) => word).join("") : text;
+}
+
+export const CreditFooter = react.memo(({ provider, copyright }: CreditProps) => {
 	if (provider === "local") return null;
 	const credit = [client.locale.get("web-player.lyrics.providedBy", provider)];
 	if (copyright) {
@@ -36,7 +80,7 @@ export const CreditFooter = react.memo(({ provider, copyright }) => {
 	);
 });
 
-export const IdlingIndicator = ({ isActive, progress, delay, className = "", style = {} }) => {
+export const IdlingIndicator = ({ isActive, progress, delay, className = "", style = {} }: IdlingIndicatorProps) => {
 	return react.createElement(
 		"div",
 		{
@@ -59,30 +103,18 @@ export const IdlingIndicator = ({ isActive, progress, delay, className = "", sty
 	);
 };
 
-export const emptyLine = {
+export const emptyLine: DisplayLyricLine = {
 	startTime: 0,
 	endTime: 0,
 	text: [],
 };
 
-const isPauseLine = (text) => {
-	if (!text) return true;
-	if (Array.isArray(text)) {
-		const joined = text
-			.map((w) => (typeof w === "object" ? w.word : w))
-			.join("")
-			.trim();
-		return joined === "♪" || joined === "";
-	}
-	let str = typeof text === "object" ? text?.props?.children?.[0] : text;
-	if (typeof str !== "string") {
-		str = String(str || "");
-	}
-	const trimmed = str.trim();
+const isPauseLine = (text: DisplayLyricLine["text"]) => {
+	const trimmed = lyricText(text).trim();
 	return trimmed === "♪" || trimmed === "";
 };
 
-const findNextLineStartTime = (lines, fromIndex) => {
+const findNextLineStartTime = (lines: DisplayLyricLine[], fromIndex: number) => {
 	for (let j = fromIndex + 1; j < lines.length; j++) {
 		if (!isPauseLine(lines[j].text) && lines[j].startTime != null) {
 			return lines[j].startTime;
@@ -91,7 +123,14 @@ const findNextLineStartTime = (lines, fromIndex) => {
 	return null;
 };
 
-const getPauseIndicator = (lyrics, lineNumber, startTime, position, isFocused, isPause) => {
+const getPauseIndicator = (
+	lyrics: DisplayLyricLine[],
+	lineNumber: number,
+	startTime: number | undefined,
+	position: number,
+	isFocused: boolean,
+	isPause: boolean,
+) => {
 	if (!isFocused || !isPause) return null;
 
 	const nextStart = findNextLineStartTime(lyrics, lineNumber);
@@ -108,9 +147,9 @@ const getPauseIndicator = (lyrics, lineNumber, startTime, position, isFocused, i
 
 export const LONG_PAUSE_THRESHOLD = 8000; // 8 seconds
 
-const processPauseLines = (lyrics) => {
+const processPauseLines = (lyrics: DisplayLyricLine[]): DisplayLyricLine[] => {
 	if (!lyrics || !lyrics.length) return lyrics;
-	const result = [];
+	const result: DisplayLyricLine[] = [];
 	for (let i = 0; i < lyrics.length; i++) {
 		const line = lyrics[i];
 		const nextLine = lyrics[i + 1];
@@ -131,11 +170,15 @@ const processPauseLines = (lyrics) => {
 			}
 		} else {
 			result.push(line);
-			const hasLineEndTime = line.endTime != null && line.endTime > line.startTime;
+			const hasLineEndTime = line.endTime != null && line.endTime > (line.startTime ?? 0);
 			const endTime = hasLineEndTime ? line.endTime : null;
 			if (endTime != null && nextLine && nextLine.startTime != null) {
 				const gap = nextLine.startTime - endTime;
-				if (gap >= LONG_PAUSE_THRESHOLD && nextLine.startTime > line.startTime && !isPauseLine(nextLine.text)) {
+				if (
+					gap >= LONG_PAUSE_THRESHOLD &&
+					nextLine.startTime > (line.startTime ?? 0) &&
+					!isPauseLine(nextLine.text)
+				) {
 					result.push({
 						text: "♪",
 						startTime: endTime,
@@ -148,15 +191,19 @@ const processPauseLines = (lyrics) => {
 	return result;
 };
 
-const isRTLText = (str) => /[\u0591-\u07FF\u200F\u202B\u202E\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(str);
+const isRTLText = (str: string) => /[\u0591-\u07FF\u200F\u202B\u202E\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(str);
 
-const renderPerformer = (performer, previousPerformer, compact) => {
+const renderPerformer = (
+	performer: string | null | undefined,
+	previousPerformer: string | null | undefined,
+	compact: boolean,
+) => {
 	if (!CONFIG.visual["show-performers"] || !performer || (!compact && previousPerformer === performer)) return null;
 	return react.createElement("span", { className: "lyrics-lyricsContainer-Performer" }, performer);
 };
 
-export const useTrackPosition = (callback) => {
-	const callbackRef = useRef();
+export const useTrackPosition = (callback: () => void) => {
+	const callbackRef = useRef(callback);
 	callbackRef.current = callback;
 
 	useEffect(() => {
@@ -168,9 +215,9 @@ export const useTrackPosition = (callback) => {
 	}, [callbackRef]);
 };
 
-export const KaraokeLine = ({ text, isActive, position, startTime, endTime }) => {
+export const KaraokeLine = ({ text, isActive, position, startTime = 0, endTime }: KaraokeLineProps) => {
 	if ((endTime != null && position > endTime) || (!isActive && position > startTime)) {
-		return text.map(({ word }, i) => (typeof word === "string" ? word : react.cloneElement(word, { key: i })));
+		return text.map(({ word }) => word);
 	}
 
 	let accumulatedTime = startTime;
@@ -195,10 +242,10 @@ export const KaraokeLine = ({ text, isActive, position, startTime, endTime }) =>
 	});
 };
 
-export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara }) => {
+export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, isKara }: LyricsPageProps) => {
 	const [position, setPosition] = useState(0);
-	const activeLineEle = useRef();
-	const lyricContainerEle = useRef();
+	const activeLineEle = useRef<HTMLDivElement>(null);
+	const lyricContainerEle = useRef<HTMLDivElement>(null);
 
 	useTrackPosition(() => {
 		const newPos = client.player.getProgress();
@@ -217,17 +264,17 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 		[lyrics],
 	);
 
-	const lyricsId = lyrics[0].text;
+	const lyricsId = lyricText(lyrics[0]?.text);
 
 	let activeLineIndex = 0;
 	for (let i = lyricWithEmptyLines.length - 1; i > 0; i--) {
-		if (position >= lyricWithEmptyLines[i].startTime) {
+		if (position >= (lyricWithEmptyLines[i].startTime ?? 0)) {
 			// If this is a pause line and the next one starts at the same time and is NOT a pause line,
 			// prefer the next line (the text).
 			if (
 				isPauseLine(lyricWithEmptyLines[i].text) &&
 				lyricWithEmptyLines[i + 1] &&
-				position >= lyricWithEmptyLines[i + 1].startTime &&
+				position >= (lyricWithEmptyLines[i + 1].startTime ?? 0) &&
 				!isPauseLine(lyricWithEmptyLines[i + 1].text)
 			) {
 				continue;
@@ -268,7 +315,7 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 	if (activeLineEle.current) {
 		offset += -(activeLineEle.current.offsetTop + activeLineEle.current.clientHeight / 2);
 	}
-	const adjustedAnimationIndices = [];
+	const adjustedAnimationIndices: number[] = [];
 	let currentIndex = 0;
 	for (let j = activeElementIndex; j < activeLines.length; j++) {
 		adjustedAnimationIndices[j] = currentIndex;
@@ -342,17 +389,9 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 				const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 				// Convert lyrics to text for comparison
-				const belowOrigin = (
-					typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText
-				)?.replace(/\s+/g, "");
-				const belowTxt =
-					typeof text === "string"
-						? text.replace(/\s+/g, "")
-						: typeof text?.props?.children?.[0] === "string"
-							? text.props.children[0].replace(/\s+/g, "")
-							: "";
-
-				const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
+				const belowOrigin = lyricText(originalText).replace(/\s+/g, "");
+				const belowTxt = lyricText(text).replace(/\s+/g, "");
+				const belowMode = showTranslatedBelow && Boolean(originalText) && belowOrigin !== belowTxt;
 
 				return react.createElement(
 					"div",
@@ -378,7 +417,7 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 						: react.createElement(
 								"p",
 								{
-									onContextMenu: (event) => {
+									onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 										event.preventDefault();
 										client.platform.ClipboardAPI.copy(
 											convertParsedToLRC(lyrics, belowMode).original,
@@ -392,8 +431,8 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 									lyricWithEmptyLines[lineNumber - 1]?.performer,
 									CONFIG.visual["synced-compact"],
 								),
-								!isKara
-									? lineText
+								!(isKara && isKaraokeWords(text))
+									? renderLineText(lineText)
 									: react.createElement(KaraokeLine, {
 											text,
 											startTime,
@@ -409,14 +448,14 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 								style: {
 									opacity: 0.5,
 								},
-								onContextMenu: (event) => {
+								onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 									event.preventDefault();
 									client.platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).conver)
 										.then(() => client.notify("Translated lyrics copied to clipboard"))
 										.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
 								},
 							},
-							text,
+							renderLineText(text),
 						),
 				);
 			}),
@@ -428,88 +467,73 @@ export const SyncedLyricsPage = react.memo(({ lyrics = [], provider, copyright, 
 	);
 });
 
-export class SearchBar extends react.Component {
-	constructor() {
-		super();
-		this.state = {
-			hidden: true,
-			atNode: 0,
-			foundNodes: [],
-		};
-		this.container = null;
-	}
-
-	componentDidMount() {
-		this.viewPort = document.querySelector(".main-view-container .os-viewport");
-		this.mainViewOffsetTop = document.querySelector(".Root__main-view").offsetTop;
-		this.toggleCallback = () => {
-			if (!(client.platform.History.location.pathname === "/lyrics-plus" && this.container)) return;
-
-			if (this.state.hidden) {
-				this.setState({ hidden: false });
-				this.container.focus();
-			} else {
-				this.setState({ hidden: true });
-				this.container.blur();
-			}
-		};
-		this.unFocusCallback = () => {
-			this.container.blur();
+interface SearchBarState {
+	hidden: boolean;
+	atNode: number;
+	foundNodes: Range[];
+}
+export class SearchBar extends react.Component<Record<never, never>, SearchBarState> {
+	state: SearchBarState = { hidden: true, atNode: 0, foundNodes: [] };
+	container: HTMLInputElement | null = null;
+	viewPort: HTMLElement | null = null;
+	mainViewOffsetTop = 0;
+	toggleCallback = () => {
+		if (!(client.platform.History.location.pathname === "/lyrics-plus" && this.container)) return;
+		if (this.state.hidden) {
+			this.setState({ hidden: false });
+			this.container.focus();
+		} else {
 			this.setState({ hidden: true });
-		};
-		this.loopThroughCallback = (event) => {
-			if (!this.state.foundNodes.length) {
-				return;
-			}
-
-			if (event.key === "Enter") {
-				const dir = event.shiftKey ? -1 : 1;
-				let atNode = this.state.atNode + dir;
-				if (atNode < 0) {
-					atNode = this.state.foundNodes.length - 1;
-				}
-				atNode %= this.state.foundNodes.length;
-				const rects = this.state.foundNodes[atNode].getBoundingClientRect();
-				this.viewPort.scrollBy(0, rects.y - 100);
-				this.setState({ atNode });
-			}
-		};
-
+			this.container.blur();
+		}
+	};
+	unFocusCallback = () => {
+		this.container?.blur();
+		this.setState({ hidden: true });
+	};
+	loopThroughCallback = (event: KeyboardEvent) => {
+		if (!this.state.foundNodes.length || event.key !== "Enter") return;
+		const dir = event.shiftKey ? -1 : 1;
+		const atNode = (this.state.atNode + dir + this.state.foundNodes.length) % this.state.foundNodes.length;
+		const rects = this.state.foundNodes[atNode].getBoundingClientRect();
+		this.viewPort?.scrollBy(0, rects.y - 100);
+		this.setState({ atNode });
+	};
+	componentDidMount() {
+		this.viewPort = document.querySelector<HTMLElement>(".main-view-container .os-viewport");
+		this.mainViewOffsetTop = document.querySelector<HTMLElement>(".Root__main-view")?.offsetTop ?? 0;
 		client.mousetrap().bind("mod+shift+f", this.toggleCallback);
+		if (!this.container) return;
 		client.mousetrap(this.container).bind("mod+shift+f", this.toggleCallback);
 		client.mousetrap(this.container).bind("enter", this.loopThroughCallback);
 		client.mousetrap(this.container).bind("shift+enter", this.loopThroughCallback);
 		client.mousetrap(this.container).bind("esc", this.unFocusCallback);
 	}
-
 	componentWillUnmount() {
-		client.mousetrap().unbind("mod+shift+f", this.toggleCallback);
-		client.mousetrap(this.container).unbind("mod+shift+f", this.toggleCallback);
-		client.mousetrap(this.container).unbind("enter", this.loopThroughCallback);
-		client.mousetrap(this.container).unbind("shift+enter", this.loopThroughCallback);
-		client.mousetrap(this.container).unbind("esc", this.unFocusCallback);
+		client.mousetrap().unbind("mod+shift+f");
+		if (!this.container) return;
+		client.mousetrap(this.container).unbind("mod+shift+f");
+		client.mousetrap(this.container).unbind("enter");
+		client.mousetrap(this.container).unbind("shift+enter");
+		client.mousetrap(this.container).unbind("esc");
 	}
 
-	getNodeFromInput(event) {
-		const value = event.target.value.toLowerCase();
+	getNodeFromInput(event: ChangeEvent<HTMLInputElement>) {
+		const value = event.currentTarget.value.toLowerCase();
 		if (!value) {
 			this.setState({ foundNodes: [] });
-			this.viewPort.scrollTo(0, 0);
+			this.viewPort?.scrollTo(0, 0);
 			return;
 		}
 
 		const lyricsPage = document.querySelector(".lyrics-lyricsContainer-UnsyncedLyricsPage");
-		const walker = document.createTreeWalker(
-			lyricsPage,
-			NodeFilter.SHOW_TEXT,
-			(node) => {
-				if (node.textContent.toLowerCase().includes(value)) {
-					return NodeFilter.FILTER_ACCEPT;
-				}
-				return NodeFilter.FILTER_REJECT;
-			},
-			false,
-		);
+		if (!lyricsPage) return;
+		const walker = document.createTreeWalker(lyricsPage, NodeFilter.SHOW_TEXT, (node) => {
+			if ((node.textContent ?? "").toLowerCase().includes(value)) {
+				return NodeFilter.FILTER_ACCEPT;
+			}
+			return NodeFilter.FILTER_REJECT;
+		});
 
 		const foundNodes = [];
 		while (walker.nextNode()) {
@@ -519,10 +543,10 @@ export class SearchBar extends react.Component {
 		}
 
 		if (!foundNodes.length) {
-			this.viewPort.scrollBy(0, 0);
+			this.viewPort?.scrollBy(0, 0);
 		} else {
 			const rects = foundNodes[0].getBoundingClientRect();
-			this.viewPort.scrollBy(0, rects.y - 100);
+			this.viewPort?.scrollBy(0, rects.y - 100);
 		}
 
 		this.setState({ foundNodes, atNode: 0 });
@@ -534,7 +558,7 @@ export class SearchBar extends react.Component {
 		if (this.state.foundNodes.length) {
 			const node = this.state.foundNodes[this.state.atNode];
 			const rects = node.getBoundingClientRect();
-			y = rects.y + this.viewPort.scrollTop - this.mainViewOffsetTop;
+			y = rects.y + (this.viewPort?.scrollTop ?? 0) - this.mainViewOffsetTop;
 			height = rects.height;
 		}
 		return react.createElement(
@@ -543,7 +567,7 @@ export class SearchBar extends react.Component {
 				className: `lyrics-Searchbar${this.state.hidden ? " hidden" : ""}`,
 			},
 			react.createElement("input", {
-				ref: (c) => {
+				ref: (c: HTMLInputElement | null): void => {
 					this.container = c;
 				},
 				onChange: this.getNodeFromInput.bind(this),
@@ -575,7 +599,7 @@ export class SearchBar extends react.Component {
 	}
 }
 
-function isInViewport(element) {
+function isInViewport(element: Element) {
 	const rect = element.getBoundingClientRect();
 	return (
 		rect.top >= 0 &&
@@ -585,15 +609,15 @@ function isInViewport(element) {
 	);
 }
 
-export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara }) => {
+export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyright, isKara }: LyricsPageProps) => {
 	const [position, setPosition] = useState(
 		() => client.player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay,
 	);
-	const activeLineRef = useRef(null);
-	const pageRef = useRef(null);
+	const activeLineRef = useRef<HTMLDivElement>(null);
+	const pageRef = useRef<HTMLDivElement>(null);
 
 	useTrackPosition(() => {
-		if (!client.player.data.is_paused) {
+		if (client.player.isPlaying()) {
 			setPosition(client.player.getProgress() + CONFIG.visual["global-delay"] + CONFIG.visual.delay);
 		}
 	});
@@ -607,18 +631,18 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 		initialScroll.current = true;
 	}, [lyrics]);
 
-	const lyricsId = lyrics[0].text;
+	const lyricsId = lyricText(lyrics[0]?.text);
 
 	let activeLineIndex = 0;
 	for (let i = padded.length - 1; i >= 0; i--) {
 		const line = padded[i];
-		if (position >= line.startTime) {
+		if (position >= (line.startTime ?? 0)) {
 			// If this is a pause line and the next one starts at the same time and is NOT a pause line,
 			// prefer the next line (the text).
 			if (
 				isPauseLine(line.text) &&
 				padded[i + 1] &&
-				position >= padded[i + 1].startTime &&
+				position >= (padded[i + 1].startTime ?? 0) &&
 				!isPauseLine(padded[i + 1].text)
 			) {
 				continue;
@@ -695,17 +719,9 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 			const lineText = originalText && showTranslatedBelow ? originalText : text;
 
 			// Convert lyrics to text for comparison
-			const belowOrigin = (
-				typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText
-			)?.replace(/\s+/g, "");
-			const belowTxt =
-				typeof text === "string"
-					? text.replace(/\s+/g, "")
-					: typeof text?.props?.children?.[0] === "string"
-						? text.props.children[0].replace(/\s+/g, "")
-						: "";
-
-			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
+			const belowOrigin = lyricText(originalText).replace(/\s+/g, "");
+			const belowTxt = lyricText(text).replace(/\s+/g, "");
+			const belowMode = showTranslatedBelow && Boolean(originalText) && belowOrigin !== belowTxt;
 
 			return react.createElement(
 				"div",
@@ -728,7 +744,7 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 					: react.createElement(
 							"p",
 							{
-								onContextMenu: (event) => {
+								onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 									event.preventDefault();
 									client.platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).original)
 										.then(() => client.notify("Lyrics copied to clipboard"))
@@ -736,8 +752,8 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 								},
 							},
 							renderPerformer(performer, padded[i - 1]?.performer, CONFIG.visual["synced-compact"]),
-							!isKara
-								? lineText
+							!(isKara && isKaraokeWords(text))
+								? renderLineText(lineText)
 								: react.createElement(KaraokeLine, { text, startTime, endTime, position, isActive }),
 						),
 				belowMode &&
@@ -745,14 +761,14 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 						"p",
 						{
 							style: { opacity: 0.5 },
-							onContextMenu: (event) => {
+							onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 								event.preventDefault();
 								client.platform.ClipboardAPI.copy(convertParsedToLRC(lyrics, belowMode).conver)
 									.then(() => client.notify("Translated lyrics copied to clipboard"))
 									.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
 							},
 						},
-						text,
+						renderLineText(text),
 					),
 			);
 		}),
@@ -767,87 +783,81 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 	);
 });
 
-export const UnsyncedLyricsPage = react.memo(({ lyrics, provider, copyright }) => {
-	return react.createElement(
-		"div",
-		{
-			className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
-		},
-		react.createElement("p", {
-			className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
-		}),
-		lyrics.map(({ text, originalText, performer }, index) => {
-			const showTranslatedBelow = CONFIG.visual["translate:display-mode"] === "below";
-			// If we have original text and we are showing translated below, we should show the original text
-			// Otherwise we should show the translated text
-			const lineText = originalText && showTranslatedBelow ? originalText : text;
+export const UnsyncedLyricsPage = react.memo(
+	({ lyrics, provider, copyright }: CreditProps & { lyrics: RenderedLyricLine[]; trackUri?: string }) => {
+		return react.createElement(
+			"div",
+			{
+				className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
+			},
+			react.createElement("p", {
+				className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
+			}),
+			lyrics.map(({ text, originalText, performer }, index) => {
+				const showTranslatedBelow = CONFIG.visual["translate:display-mode"] === "below";
+				// If we have original text and we are showing translated below, we should show the original text
+				// Otherwise we should show the translated text
+				const lineText = originalText && showTranslatedBelow ? originalText : text;
 
-			// Convert lyrics to text for comparison
-			const belowOrigin = (
-				typeof originalText === "object" ? originalText?.props?.children?.[0] : originalText
-			)?.replace(/\s+/g, "");
-			const belowTxt =
-				typeof text === "string"
-					? text.replace(/\s+/g, "")
-					: typeof text?.props?.children?.[0] === "string"
-						? text.props.children[0].replace(/\s+/g, "")
-						: "";
+				// Convert lyrics to text for comparison
+				const belowOrigin = lyricText(originalText).replace(/\s+/g, "");
+				const belowTxt = lyricText(text).replace(/\s+/g, "");
+				const belowMode = showTranslatedBelow && Boolean(originalText) && belowOrigin !== belowTxt;
 
-			const belowMode = showTranslatedBelow && originalText && belowOrigin !== belowTxt;
-
-			return react.createElement(
-				"div",
-				{
-					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-					key: index,
-					dir: "auto",
-				},
-				react.createElement(
-					"p",
+				return react.createElement(
+					"div",
 					{
-						onContextMenu: (event) => {
-							event.preventDefault();
-							client.platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).original)
-								.then(() => client.notify("Lyrics copied to clipboard"))
-								.catch(() => client.notify("Failed to copy lyrics to clipboard"));
-						},
+						className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
+						key: index,
+						dir: "auto",
 					},
-					renderPerformer(performer, lyrics[index - 1]?.performer, false),
-					lineText,
-				),
-				belowMode &&
 					react.createElement(
 						"p",
 						{
-							style: { opacity: 0.5 },
-							onContextMenu: (event) => {
+							onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 								event.preventDefault();
-								client.platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).conver)
-									.then(() => client.notify("Translated lyrics copied to clipboard"))
-									.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
+								client.platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).original)
+									.then(() => client.notify("Lyrics copied to clipboard"))
+									.catch(() => client.notify("Failed to copy lyrics to clipboard"));
 							},
 						},
-						text,
+						renderPerformer(performer, lyrics[index - 1]?.performer, false),
+						lineText,
 					),
-			);
-		}),
-		react.createElement("p", {
-			className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
-		}),
-		react.createElement(CreditFooter, {
-			provider,
-			copyright,
-		}),
-		react.createElement(SearchBar, null),
-	);
-});
+					belowMode &&
+						react.createElement(
+							"p",
+							{
+								style: { opacity: 0.5 },
+								onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
+									event.preventDefault();
+									client.platform.ClipboardAPI.copy(convertParsedToUnsynced(lyrics, belowMode).conver)
+										.then(() => client.notify("Translated lyrics copied to clipboard"))
+										.catch(() => client.notify("Failed to copy translated lyrics to clipboard"));
+								},
+							},
+							renderLineText(text),
+						),
+				);
+			}),
+			react.createElement("p", {
+				className: "lyrics-lyricsContainer-LyricsUnsyncedPadding",
+			}),
+			react.createElement(CreditFooter, {
+				provider,
+				copyright,
+			}),
+			react.createElement(SearchBar, null),
+		);
+	},
+);
 
 const noteContainer = document.createElement("div");
 noteContainer.classList.add("lyrics-Genius-noteContainer");
 const noteDivider = document.createElement("div");
 noteDivider.classList.add("lyrics-Genius-divider");
 noteDivider.innerHTML = `<svg width="32" height="32" viewBox="0 0 13 4" fill="currentColor"><path d="M13 10L8 4.206 3 10z"/></svg>`;
-noteDivider.style.setProperty("--link-left", 0);
+noteDivider.style.setProperty("--link-left", "0");
 const noteTextContainer = document.createElement("div");
 noteTextContainer.classList.add("lyrics-Genius-noteTextContainer");
 noteTextContainer.onclick = (event) => {
@@ -856,7 +866,7 @@ noteTextContainer.onclick = (event) => {
 };
 noteContainer.append(noteDivider, noteTextContainer);
 
-function showNote(parent, note) {
+function showNote(parent: HTMLElement, note: string) {
 	if (noteContainer.parentElement === parent) {
 		noteContainer.remove();
 		return;
@@ -890,36 +900,40 @@ export const GeniusPage = react.memo(
 		lyrics2,
 		versionIndex2,
 		onVersionChange2,
-	}) => {
-		let notes = {};
-		let container = null;
-		let container2 = null;
+	}: GeniusPageProps) => {
+		let notes: Record<string, string> = {};
+		let container: HTMLDivElement | null = null;
+		let container2: HTMLDivElement | null = null;
 
 		// Fetch notes
 		useEffect(() => {
 			if (!container) return;
+			const controller = new AbortController();
 			notes = {};
-			let links = container.querySelectorAll("a");
+			let links = Array.from(container.querySelectorAll("a"));
 			if (isSplitted && container2) {
 				links = [...links, ...container2.querySelectorAll("a")];
 			}
 			for (const link of links) {
-				let id = link.pathname.match(/\/(\d+)\//);
-				if (!id) {
-					id = link.dataset.id;
-				} else {
-					id = id[1];
-				}
-				ProviderGenius.getNote(id).then((note) => {
-					notes[id] = note;
-					link.classList.add("fetched");
-				});
+				const id = link.pathname.match(/\/(\d+)\//)?.[1] ?? link.dataset.id;
+				if (!id) continue;
+				ProviderGenius.getNote(id, controller.signal)
+					.then((note) => {
+						if (controller.signal.aborted || note == null) return;
+						notes[id] = note;
+						link.classList.add("fetched");
+					})
+					.catch(() => {});
 				link.onclick = (event) => {
 					event.preventDefault();
 					if (!notes[id]) return;
 					showNote(link, notes[id]);
 				};
 			}
+			return () => {
+				controller.abort();
+				for (const link of links) link.onclick = null;
+			};
 		}, [lyrics, lyrics2]);
 
 		const lyricsEl1 = react.createElement(
@@ -928,13 +942,13 @@ export const GeniusPage = react.memo(
 			react.createElement(VersionSelector, { items: versions, index: versionIndex, callback: onVersionChange }),
 			react.createElement("div", {
 				className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-				ref: (c) => {
+				ref: (c: HTMLDivElement | null): void => {
 					container = c;
 				},
 				dangerouslySetInnerHTML: {
 					__html: lyrics,
 				},
-				onContextMenu: (event) => {
+				onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 					event.preventDefault();
 					const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
 					client.platform.ClipboardAPI.copy(copylyrics)
@@ -958,13 +972,13 @@ export const GeniusPage = react.memo(
 				}),
 				react.createElement("div", {
 					className: "lyrics-lyricsContainer-LyricsLine lyrics-lyricsContainer-LyricsLine-active",
-					ref: (c) => {
+					ref: (c: HTMLDivElement | null): void => {
 						container2 = c;
 					},
 					dangerouslySetInnerHTML: {
-						__html: lyrics2,
+						__html: lyrics2 ?? "",
 					},
-					onContextMenu: (event) => {
+					onContextMenu: (event: ReactMouseEvent<HTMLElement>) => {
 						event.preventDefault();
 						const copylyrics = lyrics.replace(/<br>/g, "\n").replace(/<[^>]*>/g, "");
 						client.platform.ClipboardAPI.copy(copylyrics)
@@ -1066,7 +1080,7 @@ export const LoadingIcon = react.createElement(
 	),
 );
 
-export const VersionSelector = react.memo(({ items, index, callback }) => {
+export const VersionSelector = react.memo(({ items, index, callback }: VersionSelectorProps) => {
 	if (items.length < 2) {
 		return null;
 	}
@@ -1078,13 +1092,13 @@ export const VersionSelector = react.memo(({ items, index, callback }) => {
 		react.createElement(
 			"select",
 			{
-				onChange: (event) => {
-					callback(items, event.target.value);
+				onChange: (event: ChangeEvent<HTMLSelectElement>) => {
+					callback(items, Number(event.currentTarget.value));
 				},
 				value: index,
 			},
 			items.map((a, i) => {
-				return react.createElement("option", { value: i }, a.title);
+				return react.createElement("option", { key: i, value: i }, a.title);
 			}),
 		),
 		react.createElement(

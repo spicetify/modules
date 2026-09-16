@@ -1,7 +1,7 @@
 {
 	"name": "full-app-display",
 	"kind": "extension",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"authors": ["spicetify"],
 	"description": "Fullscreen now-playing overlay with big artwork, track info, progress and controls.",
 	"entries": {

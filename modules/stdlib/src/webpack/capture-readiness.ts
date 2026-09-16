@@ -3,18 +3,20 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+type TimeoutHandle = ReturnType<typeof setTimeout> | number;
+
 export interface CaptureReadinessOptions {
 	timeoutMs: number;
 	onTimeout?: () => void;
-	scheduleTimeout?: typeof setTimeout;
-	clearScheduledTimeout?: typeof clearTimeout;
+	scheduleTimeout?: (callback: () => void, delay: number) => TimeoutHandle;
+	clearScheduledTimeout?: (timer: TimeoutHandle) => void;
 }
 
 export function createCaptureReadiness(options: CaptureReadinessOptions) {
 	const settled = Promise.withResolvers<void>();
 	let released = false;
 	let analyzed = false;
-	let timer: ReturnType<typeof setTimeout> | undefined;
+	let timer: TimeoutHandle | undefined;
 	const scheduleTimeout = options.scheduleTimeout ?? setTimeout;
 	const clearScheduledTimeout = options.clearScheduledTimeout ?? clearTimeout;
 	const release = () => {

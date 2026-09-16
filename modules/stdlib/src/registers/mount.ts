@@ -143,10 +143,10 @@ const ensureAnchorStyle = () => {
 // constantly, and per-anchor subtree observers multiply that cost. Each
 // tick is one isConnected check per pending or placed anchor.
 type WatchedAnchor = { host: HTMLElement; place: () => boolean; started: boolean; start: () => void };
-const watched: WatchedAnchor[] = [];
+const watched = new Set<WatchedAnchor>();
 let bodyObserver: MutationObserver | undefined;
 const watchAnchor = (anchor: WatchedAnchor) => {
-	watched.push(anchor);
+	watched.add(anchor);
 	bodyObserver ??= (() => {
 		const observer = new MutationObserver(() => {
 			for (const a of watched) {
@@ -160,6 +160,13 @@ const watchAnchor = (anchor: WatchedAnchor) => {
 		observer.observe(document.body, { childList: true, subtree: true });
 		return observer;
 	})();
+	return () => {
+		watched.delete(anchor);
+		if (watched.size === 0) {
+			bodyObserver?.disconnect();
+			bodyObserver = undefined;
+		}
+	};
 };
 
 export function mountRegistryAnchor(spec: AnchorSpec): void {
@@ -192,6 +199,8 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 		const start = () => {
 			const root = createRoot(host);
 			const ItemBoundary = createItemBoundary(R, spec.className);
+			const itemKeys = new Map<unknown, number>();
+			let nextItemKey = 0;
 			const Wrapper = () => {
 				const [, refresh] = R.useReducer((n: number) => n + 1, 0);
 				R.useEffect(() => {
@@ -201,12 +210,20 @@ export function mountRegistryAnchor(spec: AnchorSpec): void {
 				if (spec.renderItems) {
 					return R.createElement(ItemBoundary, null, spec.renderItems(spec.registry.all()));
 				}
+				for (const item of itemKeys.keys()) {
+					if (!spec.registry.has(item)) itemKeys.delete(item);
+				}
 				return R.createElement(
 					R.Fragment,
 					null,
-					...byOrder(spec.registry.all()).map((item: unknown, i: number) =>
-						R.createElement(ItemBoundary, { key: i }, item),
-					),
+					...byOrder(spec.registry.all()).map((item: unknown) => {
+						let key = itemKeys.get(item);
+						if (key === undefined) {
+							key = nextItemKey++;
+							itemKeys.set(item, key);
+						}
+						return R.createElement(ItemBoundary, { key }, item);
+					}),
 				);
 			};
 			root.render(R.createElement(Wrapper));
@@ -240,6 +257,8 @@ export interface AdjacentSpec {
 
 export function mountAdjacent(spec: AdjacentSpec): { remove: () => void } {
 	let removed = false;
+	let unwatch: (() => void) | undefined;
+	let retry: ReturnType<typeof setTimeout> | undefined;
 	let root: { render?: (node: unknown) => void; unmount?: () => void } | undefined;
 	const host = document.createElement("span");
 	host.className = spec.className;
@@ -247,6 +266,7 @@ export function mountAdjacent(spec: AdjacentSpec): { remove: () => void } {
 	host.dataset.spicetifyAnchor = "";
 
 	const place = (): boolean => {
+		if (removed) return false;
 		const target = spec.findTarget();
 		if (!target?.parentElement) return false;
 		const before = spec.side === "before" ? target : target.nextSibling;
@@ -255,9 +275,15 @@ export function mountAdjacent(spec: AdjacentSpec): { remove: () => void } {
 	};
 
 	const remove = () => {
+		if (removed) return;
 		removed = true;
-		root?.unmount?.();
-		host.remove();
+		clearTimeout(retry);
+		unwatch?.();
+		try {
+			root?.unmount?.();
+		} finally {
+			host.remove();
+		}
 	};
 
 	// Transform experiments render through injected __renderX() calls, and there
@@ -291,14 +317,14 @@ export function mountAdjacent(spec: AdjacentSpec): { remove: () => void } {
 			if (place()) {
 				start();
 				// Reuse the shared observer for re-placement only (already started).
-				watchAnchor({ host, place, started: true, start: () => {} });
+				unwatch = watchAnchor({ host, place, started: true, start: () => {} });
 				return;
 			}
 			if (Date.now() > deadline) {
 				spec.onGiveUp();
 				return;
 			}
-			setTimeout(attempt, 150);
+			retry = setTimeout(attempt, 150);
 		};
 		attempt();
 	});

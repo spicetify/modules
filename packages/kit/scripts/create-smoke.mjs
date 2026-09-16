@@ -74,6 +74,8 @@ function verifyScaffold(template, tarball) {
 try {
 	const tarball = packKit();
 	verifyScaffold("basic", tarball);
+	verifyScaffold("extension", tarball);
+	verifyScaffold("app", tarball);
 	verifyScaffold("theme", tarball);
 	console.log(`kit create smoke passed on ${process.platform}`);
 } finally {

@@ -474,7 +474,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 						noEmit: true,
 						jsx: "react-jsx",
 						lib: ["ES2024", "ESNext.Disposable", "DOM", "DOM.Iterable"],
-						strict: false,
+						strict: true,
 						skipLibCheck: true,
 						resolveJsonModule: true,
 						types: [],

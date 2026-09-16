@@ -48,6 +48,7 @@ describe("stdlib boundary", () => {
 			"modules/feature/mod.ts": `
 				import { client, React } from "/modules/stdlib/mod.ts";
 				import { Button } from "/modules/stdlib/lib/primitives.js";
+				import { createModuleQueryClient } from "/modules/stdlib/query.ts";
 				export const play = () => client.player.next();
 			`,
 		});

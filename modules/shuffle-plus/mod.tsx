@@ -14,6 +14,7 @@ import { client, createRegistrar } from "/modules/stdlib/mod.ts";
 import { Select, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
 
 import { buildNextTracks, matchesArtistFilter, parseStoredConfig, searchFolder, shuffle } from "./logic.ts";
+import { parseArtistLikedTracks, parseShowEpisodes } from "./cosmos-responses.ts";
 
 export default async function (ctx: ModuleRuntimeContext) {
 	const React = client.react;
@@ -313,11 +314,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			`sp://core-collection/unstable/@/list/tracks/artist/${uri}?responseFormat=protobufJson`,
 		);
 
-		const allTracks = artistRes.item?.map((artistTrack: any) => {
-			if (artistTrack.trackMetadata.playable) return artistTrack.trackMetadata.link;
-		});
-
-		return allTracks ?? [];
+		return parseArtistLikedTracks(artistRes);
 	}
 
 	async function fetchArtistTopTenTracks(uri: string) {
@@ -380,9 +377,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 	async function fetchShows(uri: string) {
 		const res = await client.cosmos.get(`sp://core-show/v1/shows/${uri}?responseFormat=protobufJson`);
-		return res.items
-			.filter((track: any) => track.episodePlayState.isPlayable)
-			.map((track: any) => track.episodeMetadata.link);
+		return parseShowEpisodes(res);
 	}
 
 	async function Queue(list: string[], context: string | null, type: string | null) {

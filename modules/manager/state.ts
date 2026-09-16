@@ -70,7 +70,10 @@ export function deriveManagerState(): ManagerState {
 	// installs, and removals, and its `local` flag marks records actually
 	// loaded from localStorage (not stale shadowed copies).
 	const manifestById = new Map((manifest?.modules ?? []).map((m) => [m.identifier, m]));
-	const modules: ManagerModuleRow[] = (M?.list?.() ?? []).map((s) => ({
+	const snapshot: Array<
+		Pick<ManagerModuleRow, "version" | "loaded" | "mixedIn" | "failed"> & { identifier: string; local: boolean }
+	> = M?.list?.() ?? [];
+	const modules: ManagerModuleRow[] = snapshot.map((s) => ({
 		id: s.identifier,
 		version: s.version,
 		source: s.local ? "local" : "staged",
@@ -285,6 +288,16 @@ export type UpdateAdvice =
 	| { kind: "unverified"; message: string }
 	| { kind: "unsupported"; message: string };
 
+const upgradeCommand = "spicetify self-update && spicetify apply";
+export const SPICETIFY_UPGRADE = {
+	command: upgradeCommand,
+	label: "copy Spicetify upgrade command",
+	instructions:
+		`Run ${upgradeCommand} in a terminal to update Spicetify and restart Spotify. ` +
+		"This does not update Spotify. Then return to Spicetify Manager and choose Update & Apply. " +
+		"If that action is still unavailable, choose allow, update Spotify normally, then run spicetify apply.",
+};
+
 export function updateAdvice(installed: string | undefined, support: SpotifySupportStatus | null): UpdateAdvice {
 	const installedLine = spotifyVersionLine(installed);
 	const supportedLine = spotifyVersionLine(support?.supportedSpotify);
@@ -318,7 +331,7 @@ export function updateAdvice(installed: string | undefined, support: SpotifySupp
 	if (supportedLine && compareSpotifyVersions(supportedLine, latestLine) >= 0) {
 		return {
 			kind: "ready",
-			message: `Spotify ${latestLine} is available and spicetify supports it — update via the CLI`,
+			message: `Spotify ${latestLine} is available and Spicetify supports it.`,
 		};
 	}
 	return {

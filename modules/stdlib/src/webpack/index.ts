@@ -64,6 +64,12 @@ export const analyzeWebpackRequire = (webpackRequire: WebpackRequire) => {
 	};
 };
 
+function resolveChunk(path: string): void {
+	const chunk = (CHUNKS[path] ??= Promise.withResolvers());
+	if (!chunk.resolve) throw new TypeError(`Chunk ${path} has no resolver`);
+	chunk.resolve(undefined);
+}
+
 CHUNKS["/vendor~xpui.js"] ??= Promise.withResolvers();
 CHUNKS["/xpui.js"] ??= Promise.withResolvers();
 Object.assign(CHUNKS, {
@@ -84,7 +90,7 @@ postWebpackRequireHooks.push((wpr: any) => {
 			load(
 				url,
 				(event: unknown) => {
-					(CHUNKS[new URL(url, location.href).pathname] ??= Promise.withResolvers()).resolve(undefined);
+					resolveChunk(new URL(url, location.href).pathname);
 					return done(event);
 				},
 				key,
@@ -98,7 +104,7 @@ postWebpackRequireHooks.push((wpr: any) => {
 		const url = new URL(entry.name, location.href);
 		if (url.pathname === "/vendor~xpui.js" || url.pathname === "/xpui.js") continue;
 		if (url.origin === location.origin && url.pathname.endsWith(".js")) {
-			(CHUNKS[url.pathname] ??= Promise.withResolvers()).resolve(undefined);
+			resolveChunk(url.pathname);
 		}
 	}
 	// Capture can fire while boot is still registering modules (xpui-modules
@@ -115,8 +121,8 @@ postWebpackRequireHooks.push((wpr: any) => {
 		last = count;
 		if (stable >= 3 || ++ticks > 100) {
 			clearInterval(settle);
-			CHUNKS["/vendor~xpui.js"].resolve(undefined);
-			CHUNKS["/xpui.js"].resolve(undefined);
+			resolveChunk("/vendor~xpui.js");
+			resolveChunk("/xpui.js");
 		}
 	}, 100);
 });

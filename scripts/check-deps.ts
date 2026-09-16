@@ -11,15 +11,9 @@
  * usage: node scripts/check-deps.ts
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import path from "node:path";
+import { pathToFileURL } from "node:url";
 
-interface Meta {
-	name: string;
-	version: string;
-	compat?: string[];
-	dependencies?: Record<string, string> | string[];
-}
+import { auditModuleImports, buildModuleGraph } from "./module-graph.ts";
 
 // The comparator subset module metadata actually uses (mirrors the loader's
 // semver-lite): *, exact, ^, ~, and >=/<=/>/< comparators.
@@ -65,44 +59,38 @@ function satisfies(version: string, range: string): boolean {
 	});
 }
 
-const metas = new Map<string, Meta>();
-for (const rootName of ["modules", "themes", "snippets"]) {
-	const root = path.join(process.cwd(), rootName);
-	if (!existsSync(root)) continue;
-	for (const entry of readdirSync(root)) {
-		const metaPath = path.join(root, entry, "metadata.json");
-		try {
-			if (!statSync(path.join(root, entry)).isDirectory()) continue;
-			metas.set(entry, JSON.parse(readFileSync(metaPath, "utf8")));
-		} catch {
-			/* not a module dir */
+export function checkDependencies(root: string): { modules: number; findings: string[] } {
+	const graph = buildModuleGraph(root);
+	const findings = auditModuleImports(graph).map(
+		(finding) => `[${finding.rule}] ${finding.file}:${finding.line}: ${finding.detail}`,
+	);
+	for (const [id, meta] of graph.modules) {
+		for (const [dependency, range] of meta.ranges) {
+			const target = graph.modules.get(dependency);
+			if (!target) continue;
+			const vouched = [target.version, ...target.compat];
+			if (!vouched.some((version) => satisfies(version, range))) {
+				findings.push(
+					`${id} needs ${dependency}@${range}, but ${dependency} is ${target.version}` +
+						(target.compat.length ? ` (compat: ${target.compat.join(", ")})` : " (no compat list)") +
+						` — bump the range or add a compat entry to ${dependency}`,
+				);
+			}
 		}
 	}
+	return { modules: graph.modules.size, findings };
 }
 
-let failures = 0;
-for (const [id, meta] of metas) {
-	const deps = meta.dependencies;
-	if (!deps || Array.isArray(deps)) continue;
-	for (const [dep, range] of Object.entries(deps)) {
-		const depMeta = metas.get(dep);
-		// Dependencies outside the workspace are the loader's problem at
-		// install time; the gate covers what this repo publishes together.
-		if (!depMeta) continue;
-		const vouched = [depMeta.version, ...(depMeta.compat ?? [])];
-		if (!vouched.some((v) => satisfies(v, range))) {
-			console.error(
-				`✖ ${id} needs ${dep}@${range}, but ${dep} is ${depMeta.version}` +
-					(depMeta.compat?.length ? ` (compat: ${depMeta.compat.join(", ")})` : " (no compat list)") +
-					` — bump the range or add a compat entry to ${dep}`,
-			);
-			failures++;
-		}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+	try {
+		const result = checkDependencies(process.cwd());
+		if (result.findings.length) {
+			for (const finding of result.findings) console.error(`✖ ${finding}`);
+			console.error(`\ncheck-deps: ${result.findings.length} dependency or module-boundary violation(s)`);
+			process.exitCode = 1;
+		} else console.log(`check-deps: ${result.modules} modules, all workspace ranges and imports satisfied`);
+	} catch (error: unknown) {
+		console.error(error instanceof Error ? error.message : String(error));
+		process.exitCode = 1;
 	}
 }
-
-if (failures) {
-	console.error(`\ncheck-deps: ${failures} unsatisfied workspace range(s); this WILL black out dependents at boot`);
-	process.exit(1);
-}
-console.log(`check-deps: ${metas.size} modules, all workspace ranges satisfied`);

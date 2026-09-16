@@ -1,14 +1,14 @@
+import { requestLyrics } from "./runtime-client.ts";
+import { tokenResponse } from "./cosmos-responses.ts";
 /*
  * Copyright (C) 2026 spicetify
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // Settings.js — contextual appearance controls plus provider settings shared
 // with the standalone Spicetify Settings page.
 
+import type * as ReactTypes from "react";
 import { client, displayModal, React as react } from "/modules/stdlib/mod.ts";
 import {
 	IconButton,
@@ -28,27 +28,65 @@ import {
 	SETTINGS_ROW_TEXT_CLASS,
 	SETTINGS_SECTION_SUBHEADING_CLASS,
 } from "/modules/stdlib/lib/primitives-classes.js";
-import { APP_NAME, CONFIG, fontSizeLimit, thresholdSizeLimit } from "./config.ts";
+import { APP_NAME, CONFIG, fontSizeLimit, thresholdSizeLimit, type ProviderKey } from "./config.ts";
 import { isMusixmatchTokenValid, musixmatchTokenListeners, setMusixmatchTokenValid } from "./providers/musixmatch.ts";
 import * as sharedCallbacks from "./shared-callbacks.ts";
 
 const { useState, useEffect, useCallback, useId } = react;
 
+type VisualConfig = typeof CONFIG.visual;
+type VisualKey = keyof VisualConfig;
+type KeysOfType<Value> = { [Key in VisualKey]: VisualConfig[Key] extends Value ? Key : never }[VisualKey];
+export type SettingChange = <Key extends VisualKey>(name: Key, value: VisualConfig[Key]) => void;
+interface ControlProps<Value> {
+	name: string;
+	description?: string;
+	defaultValue: Value;
+	onChange: (value: Value) => void;
+}
+interface AdjustProps extends ControlProps<number> {
+	step: number;
+	min: number;
+	max: number;
+}
+interface SelectionProps extends ControlProps<string | number> {
+	options: Record<string, string | number> | number[];
+}
+interface ItemBase {
+	desc: string;
+	info?: string;
+	when?: () => unknown;
+}
+export type SettingItem = ItemBase &
+	(
+		| { kind: "toggle"; key: KeysOfType<boolean> }
+		| { kind: "adjust"; key: KeysOfType<number>; min: number; max: number; step: number }
+		| { kind: "select"; key: KeysOfType<string>; options: Record<string, string | number> }
+		| { kind: "number-select"; key: KeysOfType<number>; options: number[] }
+		| { kind: "text" | "hotkey"; key: KeysOfType<string> }
+	);
+export function saveVisualSetting<Key extends VisualKey>(name: Key, value: VisualConfig[Key]): void {
+	CONFIG.visual[name] = value;
+	localStorage.setItem(`${APP_NAME}:visual:${name}`, String(value));
+}
+
 function useMusixmatchTokenValid() {
 	const [valid, setValid] = useState(isMusixmatchTokenValid());
 	useEffect(() => {
-		const listener = (v) => setValid(v);
+		const listener = (v: boolean) => setValid(v);
 		musixmatchTokenListeners.add(listener);
-		return () => musixmatchTokenListeners.delete(listener);
+		return () => {
+			musixmatchTokenListeners.delete(listener);
+		};
 	}, []);
 	return valid;
 }
 
-export const MusixmatchTokenSetting = ({ onTokenChange }) => {
+export const MusixmatchTokenSetting = ({ onTokenChange }: { onTokenChange: (token: string) => void }) => {
 	const [token, setToken] = useState(CONFIG.providers.musixmatch.token);
 	const [buttonText, setButtonText] = useState("Refresh token");
 	const setTokenCallback = useCallback(
-		(value) => {
+		(value: string) => {
 			setToken(value);
 			onTokenChange(value);
 			setMusixmatchTokenValid(true);
@@ -58,22 +96,32 @@ export const MusixmatchTokenSetting = ({ onTokenChange }) => {
 
 	useEffect(() => {
 		if (buttonText === "Refreshing token...") {
-			client.cosmos
-				.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", null, {
-					Host: "apic-appmobile.musixmatch.com",
-					authority: "apic-appmobile.musixmatch.com",
-					"X-Cookie": "x-mxm-token-guid=",
-					"x-mxm-app-version": "10.1.1",
-					"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
-					"Accept-Language": "en-US,en;q=0.9",
-					Connection: "keep-alive",
-					Accept: "application/json",
-				})
-				.then(({ message: response }) => {
-					if (response.header.status_code === 200 && response.body.user_token) {
-						setTokenCallback(response.body.user_token);
+			const controller = new AbortController();
+			requestLyrics(
+				() =>
+					client.cosmos.get(
+						"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
+						undefined,
+						{
+							Host: "apic-appmobile.musixmatch.com",
+							authority: "apic-appmobile.musixmatch.com",
+							"X-Cookie": "x-mxm-token-guid=",
+							"x-mxm-app-version": "10.1.1",
+							"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
+							"Accept-Language": "en-US,en;q=0.9",
+							Connection: "keep-alive",
+							Accept: "application/json",
+						},
+					),
+				controller.signal,
+			)
+				.then((value) => {
+					if (controller.signal.aborted) return;
+					const response = tokenResponse(value);
+					if (response.status === 200 && response.token) {
+						setTokenCallback(response.token);
 						setButtonText("Token refreshed");
-					} else if (response.header.status_code === 401) {
+					} else if (response.status === 401) {
 						setButtonText("Too many attempts");
 					} else {
 						setButtonText("Failed to refresh token");
@@ -81,9 +129,11 @@ export const MusixmatchTokenSetting = ({ onTokenChange }) => {
 					}
 				})
 				.catch((error) => {
+					if (controller.signal.aborted) return;
 					setButtonText("Failed to refresh token");
 					console.error("Failed to refresh token", error);
 				});
+			return () => controller.abort();
 		}
 	}, [buttonText]);
 
@@ -95,12 +145,20 @@ export const MusixmatchTokenSetting = ({ onTokenChange }) => {
 		ariaLabel: "Musixmatch token",
 		onInput: setTokenCallback,
 		actionLabel: buttonText,
-		actionDisabled: buttonText !== "Refresh token",
+		actionDisabled: buttonText === "Refreshing token...",
 		onAction: () => setButtonText("Refreshing token..."),
 	});
 };
 
-export const ConfigButton = ({ name, text, onChange = () => {} }) => {
+export const ConfigButton = ({
+	name,
+	text,
+	onChange = () => {},
+}: {
+	name: string;
+	text: string;
+	onChange?: () => void;
+}) => {
 	return react.createElement(
 		"div",
 		{
@@ -130,7 +188,7 @@ export const ConfigButton = ({ name, text, onChange = () => {} }) => {
 	);
 };
 
-export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
+export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }: ControlProps<boolean>) => {
 	const id = useId();
 	const [active, setActive] = useState(defaultValue);
 
@@ -139,7 +197,7 @@ export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 	}, [defaultValue]);
 
 	const toggleState = useCallback(
-		(state) => {
+		(state: boolean) => {
 			setActive(state);
 			onChange(state);
 		},
@@ -174,14 +232,14 @@ export const ConfigSlider = ({ name, defaultValue, onChange = () => {} }) => {
 	);
 };
 
-export const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }) => {
+export const ConfigSelection = ({ name, defaultValue, options, onChange = () => {} }: SelectionProps) => {
 	const [value, setValue] = useState(defaultValue);
 
 	const setValueCallback = useCallback(
-		(event) => {
-			let value = event.target.value;
+		(event: ReactTypes.ChangeEvent<HTMLSelectElement>) => {
+			let value: string | number = event.currentTarget.value;
 			if (!Number.isNaN(Number(value))) {
-				value = Number.parseInt(value);
+				value = Number.parseInt(String(value));
 			}
 			setValue(value);
 			onChange(value);
@@ -219,13 +277,14 @@ export const ConfigSelection = ({ name, defaultValue, options, onChange = () => 
 					value,
 					onChange: setValueCallback,
 				},
-				Object.keys(options).map((item) =>
+				Object.entries(options).map(([item, label]) =>
 					react.createElement(
 						"option",
 						{
+							key: item,
 							value: item,
 						},
-						options[item],
+						label,
 					),
 				),
 			),
@@ -233,12 +292,12 @@ export const ConfigSelection = ({ name, defaultValue, options, onChange = () => 
 	);
 };
 
-export const ConfigInput = ({ name, defaultValue, onChange = () => {} }) => {
+export const ConfigInput = ({ name, defaultValue, onChange = () => {} }: ControlProps<string>) => {
 	const [value, setValue] = useState(defaultValue);
 
 	const setValueCallback = useCallback(
-		(event) => {
-			const value = event.target.value;
+		(event: ReactTypes.ChangeEvent<HTMLInputElement>) => {
+			const value = event.currentTarget.value;
 			setValue(value);
 			onChange(value);
 		},
@@ -270,10 +329,10 @@ export const ConfigInput = ({ name, defaultValue, onChange = () => {} }) => {
 	);
 };
 
-export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = () => {} }) => {
+export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = () => {} }: AdjustProps) => {
 	const [value, setValue] = useState(defaultValue);
 
-	function adjust(dir) {
+	function adjust(dir: number) {
 		let temp = value + dir * step;
 		if (temp < min) {
 			temp = min;
@@ -300,15 +359,12 @@ export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = ()
 			{
 				className: "col action",
 			},
-			react.createElement(
-				IconButton,
-				{
-					ariaLabel: `Decrease ${name}`,
-					onClick: () => adjust(-1),
-					disabled: value === min,
-				},
-				"−",
-			),
+			react.createElement(IconButton, {
+				ariaLabel: `Decrease ${name}`,
+				onClick: () => adjust(-1),
+				disabled: value === min,
+				children: "−",
+			}),
 			react.createElement(
 				"p",
 				{
@@ -316,25 +372,22 @@ export const ConfigAdjust = ({ name, defaultValue, step, min, max, onChange = ()
 				},
 				value,
 			),
-			react.createElement(
-				IconButton,
-				{
-					ariaLabel: `Increase ${name}`,
-					onClick: () => adjust(1),
-					disabled: value === max,
-				},
-				"+",
-			),
+			react.createElement(IconButton, {
+				ariaLabel: `Increase ${name}`,
+				onClick: () => adjust(1),
+				disabled: value === max,
+				children: "+",
+			}),
 		),
 	);
 };
 
-export const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
+export const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }: ControlProps<string>) => {
 	const [value, setValue] = useState(defaultValue);
 	const [trap] = useState(() => new client.mousetrap());
 
 	function record() {
-		trap.handleKey = (character, modifiers, e) => {
+		trap.handleKey = (character: string, modifiers: string[], e: KeyboardEvent) => {
 			if (e.type === "keydown") {
 				const sequence = [...new Set([...modifiers, character])];
 				if (sequence.length === 1 && sequence[0] === "esc") {
@@ -378,13 +431,25 @@ export const ConfigHotkey = ({ name, defaultValue, onChange = () => {} }) => {
 	);
 };
 
-export const ServiceOption = ({ item, onToggle, onSwap, index, total }) => {
+export const ServiceOption = ({
+	item,
+	onToggle,
+	onSwap,
+	index,
+	total,
+}: {
+	item: { name: ProviderKey; on: boolean; desc: string };
+	onToggle: (name: ProviderKey, value: boolean) => void;
+	onSwap: (name: ProviderKey, direction: number) => void;
+	index: number;
+	total: number;
+}) => {
 	const [active, setActive] = useState(item.on);
 	const tokenValid = useMusixmatchTokenValid();
 	const musixmatchInvalid = item.name === "musixmatch" && !tokenValid;
 
 	const toggleActive = useCallback(
-		(state) => {
+		(state: boolean) => {
 			setActive(state);
 			onToggle(item.name, state);
 		},
@@ -407,12 +472,20 @@ export const ServiceOption = ({ item, onToggle, onSwap, index, total }) => {
 	});
 };
 
-export const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () => {} }) => {
+export const ServiceList = ({
+	itemsList,
+	onListChange = () => {},
+	onToggle = () => {},
+}: {
+	itemsList: ProviderKey[];
+	onListChange?: (items: ProviderKey[]) => void;
+	onToggle?: (name: ProviderKey, value: boolean) => void;
+}) => {
 	const [items, setItems] = useState(itemsList);
 	const maxIndex = items.length - 1;
 
 	const onSwap = useCallback(
-		(name, direction) => {
+		(name: ProviderKey, direction: number) => {
 			const curPos = items.findIndex((val) => val === name);
 			const newPos = curPos + direction;
 			[items[curPos], items[newPos]] = [items[newPos], items[curPos]];
@@ -423,8 +496,7 @@ export const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () 
 	);
 
 	return items.map((key, index) => {
-		const item = CONFIG.providers[key];
-		item.name = key;
+		const item = { ...CONFIG.providers[key], name: key };
 		return react.createElement(ServiceOption, {
 			item,
 			key,
@@ -436,53 +508,95 @@ export const ServiceList = ({ itemsList, onListChange = () => {}, onToggle = () 
 	});
 };
 
-export const OptionList = ({ type, items, onChange }) => {
-	const [itemList, setItemList] = useState(items);
-	const [, forceUpdate] = useState();
-
-	useEffect(() => {
-		if (!type) return;
-
-		const eventListener = (event) => {
-			if (event.detail?.type !== type) return;
-			setItemList(event.detail.items);
-		};
-		document.addEventListener("lyrics-plus", eventListener);
-
-		return () => document.removeEventListener("lyrics-plus", eventListener);
-	}, []);
-
-	return itemList.map((item) => {
-		if (!item || (item.when && !item.when())) {
-			return;
+function renderSetting(item: SettingItem, onChange: SettingChange, appearance: boolean) {
+	const common = { name: item.desc, description: item.info };
+	switch (item.kind) {
+		case "toggle": {
+			const Component = appearance ? AppearanceToggleRow : ConfigSlider;
+			return (
+				<Component
+					{...common}
+					defaultValue={CONFIG.visual[item.key]}
+					onChange={(value) => onChange(item.key, value)}
+				/>
+			);
 		}
-
-		const onChangeItem = item.onChange || onChange;
-
-		return react.createElement(
-			"div",
-			null,
-			react.createElement(item.type, {
-				...item,
-				name: item.desc,
-				defaultValue: CONFIG.visual[item.key],
-				onChange: (value) => {
-					onChangeItem(item.key, value);
-					forceUpdate({});
-				},
-			}),
-			item.info &&
-				react.createElement("span", {
-					className: SETTINGS_HELP_TEXT_CLASS,
-					dangerouslySetInnerHTML: {
-						__html: item.info,
-					},
-				}),
-		);
-	});
+		case "adjust": {
+			const Component = appearance ? AppearanceAdjustRow : ConfigAdjust;
+			return (
+				<Component
+					{...common}
+					min={item.min}
+					max={item.max}
+					step={item.step}
+					defaultValue={CONFIG.visual[item.key]}
+					onChange={(value) => onChange(item.key, value)}
+				/>
+			);
+		}
+		case "select": {
+			const Component = appearance ? AppearanceSelectRow : ConfigSelection;
+			return (
+				<Component
+					{...common}
+					options={item.options}
+					defaultValue={CONFIG.visual[item.key]}
+					onChange={(value) => onChange(item.key, String(value))}
+				/>
+			);
+		}
+		case "number-select": {
+			const Component = appearance ? AppearanceSelectRow : ConfigSelection;
+			return (
+				<Component
+					{...common}
+					options={item.options}
+					defaultValue={CONFIG.visual[item.key]}
+					onChange={(value) => onChange(item.key, Number(value))}
+				/>
+			);
+		}
+		case "text": {
+			const Component = appearance ? AppearanceTextRow : ConfigInput;
+			return (
+				<Component
+					{...common}
+					defaultValue={CONFIG.visual[item.key]}
+					onChange={(value) => onChange(item.key, value)}
+				/>
+			);
+		}
+		case "hotkey": {
+			const Component = appearance ? AppearanceHotkeyRow : ConfigHotkey;
+			return (
+				<Component
+					{...common}
+					defaultValue={CONFIG.visual[item.key]}
+					onChange={(value) => onChange(item.key, value)}
+				/>
+			);
+		}
+	}
+}
+export const OptionList = ({ items, onChange }: { items: SettingItem[]; onChange: SettingChange }) => {
+	const [, forceUpdate] = useState(0);
+	const update: SettingChange = (name, value) => {
+		onChange(name, value);
+		forceUpdate((revision) => revision + 1);
+	};
+	return items
+		.filter((item) => !item.when || item.when())
+		.map((item) => (
+			<div key={item.key}>
+				{renderSetting(item, update, false)}
+				{item.info && (
+					<span className={SETTINGS_HELP_TEXT_CLASS} dangerouslySetInnerHTML={{ __html: item.info }} />
+				)}
+			</div>
+		));
 };
 
-const AppearanceToggleRow = ({ name, description, defaultValue, onChange }) => {
+const AppearanceToggleRow = ({ name, description, defaultValue, onChange }: ControlProps<boolean>) => {
 	const id = useId();
 	const [value, setValue] = useState(defaultValue);
 	useEffect(() => setValue(defaultValue), [defaultValue]);
@@ -501,10 +615,10 @@ const AppearanceToggleRow = ({ name, description, defaultValue, onChange }) => {
 	);
 };
 
-const AppearanceAdjustRow = ({ name, description, defaultValue, step, min, max, onChange }) => {
+const AppearanceAdjustRow = ({ name, description, defaultValue, step, min, max, onChange }: AdjustProps) => {
 	const [value, setValue] = useState(defaultValue);
 	useEffect(() => setValue(defaultValue), [defaultValue]);
-	const adjust = (direction) => {
+	const adjust = (direction: number) => {
 		const nextValue = Math.max(min, Math.min(max, value + direction * step));
 		setValue(nextValue);
 		onChange(nextValue);
@@ -526,7 +640,7 @@ const AppearanceAdjustRow = ({ name, description, defaultValue, step, min, max, 
 	);
 };
 
-const AppearanceSelectRow = ({ name, description, defaultValue, options, onChange }) => {
+const AppearanceSelectRow = ({ name, description, defaultValue, options, onChange }: SelectionProps) => {
 	const [value, setValue] = useState(String(defaultValue));
 	useEffect(() => setValue(String(defaultValue)), [defaultValue]);
 	const normalizedOptions = Object.entries(options).map(([optionValue, label]) => ({
@@ -548,7 +662,7 @@ const AppearanceSelectRow = ({ name, description, defaultValue, options, onChang
 	);
 };
 
-const AppearanceTextRow = ({ name, description, defaultValue, onChange }) => {
+const AppearanceTextRow = ({ name, description, defaultValue, onChange }: ControlProps<string>) => {
 	const [value, setValue] = useState(defaultValue);
 	useEffect(() => setValue(defaultValue), [defaultValue]);
 	return (
@@ -565,13 +679,18 @@ const AppearanceTextRow = ({ name, description, defaultValue, onChange }) => {
 	);
 };
 
-const AppearanceHotkeyRow = ({ name, description, defaultValue, onChange }) => {
+const AppearanceHotkeyRow = ({ name, description, defaultValue, onChange }: ControlProps<string>) => {
 	const [value, setValue] = useState(defaultValue);
 	const [trap] = useState(() => new client.mousetrap());
 	useEffect(() => setValue(defaultValue), [defaultValue]);
-	useEffect(() => () => trap.reset?.(), [trap]);
+	useEffect(
+		() => () => {
+			trap.reset();
+		},
+		[trap],
+	);
 	const record = () => {
-		trap.handleKey = (character, modifiers, event) => {
+		trap.handleKey = (character: string, modifiers: string[], event: KeyboardEvent) => {
 			if (event.type !== "keydown") return;
 			const sequence = [...new Set([...modifiers, character])];
 			if (sequence.length === 1 && sequence[0] === "esc") {
@@ -592,25 +711,15 @@ const AppearanceHotkeyRow = ({ name, description, defaultValue, onChange }) => {
 	);
 };
 
-const AppearanceOptions = ({ items, onChange }) =>
+const AppearanceOptions = ({ items, onChange }: { items: SettingItem[]; onChange: SettingChange }) =>
 	items
 		.filter((item) => !item.when || item.when())
-		.map((item) =>
-			react.createElement(item.type, {
-				...item,
-				key: item.key,
-				name: item.desc,
-				description: item.info,
-				defaultValue: CONFIG.visual[item.key],
-				onChange: (value) => onChange(item.key, value),
-			}),
-		);
+		.map((item) => <react.Fragment key={item.key}>{renderSetting(item, onChange, true)}</react.Fragment>);
 
 export function LyricsPlusAppearanceSettings() {
 	const [, refresh] = useState(0);
-	const onChange = (name, value) => {
-		CONFIG.visual[name] = value;
-		localStorage.setItem(`${APP_NAME}:visual:${name}`, value);
+	const onChange: SettingChange = (name, value) => {
+		saveVisualSetting(name, value);
 		sharedCallbacks.lyricContainerUpdate?.();
 		window.dispatchEvent(new CustomEvent("lyrics-plus", { detail: { type: "config", name, value } }));
 		refresh((revision) => revision + 1);
@@ -624,13 +733,13 @@ export function LyricsPlusAppearanceSettings() {
 							desc: "Playbar button",
 							key: "playbar-button",
 							info: "Replace Spotify's lyrics button with Lyrics Plus.",
-							type: AppearanceToggleRow,
+							kind: "toggle",
 						},
 						{
 							desc: "Global delay",
 							info: "Offset every lyric line across all tracks, in milliseconds.",
 							key: "global-delay",
-							type: AppearanceAdjustRow,
+							kind: "adjust",
 							min: -10000,
 							max: 10000,
 							step: 250,
@@ -639,7 +748,7 @@ export function LyricsPlusAppearanceSettings() {
 							desc: "Font size",
 							info: "You can also hold Ctrl and scroll in the main lyrics view.",
 							key: "font-size",
-							type: AppearanceAdjustRow,
+							kind: "adjust",
 							min: fontSizeLimit.min,
 							max: fontSizeLimit.max,
 							step: fontSizeLimit.step,
@@ -647,7 +756,7 @@ export function LyricsPlusAppearanceSettings() {
 						{
 							desc: "Alignment",
 							key: "alignment",
-							type: AppearanceSelectRow,
+							kind: "select",
 							options: {
 								left: "Left",
 								center: "Center",
@@ -658,7 +767,7 @@ export function LyricsPlusAppearanceSettings() {
 							desc: "Fullscreen hotkey",
 							info: "Focus the field, then press the shortcut you want to use.",
 							key: "fullscreen-key",
-							type: AppearanceHotkeyRow,
+							kind: "hotkey",
 						},
 					]}
 					onChange={onChange}
@@ -670,20 +779,20 @@ export function LyricsPlusAppearanceSettings() {
 						{
 							desc: "Lines before",
 							key: "lines-before",
-							type: AppearanceSelectRow,
+							kind: "number-select",
 							options: [0, 1, 2, 3, 4],
 						},
 						{
 							desc: "Lines after",
 							key: "lines-after",
-							type: AppearanceSelectRow,
+							kind: "number-select",
 							options: [0, 1, 2, 3, 4],
 						},
 						{
 							desc: "Fade-out blur",
 							info: "Softly blur lines as they leave the compact view.",
 							key: "fade-blur",
-							type: AppearanceToggleRow,
+							kind: "toggle",
 						},
 					]}
 					onChange={onChange}
@@ -696,36 +805,36 @@ export function LyricsPlusAppearanceSettings() {
 							desc: "Noise overlay",
 							info: "Add subtle texture behind the lyrics.",
 							key: "noise",
-							type: AppearanceToggleRow,
+							kind: "toggle",
 						},
 						{
 							desc: "Colorful background",
 							info: "Derive the backdrop and text colors from the current artwork.",
 							key: "colorful",
-							type: AppearanceToggleRow,
+							kind: "toggle",
 						},
 						{
 							desc: "Background color",
 							key: "background-color",
-							type: AppearanceTextRow,
+							kind: "text",
 							when: () => !CONFIG.visual.colorful,
 						},
 						{
 							desc: "Active text color",
 							key: "active-color",
-							type: AppearanceTextRow,
+							kind: "text",
 							when: () => !CONFIG.visual.colorful,
 						},
 						{
 							desc: "Inactive text color",
 							key: "inactive-color",
-							type: AppearanceTextRow,
+							kind: "text",
 							when: () => !CONFIG.visual.colorful,
 						},
 						{
 							desc: "Highlight text background",
 							key: "highlight-color",
-							type: AppearanceTextRow,
+							kind: "text",
 							when: () => !CONFIG.visual.colorful,
 						},
 					]}
@@ -739,7 +848,7 @@ export function LyricsPlusAppearanceSettings() {
 							desc: "Japanese threshold",
 							info: "Kana percentage used to distinguish Japanese lyrics from Chinese lyrics.",
 							key: "ja-detect-threshold",
-							type: AppearanceAdjustRow,
+							kind: "adjust",
 							min: thresholdSizeLimit.min,
 							max: thresholdSizeLimit.max,
 							step: thresholdSizeLimit.step,
@@ -748,7 +857,7 @@ export function LyricsPlusAppearanceSettings() {
 							desc: "Simplified Chinese threshold",
 							info: "Character percentage used to distinguish Simplified from Traditional Chinese.",
 							key: "hans-detect-threshold",
-							type: AppearanceAdjustRow,
+							kind: "adjust",
 							min: thresholdSizeLimit.min,
 							max: thresholdSizeLimit.max,
 							step: thresholdSizeLimit.step,
@@ -769,7 +878,7 @@ export function openLyricsPlusAppearanceSettings() {
 }
 
 export function LyricsPlusSettings() {
-	const updateMusixmatchToken = useCallback((value) => {
+	const updateMusixmatchToken = useCallback((value: string) => {
 		CONFIG.providers.musixmatch.token = value;
 		localStorage.setItem(`${APP_NAME}:provider:musixmatch:token`, value);
 		sharedCallbacks.reloadLyrics?.();
@@ -796,7 +905,7 @@ export function LyricsPlusSettings() {
 			},
 			onToggle: (name, value) => {
 				CONFIG.providers[name].on = value;
-				localStorage.setItem(`${APP_NAME}:provider:${name}:on`, value);
+				localStorage.setItem(`${APP_NAME}:provider:${name}:on`, String(value));
 				sharedCallbacks.reloadLyrics?.();
 			},
 		}),

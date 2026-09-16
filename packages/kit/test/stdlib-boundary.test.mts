@@ -42,6 +42,13 @@ function moduleFixture(files: Record<string, string>, overrides: Record<string, 
 const rules = (dir: string) => checkModule(dir).map(({ rule, severity }) => `${severity}:${rule}`);
 
 describe("external stdlib boundary", () => {
+	it("accepts the public query entry", () => {
+		const dir = moduleFixture({
+			"index.ts": 'export function load() { return import("./mod.js"); }',
+			"mod.ts": 'import { createModuleQueryClient } from "/modules/stdlib/query.js";',
+		});
+		assert.ok(!rules(dir).includes("error:stdlib-boundary.private-import"));
+	});
 	it("rejects private stdlib imports and a missing direct dependency", () => {
 		const dir = moduleFixture(
 			{

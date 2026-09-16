@@ -42,6 +42,42 @@ output and are remapped by the spicetify CLI at apply time against the exact
 installed classmap. One build serves every supported Spotify version; there
 are no per-version prebuilds.
 
+## Verifying one module
+
+From the repository root, run a module's automated checks with Node 24 and
+the shared dependencies installed:
+
+```shell
+pnpm verify auto-skip-explicit
+pnpm verify modules/lyrics-plus
+pnpm verify themes/text
+```
+
+The command builds the selected module, checks its TypeScript and imported
+dependencies, lints, checks formatting and stdlib boundaries, validates
+repository dependency ranges, and runs its colocated `*.test.mts` files.
+It reports explicitly when a module has no automated tests. It doesn't install
+the build into Spotify.
+
+To verify your changes and modules that depend on them, run:
+
+```shell
+pnpm verify --changed
+pnpm verify --changed --base origin/main
+```
+
+Changed mode compares against the merge base with `origin/main` by default,
+including committed, staged, unstaged, and untracked files. It checks affected
+modules and their reverse dependencies. Shared tooling changes run all module
+builds and the full repository checks. CI continues to run the full suite.
+Fetch your target branch first when you need its latest state. Live Spotify
+verification remains a separate step.
+
+Strict checking is the default for modules, stdlib, scripts, and generated
+TypeScript projects, including Lyrics Plus. File-level type-checking exemptions
+are rejected by lint. The [module standard](docs/module-standard.md#strict-type-checking)
+explains the checks and the separate client and test environments.
+
 ## Docs
 
 - [`docs/updating-modules.md`](docs/updating-modules.md) — updating and repairing

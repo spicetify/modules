@@ -7,7 +7,8 @@
 	"type": "module",
 	"scripts": {
 		"stitch": "node scripts/stitch.ts",
-		"check": "tsc && oxlint && node scripts/stdlib-boundary.ts && node scripts/check-deps.ts",
+		"verify": "node scripts/verify-module.ts",
+		"check": "tsc && node scripts/module-typecheck.ts --all && oxlint && node scripts/stdlib-boundary.ts && node scripts/check-deps.ts",
 		"test": "node --test 'modules/**/*.test.mts' 'scripts/*.test.mts'",
 		"lint": "oxlint",
 		"lint:fix": "oxlint --fix",
@@ -16,7 +17,9 @@
 		"prepare": "git config core.hooksPath .githooks || true"
 	},
 	"devDependencies": {
+		"@tanstack/query-core": "5",
 		"@types/node": "^26.1.1",
+		"@types/pngjs": "^6.0.5",
 		"@types/react": "^18",
 		"@types/react-dom": "^18",
 		"happy-dom": "^20.11.1",
@@ -25,6 +28,8 @@
 		"oxlint": "^1.75.0",
 		"pixelmatch": "^7.1.0",
 		"pngjs": "^7.0.0",
+		"react": "18.3.1",
+		"react-dom": "18.3.1",
 		"rolldown": "^1.2.0",
 		"rxjs": "^7.8.2",
 		"sass-embedded": "^1.80.0",

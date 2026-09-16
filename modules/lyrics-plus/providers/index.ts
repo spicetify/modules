@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // The six-entry provider registry: four delegate to the provider files,
 // spotify and local are implemented inline. Client-bound policy arrives as
 // injected deps — the caller supplies the PLAYING track's duration (KTD5a)
@@ -14,12 +11,148 @@
 // with LyricsContainer.tryServices, not here.
 
 import { CONFIG } from "../config.ts";
-import { lyricsClient as client } from "../runtime-client.ts";
+import type { GeniusVersion, KaraokeLine, LyricLine, ProviderResult, TimedLyricLine, TrackInfo } from "../types.ts";
+import { getLyricsResponse } from "../runtime-client.ts";
 import { processLyrics } from "../utils.ts";
 import { ProviderGenius } from "./genius.ts";
 import { ProviderLRCLIB } from "./lrclib.ts";
 import { ProviderMusixmatch } from "./musixmatch.ts";
 import { ProviderNetease } from "./netease.ts";
+
+interface SpotifyLyrics {
+	syncType: string;
+	lines: { startTimeMs: number; words: string }[];
+}
+function parseSpotifyLyrics(value: unknown): SpotifyLyrics | null {
+	if (!value || typeof value !== "object" || !("lyrics" in value)) return null;
+	const lyrics = value.lyrics;
+	if (
+		!lyrics ||
+		typeof lyrics !== "object" ||
+		!("syncType" in lyrics) ||
+		typeof lyrics.syncType !== "string" ||
+		!("lines" in lyrics) ||
+		!Array.isArray(lyrics.lines)
+	)
+		return null;
+	const lines = lyrics.lines.flatMap((line: unknown) => {
+		if (!line || typeof line !== "object" || !("words" in line) || typeof line.words !== "string") return [];
+		const rawTime = "startTimeMs" in line ? line.startTimeMs : undefined;
+		const startTimeMs = typeof rawTime === "number" || typeof rawTime === "string" ? Number(rawTime) : 0;
+		return Number.isFinite(startTimeMs) ? [{ words: line.words, startTimeMs }] : [];
+	});
+	return { syncType: lyrics.syncType, lines };
+}
+function isLine(value: unknown): value is LyricLine {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"text" in value &&
+		typeof value.text === "string" &&
+		(!("startTime" in value) || typeof value.startTime === "number") &&
+		(!("endTime" in value) || typeof value.endTime === "number") &&
+		(!("originalText" in value) || typeof value.originalText === "string") &&
+		(!("performer" in value) || value.performer === null || typeof value.performer === "string")
+	);
+}
+function isTimedLine(value: unknown): value is TimedLyricLine {
+	return isLine(value) && typeof value.startTime === "number";
+}
+function isWords(value: unknown): value is KaraokeLine["text"] {
+	return (
+		Array.isArray(value) &&
+		value.every(
+			(word: unknown) =>
+				!!word &&
+				typeof word === "object" &&
+				"word" in word &&
+				typeof word.word === "string" &&
+				"time" in word &&
+				typeof word.time === "number",
+		)
+	);
+}
+function isKaraokeLine(value: unknown): value is KaraokeLine {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"startTime" in value &&
+		typeof value.startTime === "number" &&
+		"text" in value &&
+		isWords(value.text) &&
+		(!("originalText" in value) || typeof value.originalText === "string" || isWords(value.originalText)) &&
+		(!("endTime" in value) || typeof value.endTime === "number") &&
+		(!("performer" in value) || value.performer === null || typeof value.performer === "string")
+	);
+}
+
+function isVersion(value: unknown): value is GeniusVersion {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"title" in value &&
+		typeof value.title === "string" &&
+		"url" in value &&
+		typeof value.url === "string"
+	);
+}
+
+export function parseCachedLyrics(value: unknown): Omit<ProviderResult, "uri"> | null {
+	if (!value || typeof value !== "object") return null;
+	const karaoke =
+		"karaoke" in value && Array.isArray(value.karaoke) && value.karaoke.every(isKaraokeLine) ? value.karaoke : null;
+	const synced =
+		"synced" in value && Array.isArray(value.synced) && value.synced.every(isTimedLine) ? value.synced : null;
+	const unsynced =
+		"unsynced" in value && Array.isArray(value.unsynced) && value.unsynced.every(isLine) ? value.unsynced : null;
+	if (!karaoke && !synced && !unsynced) return null;
+	return {
+		karaoke,
+		synced,
+		unsynced,
+		provider: "provider" in value && typeof value.provider === "string" ? value.provider : undefined,
+		copyright: "copyright" in value && typeof value.copyright === "string" ? value.copyright : undefined,
+		genius: "genius" in value && typeof value.genius === "string" ? value.genius : null,
+		genius2: "genius2" in value && typeof value.genius2 === "string" ? value.genius2 : null,
+		musixmatchTranslation:
+			"musixmatchTranslation" in value &&
+			Array.isArray(value.musixmatchTranslation) &&
+			value.musixmatchTranslation.every(isLine)
+				? value.musixmatchTranslation
+				: null,
+		neteaseTranslation:
+			"neteaseTranslation" in value &&
+			Array.isArray(value.neteaseTranslation) &&
+			value.neteaseTranslation.every(isLine)
+				? value.neteaseTranslation
+				: null,
+		musixmatchAvailableTranslations:
+			"musixmatchAvailableTranslations" in value &&
+			Array.isArray(value.musixmatchAvailableTranslations) &&
+			value.musixmatchAvailableTranslations.every(
+				(language: unknown): language is string => typeof language === "string",
+			)
+				? value.musixmatchAvailableTranslations
+				: [],
+		musixmatchTrackId:
+			"musixmatchTrackId" in value && typeof value.musixmatchTrackId === "number"
+				? value.musixmatchTrackId
+				: null,
+		musixmatchTranslationLanguage:
+			"musixmatchTranslationLanguage" in value && typeof value.musixmatchTranslationLanguage === "string"
+				? value.musixmatchTranslationLanguage
+				: null,
+		versions:
+			"versions" in value && Array.isArray(value.versions) && value.versions.every(isVersion)
+				? value.versions
+				: undefined,
+		versionIndex:
+			"versionIndex" in value && typeof value.versionIndex === "number" ? value.versionIndex : undefined,
+		versionIndex2:
+			"versionIndex2" in value && typeof value.versionIndex2 === "number" ? value.versionIndex2 : undefined,
+		mode: "mode" in value && typeof value.mode === "number" ? value.mode : undefined,
+	};
+}
 
 export interface ProviderDeps {
 	trackDurationMs: () => number;
@@ -29,8 +162,8 @@ export interface ProviderDeps {
 
 export function createProviders(deps: ProviderDeps) {
 	return {
-		spotify: async (info) => {
-			const result = {
+		spotify: async (info: Pick<TrackInfo, "uri">, signal?: AbortSignal): Promise<ProviderResult> => {
+			const result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
 				synced: null,
@@ -41,14 +174,17 @@ export function createProviders(deps: ProviderDeps) {
 
 			const baseURL = "https://spclient.wg.spotify.com/color-lyrics/v2/track/";
 			const id = info.uri.split(":")[2];
-			let body;
+			let body: unknown;
 			try {
-				body = await client.cosmos.get(`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`);
+				body = await getLyricsResponse(
+					`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`,
+					signal,
+				);
 			} catch {
 				return { error: "Request error", uri: info.uri };
 			}
 
-			const lyrics = body.lyrics;
+			const lyrics = parseSpotifyLyrics(body);
 			if (!lyrics) {
 				return { error: "No lyrics", uri: info.uri };
 			}
@@ -73,8 +209,8 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		musixmatch: async (info) => {
-			const result = {
+		musixmatch: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
+			const result: ProviderResult = {
 				error: null,
 				uri: info.uri,
 				karaoke: null,
@@ -90,7 +226,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderMusixmatch.findLyrics(info);
+				list = await ProviderMusixmatch.findLyrics(info, signal);
 				if (list.error) {
 					throw "";
 				}
@@ -102,18 +238,18 @@ export function createProviders(deps: ProviderDeps) {
 			const karaoke = await ProviderMusixmatch.getKaraoke(list);
 			if (karaoke) {
 				result.karaoke = karaoke;
-				result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
+				result.copyright = list["track.lyrics.get"]?.message?.body?.lyrics?.lyrics_copyright?.trim();
 			}
 			const synced = ProviderMusixmatch.getSynced(list);
 			if (synced) {
 				result.synced = synced;
 				result.copyright =
-					list["track.subtitles.get"].message?.body?.subtitle_list?.[0]?.subtitle.lyrics_copyright.trim();
+					list["track.subtitles.get"]?.message?.body?.subtitle_list?.[0]?.subtitle.lyrics_copyright?.trim();
 			}
 			const unsynced = synced || ProviderMusixmatch.getUnsynced(list);
 			if (unsynced) {
 				result.unsynced = unsynced;
-				result.copyright = list["track.lyrics.get"].message?.body?.lyrics?.lyrics_copyright?.trim();
+				result.copyright = list["track.lyrics.get"]?.message?.body?.lyrics?.lyrics_copyright?.trim();
 			}
 			result.musixmatchAvailableTranslations = Array.isArray(list.__musixmatchTranslationStatus)
 				? list.__musixmatchTranslationStatus
@@ -127,31 +263,21 @@ export function createProviders(deps: ProviderDeps) {
 				result.musixmatchAvailableTranslations.includes(selectedLanguage);
 
 			const translation = canRequestTranslation
-				? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId)
+				? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId, signal)
 				: null;
-			if ((synced || unsynced) && Array.isArray(translation) && translation.length) {
-				const normalizeLyrics =
-					typeof processLyrics === "function"
-						? (value) => processLyrics(value ?? "")
-						: (value) =>
-								typeof value === "string"
-									? value
-											.replace(/　| /g, "")
-											.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, "")
-									: "";
-
-				const translationMap = new Map();
+			const baseLyrics = synced ?? unsynced;
+			if (baseLyrics && Array.isArray(translation) && translation.length) {
+				const translationMap = new Map<string, string>();
 				for (const entry of translation) {
-					const normalizedMatched = normalizeLyrics(entry.matchedLine);
+					const normalizedMatched = processLyrics(entry.matchedLine);
 					if (!translationMap.has(normalizedMatched)) {
 						translationMap.set(normalizedMatched, entry.translation);
 					}
 				}
 
-				const baseLyrics = synced ?? unsynced;
 				result.musixmatchTranslation = baseLyrics.map((line) => {
 					const originalText = line.text;
-					const normalizedOriginal = normalizeLyrics(originalText);
+					const normalizedOriginal = processLyrics(originalText);
 					return {
 						...line,
 						text: translationMap.get(normalizedOriginal) ?? line.text,
@@ -163,8 +289,8 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		netease: async (info) => {
-			const result = {
+		netease: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
+			const result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
 				synced: null,
@@ -176,7 +302,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderNetease.findLyrics(info, deps.simplifyChinese);
+				list = await ProviderNetease.findLyrics(info, deps.simplifyChinese, signal);
 			} catch {
 				result.error = "No lyrics";
 				return result;
@@ -195,8 +321,8 @@ export function createProviders(deps: ProviderDeps) {
 				result.unsynced = unsynced;
 			}
 			const translation = ProviderNetease.getTranslation(list);
-			if ((synced || unsynced) && Array.isArray(translation)) {
-				const baseLyrics = synced ?? unsynced;
+			const baseLyrics = synced ?? unsynced;
+			if (baseLyrics && Array.isArray(translation)) {
 				result.neteaseTranslation = baseLyrics.map((line) => ({
 					...line,
 					text: translation.find((t) => t.startTime === line.startTime)?.text ?? line.text,
@@ -206,8 +332,8 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		lrclib: async (info) => {
-			const result = {
+		lrclib: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
+			const result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
 				synced: null,
@@ -218,7 +344,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderLRCLIB.findLyrics(info, deps.spicetifyVersion());
+				list = await ProviderLRCLIB.findLyrics(info, deps.spicetifyVersion(), signal);
 			} catch {
 				result.error = "No lyrics";
 				return result;
@@ -237,13 +363,13 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		genius: async (info) => {
-			const { lyrics, versions } = await ProviderGenius.fetchLyrics(info);
+		genius: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
+			const { lyrics, versions } = await ProviderGenius.fetchLyrics(info, signal);
 
 			let versionIndex2 = 0;
 			let genius2 = lyrics;
 			if (CONFIG.visual["dual-genius"] && versions.length > 1) {
-				genius2 = await ProviderGenius.fetchLyricsVersion(versions, 1);
+				genius2 = await ProviderGenius.fetchLyricsVersion(versions, 1, signal);
 				versionIndex2 = 1;
 			}
 
@@ -262,8 +388,8 @@ export function createProviders(deps: ProviderDeps) {
 				versionIndex2,
 			};
 		},
-		local: (info) => {
-			let result = {
+		local: (info: Pick<TrackInfo, "uri">): ProviderResult => {
+			let result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
 				synced: null,
@@ -272,8 +398,12 @@ export function createProviders(deps: ProviderDeps) {
 			};
 
 			try {
-				const savedLyrics = JSON.parse(localStorage.getItem("lyrics-plus:local-lyrics"));
-				const lyrics = savedLyrics[info.uri];
+				const savedLyrics: unknown = JSON.parse(localStorage.getItem("lyrics-plus:local-lyrics") ?? "null");
+				const entry =
+					savedLyrics && typeof savedLyrics === "object"
+						? Object.entries(savedLyrics).find(([uri]) => uri === info.uri)?.[1]
+						: undefined;
+				const lyrics = parseCachedLyrics(entry);
 				if (!lyrics) {
 					throw "";
 				}
@@ -281,6 +411,7 @@ export function createProviders(deps: ProviderDeps) {
 				result = {
 					...result,
 					...lyrics,
+					provider: lyrics.provider ?? result.provider,
 				};
 			} catch {
 				result.error = "No lyrics";

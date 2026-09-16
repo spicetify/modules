@@ -41,7 +41,7 @@ const playerListener = ({ data: state }: any) => {
 	cachedState = state;
 };
 
-const historyListener = (location) => EventBus.History.updated.next(location);
+const historyListener = (location: unknown) => EventBus.History.updated.next(location);
 
 const updateTitlebarListener = (height: number) => EventBus.ControlMessage.titlebar_updated.next(height);
 

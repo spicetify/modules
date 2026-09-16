@@ -3,15 +3,20 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx. Typing the ported code is out of scope.
-
 // CONFIG is a shared mutable singleton: it is read ~134 times and written at
 // runtime (the musixmatch token). Exporting the one object keeps identity and
 // mutation semantics identical to the concatenated original.
 //
 // Keep this file free of client references so the purity grep in the plan's
 // Verification Contract stays a plain token search.
+
+import type { LyricMode } from "./types.ts";
+
+declare global {
+	interface Window {
+		__lyricsPlusMusixmatchTranslationPrefix?: string;
+	}
+}
 
 export const APP_NAME = "lyrics-plus";
 
@@ -36,10 +41,45 @@ export const SYNCED = 1;
 export const UNSYNCED = 2;
 export const GENIUS = 3;
 
-export function getConfig(name, defaultVal = true) {
+export function getConfig(name: string, defaultVal = true) {
 	const value = localStorage.getItem(name);
 	return value ? value === "true" : defaultVal;
 }
+
+const providers = {
+	lrclib: {
+		on: getConfig("lyrics-plus:provider:lrclib:on"),
+		desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
+		modes: [SYNCED, UNSYNCED],
+	},
+	musixmatch: {
+		on: getConfig("lyrics-plus:provider:musixmatch:on"),
+		desc: "Fully compatible with Spotify. If lyrics stop loading, refresh the token below.",
+		token:
+			localStorage.getItem("lyrics-plus:provider:musixmatch:token") ||
+			"21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
+		modes: [KARAOKE, SYNCED, UNSYNCED],
+	},
+	spotify: {
+		on: getConfig("lyrics-plus:provider:spotify:on"),
+		desc: "Lyrics sourced from official Spotify API.",
+		modes: [SYNCED, UNSYNCED],
+	},
+	netease: {
+		on: getConfig("lyrics-plus:provider:netease:on", false),
+		desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
+		modes: [KARAOKE, SYNCED, UNSYNCED],
+	},
+	local: {
+		on: getConfig("lyrics-plus:provider:local:on"),
+		desc: "Provide lyrics from cache/local files loaded from previous Spotify sessions.",
+		modes: [KARAOKE, SYNCED, UNSYNCED],
+	},
+};
+
+export type ProviderKey = keyof typeof providers;
+
+const providersOrder: ProviderKey[] = [];
 
 export const CONFIG = {
 	visual: {
@@ -52,9 +92,9 @@ export const CONFIG = {
 			localStorage.getItem("lyrics-plus:visual:inactive-color") || "rgba(var(--spice-rgb-subtext),0.5)",
 		"highlight-color": localStorage.getItem("lyrics-plus:visual:highlight-color") || "var(--spice-button)",
 		alignment: localStorage.getItem("lyrics-plus:visual:alignment") || "center",
-		"lines-before": localStorage.getItem("lyrics-plus:visual:lines-before") || "0",
-		"lines-after": localStorage.getItem("lyrics-plus:visual:lines-after") || "2",
-		"font-size": localStorage.getItem("lyrics-plus:visual:font-size") || "32",
+		"lines-before": Number.parseInt(localStorage.getItem("lyrics-plus:visual:lines-before") || "0"),
+		"lines-after": Number.parseInt(localStorage.getItem("lyrics-plus:visual:lines-after") || "2"),
+		"font-size": Number.parseInt(localStorage.getItem("lyrics-plus:visual:font-size") || "32"),
 		"translate:translated-lyrics-source":
 			localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source") || "none",
 		"translate:display-mode": localStorage.getItem("lyrics-plus:visual:translate:display-mode") || "replace",
@@ -64,8 +104,10 @@ export const CONFIG = {
 		"translation-mode:korean": localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "romaja",
 		"translation-mode:chinese": localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
 		translate: getConfig("lyrics-plus:visual:translate", false),
-		"ja-detect-threshold": localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40",
-		"hans-detect-threshold": localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
+		"ja-detect-threshold": Number.parseInt(localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40"),
+		"hans-detect-threshold": Number.parseInt(
+			localStorage.getItem("lyrics-plus:visual:hans-detect-threshold") || "40",
+		),
 		"musixmatch-translation-language":
 			localStorage.getItem("lyrics-plus:visual:musixmatch-translation-language") || "none",
 		"fade-blur": getConfig("lyrics-plus:visual:fade-blur"),
@@ -76,63 +118,33 @@ export const CONFIG = {
 		"global-delay": Number(localStorage.getItem("lyrics-plus:visual:global-delay")) || 0,
 		delay: 0,
 	},
-	providers: {
-		lrclib: {
-			on: getConfig("lyrics-plus:provider:lrclib:on"),
-			desc: "Lyrics sourced from lrclib.net. Supports both synced and unsynced lyrics. LRCLIB is a free and open-source lyrics provider.",
-			modes: [SYNCED, UNSYNCED],
-		},
-		musixmatch: {
-			on: getConfig("lyrics-plus:provider:musixmatch:on"),
-			desc: "Fully compatible with Spotify. If lyrics stop loading, refresh the token below.",
-			token:
-				localStorage.getItem("lyrics-plus:provider:musixmatch:token") ||
-				"21051986b9886beabe1ce01c3ce94c96319411f8f2c122676365e3",
-			modes: [KARAOKE, SYNCED, UNSYNCED],
-		},
-		spotify: {
-			on: getConfig("lyrics-plus:provider:spotify:on"),
-			desc: "Lyrics sourced from official Spotify API.",
-			modes: [SYNCED, UNSYNCED],
-		},
-		netease: {
-			on: getConfig("lyrics-plus:provider:netease:on", false),
-			desc: "Crowdsourced lyrics provider ran by Chinese developers and users.",
-			modes: [KARAOKE, SYNCED, UNSYNCED],
-		},
-		local: {
-			on: getConfig("lyrics-plus:provider:local:on"),
-			desc: "Provide lyrics from cache/local files loaded from previous Spotify sessions.",
-			modes: [KARAOKE, SYNCED, UNSYNCED],
-		},
-	},
-	providersOrder: localStorage.getItem("lyrics-plus:services-order"),
-	modes: ["karaoke", "synced", "unsynced", "genius"],
-	locked: localStorage.getItem("lyrics-plus:lock-mode") || "-1",
+	providers,
+	providersOrder,
+	modes: ["karaoke", "synced", "unsynced", "genius"] satisfies LyricMode[],
+	locked: Number.parseInt(localStorage.getItem("lyrics-plus:lock-mode") || "-1"),
 };
 
-try {
-	CONFIG.providersOrder = JSON.parse(CONFIG.providersOrder);
-	const providerKeys = Object.keys(CONFIG.providers);
-	if (
-		!Array.isArray(CONFIG.providersOrder) ||
-		providerKeys.length !== CONFIG.providersOrder.length ||
-		new Set(CONFIG.providersOrder).size !== providerKeys.length ||
-		CONFIG.providersOrder.some((provider) => !providerKeys.includes(provider))
-	) {
-		throw "";
-	}
-} catch {
-	CONFIG.providersOrder = Object.keys(CONFIG.providers);
-	localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
+export function isProviderKey(value: unknown): value is ProviderKey {
+	return typeof value === "string" && Object.hasOwn(CONFIG.providers, value);
 }
 
-CONFIG.locked = Number.parseInt(CONFIG.locked);
-CONFIG.visual["lines-before"] = Number.parseInt(CONFIG.visual["lines-before"]);
-CONFIG.visual["lines-after"] = Number.parseInt(CONFIG.visual["lines-after"]);
-CONFIG.visual["font-size"] = Number.parseInt(CONFIG.visual["font-size"]);
-CONFIG.visual["ja-detect-threshold"] = Number.parseInt(CONFIG.visual["ja-detect-threshold"]);
-CONFIG.visual["hans-detect-threshold"] = Number.parseInt(CONFIG.visual["hans-detect-threshold"]);
+const providerKeys = Object.keys(CONFIG.providers).filter(isProviderKey);
+
+try {
+	const storedOrder: unknown = JSON.parse(localStorage.getItem("lyrics-plus:services-order") ?? "null");
+	if (
+		!Array.isArray(storedOrder) ||
+		storedOrder.length !== providerKeys.length ||
+		new Set(storedOrder).size !== providerKeys.length ||
+		!storedOrder.every(isProviderKey)
+	) {
+		throw new Error("Invalid stored provider order");
+	}
+	CONFIG.providersOrder = storedOrder;
+} catch {
+	CONFIG.providersOrder = providerKeys;
+	localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
+}
 
 if (CONFIG.visual["translate:translated-lyrics-source"] === "musixmatchTranslation") {
 	const language = CONFIG.visual["musixmatch-translation-language"];

@@ -55,7 +55,7 @@ export function createSyncedStorage(playlistUri: string) {
 	async function getUris(key: string) {
 		assertSmallerSize(encodeURIComponent(key), CHUNK_SIZE, 1, "Can't fit key in a single chunk");
 
-		const { items } = await PlaylistAPI.getContents(playlistUri, {
+		const { items }: { items: Array<{ uri: string }> } = await PlaylistAPI.getContents(playlistUri, {
 			filter: key,
 			limit: 1e9,
 		});

@@ -8,7 +8,7 @@
 		"outDir": "dist",
 		"rootDir": "src",
 		"lib": ["ES2024"],
-		"strict": false,
+		"strict": true,
 		"skipLibCheck": true,
 		"resolveJsonModule": true,
 		"types": ["node"],
