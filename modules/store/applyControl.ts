@@ -101,7 +101,7 @@ export function createApplyControl() {
 				const transport = state.transport;
 				message.textContent =
 					transport === "app"
-						? "The Spicetify service is unavailable. Use a recovery link in your browser to open the installed app and apply changes. Spotify will restart."
+						? "The Spicetify service is unavailable. Open the installed Spicetify app to apply changes. Spotify will restart."
 						: `stdlib ${staged} is staged. Apply it to restart Spotify with the update.`;
 				if (transport === "daemon" || supportsAppHandoff()) {
 					button(transport === "daemon" ? "Apply stdlib update" : "Repair Spicetify", () =>
@@ -119,31 +119,12 @@ export function createApplyControl() {
 					"Apply changes and restart Spotify? Playback will stop. Your modules and preferences will be kept.";
 				if (transport === "app") {
 					message.textContent +=
-						" Copy the recovery link, paste it into your browser's address bar, press Enter, then approve the Open Spicetify prompt. If no prompt appears, the app handler may be missing.";
-					const link = el("input", "spicetify-store-recovery-link");
-					link.value = APPLY_URI;
-					link.readOnly = true;
-					link.setAttribute("aria-label", "Recovery link");
-					link.addEventListener("focus", () => link.select());
+						" Select Open Spicetify and approve the app prompt. If nothing opens, copy the link address from its context menu and paste it into your browser's address bar. After Spotify restarts, return to the Store to check the connection.";
+					const link = el("a", "spicetify-store-cta", "Open Spicetify");
+					link.href = APPLY_URI;
+					link.target = "_blank";
+					link.rel = "noopener noreferrer";
 					actions.append(link);
-					const copy = button("Copy recovery link", () => {
-						copy.disabled = true;
-						void (async () => {
-							try {
-								await navigator.clipboard.writeText(APPLY_URI);
-								if (disposed || !node.contains(copy)) return;
-								message.textContent =
-									"Recovery link copied. Paste it into your browser's address bar, press Enter, then approve the Open Spicetify prompt. Playback will stop and Spotify will restart.";
-							} catch {
-								if (disposed || !node.contains(copy)) return;
-								message.textContent =
-									"Clipboard unavailable. Select and copy the recovery link below, then paste it into your browser's address bar and approve the Open Spicetify prompt. Playback will stop and Spotify will restart.";
-								link.focus();
-							} finally {
-								if (!disposed && node.contains(copy)) copy.disabled = false;
-							}
-						})();
-					});
 				} else {
 					button("Apply and restart", () => void applyViaDaemon());
 				}

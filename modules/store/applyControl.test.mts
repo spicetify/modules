@@ -17,7 +17,6 @@ let running = "1.10.0";
 let available = true;
 let applies = 0;
 let applyError: Error | undefined;
-let copied: string | undefined;
 const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 function click(label: string) {
@@ -39,7 +38,6 @@ beforeEach(() => {
 	available = true;
 	applies = 0;
 	applyError = undefined;
-	copied = undefined;
 	Object.defineProperties(globalThis, {
 		document: { configurable: true, value: window.document },
 		localStorage: { configurable: true, value: window.localStorage },
@@ -47,11 +45,6 @@ beforeEach(() => {
 			configurable: true,
 			value: {
 				userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X) Spotify/1.2.97",
-				clipboard: {
-					writeText: async (text: string) => {
-						copied = text;
-					},
-				},
 			},
 		},
 		Spicetify: {
@@ -83,9 +76,9 @@ describe("Store apply and recovery", () => {
 		assert.match(control.node.textContent ?? "", /service is unavailable/);
 		click("Repair Spicetify");
 		assert.equal(applies, 0);
-		const link = control.node.querySelector("input");
-		assert.equal(link?.value, APPLY_URI);
-		assert.equal(link?.readOnly, true);
+		const link = control.node.querySelector("a");
+		assert.equal(link?.getAttribute("href"), APPLY_URI);
+		assert.equal(link?.textContent, "Open Spicetify");
 	});
 
 	it("keeps confirmation until Confirm or Cancel instead of expiring after four seconds", async (t) => {
@@ -127,40 +120,40 @@ describe("Store apply and recovery", () => {
 		assert.match(control.node.textContent ?? "", /Apply failed: daemon refused/);
 		assert.equal(control.node.querySelector("a"), null);
 		click("Open Spicetify app instead");
-		assert.equal(control.node.querySelector("input")?.value, APPLY_URI);
+		assert.equal(control.node.querySelector("a")?.getAttribute("href"), APPLY_URI);
 	});
 
-	it("copies a browser recovery link without claiming the app launched", async (t) => {
+	it("opens recovery through a real link without clipboard access or claiming completion", async (t) => {
 		t.mock.timers.enable({ apis: ["setTimeout"] });
 		available = false;
 		await mount();
 		click("Repair Spicetify");
-		click("Copy recovery link");
+		const link = control.node.querySelector("a");
+		assert.ok(link, "Recovery must be a clickable link");
+		assert.equal(link.getAttribute("href"), APPLY_URI);
+		assert.equal(link.textContent, "Open Spicetify");
+		assert.equal(link.target, "_blank");
+		assert.equal(link.rel, "noopener noreferrer");
+		assert.equal(control.node.querySelector("input"), null);
+		assert.doesNotMatch(control.node.textContent ?? "", /Copy recovery link/);
+		link.focus();
+		assert.equal(document.activeElement, link);
+		let activation: MouseEvent | undefined;
+		link.addEventListener("click", (event) => {
+			activation = event;
+		});
+		link.click();
+		assert.equal(activation?.defaultPrevented, false, "Keep the link's native default action");
 		await flush();
-		assert.equal(copied, APPLY_URI);
-		assert.equal(control.node.querySelector("a"), null, "Spotify silently drops native scheme links");
-		assert.match(control.node.textContent ?? "", /Paste it into your browser's address bar/);
 		t.mock.timers.tick(30000);
 		await flush();
-		assert.match(control.node.textContent ?? "", /Recovery link copied/);
+		assert.equal(link.isConnected, true);
+		assert.match(control.node.textContent ?? "", /Playback will stop/);
+		assert.doesNotMatch(control.node.textContent ?? "", /Waiting for Spotify|Recovery link copied/);
 		assert.equal(applies, 0);
-	});
-
-	it("provides a selectable recovery link when the clipboard is unavailable", async () => {
-		Object.defineProperty(globalThis, "navigator", {
-			configurable: true,
-			value: { userAgent: "Macintosh Spotify/1.2.97" },
-		});
-		available = false;
-		await mount();
-		click("Repair Spicetify");
-		click("Copy recovery link");
-		await flush();
-		assert.match(control.node.textContent ?? "", /Clipboard unavailable/);
-		const input = control.node.querySelector("input");
-		assert.equal(input?.value, APPLY_URI);
-		assert.equal(document.activeElement, input);
-		assert.equal(input?.selectionEnd, APPLY_URI.length);
+		click("Cancel");
+		assert.equal(control.node.querySelector("a"), null);
+		assert.match(control.node.textContent ?? "", /Repair Spicetify/);
 	});
 
 	it("removes the stale banner once the loader lists the newer running stdlib", async () => {
