@@ -35,6 +35,12 @@
 			"providers": [],
 			"checksum": "sha256:2815884bf3d9c34b7183a4733eb1bcabbfd0778d7867b67a2568a87818f78dcc",
 			"updatedAt": "2026-09-14"
+		},
+		"0.2.5": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/trashbin@0.2.5/trashbin@0.2.5.zip"],
+			"providers": [],
+			"checksum": "sha256:aad93068efcefd45e837ef2084df5729953950eb1678ee580d31e1f24c0f47b4",
+			"updatedAt": "2026-09-16"
 		}
 	},
 	"metadata": {
