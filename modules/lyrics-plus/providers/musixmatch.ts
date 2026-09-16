@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // Musixmatch: karaoke, synced, unsynced, and translations, behind the app
 // usertoken. The React hook over the token state stays in mod.tsx; this file
 // owns the state and must stay importable under node --test, so the client
@@ -13,12 +10,247 @@
 
 import { CONFIG } from "../config.ts";
 import { lyricsClient as client } from "../runtime-client.ts";
+import type { KaraokeLine, LyricLine, TimedLyricLine, TrackInfo } from "../types.ts";
+
+interface Performer {
+	fqid?: string;
+	artist_id: number | null;
+	name: string;
+}
+interface PerformerSnippet {
+	text: string;
+	raw: string;
+	performers: Performer[];
+}
+interface PerformerTag {
+	snippet?: string;
+	performers: { type: string; fqid?: string }[];
+}
+interface TrackMetadata {
+	track?: {
+		track_id?: number;
+		has_richsync?: boolean;
+		has_subtitles?: boolean;
+		has_lyrics?: boolean;
+		has_lyrics_crowd?: boolean;
+		instrumental?: boolean;
+		performer_tagging?: {
+			content: PerformerTag[];
+			resources: { artists: { artist_id: number; artist_name: string }[] };
+		};
+		performer_tagging_misc_tags?: Record<string, string>;
+	};
+}
+interface ApiCall<Body> {
+	message?: { header?: { status_code?: number; mode?: string }; body?: Body };
+}
+interface MusixmatchLyrics {
+	"matcher.track.get"?: ApiCall<TrackMetadata>;
+	"track.lyrics.get"?: ApiCall<{
+		lyrics?: { restricted?: boolean; lyrics_body?: string; lyrics_copyright?: string };
+	}>;
+	"track.subtitles.get"?: ApiCall<{
+		subtitle_list?: { subtitle: { subtitle_body: string; lyrics_copyright?: string } }[];
+	}>;
+	"track.richsync.get"?: ApiCall<{ richsync?: { richsync_body: string } }>;
+	__musixmatchTranslationStatus?: string[];
+	__musixmatchTrackId?: number | null;
+	error?: string;
+	uri?: string;
+}
+interface MusixmatchBody {
+	user_token?: string;
+	macro_calls?: MusixmatchLyrics;
+	translations_list?: { translation: { description: string; matched_line: string } }[];
+	language_list?: {
+		language: { language_name: string; language_iso_code_1?: string; language_iso_code_3?: string };
+	}[];
+}
+interface RichsyncLine {
+	ts: number;
+	te: number;
+	l: { c: string; o: number }[];
+}
+interface SubtitleLine {
+	text: string;
+	time: { total: number };
+}
+
+function record(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value)) : {};
+}
+function string(value: unknown): string | undefined {
+	return typeof value === "string" ? value : undefined;
+}
+function number(value: unknown): number | undefined {
+	return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+function array(value: unknown): unknown[] {
+	return Array.isArray(value) ? value : [];
+}
+function parseCall<T>(value: unknown, parseBody: (value: unknown) => T): ApiCall<T> | undefined {
+	const source = record(value);
+	if (!source.message) return undefined;
+	const message = record(source.message);
+	const header = record(message.header);
+	return {
+		message: {
+			header: { status_code: number(header.status_code), mode: string(header.mode) },
+			body: message.body ? parseBody(message.body) : undefined,
+		},
+	};
+}
+function parseTrack(value: unknown): TrackMetadata {
+	const source = record(value);
+	if (!source.track) return {};
+	const track = record(source.track);
+	const tagging = record(track.performer_tagging);
+	const artists = record(tagging.resources).artists;
+	const resources = Array.isArray(artists) ? artists : Object.values(record(artists));
+	return {
+		track: {
+			track_id: number(track.track_id),
+			has_richsync: track.has_richsync === true || track.has_richsync === 1,
+			has_subtitles: track.has_subtitles === true || track.has_subtitles === 1,
+			has_lyrics: track.has_lyrics === true || track.has_lyrics === 1,
+			has_lyrics_crowd: track.has_lyrics_crowd === true || track.has_lyrics_crowd === 1,
+			instrumental: track.instrumental === true || track.instrumental === 1,
+			performer_tagging: {
+				content: array(tagging.content).map((item) => {
+					const tag = record(item);
+					return {
+						snippet: string(tag.snippet),
+						performers: array(tag.performers).flatMap((item) => {
+							const performer = record(item);
+							const type = string(performer.type);
+							return type ? [{ type, fqid: string(performer.fqid) }] : [];
+						}),
+					};
+				}),
+				resources: {
+					artists: resources.flatMap((item) => {
+						const artist = record(item);
+						const artist_id = number(artist.artist_id);
+						const artist_name = string(artist.artist_name);
+						return artist_id !== undefined && artist_name !== undefined ? [{ artist_id, artist_name }] : [];
+					}),
+				},
+			},
+			performer_tagging_misc_tags: Object.fromEntries(
+				Object.entries(record(track.performer_tagging_misc_tags)).flatMap(([key, value]) =>
+					typeof value === "string" ? [[key, value]] : [],
+				),
+			),
+		},
+	};
+}
+function findTranslationStatus(value: unknown): string[] | null {
+	if (!value || typeof value !== "object") return null;
+	const source = record(value);
+	if (Array.isArray(source.track_lyrics_translation_status)) {
+		return source.track_lyrics_translation_status.flatMap((item) => {
+			const to = record(item).to;
+			return typeof to === "string" && to ? [to] : [];
+		});
+	}
+	for (const child of Object.values(value)) {
+		const result = findTranslationStatus(child);
+		if (result) return result;
+	}
+	return null;
+}
+function parseMacroCalls(value: unknown): MusixmatchLyrics {
+	const calls = record(value);
+	return {
+		"matcher.track.get": parseCall(calls["matcher.track.get"], parseTrack),
+		"track.lyrics.get": parseCall(calls["track.lyrics.get"], (value) => {
+			const lyrics = record(record(value).lyrics);
+			return {
+				lyrics: {
+					restricted: lyrics.restricted === true || lyrics.restricted === 1,
+					lyrics_body: string(lyrics.lyrics_body),
+					lyrics_copyright: string(lyrics.lyrics_copyright),
+				},
+			};
+		}),
+		"track.subtitles.get": parseCall(calls["track.subtitles.get"], (value) => ({
+			subtitle_list: array(record(value).subtitle_list).flatMap((item) => {
+				const subtitle = record(record(item).subtitle);
+				const subtitle_body = string(subtitle.subtitle_body);
+				return subtitle_body !== undefined
+					? [{ subtitle: { subtitle_body, lyrics_copyright: string(subtitle.lyrics_copyright) } }]
+					: [];
+			}),
+		})),
+		"track.richsync.get": parseCall(calls["track.richsync.get"], (value) => {
+			const richsync_body = string(record(record(value).richsync).richsync_body);
+			return { richsync: richsync_body !== undefined ? { richsync_body } : undefined };
+		}),
+		__musixmatchTranslationStatus: [...new Set(findTranslationStatus(value) ?? [])],
+	};
+}
+function parseResponse(value: unknown): ApiCall<MusixmatchBody> {
+	return (
+		parseCall(value, (value) => {
+			const body = record(value);
+			return {
+				user_token: string(body.user_token),
+				macro_calls: body.macro_calls ? parseMacroCalls(body.macro_calls) : undefined,
+				translations_list: array(body.translations_list).flatMap((item) => {
+					const translation = record(record(item).translation);
+					const description = string(translation.description);
+					const matched_line = string(translation.matched_line);
+					return description !== undefined && matched_line !== undefined
+						? [{ translation: { description, matched_line } }]
+						: [];
+				}),
+				language_list: Array.isArray(body.language_list)
+					? body.language_list.flatMap((item: unknown) => {
+							const language = record(record(item).language);
+							const language_name = string(language.language_name);
+							return language_name
+								? [
+										{
+											language: {
+												language_name,
+												language_iso_code_1: string(language.language_iso_code_1),
+												language_iso_code_3: string(language.language_iso_code_3),
+											},
+										},
+									]
+								: [];
+						})
+					: undefined,
+			};
+		}) ?? {}
+	);
+}
+function isRichsyncLine(value: unknown): value is RichsyncLine {
+	const line = record(value);
+	return (
+		number(line.ts) !== undefined &&
+		number(line.te) !== undefined &&
+		Array.isArray(line.l) &&
+		line.l.every((value: unknown) => {
+			const word = record(value);
+			return typeof word.c === "string" && number(word.o) !== undefined;
+		})
+	);
+}
+function parseSubtitles(value: unknown): SubtitleLine[] {
+	return array(value).flatMap((value) => {
+		const line = record(value);
+		const text = string(line.text);
+		const total = number(record(line.time).total);
+		return text !== undefined && total !== undefined ? [{ text, time: { total } }] : [];
+	});
+}
 
 // Whether the current Musixmatch usertoken authenticates. The provider UI reads
 // this to disable itself and explain why when an automatic refresh can't recover.
 let musixmatchTokenValid = true;
-export const musixmatchTokenListeners = new Set();
-export function setMusixmatchTokenValid(valid) {
+export const musixmatchTokenListeners = new Set<(valid: boolean) => void>();
+export function setMusixmatchTokenValid(valid: boolean) {
 	if (musixmatchTokenValid === valid) return;
 	musixmatchTokenValid = valid;
 	for (const listener of musixmatchTokenListeners) listener(valid);
@@ -43,23 +275,25 @@ export const ProviderMusixmatch = (() => {
 	// The shared Musixmatch usertoken expires. When a call comes back 401 we mint
 	// a fresh mac-ios token once and retry, so lyrics and translation keep working
 	// without the user having to find the Refresh token button.
-	function buildRequestUrl(baseURL, params) {
-		return (token) =>
+	function buildRequestUrl(baseURL: string, params: Record<string, string | number>) {
+		return (token: string) =>
 			baseURL +
 			Object.entries({ ...params, usertoken: token })
 				.map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
 				.join("&");
 	}
 
-	let pendingTokenRefresh = null;
+	let pendingTokenRefresh: Promise<string | null> | null = null;
 	function refreshToken() {
 		if (!pendingTokenRefresh) {
 			pendingTokenRefresh = (async () => {
 				try {
-					const { message } = await client.cosmos.get(
-						"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
-						null,
-						headers,
+					const { message } = parseResponse(
+						await client.cosmos.get(
+							"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
+							undefined,
+							headers,
+						),
 					);
 					const token = message?.body?.user_token;
 					if (message?.header?.status_code === 200 && token && !token.startsWith("UpgradeOnly")) {
@@ -80,48 +314,20 @@ export const ProviderMusixmatch = (() => {
 		return pendingTokenRefresh;
 	}
 
-	async function request(buildURL) {
-		let body = await client.cosmos.get(buildURL(CONFIG.providers.musixmatch.token), null, headers);
+	async function request(buildURL: (token: string) => string): Promise<ApiCall<MusixmatchBody>> {
+		let body = parseResponse(
+			await client.cosmos.get(buildURL(CONFIG.providers.musixmatch.token), undefined, headers),
+		);
 		if (body?.message?.header?.status_code === 401) {
 			const token = await refreshToken();
-			if (token) body = await client.cosmos.get(buildURL(token), null, headers);
+			if (token) body = parseResponse(await client.cosmos.get(buildURL(token), undefined, headers));
 		} else if (body?.message?.header?.status_code === 200) {
 			setMusixmatchTokenValid(true);
 		}
 		return body;
 	}
 
-	function findTranslationStatus(body) {
-		if (!body || typeof body !== "object") {
-			return null;
-		}
-
-		if (Array.isArray(body)) {
-			for (const item of body) {
-				const result = findTranslationStatus(item);
-				if (result) {
-					return result;
-				}
-			}
-
-			return null;
-		}
-
-		if (Array.isArray(body.track_lyrics_translation_status)) {
-			return body.track_lyrics_translation_status;
-		}
-
-		for (const value of Object.values(body)) {
-			const result = findTranslationStatus(value);
-			if (result) {
-				return result;
-			}
-		}
-
-		return null;
-	}
-
-	async function findLyrics(info) {
+	async function findLyrics(info: TrackInfo): Promise<MusixmatchLyrics> {
 		const baseURL =
 			"https://apic-appmobile.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=mac-ios-v2.0&";
 
@@ -140,11 +346,10 @@ export const ProviderMusixmatch = (() => {
 			part: "track_lyrics_translation_status,track_structure,track_performer_tagging",
 		};
 
-		let body = await request(buildRequestUrl(baseURL, params));
+		const response = await request(buildRequestUrl(baseURL, params));
+		const body = response.message?.body?.macro_calls;
 
-		body = body?.message?.body?.macro_calls;
-
-		if (!body || body["matcher.track.get"].message.header.status_code !== 200) {
+		if (!body || body["matcher.track.get"]?.message?.header?.status_code !== 200) {
 			return {
 				error: `Requested error: ${body?.["matcher.track.get"]?.message?.header?.mode ?? "unauthorized"}`,
 				uri: info.uri,
@@ -157,11 +362,9 @@ export const ProviderMusixmatch = (() => {
 			};
 		}
 
-		const translationStatus = findTranslationStatus(body);
+		const translationStatus = body.__musixmatchTranslationStatus;
 		const meta = body?.["matcher.track.get"]?.message?.body;
-		const availableTranslations = Array.isArray(translationStatus)
-			? [...new Set(translationStatus.map((status) => status?.to).filter(Boolean))]
-			: [];
+		const availableTranslations = Array.isArray(translationStatus) ? [...new Set(translationStatus)] : [];
 
 		Object.defineProperties(body, {
 			__musixmatchTranslationStatus: {
@@ -175,17 +378,16 @@ export const ProviderMusixmatch = (() => {
 		return body;
 	}
 
-	function parsePerformerData(meta) {
+	function parsePerformerData(meta: TrackMetadata | undefined): PerformerSnippet[] {
 		if (!meta || !meta.track || !meta.track.performer_tagging) {
 			return [];
 		}
 
 		const tagging = meta.track.performer_tagging;
 		const miscTags = meta.track.performer_tagging_misc_tags || {};
-		let performerMap = [];
+		let performerMap: { name: string; snippet?: string; performers: Performer[] }[] = [];
 		if (tagging && tagging.content && tagging.content.length > 0) {
-			const resources = tagging.resources?.artists || [];
-			const resourcesList = Array.isArray(resources) ? resources : Object.values(resources);
+			const resourcesList = tagging.resources.artists;
 
 			performerMap = tagging.content
 				.map((c) => {
@@ -220,12 +422,12 @@ export const ProviderMusixmatch = (() => {
 						performers: resolvedPerformers,
 					};
 				})
-				.filter(Boolean);
+				.filter((tag) => tag !== null);
 		}
 
-		const normalizeForMatch = (text) => text.replace(/\s+/g, "").toLowerCase();
+		const normalizeForMatch = (text: string) => text.replace(/\s+/g, "").toLowerCase();
 
-		const snippetQueue = [];
+		const snippetQueue: PerformerSnippet[] = [];
 		if (performerMap.length > 0) {
 			for (const tag of performerMap) {
 				if (!tag.snippet) continue;
@@ -246,10 +448,12 @@ export const ProviderMusixmatch = (() => {
 		return snippetQueue;
 	}
 
-	function matchSequential(lyricsLines, snippetQueue, getTextCallback = (l) => l.text) {
-		if (!snippetQueue || snippetQueue.length === 0) return lyricsLines;
-
-		const normalizeForMatch = (text) => text.replace(/\s+/g, "").toLowerCase();
+	function matchSequential<Line>(
+		lyricsLines: Line[],
+		snippetQueue: PerformerSnippet[],
+		getTextCallback: (line: Line) => string,
+	): (Line & { performers?: Performer[] })[] {
+		const normalizeForMatch = (text: string) => text.replace(/\s+/g, "").toLowerCase();
 		let queueCursor = 0;
 		const LOOKAHEAD = 5;
 
@@ -257,7 +461,7 @@ export const ProviderMusixmatch = (() => {
 			const lineText = getTextCallback(line) || "♪";
 			let normalizedLine = normalizeForMatch(lineText);
 
-			let matchedPerformers = [];
+			const matchedPerformers: Performer[] = [];
 
 			while (queueCursor < snippetQueue.length) {
 				let matchFoundAtOffset = -1;
@@ -282,7 +486,7 @@ export const ProviderMusixmatch = (() => {
 				}
 			}
 
-			const uniquePerformers = [];
+			const uniquePerformers: Performer[] = [];
 			const sawMap = new Set();
 			for (const p of matchedPerformers) {
 				const key = p.fqid || p.name;
@@ -294,14 +498,14 @@ export const ProviderMusixmatch = (() => {
 
 			return {
 				...line,
-				performers: uniquePerformers,
+				...(snippetQueue.length ? { performers: uniquePerformers } : {}),
 			};
 		});
 	}
 
-	async function getKaraoke(body) {
+	async function getKaraoke(body: MusixmatchLyrics): Promise<KaraokeLine[] | null> {
 		const meta = body?.["matcher.track.get"]?.message?.body;
-		if (!meta) {
+		if (!meta?.track) {
 			return null;
 		}
 
@@ -314,24 +518,15 @@ export const ProviderMusixmatch = (() => {
 			return null;
 		}
 
-		const result = richsyncCall.message.body;
-		let rawKaraoke;
+		const result = richsyncCall.message.body.richsync;
+		let rawKaraoke: unknown;
 		try {
-			rawKaraoke = JSON.parse(result.richsync.richsync_body);
+			rawKaraoke = JSON.parse(result.richsync_body);
 		} catch {
 			return null;
 		}
 
-		if (
-			!Array.isArray(rawKaraoke) ||
-			rawKaraoke.some(
-				(line) =>
-					typeof line?.ts !== "number" ||
-					typeof line?.te !== "number" ||
-					!Array.isArray(line?.l) ||
-					line.l.some((word) => typeof word?.c !== "string" || typeof word?.o !== "number"),
-			)
-		) {
+		if (!Array.isArray(rawKaraoke) || !rawKaraoke.every(isRichsyncLine)) {
 			return null;
 		}
 
@@ -380,9 +575,9 @@ export const ProviderMusixmatch = (() => {
 		});
 	}
 
-	function getSynced(body) {
+	function getSynced(body: MusixmatchLyrics): TimedLyricLine[] | null {
 		const meta = body?.["matcher.track.get"]?.message?.body;
-		if (!meta) {
+		if (!meta?.track) {
 			return null;
 		}
 
@@ -391,7 +586,7 @@ export const ProviderMusixmatch = (() => {
 		const isInstrumental = meta?.track?.instrumental;
 
 		if (isInstrumental) {
-			return [{ text: "♪ Instrumental ♪", startTime: "0000" }];
+			return [{ text: "♪ Instrumental ♪", startTime: 0 }];
 		}
 		if (hasSynced) {
 			const subtitle = body["track.subtitles.get"]?.message?.body?.subtitle_list?.[0]?.subtitle;
@@ -400,7 +595,7 @@ export const ProviderMusixmatch = (() => {
 			}
 
 			const snippetQueue = parsePerformerData(meta);
-			const rawLines = JSON.parse(subtitle.subtitle_body);
+			const rawLines = parseSubtitles(JSON.parse(subtitle.subtitle_body));
 
 			return matchSequential(rawLines, snippetQueue, (l) => l.text).map((line) => {
 				const lineText = line.text || "♪";
@@ -420,9 +615,9 @@ export const ProviderMusixmatch = (() => {
 		return null;
 	}
 
-	function getUnsynced(body) {
+	function getUnsynced(body: MusixmatchLyrics): LyricLine[] | null {
 		const meta = body?.["matcher.track.get"]?.message?.body;
-		if (!meta) {
+		if (!meta?.track) {
 			return null;
 		}
 
@@ -458,7 +653,9 @@ export const ProviderMusixmatch = (() => {
 		return null;
 	}
 
-	async function getTranslation(trackId) {
+	async function getTranslation(
+		trackId: number | null | undefined,
+	): Promise<{ translation: string; matchedLine: string }[] | null> {
 		if (!trackId) return null;
 
 		const selectedLanguage = CONFIG.visual["musixmatch-translation-language"] || "none";
@@ -472,13 +669,13 @@ export const ProviderMusixmatch = (() => {
 			selected_language: selectedLanguage,
 		};
 
-		let result = await request(buildRequestUrl(baseURL, params));
+		const response = await request(buildRequestUrl(baseURL, params));
 
-		if (result?.message?.header?.status_code !== 200) return null;
+		if (response.message?.header?.status_code !== 200) return null;
 
-		result = result.message.body;
+		const result = response.message.body;
 
-		if (!result.translations_list?.length) return null;
+		if (!result?.translations_list?.length) return null;
 
 		return result.translations_list.map(({ translation }) => ({
 			translation: translation.description,
@@ -486,18 +683,22 @@ export const ProviderMusixmatch = (() => {
 		}));
 	}
 
-	let languageMap = null;
-	async function getLanguages() {
+	let languageMap: Record<string, string> | null = null;
+	async function getLanguages(): Promise<Record<string, string>> {
 		if (languageMap) return languageMap;
 
 		try {
 			const cached = localStorage.getItem("lyrics-plus:musixmatch-languages");
 			if (cached) {
-				const tempMap = JSON.parse(cached);
+				const tempMap = record(JSON.parse(cached));
 				// Check cache version
 				if (tempMap.__version === 1) {
 					delete tempMap.__version;
-					languageMap = tempMap;
+					languageMap = Object.fromEntries(
+						Object.entries(tempMap).flatMap(([key, value]) =>
+							typeof value === "string" ? [[key, value]] : [],
+						),
+					);
 					return languageMap;
 				}
 			}
@@ -511,15 +712,16 @@ export const ProviderMusixmatch = (() => {
 		try {
 			const body = await request(buildRequestUrl(baseURL, {}));
 			if (body?.message?.body?.language_list) {
-				languageMap = {};
+				const languages: Record<string, string> = {};
 				body.message.body.language_list.forEach((item) => {
 					const lang = item.language;
 					if (lang.language_name) {
 						const name = lang.language_name.charAt(0).toUpperCase() + lang.language_name.slice(1);
-						if (lang.language_iso_code_1) languageMap[lang.language_iso_code_1] = name;
-						if (lang.language_iso_code_3) languageMap[lang.language_iso_code_3] = name;
+						if (lang.language_iso_code_1) languages[lang.language_iso_code_1] = name;
+						if (lang.language_iso_code_3) languages[lang.language_iso_code_3] = name;
 					}
 				});
+				languageMap = languages;
 				localStorage.setItem(
 					"lyrics-plus:musixmatch-languages",
 					JSON.stringify({ ...languageMap, __version: 1 }),

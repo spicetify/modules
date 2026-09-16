@@ -23,9 +23,10 @@ import {
 	musixmatchTokenListeners,
 	setMusixmatchTokenValid,
 } from "./musixmatch.ts";
-import { createProviders } from "./index.ts";
+import { createProviders, parseCachedLyrics } from "./index.ts";
 import { ProviderNetease } from "./netease.ts";
 import { configureLyricsClient } from "../runtime-client.ts";
+import { CONFIG } from "../config.ts";
 
 describe("import contract", () => {
 	it("all four providers import with no client present", () => {
@@ -57,6 +58,79 @@ describe("import contract", () => {
 	});
 });
 
+describe("ProviderGenius", () => {
+	it("reads verified annotations and nested text from the provider response", async () => {
+		configureLyricsClient({
+			cosmos: {
+				get: async (url) =>
+					url.includes("/annotations/")
+						? { response: { referent: { classification: "verified" } } }
+						: {
+								response: {
+									referent: {
+										annotations: [
+											{
+												body: {
+													dom: {
+														children: [
+															{ children: ["Verified ", { children: ["meaning"] }] },
+															"Second paragraph",
+														],
+													},
+												},
+											},
+										],
+									},
+								},
+							},
+			},
+		});
+		assert.equal(await ProviderGenius.getNote("123"), "Verified meaning\nSecond paragraph");
+	});
+
+	it("keeps the search versions and extracts lyric containers from fetched HTML", async () => {
+		const previousParser = Object.getOwnPropertyDescriptor(globalThis, "DOMParser");
+		const previousRequest = Object.getOwnPropertyDescriptor(window, "sendCosmosRequest");
+		Object.defineProperty(globalThis, "DOMParser", { configurable: true, value: window.DOMParser });
+		window.sendCosmosRequest = ({ onSuccess }) =>
+			onSuccess?.(
+				JSON.stringify({ body: '<main><div data-lyrics-container="true">Hello<br>world</div></main>' }),
+			);
+		configureLyricsClient({
+			cosmos: {
+				get: async () => ({
+					response: {
+						sections: [
+							{
+								hits: [
+									{
+										result: {
+											full_title: "Track by Artist",
+											url: "https://genius.com/artist-track-lyrics",
+										},
+									},
+									{ result: { full_title: "Malformed", url: 42 } },
+								],
+							},
+						],
+					},
+				}),
+			},
+		});
+		try {
+			assert.deepEqual(await ProviderGenius.fetchLyrics({ title: "Track", artist: "Artist" }), {
+				lyrics: "Hello<br>world<br>",
+				versions: [{ title: "Track by Artist", url: "https://genius.com/artist-track-lyrics" }],
+			});
+		} finally {
+			if (previousParser) Object.defineProperty(globalThis, "DOMParser", previousParser);
+			else Reflect.deleteProperty(globalThis, "DOMParser");
+			if (previousRequest) Object.defineProperty(window, "sendCosmosRequest", previousRequest);
+			else Reflect.deleteProperty(window, "sendCosmosRequest");
+		}
+	});
+});
+
 describe("ProviderLRCLIB", () => {
 	const body = JSON.parse(readFileSync(path.join(import.meta.dirname, "__fixtures__", "lrclib-synced.json"), "utf8"));
 
@@ -71,7 +145,9 @@ describe("ProviderLRCLIB", () => {
 	});
 
 	it("returns the instrumental placeholder for instrumental tracks", () => {
-		assert.deepEqual(ProviderLRCLIB.getSynced({ instrumental: true }, 0), [{ text: "♪ Instrumental ♪" }]);
+		assert.deepEqual(ProviderLRCLIB.getSynced({ instrumental: true }, 0), [
+			{ text: "♪ Instrumental ♪", startTime: 0 },
+		]);
 		assert.deepEqual(ProviderLRCLIB.getUnsynced({ instrumental: true }, 0), [{ text: "♪ Instrumental ♪" }]);
 	});
 
@@ -150,7 +226,7 @@ describe("ProviderMusixmatch", () => {
 			ProviderMusixmatch.getSynced({
 				"matcher.track.get": { message: { body: { track: { instrumental: true } } } },
 			}),
-			[{ text: "♪ Instrumental ♪", startTime: "0000" }],
+			[{ text: "♪ Instrumental ♪", startTime: 0 }],
 		);
 		assert.equal(ProviderMusixmatch.getSynced({}), null);
 	});
@@ -262,6 +338,145 @@ describe("ProviderMusixmatch", () => {
 		assert.equal(await ProviderMusixmatch.getKaraoke(withRichsyncBody(JSON.stringify([{ ts: 1, te: 2 }]))), null);
 	});
 
+	it("keeps performer tagging and translation metadata when decoding macro calls", async () => {
+		configureLyricsClient({
+			cosmos: {
+				get: async () => ({
+					message: {
+						header: { status_code: 200 },
+						body: {
+							macro_calls: {
+								"matcher.track.get": {
+									message: {
+										header: { status_code: 200 },
+										body: {
+											track: {
+												track_id: 42,
+												has_subtitles: 1,
+												track_lyrics_translation_status: [
+													{ to: "fr" },
+													{ to: "fr" },
+													{ to: "ja" },
+												],
+												performer_tagging: {
+													content: [
+														{
+															snippet: "Line one",
+															performers: [{ type: "artist", fqid: "artist:id:7" }],
+														},
+													],
+													resources: {
+														artists: { lead: { artist_id: 7, artist_name: "Singer" } },
+													},
+												},
+											},
+										},
+									},
+								},
+								"track.subtitles.get": body["track.subtitles.get"],
+							},
+						},
+					},
+				}),
+			},
+		});
+		const lyrics = await ProviderMusixmatch.findLyrics({
+			uri: "spotify:track:test",
+			title: "Track",
+			artist: "Singer",
+			album: "Album",
+			duration: 3000,
+		});
+		assert.deepEqual(lyrics.__musixmatchTranslationStatus, ["fr", "ja"]);
+		assert.equal(lyrics.__musixmatchTrackId, 42);
+		assert.deepEqual(ProviderMusixmatch.getSynced(lyrics), [
+			{ text: "Line one", startTime: 12300, performer: "Singer" },
+			{ text: "Line two", startTime: 15000, performer: null },
+		]);
+	});
+
+	it("refreshes an expired token once and decodes the retried translation", async () => {
+		const token = CONFIG.providers.musixmatch.token;
+		const language = CONFIG.visual["musixmatch-translation-language"];
+		const storedToken = localStorage.getItem("lyrics-plus:provider:musixmatch:token");
+		const requests: URL[] = [];
+		CONFIG.visual["musixmatch-translation-language"] = "fr";
+		configureLyricsClient({
+			cosmos: {
+				get: async (url) => {
+					const request = new URL(url);
+					requests.push(request);
+					if (request.pathname.endsWith("token.get"))
+						return {
+							message: { header: { status_code: 200 }, body: { user_token: "refreshed-test-token" } },
+						};
+					if (request.searchParams.get("usertoken") !== "refreshed-test-token")
+						return { message: { header: { status_code: 401 } } };
+					return {
+						message: {
+							header: { status_code: 200 },
+							body: {
+								translations_list: [{ translation: { description: "Bonjour", matched_line: "Hello" } }],
+							},
+						},
+					};
+				},
+			},
+		});
+		try {
+			assert.deepEqual(await ProviderMusixmatch.getTranslation(42), [
+				{ translation: "Bonjour", matchedLine: "Hello" },
+			]);
+			assert.equal(requests.length, 3);
+			assert.equal(requests.filter((request) => request.pathname.endsWith("token.get")).length, 1);
+			assert.equal(requests[2].searchParams.get("selected_language"), "fr");
+		} finally {
+			CONFIG.providers.musixmatch.token = token;
+			CONFIG.visual["musixmatch-translation-language"] = language;
+			if (storedToken === null) localStorage.removeItem("lyrics-plus:provider:musixmatch:token");
+			else localStorage.setItem("lyrics-plus:provider:musixmatch:token", storedToken);
+		}
+	});
+
+	it("does not cache an absent language list as a successful empty result", async () => {
+		const cached = localStorage.getItem("lyrics-plus:musixmatch-languages");
+		localStorage.removeItem("lyrics-plus:musixmatch-languages");
+		let requests = 0;
+		configureLyricsClient({
+			cosmos: {
+				get: async () => {
+					requests++;
+					return requests === 1
+						? { message: { header: { status_code: 200 }, body: {} } }
+						: {
+								message: {
+									header: { status_code: 200 },
+									body: {
+										language_list: [
+											{
+												language: {
+													language_name: "french",
+													language_iso_code_1: "fr",
+													language_iso_code_3: "fra",
+												},
+											},
+										],
+									},
+								},
+							};
+				},
+			},
+		});
+		try {
+			assert.deepEqual(await ProviderMusixmatch.getLanguages(), {});
+			assert.deepEqual(await ProviderMusixmatch.getLanguages(), { fr: "French", fra: "French" });
+			assert.equal(requests, 2);
+		} finally {
+			if (cached === null) localStorage.removeItem("lyrics-plus:musixmatch-languages");
+			else localStorage.setItem("lyrics-plus:musixmatch-languages", cached);
+		}
+	});
+
 	it("token state notifies subscribers only on real transitions", () => {
 		const seen: boolean[] = [];
 		const listener = (v: boolean) => seen.push(v);
@@ -299,14 +514,56 @@ describe("createProviders registry", () => {
 	it("local resolves stored lyrics and reports 'No lyrics' otherwise", () => {
 		localStorage.setItem(
 			"lyrics-plus:local-lyrics",
-			JSON.stringify({ "spotify:track:x": { synced: [{ text: "hi" }] } }),
+			JSON.stringify({ "spotify:track:x": { synced: [{ text: "hi", startTime: 0 }] } }),
 		);
 		const hit = providers.local({ uri: "spotify:track:x" });
-		assert.deepEqual(hit.synced, [{ text: "hi" }]);
+		assert.deepEqual(hit.synced, [{ text: "hi", startTime: 0 }]);
 		assert.equal(hit.provider, "local");
-		const miss = providers.local({ uri: "spotify:track:absent" }) as { error?: string };
+		const miss = providers.local({ uri: "spotify:track:absent" });
 		assert.equal(miss.error, "No lyrics");
 		localStorage.removeItem("lyrics-plus:local-lyrics");
+	});
+
+	it("normalizes Spotify timestamp strings and drops unusable timed lines", async () => {
+		configureLyricsClient({
+			cosmos: {
+				get: async () => ({
+					lyrics: {
+						syncType: "LINE_SYNCED",
+						lines: [
+							{ words: "Hello", startTimeMs: "1200" },
+							{ words: "World", startTimeMs: 2400 },
+							{ words: "Invalid", startTimeMs: "not a time" },
+						],
+					},
+				}),
+			},
+		});
+		const lyrics = await providers.spotify({ uri: "spotify:track:test" });
+		assert.deepEqual(lyrics.synced, [
+			{ text: "Hello", startTime: 1200 },
+			{ text: "World", startTime: 2400 },
+		]);
+		assert.equal(lyrics.unsynced, lyrics.synced);
+	});
+
+	it("rejects malformed cached timings and preserves saved translation metadata", () => {
+		assert.equal(parseCachedLyrics({ synced: [{ text: "missing timestamp" }] }), null);
+		assert.equal(parseCachedLyrics({ karaoke: [{ startTime: 0, text: [{ word: "bad", time: "100" }] }] }), null);
+		const cached = parseCachedLyrics({
+			synced: [{ text: "Hello", startTime: 1200 }],
+			musixmatchTranslation: [{ text: "Bonjour", originalText: "Hello", startTime: 1200 }],
+			musixmatchAvailableTranslations: ["fr"],
+			musixmatchTrackId: 42,
+			musixmatchTranslationLanguage: "fr",
+			provider: "Musixmatch",
+			copyright: "Copyright",
+		});
+		assert.equal(cached?.provider, "Musixmatch");
+		assert.equal(cached?.copyright, "Copyright");
+		assert.equal(cached?.musixmatchTranslation?.[0].text, "Bonjour");
+		assert.deepEqual(cached?.musixmatchAvailableTranslations, ["fr"]);
+		assert.equal(cached?.musixmatchTrackId, 42);
 	});
 
 	it("imports clean with stub deps - client policy is injected, not read", () => {

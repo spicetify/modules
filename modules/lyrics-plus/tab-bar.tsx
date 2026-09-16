@@ -3,23 +3,38 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // TabBar.js — the provider tab bar rendered into the top bar.
 
+import type * as ReactTypes from "react";
 import { client, React as react } from "/modules/stdlib/mod.ts";
 import { OptionsMenu } from "./options-menu.tsx";
 
 const { useState, useEffect } = react;
 const spotifyVersion = client.platform.version;
 
-export class TabBarItem extends react.Component {
-	onSelect(event) {
+interface TabOption {
+	key: string;
+	value: string;
+	active: boolean;
+}
+interface TabActions {
+	switchTo: (key: string) => void;
+	lockIn: (key: string) => void;
+}
+interface TabBarProps {
+	links: string[];
+	activeLink?: string;
+	lockLink?: string;
+	switchCallback: (key: string) => void;
+	lockCallback: (key: string) => void;
+	windowSize?: number;
+}
+export class TabBarItem extends react.Component<TabActions & { item: TabOption }> {
+	onSelect(event: ReactTypes.MouseEvent) {
 		event.preventDefault();
 		this.props.switchTo(this.props.item.key);
 	}
-	onLock(event) {
+	onLock(event: ReactTypes.MouseEvent) {
 		event.preventDefault();
 		this.props.lockIn(this.props.item.key);
 	}
@@ -52,10 +67,10 @@ export class TabBarItem extends react.Component {
 	}
 }
 
-export const TabBarMore = react.memo(({ items, switchTo, lockIn }) => {
+export const TabBarMore = react.memo(({ items, switchTo, lockIn }: TabActions & { items: TabOption[] }) => {
 	const activeItem = items.find((item) => item.active);
 
-	function onLock(event) {
+	function onLock(event: ReactTypes.MouseEvent) {
 		event.preventDefault();
 		if (activeItem) {
 			lockIn(activeItem.key);
@@ -78,7 +93,7 @@ export const TabBarMore = react.memo(({ items, switchTo, lockIn }) => {
 	);
 });
 
-export const TopBarContent = ({ links, activeLink, lockLink, switchCallback, lockCallback }) => {
+export const TopBarContent = ({ links, activeLink, lockLink, switchCallback, lockCallback }: TabBarProps) => {
 	const resizeHost = document.querySelector(
 		".Root__main-view .os-resize-observer-host, .Root__main-view .os-size-observer, .Root__main-view .main-view-container__scroll-node",
 	);
@@ -98,7 +113,6 @@ export const TopBarContent = ({ links, activeLink, lockLink, switchCallback, loc
 		TabBarContext,
 		null,
 		react.createElement(TabBar, {
-			className: "queue-queueHistoryTopBar-tabBar",
 			links,
 			activeLink,
 			lockLink,
@@ -109,7 +123,7 @@ export const TopBarContent = ({ links, activeLink, lockLink, switchCallback, loc
 	);
 };
 
-export const TabBarContext = ({ children }) => {
+export const TabBarContext = ({ children }: { children?: ReactTypes.ReactNode }) => {
 	const content = react.createElement(
 		"div",
 		{
@@ -124,13 +138,20 @@ export const TabBarContext = ({ children }) => {
 };
 
 export const TabBar = react.memo(
-	({ links, activeLink, lockLink, switchCallback, lockCallback, windowSize = Number.POSITIVE_INFINITY }) => {
-		const tabBarRef = react.useRef(null);
-		const [childrenSizes, setChildrenSizes] = useState([]);
+	({
+		links,
+		activeLink,
+		lockLink,
+		switchCallback,
+		lockCallback,
+		windowSize = Number.POSITIVE_INFINITY,
+	}: TabBarProps) => {
+		const tabBarRef = react.useRef<HTMLUListElement>(null);
+		const [childrenSizes, setChildrenSizes] = useState<number[]>([]);
 		const [availableSpace, setAvailableSpace] = useState(0);
-		const [droplistItem, setDroplistItems] = useState([]);
+		const [droplistItem, setDroplistItems] = useState<number[]>([]);
 
-		const options = [];
+		const options: TabOption[] = [];
 		for (let i = 0; i < links.length; i++) {
 			const key = links[i];
 			if (spotifyVersion >= "1.2.31" && key === "genius") continue;
@@ -174,7 +195,7 @@ export const TabBar = react.memo(
 
 			// Figure out how many children we can render while also showing
 			// the More button
-			const itemsToHide = [];
+			const itemsToHide: number[] = [];
 			let stopWidth = viewMoreButtonSize;
 
 			childrenSizes.forEach((childWidth, i) => {

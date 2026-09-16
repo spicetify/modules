@@ -3,18 +3,35 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // LRCLIB: free synced/unsynced lyrics. getSynced/getUnsynced take the track
 // duration explicitly (the karaoke end-time fallback) so this file stays
 // client-free outside findLyrics — the caller passes the playing track's
 // duration, never the prefetched next track's (plan KTD5a).
 
+import type { LyricLine, TimedLyricLine, TrackInfo } from "../types.ts";
+
 import { parseLocalLyrics } from "../utils.ts";
 
+interface LRCLIBLyrics {
+	instrumental?: boolean;
+	plainLyrics?: string;
+	syncedLyrics?: string;
+	error?: string;
+	uri?: string;
+}
+
+function parseLyrics(value: unknown): LRCLIBLyrics {
+	if (!value || typeof value !== "object") return {};
+	return {
+		instrumental: "instrumental" in value && value.instrumental === true,
+		plainLyrics: "plainLyrics" in value && typeof value.plainLyrics === "string" ? value.plainLyrics : undefined,
+		syncedLyrics:
+			"syncedLyrics" in value && typeof value.syncedLyrics === "string" ? value.syncedLyrics : undefined,
+	};
+}
+
 export const ProviderLRCLIB = (() => {
-	async function findLyrics(info, spicetifyVersion) {
+	async function findLyrics(info: TrackInfo, spicetifyVersion?: string): Promise<LRCLIBLyrics> {
 		const baseURL = "https://lrclib.net/api/get";
 		const durr = info.duration / 1000;
 		const params = {
@@ -24,8 +41,8 @@ export const ProviderLRCLIB = (() => {
 			duration: durr,
 		};
 
-		const finalURL = `${baseURL}?${Object.keys(params)
-			.map((key) => `${key}=${encodeURIComponent(params[key])}`)
+		const finalURL = `${baseURL}?${Object.entries(params)
+			.map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
 			.join("&")}`;
 
 		const body = await fetch(finalURL, {
@@ -41,10 +58,10 @@ export const ProviderLRCLIB = (() => {
 			};
 		}
 
-		return await body.json();
+		return parseLyrics(await body.json());
 	}
 
-	function getUnsynced(body, trackDurationMs) {
+	function getUnsynced(body: LRCLIBLyrics, trackDurationMs: number): LyricLine[] | null {
 		const unsyncedLyrics = body?.plainLyrics;
 		const isInstrumental = body.instrumental;
 		if (isInstrumental) return [{ text: "♪ Instrumental ♪" }];
@@ -54,10 +71,10 @@ export const ProviderLRCLIB = (() => {
 		return parseLocalLyrics(unsyncedLyrics, trackDurationMs).unsynced;
 	}
 
-	function getSynced(body, trackDurationMs) {
+	function getSynced(body: LRCLIBLyrics, trackDurationMs: number): TimedLyricLine[] | null {
 		const syncedLyrics = body?.syncedLyrics;
 		const isInstrumental = body.instrumental;
-		if (isInstrumental) return [{ text: "♪ Instrumental ♪" }];
+		if (isInstrumental) return [{ text: "♪ Instrumental ♪", startTime: 0 }];
 
 		if (!syncedLyrics) return null;
 

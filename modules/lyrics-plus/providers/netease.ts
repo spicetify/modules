@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // NetEase: crowdsourced karaoke/synced/translated lyrics. The Han
 // simplification helper is injected by the caller (it constructs a
 // Translator, which is deliberately not part of this slice — plan KTD6).
@@ -13,20 +10,79 @@
 import { capitalize, containsHanCharacter, normalize, removeExtraInfo, removeSongFeat } from "../utils.ts";
 import { lyricsClient as client } from "../runtime-client.ts";
 
+import type { KaraokeLine, LyricLine, LyricWord, TimedLyricLine, TrackInfo } from "../types.ts";
+
+interface NeteaseLyrics {
+	klyric?: { lyric?: string };
+	lrc?: { lyric?: string };
+	tlyric?: { lyric?: string };
+}
+
+function parseLyrics(value: unknown): NeteaseLyrics {
+	if (!value || typeof value !== "object") return {};
+	function lyric(part: unknown): { lyric?: string } | undefined {
+		return part && typeof part === "object" && "lyric" in part && typeof part.lyric === "string"
+			? { lyric: part.lyric }
+			: undefined;
+	}
+	return {
+		klyric: lyric("klyric" in value ? value.klyric : undefined),
+		lrc: lyric("lrc" in value ? value.lrc : undefined),
+		tlyric: lyric("tlyric" in value ? value.tlyric : undefined),
+	};
+}
+
+interface NeteaseSong {
+	id: number;
+	name: string;
+	duration: number;
+	album: { name: string };
+}
+
+function isSong(value: unknown): value is NeteaseSong {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"id" in value &&
+		typeof value.id === "number" &&
+		"name" in value &&
+		typeof value.name === "string" &&
+		"duration" in value &&
+		typeof value.duration === "number" &&
+		"album" in value &&
+		!!value.album &&
+		typeof value.album === "object" &&
+		"name" in value.album &&
+		typeof value.album.name === "string"
+	);
+}
+
 export const ProviderNetease = (() => {
 	const requestHeader = {
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:93.0) Gecko/20100101 Firefox/93.0",
 	};
 
-	async function findLyrics(info, toSimplifiedChinese) {
+	async function findLyrics(
+		info: TrackInfo,
+		toSimplifiedChinese: (value: string) => Promise<string>,
+	): Promise<NeteaseLyrics> {
 		const searchURL = "https://music.xianqiao.wang/neteaseapiv2/search?limit=10&type=1&keywords=";
 		const lyricURL = "https://music.xianqiao.wang/neteaseapiv2/lyric?id=";
 
 		const cleanTitle = removeExtraInfo(removeSongFeat(normalize(info.title)));
 		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
-		const searchResults = await client.cosmos.get(finalURL, null, requestHeader);
-		const items = searchResults.result.songs;
+		const searchResults: unknown = await client.cosmos.get(finalURL, undefined, requestHeader);
+		const items =
+			searchResults &&
+			typeof searchResults === "object" &&
+			"result" in searchResults &&
+			searchResults.result &&
+			typeof searchResults.result === "object" &&
+			"songs" in searchResults.result &&
+			Array.isArray(searchResults.result.songs)
+				? searchResults.result.songs.filter(isSong)
+				: [];
 		if (!items?.length) {
 			throw "Cannot find track";
 		}
@@ -41,7 +97,7 @@ export const ProviderNetease = (() => {
 		if (itemId === -1) itemId = items.findIndex((val) => val.name === cleanTitle);
 		if (itemId === -1) throw "Cannot find track";
 
-		return await client.cosmos.get(lyricURL + items[itemId].id, null, requestHeader);
+		return parseLyrics(await client.cosmos.get(lyricURL + items[itemId].id, undefined, requestHeader));
 	}
 
 	const creditInfo = [
@@ -52,11 +108,11 @@ export const ProviderNetease = (() => {
 	];
 	const creditInfoRegExp = new RegExp(`^(${creditInfo.join("|")}).*(:|：)`, "i");
 
-	function containCredits(text) {
+	function containCredits(text: string) {
 		return creditInfoRegExp.test(text);
 	}
 
-	function parseTimestamp(line) {
+	function parseTimestamp(line: string): { text: string; time?: string } {
 		// ["[ar:Beyond]"]
 		// ["[03:10]"]
 		// ["[03:10]", "lyrics"]
@@ -81,7 +137,7 @@ export const ProviderNetease = (() => {
 		return { time, text };
 	}
 
-	function breakdownLine(text) {
+	function breakdownLine(text: string): LyricWord[] {
 		// (0,508)Don't(0,1) (0,151)want(0,1) (0,162)to(0,1) (0,100)be(0,1) (0,157)an(0,1)
 		const components = text.split(/\(\d+,(\d+)\)/g);
 		// ["", "508", "Don't", "1", " ", "151", "want" , "1" ...]
@@ -96,7 +152,7 @@ export const ProviderNetease = (() => {
 		return result;
 	}
 
-	function getKaraoke(list) {
+	function getKaraoke(list: NeteaseLyrics): KaraokeLine[] | null {
 		const lyricStr = list?.klyric?.lyric;
 
 		if (!lyricStr) {
@@ -121,7 +177,7 @@ export const ProviderNetease = (() => {
 				}
 				return null;
 			})
-			.filter(Boolean);
+			.filter((line) => line !== null);
 
 		if (!karaoke.length) {
 			return null;
@@ -130,7 +186,7 @@ export const ProviderNetease = (() => {
 		return karaoke;
 	}
 
-	function getSynced(list) {
+	function getSynced(list: NeteaseLyrics): TimedLyricLine[] | null {
 		const lyricStr = list?.lrc?.lyric;
 		let noLyrics = false;
 
@@ -155,7 +211,7 @@ export const ProviderNetease = (() => {
 				}
 				return null;
 			})
-			.filter(Boolean);
+			.filter((line) => line !== null);
 
 		if (!lyrics.length || noLyrics) {
 			return null;
@@ -163,7 +219,7 @@ export const ProviderNetease = (() => {
 		return lyrics;
 	}
 
-	function getTranslation(list) {
+	function getTranslation(list: NeteaseLyrics): TimedLyricLine[] | null {
 		const lyricStr = list?.tlyric?.lyric;
 
 		if (!lyricStr) {
@@ -186,7 +242,7 @@ export const ProviderNetease = (() => {
 				}
 				return null;
 			})
-			.filter(Boolean);
+			.filter((line) => line !== null);
 
 		if (!translation.length) {
 			return null;
@@ -194,7 +250,7 @@ export const ProviderNetease = (() => {
 		return translation;
 	}
 
-	function getUnsynced(list) {
+	function getUnsynced(list: NeteaseLyrics): LyricLine[] | null {
 		const lyricStr = list?.lrc?.lyric;
 		let noLyrics = false;
 
@@ -210,7 +266,7 @@ export const ProviderNetease = (() => {
 				if (!parsed.text || containCredits(parsed.text)) return null;
 				return parsed;
 			})
-			.filter(Boolean);
+			.filter((line) => line !== null);
 
 		if (!lyrics.length || noLyrics) {
 			return null;

@@ -10,11 +10,6 @@
  * one module. render() is replaced by the v3 registrar mounting at the bottom.
  */
 
-// @ts-nocheck — this is a faithful port of ~5.3k lines of upstream lyrics-plus
-// JavaScript, maintained untyped across the ecosystem. Hand-annotating it would
-// be disproportionate and fragile; correctness is verified live against the
-// running client instead. oxlint still lints this file for real defects.
-
 import {
 	client,
 	createRegistrar,
@@ -38,21 +33,27 @@ import {
 	UNSYNCED,
 } from "./config.ts";
 import * as UtilsPure from "./utils.ts";
+import { translationMode, renderedLines, plainLines, mergeProviderResult } from "./container-state.ts";
+import type { CSSProperties, ReactNode, ReactElement, ChangeEvent } from "react";
+import {
+	type DisplayLyricLine,
+	type RenderedLyricLine,
+	type LyricLine,
+	type LyricMode,
+	type TranslationMode,
+	type LyricsLanguage,
+	type TrackInfo,
+	type ProviderResult,
+	type GeniusVersion,
+} from "./types.ts";
 import { ProviderGenius } from "./providers/genius.ts";
-import { createProviders } from "./providers/index.ts";
+import { createProviders, parseCachedLyrics } from "./providers/index.ts";
 import { AdjustmentsMenu, TranslationMenu } from "./options-menu.tsx";
 import { TopBarContent } from "./tab-bar.tsx";
 import { LyricsPlusSettings, openLyricsPlusAppearanceSettings } from "./settings.tsx";
 import { lyricsReplacementReady, mountLyricsPlaybarStyleWhenReady, watchLyricsHistory } from "./playbar-lifecycle.ts";
 import type { LyricsHistory } from "./playbar-lifecycle.ts";
-import {
-	emptyLine,
-	GeniusPage,
-	LoadingIcon,
-	SyncedExpandedLyricsPage,
-	SyncedLyricsPage,
-	UnsyncedLyricsPage,
-} from "./pages.tsx";
+import { GeniusPage, LoadingIcon, SyncedExpandedLyricsPage, SyncedLyricsPage, UnsyncedLyricsPage } from "./pages.tsx";
 import { ProviderMusixmatch } from "./providers/musixmatch.ts";
 import { configureLyricsClient } from "./runtime-client.ts";
 
@@ -71,7 +72,75 @@ const ICON =
 // APP_NAME, the mode constants, getConfig and the CONFIG singleton now live
 // in ./config.ts.
 
-let CACHE = {};
+type TranslationState = Partial<Record<TranslationMode, RenderedLyricLine[] | null>>;
+type CachedLyrics = ProviderResult & TranslationState;
+interface LyricsState extends CachedLyrics {
+	currentLyrics: DisplayLyricLine[] | null;
+	colors: { background: string; inactive: string };
+	tempo: string;
+	explicitMode: number;
+	lockMode: number;
+	mode: number;
+	isLoading: boolean;
+	versionIndex: number;
+	versionIndex2: number;
+	isFullscreen: boolean;
+	isFADMode: boolean;
+	isCached: boolean;
+	language: LyricsLanguage | null;
+}
+interface Track {
+	uri: string;
+	metadata?: {
+		duration?: string | number;
+		album_title: string;
+		artist_name: string;
+		title: string;
+		image_url?: string;
+	};
+}
+interface QueueEvent {
+	data: { current: Track; queued?: Track[]; nextUp?: Track[] };
+}
+type QueueListener = (event: QueueEvent) => void;
+interface QueueEvents {
+	addListener(event: "queue_update", listener: QueueListener): void;
+	removeListener(event: "queue_update", listener: QueueListener): void;
+}
+function isQueueEvents(value: unknown): value is QueueEvents {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		"addListener" in value &&
+		typeof value.addListener === "function" &&
+		"removeListener" in value &&
+		typeof value.removeListener === "function"
+	);
+}
+function queueEvents(): QueueEvents {
+	const player = client.player;
+	if (!("origin" in player) || !player.origin || typeof player.origin !== "object" || !("_events" in player.origin)) {
+		throw new TypeError("Player queue events are unavailable");
+	}
+	const events = player.origin._events;
+	if (!isQueueEvents(events)) throw new TypeError("Player queue events are unavailable");
+	return events;
+}
+function tooltip(label: string, children: ReactElement) {
+	return react.createElement(Tooltip, { label, children });
+}
+function cachedLocalLyrics(): Record<string, unknown> {
+	const stored: unknown = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`) ?? "null");
+	return stored && typeof stored === "object" && !Array.isArray(stored)
+		? Object.fromEntries(Object.entries(stored))
+		: {};
+}
+interface Mousetrap {
+	bind(key: string, callback: () => void): void;
+	unbind(key: string): void;
+	reset(): void;
+}
+let CACHE: Record<string, CachedLyrics> = {};
 
 const emptyState = {
 	karaoke: null,
@@ -87,92 +156,89 @@ const emptyState = {
 
 import * as sharedCallbacks from "./shared-callbacks.ts";
 
-function resolveTranslationSource(source) {
-	if (typeof source !== "string") {
-		return { key: source, language: null };
-	}
-
+function resolveTranslationSource(source: string): {
+	key: "musixmatchTranslation" | "neteaseTranslation" | undefined;
+	language: string | null;
+} {
 	if (source.startsWith(MUSIXMATCH_TRANSLATION_PREFIX)) {
 		const language = source.slice(MUSIXMATCH_TRANSLATION_PREFIX.length) || null;
 		return { key: "musixmatchTranslation", language };
 	}
 
-	return { key: source, language: null };
+	return { key: source === "neteaseTranslation" ? source : undefined, language: null };
 }
 
 // ============================================================================
 // Utils.js
 // ============================================================================
 
-const Utils = {
-	addQueueListener(callback) {
-		client.player.origin._events.addListener("queue_update", callback);
-	},
-	removeQueueListener(callback) {
-		client.player.origin._events.removeListener("queue_update", callback);
-	},
-	/**
-	 * Singleton Translator instance for {@link toSimplifiedChinese}.
-	 *
-	 * @type {Translator | null}
-	 */
-	set translator(translator) {
-		this._translatorInstance = translator;
-	},
-	_translatorInstance: null,
-	/**
-	 * Convert all Han characters to Simplified Chinese.
-	 *
-	 * Choosing Simplified Chinese makes the converted result more accurate,
-	 * as the conversion from SC to TC may have multiple possibilities,
-	 * while the conversion from TC to SC usually has only one possibility.
-	 *
-	 * @param {string} s
-	 * @returns {Promise<string>}
-	 */
-	async toSimplifiedChinese(s) {
-		// create a singleton Translator instance
-		if (!this._translatorInstance) this.translator = new Translator("zh", true);
+let simplifiedChineseTranslator: Translator | null = null;
+const Utils = Object.assign(
+	{
+		addQueueListener(callback: QueueListener) {
+			queueEvents().addListener("queue_update", callback);
+		},
+		removeQueueListener(callback: QueueListener) {
+			queueEvents().removeListener("queue_update", callback);
+		},
+		/**
+		 * Singleton Translator instance for {@link toSimplifiedChinese}.
+		 *
+		 * @type {Translator | null}
+		 */
+		set translator(translator: Translator) {
+			simplifiedChineseTranslator = translator;
+		},
+		/**
+		 * Convert all Han characters to Simplified Chinese.
+		 *
+		 * Choosing Simplified Chinese makes the converted result more accurate,
+		 * as the conversion from SC to TC may have multiple possibilities,
+		 * while the conversion from TC to SC usually has only one possibility.
+		 *
+		 * @param {string} s
+		 * @returns {Promise<string>}
+		 */
+		async toSimplifiedChinese(s: string) {
+			// create a singleton Translator instance
+			const translator = simplifiedChineseTranslator ?? new Translator("zh", true);
+			this.translator = translator;
 
-		// translate to Simplified Chinese
-		// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
-		return this._translatorInstance.convertChinese(s, "t", "cn");
-	},
-	processTranslatedLyrics(translated, original) {
-		return original.map((lyric, index) => ({
-			startTime: lyric.startTime || 0,
-			text: this.rubyTextToReact(translated[index]),
-			originalText: lyric.text,
-		}));
-	},
-	rubyTextToOriginalReact(translated, syncedText) {
-		const react = client.react;
-		return react.createElement("p1", null, [
-			react.createElement("ruby", {}, syncedText, react.createElement("rt", null, translated)),
-		]);
-	},
-	rubyTextToReact(s) {
-		const react = client.react;
-		const rubyElems = s.split("<ruby>");
-		const reactChildren = [];
+			// translate to Simplified Chinese
+			// as Traditional Chinese differs between HK and TW, forcing to use OpenCC standard
+			return translator.convertChinese(s, "t", "cn");
+		},
+		processTranslatedLyrics(translated: string[], original: LyricLine[]) {
+			return original.map((lyric, index) => ({
+				startTime: lyric.startTime || 0,
+				text: this.rubyTextToReact(translated[index]),
+				originalText: lyric.text,
+			}));
+		},
+		rubyTextToOriginalReact(translated: string, syncedText: string) {
+			const react = client.react;
+			return react.createElement("p1", null, [
+				react.createElement("ruby", {}, syncedText, react.createElement("rt", null, translated)),
+			]);
+		},
+		rubyTextToReact(s: string) {
+			const react = client.react;
+			const rubyElems = s.split("<ruby>");
+			const reactChildren: ReactNode[] = [];
 
-		if (rubyElems[0] !== "") reactChildren.push(rubyElems[0]);
-		for (let i = 1; i < rubyElems.length; i++) {
-			const kanji = rubyElems[i].split("<rp>")[0];
-			const furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];
-			reactChildren.push(react.createElement("ruby", null, kanji, react.createElement("rt", null, furigana)));
+			if (rubyElems[0] !== "") reactChildren.push(rubyElems[0]);
+			for (let i = 1; i < rubyElems.length; i++) {
+				const kanji = rubyElems[i].split("<rp>")[0];
+				const furigana = rubyElems[i].split("<rt>")[1].split("</rt>")[0];
+				reactChildren.push(react.createElement("ruby", null, kanji, react.createElement("rt", null, furigana)));
 
-			reactChildren.push(rubyElems[i].split("</ruby>")[1]);
-		}
-		return react.createElement("p1", null, reactChildren);
+				reactChildren.push(rubyElems[i].split("</ruby>")[1]);
+			}
+			return react.createElement("p1", null, reactChildren);
+		},
 	},
-};
-
-// Re-attach the extracted helpers so the existing `Utils.*` call sites stay
-// unchanged. Object.assign rather than spreading into a new literal: the
-// `translator` setter above is an accessor, and a spread would flatten it to a
-// plain value and break toSimplifiedChinese.
-Object.assign(Utils, UtilsPure);
+	UtilsPure,
+);
 
 // parseLocalLyrics used to read this itself. It is passed in now so the parser
 // stays client-free; this helper keeps the value identical to what it read.
@@ -220,9 +286,27 @@ const Providers = createProviders({
 // index.js — LyricsContainer class
 // ============================================================================
 
-class LyricsContainer extends react.Component {
-	constructor() {
-		super();
+class LyricsContainer extends react.Component<Record<string, never>, LyricsState> {
+	declare state: LyricsState;
+	currentTrackUri: string;
+	nextTrackUri: string;
+	availableModes: LyricMode[];
+	styleVariables: CSSProperties & Record<`--${string}`, string>;
+	fullscreenContainer: HTMLDivElement;
+	mousetrap: Mousetrap | null;
+	translator: Translator | null;
+	languageOverride: string;
+	translate: boolean;
+	reRenderLyricsPage: boolean;
+	displayMode: TranslationMode | null | undefined;
+	currentMusixmatchLanguage: string;
+	_musixmatchTranslationRequestId: symbol | null;
+	viewPort: Element | null = null;
+	onQueueChange: QueueListener = () => {};
+	onFontSizeChange: (event: WheelEvent) => void = () => {};
+	toggleFullscreen: () => void = () => {};
+	constructor(props: Record<string, never>) {
+		super(props);
 		this.state = {
 			karaoke: null,
 			synced: null,
@@ -269,7 +353,6 @@ class LyricsContainer extends react.Component {
 		this.fullscreenContainer = document.createElement("div");
 		this.fullscreenContainer.id = "lyrics-fullscreen-container";
 		this.mousetrap = null;
-		this.containerRef = react.createRef(null);
 		this.translator = null;
 		this.initMoustrap();
 		// Cache last state
@@ -281,7 +364,7 @@ class LyricsContainer extends react.Component {
 		this._musixmatchTranslationRequestId = null;
 	}
 
-	infoFromTrack(track) {
+	infoFromTrack(track: Track | null | undefined): TrackInfo | null {
 		const meta = track?.metadata;
 		if (!meta) {
 			return null;
@@ -296,7 +379,7 @@ class LyricsContainer extends react.Component {
 		};
 	}
 
-	async fetchColors(uri) {
+	async fetchColors(uri: string) {
 		let vibrant = 0;
 		try {
 			try {
@@ -309,7 +392,7 @@ class LyricsContainer extends react.Component {
 					`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`,
 				);
 				vibrant = colors.entries[0].color_swatches.find(
-					(color) => color.preset === "VIBRANT_NON_ALARMING",
+					(color: { preset: string; color: number }) => color.preset === "VIBRANT_NON_ALARMING",
 				).color;
 			}
 		} catch {
@@ -324,7 +407,7 @@ class LyricsContainer extends react.Component {
 		});
 	}
 
-	async fetchTempo(uri) {
+	async fetchTempo(uri: string) {
 		const audio = await client.cosmos.get(
 			`https://spclient.wg.spotify.com/audio-attributes/v1/audio-features/${uri.split(":")[2]}?format=json`,
 		);
@@ -472,9 +555,9 @@ class LyricsContainer extends react.Component {
 		finishRequest();
 	}
 
-	async tryServices(trackInfo, mode = -1) {
-		const currentMode = CONFIG.modes[mode] || "";
-		let finalData = { ...emptyState, uri: trackInfo.uri };
+	async tryServices(trackInfo: TrackInfo, mode = -1): Promise<ProviderResult> {
+		const currentMode = CONFIG.modes[mode];
+		let finalData: ProviderResult = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
@@ -494,20 +577,12 @@ class LyricsContainer extends react.Component {
 				return finalData;
 			}
 
-			if (!data[currentMode]) {
-				for (const key in data) {
-					if (!finalData[key]) {
-						finalData[key] = data[key];
-					}
-				}
+			if (!currentMode || !data[currentMode]) {
+				mergeProviderResult(finalData, data);
 				continue;
 			}
 
-			for (const key in data) {
-				if (!finalData[key]) {
-					finalData[key] = data[key];
-				}
-			}
+			mergeProviderResult(finalData, data);
 
 			if (data.provider !== "local" && finalData.provider && finalData.provider !== data.provider) {
 				const styledMode = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
@@ -520,11 +595,12 @@ class LyricsContainer extends react.Component {
 				typeof finalData.musixmatchTranslation[0].startTime === "undefined" &&
 				finalData.synced
 			) {
+				const translation = finalData.musixmatchTranslation;
 				finalData.musixmatchTranslation = finalData.synced.map((line) => ({
 					...line,
 					text:
-						finalData.musixmatchTranslation.find(
-							(l) => Utils.processLyrics(l.originalText) === Utils.processLyrics(line.text),
+						translation.find(
+							(l) => Utils.processLyrics(l.originalText ?? "") === Utils.processLyrics(line.text),
 						)?.text ?? line.text,
 				}));
 			}
@@ -535,7 +611,7 @@ class LyricsContainer extends react.Component {
 		return finalData;
 	}
 
-	async fetchLyrics(track, mode = -1, refresh = false) {
+	async fetchLyrics(track: Track | null | undefined, mode = -1, refresh = false) {
 		const info = this.infoFromTrack(track);
 		if (!info) {
 			this.setState({ error: "No track info" });
@@ -551,13 +627,14 @@ class LyricsContainer extends react.Component {
 		this.fetchTempo(info.uri);
 		this.resetDelay();
 
-		let tempState;
+		let tempState: CachedLyrics & { isCached: boolean; isLoading?: boolean };
 		// if lyrics are cached
 		if ((mode === -1 && CACHE[info.uri]) || CACHE[info.uri]?.[CONFIG.modes?.[mode]]) {
 			tempState = { ...emptyState, ...CACHE[info.uri], isCached };
-			if (CACHE[info.uri]?.mode) {
-				this.state.explicitMode = CACHE[info.uri]?.mode;
-				tempState = { ...tempState, mode: CACHE[info.uri]?.mode };
+			const cachedMode = CACHE[info.uri]?.mode;
+			if (cachedMode) {
+				this.state.explicitMode = cachedMode;
+				tempState = { ...tempState, mode: cachedMode };
 			}
 		} else {
 			this.setState({ ...emptyState, isLoading: true, isCached: false });
@@ -638,24 +715,22 @@ class LyricsContainer extends react.Component {
 				CONFIG.visual["translate:detect-language-override"] !== "off"
 					? CONFIG.visual["translate:detect-language-override"]
 					: defaultLanguage;
-			const friendlyLanguage =
-				language &&
-				new Intl.DisplayNames(["en"], { type: "language" }).of(language.split("-")[0])?.toLowerCase();
-			const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+			const targetConvert = translationMode(language, CONFIG.visual);
 
-			const isMemory = CACHE[tempState.uri]?.[targetConvert];
-			if (CONFIG.visual.translate && defaultLanguage && !isMemory) {
+			const isMemory = targetConvert && CACHE[tempState.uri]?.[targetConvert];
+			if (CONFIG.visual.translate && defaultLanguage && targetConvert && !isMemory) {
 				this.translateLyrics(language, this.state.currentLyrics, targetConvert).then((translated) => {
 					const res = { [targetConvert]: translated };
 					// Cache translated lyrics
 					CACHE[tempState.uri] = { ...CACHE[tempState.uri], ...res };
-					this.setState({ ...res });
+					this.setState((state) => ({ ...state, ...res }));
 				});
 			}
 
 			// reset and apply
 			this.setState(
-				{
+				(state) => ({
+					...state,
 					furigana: null,
 					romaji: null,
 					hiragana: null,
@@ -668,8 +743,12 @@ class LyricsContainer extends react.Component {
 					neteaseTranslation: null,
 					...tempState,
 					...translationOverrides,
-					language: defaultLanguage,
-				},
+					language: defaultLanguage ?? null,
+					mode: tempState.mode ?? state.mode,
+					versionIndex: tempState.versionIndex ?? state.versionIndex,
+					versionIndex2: tempState.versionIndex2 ?? state.versionIndex2,
+					isLoading: tempState.isLoading ?? state.isLoading,
+				}),
 				() => {
 					this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
 					if (shouldRefreshMusixmatchTranslation) {
@@ -680,27 +759,39 @@ class LyricsContainer extends react.Component {
 			return;
 		}
 
-		this.setState({ ...tempState, ...translationOverrides }, () => {
-			this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
-			if (shouldRefreshMusixmatchTranslation) {
-				this.refreshMusixmatchTranslation();
-			}
-		});
+		this.setState(
+			(state) => ({
+				...state,
+				...tempState,
+				...translationOverrides,
+				mode: tempState.mode ?? state.mode,
+				versionIndex: tempState.versionIndex ?? state.versionIndex,
+				versionIndex2: tempState.versionIndex2 ?? state.versionIndex2,
+				isLoading: tempState.isLoading ?? state.isLoading,
+			}),
+			() => {
+				this.currentMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"];
+				if (shouldRefreshMusixmatchTranslation) {
+					this.refreshMusixmatchTranslation();
+				}
+			},
+		);
 	}
 
-	lyricsSource(lyricsState, mode) {
+	lyricsSource(lyricsState: CachedLyrics, mode: number) {
 		if (!lyricsState) return;
 
 		const lang = this.provideLanguageCode(this.state.currentLyrics);
-		const friendlyLanguage =
-			lang && new Intl.DisplayNames(["en"], { type: "language" }).of(lang.split("-")[0])?.toLowerCase();
 
 		if (!this.displayMode) {
-			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+			this.displayMode = translationMode(lang, CONFIG.visual);
 		}
 
 		// get original Lyrics
-		const lyrics = lyricsState[CONFIG.modes[mode]];
+		const modeKey = CONFIG.modes[mode];
+		const selected = modeKey ? lyricsState[modeKey] : null;
+		const lyrics = Array.isArray(selected) ? selected : null;
+		const targetMode = translationMode(lang, CONFIG.visual);
 		const translationSourceConfig = resolveTranslationSource(CONFIG.visual["translate:translated-lyrics-source"]);
 
 		if (translationSourceConfig.language) {
@@ -717,26 +808,27 @@ class LyricsContainer extends react.Component {
 		}
 
 		if (CONFIG.visual.translate) {
-			this.state.currentLyrics = lyricsState[CONFIG.visual[`translation-mode:${friendlyLanguage}`]] ?? lyrics;
+			this.state.currentLyrics = (targetMode ? lyricsState[targetMode] : undefined) ?? lyrics;
 		} else {
-			this.state.currentLyrics = lyricsState[translationSourceConfig.key] ?? lyrics;
+			this.state.currentLyrics =
+				(translationSourceConfig.key ? lyricsState[translationSourceConfig.key] : undefined) ?? lyrics;
 		}
 
 		// Convert Mode re-fresh
 		if (
 			this.translate !== CONFIG.visual.translate ||
 			this.languageOverride !== CONFIG.visual["translate:detect-language-override"] ||
-			this.displayMode !== CONFIG.visual[`translation-mode:${friendlyLanguage}`]
+			this.displayMode !== translationMode(lang, CONFIG.visual)
 		) {
 			this.translate = CONFIG.visual.translate;
 			this.languageOverride = CONFIG.visual["translate:detect-language-override"];
-			this.displayMode = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
+			this.displayMode = translationMode(lang, CONFIG.visual);
 
 			if (CONFIG.visual.translate) {
-				const targetConvert = CONFIG.visual[`translation-mode:${friendlyLanguage}`];
-				const isCached = CACHE[lyricsState.uri]?.[targetConvert];
+				const targetConvert = translationMode(lang, CONFIG.visual);
+				const isCached = targetConvert && CACHE[lyricsState.uri]?.[targetConvert];
 
-				if (!isCached) {
+				if (!isCached && targetConvert) {
 					this.translateLyrics(lang, lyrics, targetConvert).then((translated) => {
 						const res = { [targetConvert]: translated };
 						// Cache translated lyrics
@@ -761,7 +853,7 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
-	provideLanguageCode(lyrics) {
+	provideLanguageCode(lyrics: DisplayLyricLine[] | null) {
 		if (!lyrics) return;
 
 		if (CONFIG.visual["translate:detect-language-override"] !== "off") {
@@ -773,16 +865,22 @@ class LyricsContainer extends react.Component {
 		return Utils.detectLanguage(lyrics);
 	}
 
-	async translateLyrics(language, lyrics, targetConvert) {
-		if (!language) return;
+	async translateLyrics(
+		language: string | null | undefined,
+		displayLyrics: DisplayLyricLine[] | null,
+		targetConvert: TranslationMode,
+	): Promise<RenderedLyricLine[] | undefined> {
+		if (!language || !displayLyrics) return;
+		const lyrics = plainLines(displayLyrics);
 
 		client.notify("Converting...", false, 1000);
 		if (!this.translator) {
 			this.translator = new Translator(language);
 		}
-		await this.translator.awaitFinished(language);
+		const translator = this.translator;
+		await translator.awaitFinished(language);
 
-		let result;
+		let result: string[] | undefined;
 		try {
 			if (language === "ja") {
 				// Japanese
@@ -793,20 +891,17 @@ class LyricsContainer extends react.Component {
 					katakana: { target: "katakana", mode: "normal" },
 				};
 
+				const conversion = Object.entries(map).find(([key]) => key === targetConvert)?.[1];
+				if (!conversion) return;
 				result = await Promise.all(
 					lyrics.map(
-						async (lyric) =>
-							await this.translator.romajifyText(
-								lyric.text,
-								map[targetConvert].target,
-								map[targetConvert].mode,
-							),
+						async (lyric) => await translator.romajifyText(lyric.text, conversion.target, conversion.mode),
 					),
 				);
 			} else if (language === "ko") {
 				// Korean
 				result = await Promise.all(
-					lyrics.map(async (lyric) => await this.translator.convertToRomaja(lyric.text, "romaji")),
+					lyrics.map(async (lyric) => await translator.convertToRomaja(lyric.text, "romaji")),
 				);
 			} else if (language === "zh-hans") {
 				// Chinese (Simplified)
@@ -822,14 +917,12 @@ class LyricsContainer extends react.Component {
 					return lyrics;
 				}
 
+				const conversion = Object.entries(map).find(([key]) => key === targetConvert)?.[1];
+				if (!conversion) return;
 				result = await Promise.all(
 					lyrics.map(
 						async (lyric) =>
-							await this.translator.convertChinese(
-								lyric.text,
-								map[targetConvert].from,
-								map[targetConvert].target,
-							),
+							await translator.convertChinese(lyric.text, conversion.from, conversion.target),
 					),
 				);
 			} else if (language === "zh-hant") {
@@ -846,18 +939,17 @@ class LyricsContainer extends react.Component {
 					return lyrics;
 				}
 
+				const conversion = Object.entries(map).find(([key]) => key === targetConvert)?.[1];
+				if (!conversion) return;
 				result = await Promise.all(
 					lyrics.map(
 						async (lyric) =>
-							await this.translator.convertChinese(
-								lyric.text,
-								map[targetConvert].from,
-								map[targetConvert].target,
-							),
+							await translator.convertChinese(lyric.text, conversion.from, conversion.target),
 					),
 				);
 			}
 
+			if (!result) return;
 			const res = Utils.processTranslatedLyrics(result, lyrics);
 			client.notify("Converting...", false, 0);
 			return res;
@@ -871,10 +963,9 @@ class LyricsContainer extends react.Component {
 		CONFIG.visual.delay = Number(localStorage.getItem(`lyrics-delay:${client.player.data.item.uri}`)) || 0;
 	}
 
-	async onVersionChange(items, index) {
+	async onVersionChange(items: GeniusVersion[], index: number) {
 		if (this.state.mode === GENIUS) {
 			this.setState({
-				...emptyLine,
 				genius2: this.state.genius2,
 				isLoading: true,
 			});
@@ -887,10 +978,9 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
-	async onVersionChange2(items, index) {
+	async onVersionChange2(items: GeniusVersion[], index: number) {
 		if (this.state.mode === GENIUS) {
 			this.setState({
-				...emptyLine,
 				genius: this.state.genius,
 				isLoading: true,
 			});
@@ -903,7 +993,7 @@ class LyricsContainer extends react.Component {
 		}
 	}
 
-	saveLocalLyrics(uri, lyrics) {
+	saveLocalLyrics(uri: string, lyrics: Omit<ProviderResult, "uri">) {
 		if (lyrics.genius) {
 			lyrics.unsynced = lyrics.genius.split("<br>").map((lyc) => {
 				return {
@@ -913,28 +1003,28 @@ class LyricsContainer extends react.Component {
 			lyrics.genius = null;
 		}
 
-		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+		const localLyrics = cachedLocalLyrics();
 		localLyrics[uri] = lyrics;
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
 		this.setState({ isCached: true });
 	}
 
-	deleteLocalLyrics(uri) {
-		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
+	deleteLocalLyrics(uri: string) {
+		const localLyrics = cachedLocalLyrics();
 		delete localLyrics[uri];
 		localStorage.setItem(`${APP_NAME}:local-lyrics`, JSON.stringify(localLyrics));
 		console.log(localLyrics);
 		this.setState({ isCached: false });
 	}
 
-	lyricsSaved(uri) {
-		const localLyrics = JSON.parse(localStorage.getItem(`${APP_NAME}:local-lyrics`)) || {};
-		return !!localLyrics[uri];
+	lyricsSaved(uri: string) {
+		const localLyrics = cachedLocalLyrics();
+		return !!parseCachedLyrics(localLyrics[uri]);
 	}
 
-	processLyricsFromFile(event) {
+	processLyricsFromFile(event: ChangeEvent<HTMLInputElement>) {
 		const file = event.target.files;
-		if (!file.length) return;
+		if (!file?.length) return;
 		const reader = new FileReader();
 
 		if (file[0].size > 1024 * 1024) {
@@ -944,9 +1034,11 @@ class LyricsContainer extends react.Component {
 
 		reader.onload = (e) => {
 			try {
+				if (typeof e.target?.result !== "string") throw new TypeError("Expected lyric file text");
 				const localLyrics = Utils.parseLocalLyrics(e.target.result, currentTrackDurationMs());
-				const parsedKeys = Object.keys(localLyrics)
-					.filter((key) => localLyrics[key])
+				const parsedKeys = Object.entries(localLyrics)
+					.filter(([, value]) => value)
+					.map(([key]) => key)
 					.map((key) => key[0].toUpperCase() + key.slice(1))
 					.map((key) => `<strong>${key}</strong>`);
 
@@ -985,7 +1077,7 @@ class LyricsContainer extends react.Component {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = queue.current.uri;
 			this.fetchLyrics(queue.current, this.state.explicitMode);
-			this.viewPort.scrollTo(0, 0);
+			this.viewPort?.scrollTo(0, 0);
 
 			// Fetch next track
 			const nextTrack = queue.queued?.[0] || queue.nextUp?.[0];
@@ -1042,7 +1134,7 @@ class LyricsContainer extends react.Component {
 				temp = fontSizeLimit.max;
 			}
 			CONFIG.visual["font-size"] = temp;
-			localStorage.setItem("lyrics-plus:visual:font-size", temp);
+			localStorage.setItem("lyrics-plus:visual:font-size", String(temp));
 			sharedCallbacks.lyricContainerUpdate?.();
 		};
 
@@ -1051,26 +1143,27 @@ class LyricsContainer extends react.Component {
 			if (isEnabled) {
 				document.body.append(this.fullscreenContainer);
 				document.documentElement.requestFullscreen();
-				this.mousetrap.bind("esc", this.toggleFullscreen);
+				this.mousetrap?.bind("esc", this.toggleFullscreen);
 			} else {
 				this.fullscreenContainer.remove();
 				document.exitFullscreen();
-				this.mousetrap.unbind("esc");
+				this.mousetrap?.unbind("esc");
 			}
 
 			this.setState({
 				isFullscreen: isEnabled,
 			});
 		};
-		this.mousetrap.reset();
-		this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
-		window.addEventListener("fad-request", sharedCallbacks.lyricContainerUpdate);
+		this.mousetrap?.reset();
+		this.mousetrap?.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
+		window.addEventListener("fad-request", this.onFadRequest);
 	}
 
+	onFadRequest = () => sharedCallbacks.lyricContainerUpdate?.();
 	componentWillUnmount() {
 		Utils.removeQueueListener(this.onQueueChange);
-		this.mousetrap.reset();
-		window.removeEventListener("fad-request", sharedCallbacks.lyricContainerUpdate);
+		this.mousetrap?.reset();
+		window.removeEventListener("fad-request", this.onFadRequest);
 	}
 
 	updateVisualOnConfigChange() {
@@ -1095,8 +1188,8 @@ class LyricsContainer extends react.Component {
 			"--animation-tempo": this.state.tempo,
 		};
 
-		this.mousetrap.reset();
-		this.mousetrap.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
+		this.mousetrap?.reset();
+		this.mousetrap?.bind(CONFIG.visual["fullscreen-key"], this.toggleFullscreen);
 	}
 
 	render() {
@@ -1177,7 +1270,7 @@ class LyricsContainer extends react.Component {
 					CONFIG.visual["synced-compact"] ? SyncedLyricsPage : SyncedExpandedLyricsPage,
 					{
 						trackUri: this.state.uri,
-						lyrics: this.state.currentLyrics,
+						lyrics: this.state.currentLyrics ?? [],
 						provider: this.state.provider,
 						copyright: this.state.copyright,
 						reRenderLyricsPage: this.reRenderLyricsPage,
@@ -1186,7 +1279,7 @@ class LyricsContainer extends react.Component {
 			} else if (mode === UNSYNCED && this.state.unsynced) {
 				activeItem = react.createElement(UnsyncedLyricsPage, {
 					trackUri: this.state.uri,
-					lyrics: this.state.currentLyrics,
+					lyrics: renderedLines(this.state.currentLyrics),
 					provider: this.state.provider,
 					copyright: this.state.copyright,
 					reRenderLyricsPage: this.reRenderLyricsPage,
@@ -1198,7 +1291,7 @@ class LyricsContainer extends react.Component {
 					lyrics: this.state.genius,
 					provider: this.state.provider,
 					copyright: this.state.copyright,
-					versions: this.state.versions,
+					versions: this.state.versions ?? [],
 					versionIndex: this.state.versionIndex,
 					onVersionChange: this.onVersionChange.bind(this),
 					lyrics2: this.state.genius2,
@@ -1234,9 +1327,9 @@ class LyricsContainer extends react.Component {
 					fadLyricsContainer ? " fad-enabled" : ""
 				}`,
 				style: this.styleVariables,
-				ref: (el) => {
+				ref: (el: HTMLDivElement | null) => {
 					if (!el) return;
-					el.onmousewheel = this.onFontSizeChange;
+					el.onwheel = this.onFontSizeChange;
 				},
 			},
 			react.createElement("div", {
@@ -1260,11 +1353,8 @@ class LyricsContainer extends react.Component {
 							CONFIG.visual["musixmatch-translation-language"],
 					}),
 				react.createElement(AdjustmentsMenu, { mode, hasPerformer }),
-				react.createElement(
-					Tooltip,
-					{
-						label: "Lyrics Plus appearance",
-					},
+				tooltip(
+					"Lyrics Plus appearance",
 					react.createElement(
 						"button",
 						{
@@ -1287,11 +1377,8 @@ class LyricsContainer extends react.Component {
 						),
 					),
 				),
-				react.createElement(
-					Tooltip,
-					{
-						label: this.state.isCached ? "Lyrics cached" : "Cache lyrics",
-					},
+				tooltip(
+					this.state.isCached ? "Lyrics cached" : "Cache lyrics",
 					react.createElement(
 						"button",
 						{
@@ -1324,18 +1411,15 @@ class LyricsContainer extends react.Component {
 						}),
 					),
 				),
-				react.createElement(
-					Tooltip,
-					{
-						label: "Load lyrics from file",
-					},
+				tooltip(
+					"Load lyrics from file",
 					react.createElement(
 						"button",
 						{
 							className: "lyrics-config-button",
 							"aria-label": "Load lyrics from file",
 							onClick: () => {
-								document.getElementById("lyrics-file-input").click();
+								document.getElementById("lyrics-file-input")?.click();
 							},
 						},
 						react.createElement("input", {
@@ -1364,7 +1448,7 @@ class LyricsContainer extends react.Component {
 				links: this.availableModes,
 				activeLink: CONFIG.modes[mode],
 				lockLink: CONFIG.modes[this.state.lockMode],
-				switchCallback: (label) => {
+				switchCallback: (label: string) => {
 					const mode = CONFIG.modes.findIndex((a) => a === label);
 					if (mode !== this.state.mode) {
 						// If explicitMode is not set, moving the topBar will apply the default mode value for the selected song.
@@ -1377,7 +1461,7 @@ class LyricsContainer extends react.Component {
 						if (this.state.provider !== "local") this.fetchLyrics(client.player.data.item, mode);
 					}
 				},
-				lockCallback: (label) => {
+				lockCallback: (label: string) => {
 					let mode = CONFIG.modes.findIndex((a) => a === label);
 					if (mode === this.state.lockMode) {
 						mode = -1;
@@ -1385,7 +1469,7 @@ class LyricsContainer extends react.Component {
 					this.setState({ explicitMode: mode, lockMode: mode });
 					this.fetchLyrics(client.player.data.item, mode);
 					CONFIG.locked = mode;
-					localStorage.setItem("lyrics-plus:lock-mode", mode);
+					localStorage.setItem("lyrics-plus:lock-mode", String(mode));
 				},
 			}),
 		);
@@ -1418,8 +1502,17 @@ function LyricsPlusPlaybarButton() {
 	);
 
 	react.useEffect(() => {
-		const onToggle = (event: any) => {
-			if (event.detail?.name === "playbar-button") setVisible(Boolean(event.detail.value));
+		const onToggle = (event: Event) => {
+			if (!(event instanceof CustomEvent)) return;
+			const detail: unknown = event.detail;
+			if (
+				detail &&
+				typeof detail === "object" &&
+				"name" in detail &&
+				detail.name === "playbar-button" &&
+				"value" in detail
+			)
+				setVisible(Boolean(detail.value));
 		};
 		window.addEventListener("lyrics-plus", onToggle);
 		return () => window.removeEventListener("lyrics-plus", onToggle);
@@ -1428,7 +1521,7 @@ function LyricsPlusPlaybarButton() {
 	const ready = lyricsReplacementReady(visible, history);
 	react.useEffect(() => mountLyricsPlaybarStyleWhenReady(document, ROUTE, visible, history), [visible, history]);
 
-	if (!ready) return null;
+	if (!ready || !history) return null;
 	return react.createElement(PlaybarButton, {
 		label: "Lyrics Plus",
 		icon: PLAYBAR_ICON,
@@ -1451,6 +1544,9 @@ export default function (ctx: ModuleRuntimeContext) {
 	registrar.register("playbarButton", react.createElement(LyricsPlusPlaybarButton));
 	registrar.register(
 		"settingsSection",
-		react.createElement(SettingsSection, { title: "Lyrics Plus" }, react.createElement(LyricsPlusSettings)),
+		react.createElement(SettingsSection, {
+			title: "Lyrics Plus",
+			children: react.createElement(LyricsPlusSettings),
+		}),
 	);
 }

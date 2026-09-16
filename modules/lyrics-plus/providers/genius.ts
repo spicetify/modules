@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // Genius: unsynced lyrics with artist annotations. Note the surface differs
 // from the other providers by design: { fetchLyrics, getNote,
 // fetchLyricsVersion } — there is no getSynced/getUnsynced here.
@@ -13,18 +10,25 @@
 import { removeExtraInfo, removeSongFeat } from "../utils.ts";
 import { lyricsClient as client } from "../runtime-client.ts";
 
-export const ProviderGenius = (() => {
-	function getChildDeep(parent, isDeep = false) {
-		let acc = "";
+import type { GeniusVersion, TrackInfo } from "../types.ts";
 
-		if (!parent.children) {
+function record(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value)) : {};
+}
+
+export const ProviderGenius = (() => {
+	function getChildDeep(value: unknown, isDeep = false): string {
+		let acc = "";
+		const parent = record(value);
+
+		if (!Array.isArray(parent.children)) {
 			return acc;
 		}
 
 		for (const child of parent.children) {
 			if (typeof child === "string") {
 				acc += child;
-			} else if (child.children) {
+			} else if (record(child).children) {
 				acc += getChildDeep(child, true);
 			}
 			if (!isDeep) {
@@ -34,36 +38,37 @@ export const ProviderGenius = (() => {
 		return acc.trim();
 	}
 
-	async function getNote(id) {
-		const body = await client.cosmos.get(`https://genius.com/api/annotations/${id}`);
-		const response = body.response;
+	async function getNote(id: string | number): Promise<string> {
+		const body = record(await client.cosmos.get(`https://genius.com/api/annotations/${id}`));
+		const response = record(body.response);
+		const annotation = record(response.annotation);
 		let note = "";
 
 		// Authors annotations
-		if (response.referent && response.referent.classification === "verified") {
-			const referentsBody = await client.cosmos.get(`https://genius.com/api/referents/${id}`);
-			const referents = referentsBody.response;
-			for (const ref of referents.referent.annotations) {
-				note += getChildDeep(ref.body.dom);
+		if (record(response.referent).classification === "verified") {
+			const referentsBody = record(await client.cosmos.get(`https://genius.com/api/referents/${id}`));
+			const annotations = record(record(referentsBody.response).referent).annotations;
+			if (Array.isArray(annotations)) {
+				for (const ref of annotations) note += getChildDeep(record(record(ref).body).dom);
 			}
 		}
 
 		// Users annotations
 		if (!note && response.annotation) {
-			note = getChildDeep(response.annotation.body.dom);
+			note = getChildDeep(record(annotation.body).dom);
 		}
 
 		// Users comments
-		if (!note && response.annotation && response.annotation.top_comment) {
-			note += getChildDeep(response.annotation.top_comment.body.dom);
+		if (!note && response.annotation && annotation.top_comment) {
+			note += getChildDeep(record(record(annotation.top_comment).body).dom);
 		}
 		note = note.replace(/\n\n\n?/, "\n");
 
 		return note;
 	}
 
-	function fetchHTML(url) {
-		return new Promise((resolve, reject) => {
+	function fetchHTML(url: string): Promise<string> {
+		return new Promise<string>((resolve, reject) => {
 			const request = JSON.stringify({
 				method: "GET",
 				uri: url,
@@ -78,16 +83,16 @@ export const ProviderGenius = (() => {
 		});
 	}
 
-	async function fetchLyricsVersion(results, index) {
+	async function fetchLyricsVersion(results: readonly GeniusVersion[], index: number): Promise<string | null> {
 		const result = results[index];
 		if (!result) {
 			console.warn(result);
-			return;
+			return null;
 		}
 
 		const site = await fetchHTML(result.url);
-		const body = JSON.parse(site)?.body;
-		if (!body) {
+		const body = record(JSON.parse(site)).body;
+		if (typeof body !== "string" || !body) {
 			return null;
 		}
 
@@ -108,7 +113,9 @@ export const ProviderGenius = (() => {
 		return lyrics;
 	}
 
-	async function fetchLyrics(info) {
+	async function fetchLyrics(
+		info: Pick<TrackInfo, "title" | "artist">,
+	): Promise<{ lyrics: string | null; versions: GeniusVersion[] }> {
 		const titles = new Set([info.title]);
 
 		const titleNoExtra = removeExtraInfo(info.title);
@@ -116,18 +123,23 @@ export const ProviderGenius = (() => {
 		titles.add(removeSongFeat(info.title));
 		titles.add(removeSongFeat(titleNoExtra));
 
-		let lyrics;
-		let hits;
+		let lyrics: string | null = null;
+		let hits: GeniusVersion[] = [];
 		for (const title of titles) {
-			const query = new URLSearchParams({ per_page: 20, q: `${info.artist} ${title}` });
+			const query = new URLSearchParams({ per_page: "20", q: `${info.artist} ${title}` });
 			const url = `https://genius.com/api/search/song?${query.toString()}`;
 
-			const geniusSearch = await client.cosmos.get(url);
-
-			hits = geniusSearch.response.sections[0].hits.map((item) => ({
-				title: item.result.full_title,
-				url: item.result.url,
-			}));
+			const geniusSearch = record(await client.cosmos.get(url));
+			const sections = record(geniusSearch.response).sections;
+			const rawHits = Array.isArray(sections) ? record(sections[0]).hits : undefined;
+			hits = Array.isArray(rawHits)
+				? rawHits.flatMap((item) => {
+						const result = record(record(item).result);
+						return typeof result.full_title === "string" && typeof result.url === "string"
+							? [{ title: result.full_title, url: result.url }]
+							: [];
+					})
+				: [];
 
 			if (!hits.length) {
 				continue;

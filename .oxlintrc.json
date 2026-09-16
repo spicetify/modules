@@ -31,7 +31,16 @@
 		],
 		"no-this-alias": "warn",
 		"no-useless-escape": "warn",
-		"no-undef": "error"
+		"no-undef": "error",
+		"typescript/ban-ts-comment": [
+			"error",
+			{
+				"ts-nocheck": true,
+				"ts-ignore": false,
+				"ts-expect-error": false,
+				"ts-check": false
+			}
+		]
 	},
 	"globals": {
 		"Spicetify": "readonly",

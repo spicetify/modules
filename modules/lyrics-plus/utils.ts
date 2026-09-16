@@ -138,6 +138,10 @@ function isLyricWord(value: unknown): value is LyricWord {
 	);
 }
 
+export function isKaraokeWords(value: unknown): value is LyricWord[] {
+	return Array.isArray(value) && value.every(isLyricWord);
+}
+
 function childrenOf(value: unknown): unknown {
 	if (typeof value !== "object" || value === null || !("props" in value)) return;
 	const props = value.props;
@@ -153,13 +157,14 @@ function rubyBaseText(value: unknown): string {
 
 export function lyricText(text: unknown): string {
 	if (typeof text === "string" || typeof text === "number") return String(text);
-	if (Array.isArray(text) && text.every(isLyricWord)) return text.map((word) => word.word).join("");
+	if (isKaraokeWords(text)) return text.map((word) => word.word).join("");
+	if (Array.isArray(text)) return text.map(rubyBaseText).join("");
 	const children = childrenOf(text);
 	return Array.isArray(children) ? children.map(rubyBaseText).join("") : rubyBaseText(children);
 }
 
 export function formatTextWithTimestamps(text: unknown, startTime = 0): string {
-	if (Array.isArray(text) && text.every(isLyricWord)) {
+	if (isKaraokeWords(text)) {
 		let wordTime = startTime;
 		return text
 			.map((word) => {

@@ -60,7 +60,8 @@ It reports explicitly when a module has no automated tests. It doesn't install
 the build into Spotify. Shared-tooling changes still require the full CI checks.
 
 Strict checking is the default for modules, stdlib, scripts, and generated
-TypeScript projects. Lyrics Plus retains its existing legacy file exemptions. The [module standard](docs/module-standard.md#strict-type-checking)
+TypeScript projects, including Lyrics Plus. File-level type-checking exemptions
+are rejected by lint. The [module standard](docs/module-standard.md#strict-type-checking)
 explains the checks and the separate client and test environments.
 
 ## Docs
