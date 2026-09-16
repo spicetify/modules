@@ -47,6 +47,14 @@
 			"providers": [],
 			"checksum": "sha256:60ce26792647de9076028f9aea28a9741883c490def8eb1254efe356859abe9b",
 			"updatedAt": "2026-09-14"
+		},
+		"0.2.5": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.2.5/shuffle-plus@0.2.5.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:2379a3084bc3b418e09a1f7e45b65d9ac3e3aed5f8e3bdcea5064ac2352efa5d",
+			"updatedAt": "2026-09-16"
 		}
 	},
 	"metadata": {
