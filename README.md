@@ -42,6 +42,27 @@ output and are remapped by the spicetify CLI at apply time against the exact
 installed classmap. One build serves every supported Spotify version; there
 are no per-version prebuilds.
 
+## Verifying one module
+
+From the repository root, run a module's automated checks with Node 24 and
+the shared dependencies installed:
+
+```shell
+pnpm verify auto-skip-explicit
+pnpm verify modules/lyrics-plus
+pnpm verify themes/text
+```
+
+The command builds the selected module, checks its TypeScript and imported
+dependencies, lints, checks formatting and stdlib boundaries, validates
+repository dependency ranges, and runs its colocated `*.test.mts` files.
+It reports explicitly when a module has no automated tests. It doesn't install
+the build into Spotify. Shared-tooling changes still require the full CI checks.
+
+Auto Skip Explicit also opts into strict TypeScript checking. The
+[module standard](docs/module-standard.md#strict-type-checking) describes how
+to migrate another module and how legacy dependency diagnostics are handled.
+
 ## Docs
 
 - [`docs/updating-modules.md`](docs/updating-modules.md) — updating and repairing

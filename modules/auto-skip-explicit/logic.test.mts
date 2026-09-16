@@ -27,4 +27,12 @@ describe("isExplicit", () => {
 		assert.equal(isExplicit(undefined), false);
 		assert.equal(isExplicit({}), false);
 	});
+
+	it("handles malformed external values and keeps the nullish fallback", () => {
+		for (const item of [null, true, 42, "explicit", { metadata: null }, { metadata: "true" }]) {
+			assert.equal(isExplicit(item), false);
+		}
+		assert.equal(isExplicit({ metadata: { is_explicit: null }, isExplicit: true }), true);
+		assert.equal(isExplicit({ metadata: { is_explicit: false }, isExplicit: true }), false);
+	});
 });
