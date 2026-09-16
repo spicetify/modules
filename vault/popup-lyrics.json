@@ -79,6 +79,14 @@
 			"providers": [],
 			"checksum": "sha256:ec3ecca0ef7239f3e6788928d629719112249e04ea5b244ab328a8601628a76c",
 			"updatedAt": "2026-09-14"
+		},
+		"0.2.4": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/popup-lyrics@0.2.4/popup-lyrics@0.2.4.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:bf39a5520305a1a0e2fb92ae6f7dcf8e0bbe67b5764e8c832e1fc80c28579403",
+			"updatedAt": "2026-09-16"
 		}
 	},
 	"metadata": {
