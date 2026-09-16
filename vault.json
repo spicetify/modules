@@ -730,6 +730,14 @@
 					"providers": [],
 					"checksum": "sha256:ff20de268b907f8881133925a27f3579ab49d327214fa27416b7f73bcc02d5fb",
 					"updatedAt": "2026-09-14"
+				},
+				"0.1.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/keyboard-shortcut@0.1.4/keyboard-shortcut@0.1.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2a1f550a492c04da8631df10d0dc03b774be2b3bbdef258d241a8a840eb7181b",
+					"updatedAt": "2026-09-16"
 				}
 			},
 			"metadata": {
