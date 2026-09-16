@@ -1006,6 +1006,24 @@
 					"checksum": "sha256:9654a3564f57b0ac9a28975efce1e2788fc6a54b7e3582365832b9742e8aac95",
 					"updatedAt": "2026-09-14",
 					"hidden": true
+				},
+				"1.3.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/manager@1.3.1/manager@1.3.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:0ca1b47ba256634a71577127b22cf5610f1f40915cd18bbcf9a7e63088cb741f",
+					"updatedAt": "2026-09-15",
+					"hidden": true
+				},
+				"1.3.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/manager@1.3.2/manager@1.3.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:7b344a07556bac0d1592d913d50f595cdb4140c9588c5f9a69c467db010a9cb2",
+					"updatedAt": "2026-09-15",
+					"hidden": true
 				}
 			},
 			"metadata": {
@@ -3995,6 +4013,15 @@
 					"checksum": "sha256:018bff89f68d52c745d30c97b0bdd9a91b4a0767312e4c852f1e85c9f88ef15c",
 					"updatedAt": "2026-09-14",
 					"hidden": true
+				},
+				"1.11.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.11.3/stdlib@1.11.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:ab7b0c8bf0efce0363cfb29691ef1e81f8d80d781bca8f87a902743fa4e954f0",
+					"updatedAt": "2026-09-15",
+					"hidden": true
 				}
 			}
 		},
@@ -4187,6 +4214,13 @@
 					"providers": [],
 					"checksum": "sha256:2ffde1b5b601439bb79e70783e3d5ae71bc5f64d5d72d953587d3229225601ed",
 					"updatedAt": "2026-09-14",
+					"hidden": true
+				},
+				"1.7.7": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/store@1.7.7/store@1.7.7.zip"],
+					"providers": [],
+					"checksum": "sha256:97f21b6a5733af8711f0e5d518affbca9a57609bd808b9f3e2cc81c1e8eefa36",
+					"updatedAt": "2026-09-15",
 					"hidden": true
 				}
 			},

@@ -346,7 +346,7 @@ export const ManagerPage = () => {
 						<p className="spicetify-manager-note">
 							These staged modules are behind the vault. Run <code>spicetify apply</code> to refresh
 							store-managed system modules and rebuild the client. Update other modules in the Store, or
-							at their source if you installed them manually.
+							at their source if you installed them manually. Applying restarts Spotify.
 						</p>
 					</>
 				)}
@@ -415,7 +415,7 @@ export const ManagerPage = () => {
 						case "securing":
 							return updateStatus.message ?? "Restoring and verifying the Spotify update block.";
 						case "complete":
-							return `Updated Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}, reapplied Spicetify, and restored the update block.`;
+							return `Last update completed: Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}. Spicetify was reapplied and the update block restored.`;
 						case "failed-safe":
 							return `Last update attempt stopped safely: ${updateStatus.message}`;
 					}

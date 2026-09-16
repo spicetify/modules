@@ -285,6 +285,7 @@ export type UpdateAdvice =
 	| { kind: "current"; message: string }
 	| { kind: "waiting"; message: string }
 	| { kind: "ready"; message: string }
+	| { kind: "unverified"; message: string }
 	| { kind: "unsupported"; message: string };
 
 const upgradeCommand = "spicetify self-update && spicetify apply";
@@ -306,14 +307,19 @@ export function updateAdvice(installed: string | undefined, support: SpotifySupp
 	// is still enough to say the current build is unsupported.
 	if (
 		installedLine &&
-		(support?.installedSupported === false ||
-			(support?.installedSupported !== true &&
-				supportedLine &&
-				compareSpotifyVersions(installedLine, supportedLine) > 0))
+		support?.installedSupported !== true &&
+		supportedLine &&
+		compareSpotifyVersions(installedLine, supportedLine) > 0
 	) {
 		return {
 			kind: "unsupported",
 			message: `Spotify ${installedLine} isn't fully supported yet — some features may be off until Spicetify catches up`,
+		};
+	}
+	if (installedLine && support?.installedSupported === false) {
+		return {
+			kind: "unverified",
+			message: `Compatibility could not be verified for this installation of Spotify ${installedLine}. The applied classmap may be local, modified, or for a different version.`,
 		};
 	}
 	if (!installedLine || !latestLine) {

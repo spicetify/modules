@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { compareVersions } from "./validate-submission.ts";
+
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const readJson = (path: string) => JSON.parse(read(path));
 
@@ -127,12 +129,25 @@ describe("standalone Spicetify Settings", () => {
 		assert.doesNotMatch(lyrics, /id:\s*`\$\{APP_NAME\}-config-container`/);
 	});
 
+	it("gives the v3 apply command and explains staged-module refresh", () => {
+		const page = read("modules/manager/page.tsx");
+		assert.doesNotMatch(page, /spicetify restore backup apply|never update on their own/);
+		assert.match(page, /run <code>spicetify apply<\/code> to rebuild the client and\s+restart Spotify/);
+		assert.match(page, /store-managed system modules/);
+		assert.match(page, /Update other modules in the Store/);
+		assert.match(page, /at their source if you installed them manually/);
+	});
+
 	it("ships compatible stdlib and settings contracts", () => {
 		const stdlib = readJson("modules/stdlib/metadata.json");
 		const manager = readJson("modules/manager/metadata.json");
 		const lyricsPlus = readJson("modules/lyrics-plus/metadata.json");
 		const kit = readJson("packages/kit/package.json");
 
+		assert.ok(
+			compareVersions(manager.version, "1.3.0") >= 0,
+			"Manager must include the standalone settings contract",
+		);
 		assert.equal(manager.dependencies.stdlib, "^1.11.0");
 		const installedMinor = Number(stdlib.version.match(/^1\.(\d+)\.\d+$/)?.[1]);
 		const requiredMinor = Number(lyricsPlus.dependencies.stdlib.match(/^\^1\.(\d+)\.\d+$/)?.[1]);
