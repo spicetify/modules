@@ -12,6 +12,30 @@ import { describe, it } from "node:test";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TEXT_THEME_CSS = path.join(HERE, "..", "themes", "text", "index.css");
 
+describe("text theme playback bar", () => {
+	it("keeps timestamp text in flow beside the elapsed-time separator", () => {
+		const css = readFileSync(TEXT_THEME_CSS, "utf8");
+
+		assert.match(
+			css,
+			/\.playback-bar__progress-time-elapsed\s*>\s*span,\s*\.main-playbackBarRemainingTime-container\s*>\s*span\s*\{[^}]*position:\s*static\s*!important\s*;[^}]*inset:\s*auto\s*!important\s*;[^}]*contain:\s*none\s*!important\s*;/s,
+		);
+		assert.match(
+			css,
+			/\.playback-bar__progress-time-elapsed,\s*\.main-playbackBarRemainingTime-container\s*\{[^}]*height:\s*unset\s*;/s,
+		);
+	});
+
+	it("aligns the full-height seek handle with the progress track", () => {
+		const css = readFileSync(TEXT_THEME_CSS, "utf8");
+
+		assert.match(
+			css,
+			/\.main-nowPlayingBar-container\s+\.playback-bar\s+\[data-testid="progress-bar-handle"\]\s*\{[^}]*top:\s*0\s*!important\s*;[^}]*transform:\s*none\s*!important\s*;/s,
+		);
+	});
+});
+
 describe("text theme track info", () => {
 	it("keeps the artist in the first grid column when a relocated badge is present", () => {
 		const css = readFileSync(TEXT_THEME_CSS, "utf8");

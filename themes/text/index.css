@@ -800,12 +800,19 @@ form .main-topBar-searchBar:placeholder-shown {
 	pointer-events: none;
 	width: unset;
 }
+.playback-bar__progress-time-elapsed > span,
+.main-playbackBarRemainingTime-container > span {
+	position: static !important;
+	inset: auto !important;
+	contain: none !important;
+}
 .playback-bar__progress-time-elapsed::after {
 	content: " /";
 }
 .playback-bar__progress-time-elapsed,
 .main-playbackBarRemainingTime-container {
 	z-index: 9;
+	height: unset;
 	padding-top: 2px;
 }
 
@@ -834,6 +841,8 @@ form .main-topBar-searchBar:placeholder-shown {
 	height: 100% !important;
 	border-radius: 0 !important;
 	background-color: var(--spice-text) !important;
+	top: 0 !important;
+	transform: none !important;
 }
 .x-progressBar-fillColor {
 	transition-duration: unset;
