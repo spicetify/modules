@@ -41,6 +41,17 @@ describe("text theme track info", () => {
 	});
 });
 
+describe("text theme playback bar", () => {
+	it("keeps Spotify 1.3 timestamps in flow beside the slash separator", () => {
+		const css = readFileSync(TEXT_THEME_CSS, "utf8");
+
+		assert.match(
+			css,
+			/\.playback-bar__progress-time-elapsed\s*>\s*span,\s*\.main-playbackBarRemainingTime-container\s*>\s*span\s*\{[^}]*position:\s*static\s*;[^}]*contain:\s*none\s*;/s,
+		);
+	});
+});
+
 describe("text theme expanded now playing view", () => {
 	it("uses the theme surface instead of Spotify's black cinema gutter", () => {
 		const css = readFileSync(TEXT_THEME_CSS, "utf8");

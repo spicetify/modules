@@ -800,6 +800,11 @@ form .main-topBar-searchBar:placeholder-shown {
 	pointer-events: none;
 	width: unset;
 }
+.playback-bar__progress-time-elapsed > span,
+.main-playbackBarRemainingTime-container > span {
+	position: static;
+	contain: none;
+}
 .playback-bar__progress-time-elapsed::after {
 	content: " /";
 }
