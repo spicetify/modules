@@ -11,10 +11,10 @@
 export let lyricContainerUpdate: (() => void) | undefined;
 export let reloadLyrics: (() => void) | undefined;
 
-export function setLyricContainerUpdate(fn: () => void): void {
+export function setLyricContainerUpdate(fn: (() => void) | undefined): void {
 	lyricContainerUpdate = fn;
 }
 
-export function setReloadLyrics(fn: () => void): void {
+export function setReloadLyrics(fn: (() => void) | undefined): void {
 	reloadLyrics = fn;
 }

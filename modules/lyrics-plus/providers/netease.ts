@@ -8,7 +8,7 @@
 // Translator, which is deliberately not part of this slice — plan KTD6).
 
 import { capitalize, containsHanCharacter, normalize, removeExtraInfo, removeSongFeat } from "../utils.ts";
-import { lyricsClient as client } from "../runtime-client.ts";
+import { getLyricsResponse, requestLyrics } from "../runtime-client.ts";
 
 import type { KaraokeLine, LyricLine, LyricWord, TimedLyricLine, TrackInfo } from "../types.ts";
 
@@ -65,6 +65,7 @@ export const ProviderNetease = (() => {
 	async function findLyrics(
 		info: TrackInfo,
 		toSimplifiedChinese: (value: string) => Promise<string>,
+		signal?: AbortSignal,
 	): Promise<NeteaseLyrics> {
 		const searchURL = "https://music.xianqiao.wang/neteaseapiv2/search?limit=10&type=1&keywords=";
 		const lyricURL = "https://music.xianqiao.wang/neteaseapiv2/lyric?id=";
@@ -72,7 +73,7 @@ export const ProviderNetease = (() => {
 		const cleanTitle = removeExtraInfo(removeSongFeat(normalize(info.title)));
 		const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
-		const searchResults: unknown = await client.cosmos.get(finalURL, undefined, requestHeader);
+		const searchResults: unknown = await getLyricsResponse(finalURL, signal, undefined, requestHeader);
 		const items =
 			searchResults &&
 			typeof searchResults === "object" &&
@@ -90,14 +91,14 @@ export const ProviderNetease = (() => {
 		// normalized expected album name
 		const neAlbumName = normalize(info.album);
 		const expectedAlbumName = containsHanCharacter(neAlbumName)
-			? await toSimplifiedChinese(neAlbumName)
+			? await requestLyrics(() => toSimplifiedChinese(neAlbumName), signal)
 			: neAlbumName;
 		let itemId = items.findIndex((val) => normalize(val.album.name) === expectedAlbumName);
 		if (itemId === -1) itemId = items.findIndex((val) => Math.abs(info.duration - val.duration) < 3000);
 		if (itemId === -1) itemId = items.findIndex((val) => val.name === cleanTitle);
 		if (itemId === -1) throw "Cannot find track";
 
-		return parseLyrics(await client.cosmos.get(lyricURL + items[itemId].id, undefined, requestHeader));
+		return parseLyrics(await getLyricsResponse(lyricURL + items[itemId].id, signal, undefined, requestHeader));
 	}
 
 	const creditInfo = [

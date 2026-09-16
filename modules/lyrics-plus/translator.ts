@@ -29,57 +29,145 @@ const openCCPath = "https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.m
 
 const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
+type Language = "ja" | "ko" | "zh";
+
+export interface TranslatorOptions {
+	timeoutMs?: number;
+}
+
 export class Translator {
-	private readonly finished = { ja: false, ko: false, zh: false };
+	private readonly loading = new Map<Language, Promise<void>>();
+	private readonly lifecycle = new AbortController();
+	private readonly timeoutMs: number;
 	private readonly isUsingNetease: boolean;
 	private kuroshiro?: JapaneseTranslator;
 	private Aromanize?: typeof Aromanize;
 	private OpenCC?: typeof OpenCC;
-	constructor(lang: string, isUsingNetease = false) {
+
+	constructor(lang: string, isUsingNetease = false, options: TranslatorOptions = {}) {
 		this.isUsingNetease = isUsingNetease;
-
+		this.timeoutMs = options.timeoutMs ?? 15_000;
 		this.applyKuromojiFix();
-		this.injectExternals(lang);
-		this.createTranslator(lang);
+		// Eager loading has no caller to receive errors; explicit requests retry failures.
+		void this.awaitFinished(lang).catch(() => {});
 	}
 
-	includeExternal(url: string) {
-		if ((CONFIG.visual.translate || this.isUsingNetease) && !document.querySelector(`script[src="${url}"]`)) {
-			const script = document.createElement("script");
-			script.setAttribute("type", "text/javascript");
-			script.setAttribute("src", url);
-			document.head.appendChild(script);
-		}
+	dispose(): void {
+		this.lifecycle.abort(new DOMException("Translator disposed", "AbortError"));
+		this.kuroshiro = undefined;
+		this.Aromanize = undefined;
+		this.OpenCC = undefined;
 	}
 
-	injectExternals(lang: string) {
-		switch (lang?.slice(0, 2)) {
-			case "ja":
-				this.includeExternal(kuromojiPath);
-				this.includeExternal(kuroshiroPath);
-				break;
-			case "ko":
-				this.includeExternal(aromanize);
-				break;
-			case "zh":
-				this.includeExternal(openCCPath);
-				break;
-		}
+	private bounded<T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
+		if (this.lifecycle.signal.aborted) return Promise.reject(this.lifecycle.signal.reason);
+		const controller = new AbortController();
+		const dispose = () => controller.abort(this.lifecycle.signal.reason);
+		this.lifecycle.signal.addEventListener("abort", dispose, { once: true });
+		const timer = setTimeout(
+			() => controller.abort(new Error("Translator loading or conversion timed out")),
+			this.timeoutMs,
+		);
+		return new Promise<T>((resolve, reject) => {
+			const abort = () => reject(controller.signal.reason);
+			controller.signal.addEventListener("abort", abort, { once: true });
+			operation(controller.signal)
+				.then(resolve, reject)
+				.finally(() => {
+					controller.signal.removeEventListener("abort", abort);
+				});
+		}).finally(() => {
+			controller.abort();
+			clearTimeout(timer);
+			this.lifecycle.signal.removeEventListener("abort", dispose);
+		});
+	}
+
+	private loadScript(url: string, signal: AbortSignal, isReady: () => boolean): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			if (signal.aborted) return reject(signal.reason);
+			const existing = document.querySelector<HTMLScriptElement>(`script[src="${url}"]`);
+			const script = existing ?? document.createElement("script");
+			const cleanup = () => {
+				script.removeEventListener("load", loaded);
+				script.removeEventListener("error", failed);
+				signal.removeEventListener("abort", aborted);
+			};
+			const loaded = () => {
+				if (!isReady()) return fail(new Error(`Translator did not load: ${url}`));
+				cleanup();
+				resolve();
+			};
+			const fail = (reason: unknown) => {
+				cleanup();
+				script.remove();
+				reject(reason);
+			};
+			const failed = () => fail(new Error(`Failed to load translator: ${url}`));
+			const aborted = () => fail(signal.reason);
+			script.addEventListener("load", loaded, { once: true });
+			script.addEventListener("error", failed, { once: true });
+			signal.addEventListener("abort", aborted, { once: true });
+			if (!existing) {
+				script.type = "text/javascript";
+				script.src = url;
+				document.head.appendChild(script);
+			}
+		});
 	}
 
 	async awaitFinished(language: string): Promise<void> {
-		return new Promise<void>((resolve) => {
-			const interval = setInterval(() => {
-				this.injectExternals(language);
-				this.createTranslator(language);
+		if (this.lifecycle.signal.aborted) throw this.lifecycle.signal.reason;
+		const lang = language.slice(0, 2);
+		if (lang !== "ja" && lang !== "ko" && lang !== "zh")
+			throw new Error(`Unsupported translator language: ${language}`);
+		if ((lang === "ja" && this.kuroshiro) || (lang === "ko" && this.Aromanize) || (lang === "zh" && this.OpenCC))
+			return;
+		const pending = this.loading.get(lang);
+		if (pending) return pending;
+		if (!CONFIG.visual.translate && !this.isUsingNetease) throw new Error("Translation is disabled");
+		const loading = this.bounded((signal) => this.initialize(lang, signal)).finally(() =>
+			this.loading.delete(lang),
+		);
+		this.loading.set(lang, loading);
+		return loading;
+	}
 
-				const lan = language.slice(0, 2);
-				if ((lan === "ja" || lan === "ko" || lan === "zh") && this.finished[lan]) {
-					clearInterval(interval);
-					resolve();
-				}
-			}, 100);
-		});
+	private async initialize(lang: Language, signal: AbortSignal): Promise<void> {
+		switch (lang) {
+			case "ja": {
+				await Promise.all([
+					typeof KuromojiAnalyzer === "undefined"
+						? this.loadScript(kuromojiPath, signal, () => typeof KuromojiAnalyzer !== "undefined")
+						: Promise.resolve(),
+					typeof Kuroshiro === "undefined"
+						? this.loadScript(kuroshiroPath, signal, () => typeof Kuroshiro !== "undefined")
+						: Promise.resolve(),
+				]);
+				signal.throwIfAborted();
+				if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined")
+					throw new Error("Japanese translator did not load");
+				const translator = new Kuroshiro.default();
+				await translator.init(new KuromojiAnalyzer({ dictPath }));
+				signal.throwIfAborted();
+				this.kuroshiro = translator;
+				break;
+			}
+			case "ko":
+				if (typeof Aromanize === "undefined")
+					await this.loadScript(aromanize, signal, () => typeof Aromanize !== "undefined");
+				signal.throwIfAborted();
+				if (typeof Aromanize === "undefined") throw new Error("Korean translator did not load");
+				this.Aromanize = Aromanize;
+				break;
+			case "zh":
+				if (typeof OpenCC === "undefined")
+					await this.loadScript(openCCPath, signal, () => typeof OpenCC !== "undefined");
+				signal.throwIfAborted();
+				if (typeof OpenCC === "undefined") throw new Error("Chinese translator did not load");
+				this.OpenCC = OpenCC;
+				break;
+		}
 	}
 
 	/**
@@ -106,87 +194,22 @@ export class Translator {
 		};
 	}
 
-	async createTranslator(lang: string): Promise<void> {
-		switch (lang.slice(0, 2)) {
-			case "ja":
-				if (this.kuroshiro) return;
-				if (typeof Kuroshiro === "undefined" || typeof KuromojiAnalyzer === "undefined") {
-					await Translator.#sleep(50);
-					return this.createTranslator(lang);
-				}
-
-				this.kuroshiro = new Kuroshiro.default();
-				this.kuroshiro.init(new KuromojiAnalyzer({ dictPath })).then(() => {
-					this.finished.ja = true;
-				});
-
-				break;
-			case "ko":
-				if (this.Aromanize) return;
-				if (typeof Aromanize === "undefined") {
-					await Translator.#sleep(50);
-					return this.createTranslator(lang);
-				}
-
-				this.Aromanize = Aromanize;
-				this.finished.ko = true;
-				break;
-			case "zh":
-				if (this.OpenCC) return;
-				if (typeof OpenCC === "undefined") {
-					await Translator.#sleep(50);
-					return this.createTranslator(lang);
-				}
-
-				this.OpenCC = OpenCC;
-				this.finished.zh = true;
-				break;
-		}
-	}
-
 	async romajifyText(text: string, target = "romaji", mode = "spaced"): Promise<string> {
-		if (!this.finished.ja || !this.kuroshiro) {
-			await Translator.#sleep(100);
-			return this.romajifyText(text, target, mode);
-		}
-
-		return this.kuroshiro.convert(text, {
-			to: target,
-			mode: mode,
-		});
+		await this.awaitFinished("ja");
+		if (!this.kuroshiro) throw this.lifecycle.signal.reason;
+		const translator = this.kuroshiro;
+		return this.bounded(() => translator.convert(text, { to: target, mode }));
 	}
 
 	async convertToRomaja(text: string, target: string): Promise<string> {
-		if (!this.finished.ko) {
-			await Translator.#sleep(100);
-			return this.convertToRomaja(text, target);
-		}
-
-		if (target === "hangul") return text;
-		return Aromanize.hangulToLatin(text, "rr-translit");
+		await this.awaitFinished("ko");
+		if (!this.Aromanize) throw this.lifecycle.signal.reason;
+		return target === "hangul" ? text : this.Aromanize.hangulToLatin(text, "rr-translit");
 	}
 
 	async convertChinese(text: string, from: string, target: string): Promise<string> {
-		if (!this.finished.zh || !this.OpenCC) {
-			await Translator.#sleep(100);
-			return this.convertChinese(text, from, target);
-		}
-
-		const converter = this.OpenCC.Converter({
-			from: from,
-			to: target,
-		});
-
-		return converter(text);
-	}
-
-	/**
-	 * Async wrapper of `setTimeout`.
-	 *
-	 * @param {number} ms
-	 * @returns {Promise<void>}
-	 */
-	static async #sleep(ms: number): Promise<void> {
-		return new Promise<void>((resolve) => setTimeout(resolve, ms));
+		await this.awaitFinished("zh");
+		if (!this.OpenCC) throw this.lifecycle.signal.reason;
+		return this.OpenCC.Converter({ from, to: target })(text);
 	}
 }

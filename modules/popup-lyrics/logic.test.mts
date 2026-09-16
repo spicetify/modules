@@ -15,10 +15,41 @@ import {
 	LyricUtils,
 	parseLrclibBody,
 	parseMusixmatchMacro,
+	parseMusixmatchResponse,
 	parseNeteaseLyrics,
+	parseNeteaseResponse,
+	parseNeteaseSearch,
 	parseSpotifyLyrics,
 	pickNeteaseTrack,
 } from "./logic.ts";
+
+describe("Cosmos response boundaries", () => {
+	it("accepts real Musixmatch tokens and ignores malformed or upgrade-only tokens", () => {
+		assert.equal(
+			parseMusixmatchResponse({ message: { header: { status_code: 200 }, body: { user_token: "valid" } } }).token,
+			"valid",
+		);
+		for (const token of [null, {}, 1, "", "UpgradeOnly-test"]) {
+			assert.equal(parseMusixmatchResponse({ message: { body: { user_token: token } } }).token, null);
+		}
+		assert.equal(parseMusixmatchResponse({ message: { header: { status_code: 401 } } }).status, 401);
+		assert.deepEqual(parseMusixmatchMacro(null), { error: "Musixmatch request failed" });
+	});
+
+	it("keeps valid Netease candidates and handles malformed lyric bodies", () => {
+		const song = { id: 42, album: { name: "Album" }, duration: 1234 };
+		assert.deepEqual(parseNeteaseSearch({ result: { songs: [null, song, { ...song, duration: "1234" }] } }), [
+			song,
+		]);
+		assert.deepEqual(parseNeteaseSearch(null), []);
+		for (const value of [null, {}, { lrc: { lyric: 5 } }]) {
+			assert.deepEqual(parseNeteaseResponse(value), { error: "No lyrics" });
+		}
+		assert.deepEqual(parseNeteaseResponse({ lrc: { lyric: "[00:01.00] Hello" } }), {
+			lyrics: [{ startTime: 1, text: "Hello" }],
+		});
+	});
+});
 
 describe("LyricUtils", () => {
 	it("normalize maps fullwidth punctuation to ASCII and collapses whitespace", () => {
@@ -41,6 +72,16 @@ describe("LyricUtils", () => {
 });
 
 describe("parseSpotifyLyrics", () => {
+	it("rejects malformed Cosmos bodies and nested lines", () => {
+		for (const body of [
+			null,
+			[],
+			{ lyrics: { syncType: "LINE_SYNCED", lines: [null] } },
+			{ lyrics: { syncType: "LINE_SYNCED", lines: [{ startTimeMs: "bad", words: "Hi" }] } },
+		]) {
+			assert.deepEqual(parseSpotifyLyrics(body), { error: "No lyrics" });
+		}
+	});
 	it("converts LINE_SYNCED ms timestamps to seconds", () => {
 		assert.deepEqual(
 			parseSpotifyLyrics({
@@ -103,13 +144,17 @@ describe("parseMusixmatchMacro", () => {
 	});
 
 	it("returns an error result (not a throw) on malformed subtitle JSON", () => {
-		const bad = {
-			...ok,
-			"track.subtitles.get": { message: { body: { subtitle_list: [{ subtitle: { subtitle_body: "{oops" } }] } } },
-		};
-		const out = parseMusixmatchMacro(bad);
-		assert.equal(typeof out.error, "string");
-		assert.equal(out.lyrics, undefined);
+		for (const subtitleBody of ["{oops", "null", "{}", '[{"text":"Hi","time":{"total":"12"}}]']) {
+			const bad = {
+				...ok,
+				"track.subtitles.get": {
+					message: { body: { subtitle_list: [{ subtitle: { subtitle_body: subtitleBody } }] } },
+				},
+			};
+			const out = parseMusixmatchMacro(bad);
+			assert.equal(typeof out.error, "string");
+			assert.equal(out.lyrics, undefined);
+		}
 	});
 });
 

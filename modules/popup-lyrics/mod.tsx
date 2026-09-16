@@ -40,7 +40,9 @@ import {
 	LyricUtils,
 	parseLrclibBody,
 	parseMusixmatchMacro,
-	parseNeteaseLyrics,
+	parseMusixmatchResponse,
+	parseNeteaseResponse,
+	parseNeteaseSearch,
 	parseSpotifyLyrics,
 	pickNeteaseTrack,
 } from "./logic.ts";
@@ -114,13 +116,15 @@ export default async function (ctx: ModuleRuntimeContext) {
 		if (!pendingTokenRefresh) {
 			pendingTokenRefresh = (async () => {
 				try {
-					const { message } = await CosmosAsync.get(
-						"https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0",
-						undefined,
-						{ authority: "apic-desktop.musixmatch.com", cookie: "x-mxm-token-guid=" },
+					const response = parseMusixmatchResponse(
+						await CosmosAsync.get(
+							"https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0",
+							undefined,
+							{ authority: "apic-desktop.musixmatch.com", cookie: "x-mxm-token-guid=" },
+						),
 					);
-					const token = message?.body?.user_token;
-					if (message?.header?.status_code === 200 && token && !token.startsWith("UpgradeOnly")) {
+					const token = response.token;
+					if (response.status === 200 && token) {
 						userConfigs.services.musixmatch.token = token;
 						LocalStorage.set("popup-lyrics:services:musixmatch:token", token);
 						return token;
@@ -171,19 +175,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 					.join("&");
 
 			try {
-				let body = await CosmosAsync.get(
-					buildURL(userConfigs.services.musixmatch.token),
-					undefined,
-					requestHeaders,
+				let response = parseMusixmatchResponse(
+					await CosmosAsync.get(buildURL(userConfigs.services.musixmatch.token), undefined, requestHeaders),
 				);
 
-				if (body?.message?.header?.status_code === 401) {
+				if (response.status === 401) {
 					const token = await refreshMusixmatchToken();
-					if (token) body = await CosmosAsync.get(buildURL(token), undefined, requestHeaders);
+					if (token)
+						response = parseMusixmatchResponse(
+							await CosmosAsync.get(buildURL(token), undefined, requestHeaders),
+						);
 				}
 
-				body = body.message.body.macro_calls;
-				return parseMusixmatchMacro(body);
+				return parseMusixmatchMacro(response.macroCalls);
 			} catch (err) {
 				return { error: (err as Error).message };
 			}
@@ -200,7 +204,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			const finalURL = searchURL + encodeURIComponent(`${cleanTitle} ${info.artist}`);
 
 			const searchResults = await CosmosAsync.get(finalURL, undefined, requestHeader);
-			const items = searchResults.result.songs;
+			const items = parseNeteaseSearch(searchResults);
 			if (!items || !items.length) {
 				return { error: "Cannot find track" };
 			}
@@ -209,13 +213,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			if (itemId === -1) return { error: "Cannot find track" };
 
 			const meta = await CosmosAsync.get(lyricURL + items[itemId].id, undefined, requestHeader);
-			let lyricStr = meta.lrc;
-
-			if (!lyricStr || !lyricStr.lyric) {
-				return { error: "No lyrics" };
-			}
-			lyricStr = lyricStr.lyric;
-			return parseNeteaseLyrics(lyricStr);
+			return parseNeteaseResponse(meta);
 		},
 
 		async fetchLrclib(info: TrackInfo): Promise<LyricResult> {

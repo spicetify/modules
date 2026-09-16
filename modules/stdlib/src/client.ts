@@ -67,12 +67,41 @@ export interface SnackbarCapabilities {
 	enqueueSnackbar(message: string, options?: { variant?: string }): unknown;
 }
 
+type CosmosBody = Record<string, unknown>;
+type CosmosHeaders = Spicetify.CosmosAsync.Headers;
+type CosmosMethod = Spicetify.CosmosAsync.Method;
+type CosmosResponse = Omit<Spicetify.CosmosAsync.Response, "body"> & { body: unknown };
+
+export interface CosmosCapabilities {
+	head(url: string, headers?: CosmosHeaders): Promise<CosmosHeaders>;
+	get(url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<unknown>;
+	post(url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<unknown>;
+	put(url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<unknown>;
+	del(url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<unknown>;
+	patch(url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<unknown>;
+	sub(
+		url: string,
+		callback: (body: unknown) => void,
+		onError?: (error: unknown) => void,
+		body?: CosmosBody,
+		headers?: CosmosHeaders,
+	): Promise<unknown>;
+	postSub(
+		url: string,
+		body: CosmosBody | null,
+		callback: (body: unknown) => void,
+		onError?: (error: unknown) => void,
+	): Promise<unknown>;
+	request(method: CosmosMethod, url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<CosmosResponse>;
+	resolve(method: CosmosMethod, url: string, body?: CosmosBody, headers?: CosmosHeaders): Promise<CosmosResponse>;
+}
+
 export interface ClientCapabilities {
 	readonly player: typeof Spicetify.Player;
 	readonly platform: typeof Spicetify.Platform;
 	readonly storage: typeof Spicetify.LocalStorage;
 	readonly uri: typeof Spicetify.URI;
-	readonly cosmos: typeof Spicetify.CosmosAsync;
+	readonly cosmos: CosmosCapabilities;
 	readonly corsProxy: typeof Spicetify.CORSProxy;
 	readonly graphQL: typeof Spicetify.GraphQL;
 	readonly locale: typeof Spicetify.Locale;

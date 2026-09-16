@@ -28,7 +28,7 @@ export interface ExternalBoundaryFinding {
 const SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const STYLE_EXTENSIONS = new Set([".css", ".scss"]);
 const PUBLIC_STDLIB_IMPORT =
-	/^\/modules\/stdlib\/(?:mod\.(?:js|ts)|lib\/primitives(?:-classes|-vanilla)?\.(?:js|ts|tsx))$/;
+	/^\/modules\/stdlib\/(?:(?:mod|query)\.(?:js|ts)|lib\/primitives(?:-classes|-vanilla)?\.(?:js|ts|tsx))$/;
 const CLIENT_DOM_PATTERN =
 	/(?:^|[^A-Za-z0-9_-])(?:Root__|main-[A-Za-z]|player-controls__|playback-progressbar|npv-)|\[data-testid(?:=|\])/;
 
@@ -118,7 +118,7 @@ export function inspectStdlibBoundaryFile(file: string, text: string): StdlibBou
 				file: normalizedFile,
 				line: lineAt(source, match.index),
 				rule: "private-stdlib-import",
-				detail: `${match[1]} is private; import through /modules/stdlib/mod.js or the primitives kit`,
+				detail: `${match[1]} is private; import through /modules/stdlib/mod.js, query.js, or the primitives kit`,
 			});
 		}
 		const ambient = firstMatch(source, /\bSpicetify\s*(?:\?\.|\.)|\b(?:globalThis|window)\s*\.\s*Spicetify\b/);

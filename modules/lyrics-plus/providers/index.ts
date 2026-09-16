@@ -12,7 +12,7 @@
 
 import { CONFIG } from "../config.ts";
 import type { GeniusVersion, KaraokeLine, LyricLine, ProviderResult, TimedLyricLine, TrackInfo } from "../types.ts";
-import { lyricsClient as client } from "../runtime-client.ts";
+import { getLyricsResponse } from "../runtime-client.ts";
 import { processLyrics } from "../utils.ts";
 import { ProviderGenius } from "./genius.ts";
 import { ProviderLRCLIB } from "./lrclib.ts";
@@ -162,7 +162,7 @@ export interface ProviderDeps {
 
 export function createProviders(deps: ProviderDeps) {
 	return {
-		spotify: async (info: Pick<TrackInfo, "uri">): Promise<ProviderResult> => {
+		spotify: async (info: Pick<TrackInfo, "uri">, signal?: AbortSignal): Promise<ProviderResult> => {
 			const result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
@@ -176,7 +176,10 @@ export function createProviders(deps: ProviderDeps) {
 			const id = info.uri.split(":")[2];
 			let body: unknown;
 			try {
-				body = await client.cosmos.get(`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`);
+				body = await getLyricsResponse(
+					`${baseURL + id}?format=json&vocalRemoval=false&market=from_token`,
+					signal,
+				);
 			} catch {
 				return { error: "Request error", uri: info.uri };
 			}
@@ -206,7 +209,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		musixmatch: async (info: TrackInfo): Promise<ProviderResult> => {
+		musixmatch: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
 			const result: ProviderResult = {
 				error: null,
 				uri: info.uri,
@@ -223,7 +226,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderMusixmatch.findLyrics(info);
+				list = await ProviderMusixmatch.findLyrics(info, signal);
 				if (list.error) {
 					throw "";
 				}
@@ -260,7 +263,7 @@ export function createProviders(deps: ProviderDeps) {
 				result.musixmatchAvailableTranslations.includes(selectedLanguage);
 
 			const translation = canRequestTranslation
-				? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId)
+				? await ProviderMusixmatch.getTranslation(result.musixmatchTrackId, signal)
 				: null;
 			const baseLyrics = synced ?? unsynced;
 			if (baseLyrics && Array.isArray(translation) && translation.length) {
@@ -286,7 +289,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		netease: async (info: TrackInfo): Promise<ProviderResult> => {
+		netease: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
 			const result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
@@ -299,7 +302,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderNetease.findLyrics(info, deps.simplifyChinese);
+				list = await ProviderNetease.findLyrics(info, deps.simplifyChinese, signal);
 			} catch {
 				result.error = "No lyrics";
 				return result;
@@ -329,7 +332,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		lrclib: async (info: TrackInfo): Promise<ProviderResult> => {
+		lrclib: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
 			const result: ProviderResult = {
 				uri: info.uri,
 				karaoke: null,
@@ -341,7 +344,7 @@ export function createProviders(deps: ProviderDeps) {
 
 			let list;
 			try {
-				list = await ProviderLRCLIB.findLyrics(info, deps.spicetifyVersion());
+				list = await ProviderLRCLIB.findLyrics(info, deps.spicetifyVersion(), signal);
 			} catch {
 				result.error = "No lyrics";
 				return result;
@@ -360,13 +363,13 @@ export function createProviders(deps: ProviderDeps) {
 
 			return result;
 		},
-		genius: async (info: TrackInfo): Promise<ProviderResult> => {
-			const { lyrics, versions } = await ProviderGenius.fetchLyrics(info);
+		genius: async (info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> => {
+			const { lyrics, versions } = await ProviderGenius.fetchLyrics(info, signal);
 
 			let versionIndex2 = 0;
 			let genius2 = lyrics;
 			if (CONFIG.visual["dual-genius"] && versions.length > 1) {
-				genius2 = await ProviderGenius.fetchLyricsVersion(versions, 1);
+				genius2 = await ProviderGenius.fetchLyricsVersion(versions, 1, signal);
 				versionIndex2 = 1;
 			}
 

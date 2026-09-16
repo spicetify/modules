@@ -1,3 +1,4 @@
+import { requestLyrics } from "../runtime-client.ts";
 /*
  * Copyright (C) 2026 spicetify
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -31,7 +32,7 @@ function parseLyrics(value: unknown): LRCLIBLyrics {
 }
 
 export const ProviderLRCLIB = (() => {
-	async function findLyrics(info: TrackInfo, spicetifyVersion?: string): Promise<LRCLIBLyrics> {
+	async function findLyrics(info: TrackInfo, spicetifyVersion?: string, signal?: AbortSignal): Promise<LRCLIBLyrics> {
 		const baseURL = "https://lrclib.net/api/get";
 		const durr = info.duration / 1000;
 		const params = {
@@ -45,20 +46,23 @@ export const ProviderLRCLIB = (() => {
 			.map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
 			.join("&")}`;
 
-		const body = await fetch(finalURL, {
-			headers: {
-				"x-user-agent": `spicetify${spicetifyVersion ? ` v${spicetifyVersion}` : ""} (https://github.com/spicetify/cli)`,
-			},
-		});
+		return requestLyrics(async (requestSignal) => {
+			const body = await fetch(finalURL, {
+				signal: requestSignal,
+				headers: {
+					"x-user-agent": `spicetify${spicetifyVersion ? ` v${spicetifyVersion}` : ""} (https://github.com/spicetify/cli)`,
+				},
+			});
 
-		if (body.status !== 200) {
-			return {
-				error: "Request error: Track wasn't found",
-				uri: info.uri,
-			};
-		}
+			if (body.status !== 200) {
+				return {
+					error: "Request error: Track wasn't found",
+					uri: info.uri,
+				};
+			}
 
-		return parseLyrics(await body.json());
+			return parseLyrics(await body.json());
+		}, signal);
 	}
 
 	function getUnsynced(body: LRCLIBLyrics, trackDurationMs: number): LyricLine[] | null {

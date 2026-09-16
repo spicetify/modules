@@ -18,6 +18,9 @@ import {
 	React as react,
 	type ModuleRuntimeContext,
 } from "/modules/stdlib/mod.ts";
+import { createModuleQueryClient, isCancelledError } from "/modules/stdlib/query.ts";
+import { vibrantColor, trackTempo } from "./cosmos-responses.ts";
+import { LyricsQueries, type CachedLyrics } from "./queries.ts";
 import { SettingsSection, Tooltip } from "/modules/stdlib/lib/primitives.js";
 
 import {
@@ -55,9 +58,7 @@ import { lyricsReplacementReady, mountLyricsPlaybarStyleWhenReady, watchLyricsHi
 import type { LyricsHistory } from "./playbar-lifecycle.ts";
 import { GeniusPage, LoadingIcon, SyncedExpandedLyricsPage, SyncedLyricsPage, UnsyncedLyricsPage } from "./pages.tsx";
 import { ProviderMusixmatch } from "./providers/musixmatch.ts";
-import { configureLyricsClient } from "./runtime-client.ts";
-
-configureLyricsClient(client);
+import { configureLyricsClient, getLyricsResponse, requestLyrics } from "./runtime-client.ts";
 
 import { Translator } from "./translator.ts";
 
@@ -72,8 +73,6 @@ const ICON =
 // APP_NAME, the mode constants, getConfig and the CONFIG singleton now live
 // in ./config.ts.
 
-type TranslationState = Partial<Record<TranslationMode, RenderedLyricLine[] | null>>;
-type CachedLyrics = ProviderResult & TranslationState;
 interface LyricsState extends CachedLyrics {
 	currentLyrics: DisplayLyricLine[] | null;
 	colors: { background: string; inactive: string };
@@ -140,7 +139,10 @@ interface Mousetrap {
 	unbind(key: string): void;
 	reset(): void;
 }
-let CACHE: Record<string, CachedLyrics> = {};
+interface LyricsProps {
+	queries: LyricsQueries;
+	signal: AbortSignal;
+}
 
 const emptyState = {
 	karaoke: null,
@@ -286,8 +288,20 @@ const Providers = createProviders({
 // index.js — LyricsContainer class
 // ============================================================================
 
-class LyricsContainer extends react.Component<Record<string, never>, LyricsState> {
+export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 	declare state: LyricsState;
+	private mounted = false;
+	private requestGeneration = 0;
+	private versionRequests = { primary: 0, secondary: 0 };
+	get active() {
+		return this.mounted && !this.props.signal.aborted;
+	}
+	getCache(uri: string) {
+		return this.props.queries.get(uri, this.state.explicitMode);
+	}
+	updateCache(uri: string, patch: Partial<CachedLyrics>) {
+		if (this.active) this.props.queries.update(uri, this.state.explicitMode, patch);
+	}
 	currentTrackUri: string;
 	nextTrackUri: string;
 	availableModes: LyricMode[];
@@ -305,7 +319,7 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 	onQueueChange: QueueListener = () => {};
 	onFontSizeChange: (event: WheelEvent) => void = () => {};
 	toggleFullscreen: () => void = () => {};
-	constructor(props: Record<string, never>) {
+	constructor(props: LyricsProps) {
 		super(props);
 		this.state = {
 			karaoke: null,
@@ -384,21 +398,22 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 		try {
 			try {
 				const { fetchExtractedColorForTrackEntity } = client.graphQL.Definitions;
-				const { data } = await client.graphQL.Request(fetchExtractedColorForTrackEntity, { uri });
+				const { data } = await requestLyrics(() =>
+					client.graphQL.Request(fetchExtractedColorForTrackEntity, { uri }),
+				);
 				const { hex } = data.trackUnion.albumOfTrack.coverArt.extractedColors.colorDark;
 				vibrant = Number.parseInt(hex.replace("#", ""), 16);
 			} catch {
-				const colors = await client.cosmos.get(
+				const colors = await getLyricsResponse(
 					`https://spclient.wg.spotify.com/colorextractor/v1/extract-presets?uri=${uri}&format=json`,
 				);
-				vibrant = colors.entries[0].color_swatches.find(
-					(color: { preset: string; color: number }) => color.preset === "VIBRANT_NON_ALARMING",
-				).color;
+				vibrant = vibrantColor(colors);
 			}
 		} catch {
 			vibrant = 8747370;
 		}
 
+		if (!this.active || uri !== this.currentTrackUri) return;
 		this.setState({
 			colors: {
 				background: Utils.convertIntToRGB(vibrant),
@@ -408,15 +423,20 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 	}
 
 	async fetchTempo(uri: string) {
-		const audio = await client.cosmos.get(
-			`https://spclient.wg.spotify.com/audio-attributes/v1/audio-features/${uri.split(":")[2]}?format=json`,
-		);
-		let tempo = audio.tempo;
+		let audio: unknown;
+		try {
+			audio = await getLyricsResponse(
+				`https://spclient.wg.spotify.com/audio-attributes/v1/audio-features/${uri.split(":")[2]}?format=json`,
+			);
+		} catch {
+			audio = null;
+		}
+		if (!this.active || uri !== this.currentTrackUri) return;
+		let tempo = trackTempo(audio);
 
 		const MIN_TEMPO = 60;
 		const MAX_TEMPO = 150;
 		const MAX_PERIOD = 0.4;
-		if (!tempo) tempo = 105;
 		if (tempo < MIN_TEMPO) tempo = MIN_TEMPO;
 		if (tempo > MAX_TEMPO) tempo = MAX_TEMPO;
 
@@ -434,8 +454,9 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 		const trackId = this.state.musixmatchTrackId;
 		const currentUri = this.state.uri;
 		const currentRequestId = Symbol("musixmatchTranslationRequest");
+		const translationLanguage = selectedLanguage;
 		this._musixmatchTranslationRequestId = currentRequestId;
-		const isLatestRequest = () => this._musixmatchTranslationRequestId === currentRequestId;
+		const isLatestRequest = () => this.active && this._musixmatchTranslationRequestId === currentRequestId;
 		const finishRequest = () => {
 			if (isLatestRequest()) {
 				this._musixmatchTranslationRequestId = null;
@@ -449,10 +470,8 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 					musixmatchTranslationLanguage: null,
 				});
 			}
-			if (CACHE[currentUri]) {
-				CACHE[currentUri].musixmatchTranslation = null;
-				CACHE[currentUri].musixmatchTranslationLanguage = null;
-			}
+			if (this.getCache(currentUri))
+				this.updateCache(currentUri, { musixmatchTranslation: null, musixmatchTranslationLanguage: null });
 		};
 
 		if (!trackId || !selectedLanguage || selectedLanguage === "none") {
@@ -484,15 +503,25 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 
 		let translation;
 		try {
-			translation = await ProviderMusixmatch.getTranslation(trackId);
+			translation = await this.props.queries.client.fetchQuery({
+				queryKey: [
+					"translation",
+					...this.props.queries.key(currentUri, this.state.explicitMode),
+					trackId,
+					translationLanguage,
+				],
+				queryFn: async ({ signal }) => {
+					const result = await ProviderMusixmatch.getTranslation(trackId, signal);
+					if (!result) throw new Error("Translation unavailable");
+					return result;
+				},
+			});
 		} catch (error) {
 			console.error(error);
 			if (isLatestRequest()) {
 				client.notify(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
-				if (CACHE[currentUri]) {
-					CACHE[currentUri].musixmatchTranslation = null;
-					CACHE[currentUri].musixmatchTranslationLanguage = null;
-				}
+				if (this.getCache(currentUri))
+					this.updateCache(currentUri, { musixmatchTranslation: null, musixmatchTranslationLanguage: null });
 			}
 			finishRequest();
 			return;
@@ -501,10 +530,8 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 		if (!translation) {
 			if (isLatestRequest()) {
 				client.notify(MUSIXMATCH_TRANSLATION_FETCH_FAILED_MESSAGE, true, 3000);
-				if (CACHE[currentUri]) {
-					CACHE[currentUri].musixmatchTranslation = null;
-					CACHE[currentUri].musixmatchTranslationLanguage = null;
-				}
+				if (this.getCache(currentUri))
+					this.updateCache(currentUri, { musixmatchTranslation: null, musixmatchTranslationLanguage: null });
 			}
 			finishRequest();
 			return;
@@ -548,25 +575,29 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 			musixmatchTranslation: mappedTranslation,
 			musixmatchTranslationLanguage: currentLanguage,
 		});
-		if (CACHE[currentUri]) {
-			CACHE[currentUri].musixmatchTranslation = mappedTranslation;
-			CACHE[currentUri].musixmatchTranslationLanguage = currentLanguage;
-		}
+		if (this.getCache(currentUri))
+			this.updateCache(currentUri, {
+				musixmatchTranslation: mappedTranslation,
+				musixmatchTranslationLanguage: currentLanguage,
+			});
 		finishRequest();
 	}
 
-	async tryServices(trackInfo: TrackInfo, mode = -1): Promise<ProviderResult> {
+	async tryServices(trackInfo: TrackInfo, mode = -1, signal?: AbortSignal): Promise<ProviderResult> {
 		const currentMode = CONFIG.modes[mode];
 		let finalData: ProviderResult = { ...emptyState, uri: trackInfo.uri };
 		for (const id of CONFIG.providersOrder) {
+			signal?.throwIfAborted();
 			const service = CONFIG.providers[id];
 			if (!service.on) continue;
 			if (mode !== -1 && !service.modes.includes(mode)) continue;
 
 			let data;
 			try {
-				data = await Providers[id](trackInfo);
+				data = await Providers[id](trackInfo, signal);
+				signal?.throwIfAborted();
 			} catch (e) {
+				signal?.throwIfAborted();
 				console.error(e);
 				continue;
 			}
@@ -612,12 +643,15 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 	}
 
 	async fetchLyrics(track: Track | null | undefined, mode = -1, refresh = false) {
+		const generation = ++this.requestGeneration;
 		const info = this.infoFromTrack(track);
 		if (!info) {
 			this.setState({ error: "No track info" });
 			return;
 		}
 
+		if (mode === -1) mode = this.props.queries.preferredMode(info.uri) ?? -1;
+		this.state.explicitMode = mode;
 		let isCached = this.lyricsSaved(info.uri);
 
 		if (CONFIG.visual.colorful) {
@@ -627,35 +661,23 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 		this.fetchTempo(info.uri);
 		this.resetDelay();
 
-		let tempState: CachedLyrics & { isCached: boolean; isLoading?: boolean };
-		// if lyrics are cached
-		if ((mode === -1 && CACHE[info.uri]) || CACHE[info.uri]?.[CONFIG.modes?.[mode]]) {
-			tempState = { ...emptyState, ...CACHE[info.uri], isCached };
-			const cachedMode = CACHE[info.uri]?.mode;
-			if (cachedMode) {
-				this.state.explicitMode = cachedMode;
-				tempState = { ...tempState, mode: cachedMode };
-			}
-		} else {
-			this.setState({ ...emptyState, isLoading: true, isCached: false });
-
-			const resp = await this.tryServices(info, mode);
-			if (resp.provider) {
-				// Cache lyrics
-				CACHE[resp.uri] = resp;
-			}
-
-			// This True when the user presses the Cache Lyrics button and saves it to localStorage.
-			isCached = this.lyricsSaved(resp.uri);
-
-			// In case user skips tracks too fast and multiple callbacks
-			// set wrong lyrics to current track.
-			if (resp.uri === this.currentTrackUri) {
-				tempState = { ...emptyState, ...resp, isLoading: false, isCached };
-			} else {
-				return;
-			}
+		if (!this.props.queries.get(info.uri, mode)) this.setState({ ...emptyState, isLoading: true, isCached: false });
+		let resp: CachedLyrics;
+		try {
+			resp = await this.props.queries.fetch(info, mode, (signal) => this.tryServices(info, mode, signal));
+		} catch (error) {
+			if (!this.active || generation !== this.requestGeneration || isCancelledError(error)) return;
+			this.setState({
+				...emptyState,
+				uri: info.uri,
+				isLoading: false,
+				error: "Could not load lyrics. Try again.",
+			});
+			return;
 		}
+		if (!this.active || generation !== this.requestGeneration || info.uri !== this.currentTrackUri) return;
+		isCached = this.lyricsSaved(resp.uri);
+		const tempState = { ...emptyState, ...resp, isLoading: false, isCached };
 
 		const selectedMusixmatchLanguage = CONFIG.visual["musixmatch-translation-language"] || "none";
 		const shouldRefreshMusixmatchTranslation =
@@ -717,12 +739,19 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 					: defaultLanguage;
 			const targetConvert = translationMode(language, CONFIG.visual);
 
-			const isMemory = targetConvert && CACHE[tempState.uri]?.[targetConvert];
+			const isMemory = targetConvert && this.getCache(tempState.uri)?.[targetConvert];
 			if (CONFIG.visual.translate && defaultLanguage && targetConvert && !isMemory) {
 				this.translateLyrics(language, this.state.currentLyrics, targetConvert).then((translated) => {
+					if (
+						!this.active ||
+						!translated ||
+						this.currentTrackUri !== tempState.uri ||
+						generation !== this.requestGeneration
+					)
+						return;
 					const res = { [targetConvert]: translated };
 					// Cache translated lyrics
-					CACHE[tempState.uri] = { ...CACHE[tempState.uri], ...res };
+					this.updateCache(tempState.uri, res);
 					this.setState((state) => ({ ...state, ...res }));
 				});
 			}
@@ -826,13 +855,21 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 
 			if (CONFIG.visual.translate) {
 				const targetConvert = translationMode(lang, CONFIG.visual);
-				const isCached = targetConvert && CACHE[lyricsState.uri]?.[targetConvert];
+				const isCached = targetConvert && this.getCache(lyricsState.uri)?.[targetConvert];
 
 				if (!isCached && targetConvert) {
+					const generation = this.requestGeneration;
 					this.translateLyrics(lang, lyrics, targetConvert).then((translated) => {
+						if (
+							!this.active ||
+							!translated ||
+							this.currentTrackUri !== lyricsState.uri ||
+							generation !== this.requestGeneration
+						)
+							return;
 						const res = { [targetConvert]: translated };
 						// Cache translated lyrics
-						CACHE[lyricsState.uri] = { ...CACHE[lyricsState.uri], ...res };
+						this.updateCache(lyricsState.uri, res);
 						this.setState({ ...this.state, ...res });
 					});
 				}
@@ -848,7 +885,7 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 					hk: null,
 					tw: null,
 				};
-				CACHE[lyricsState.uri] = { ...CACHE[lyricsState.uri], ...resetCache };
+				this.updateCache(lyricsState.uri, resetCache);
 			}
 		}
 	}
@@ -878,10 +915,9 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 			this.translator = new Translator(language);
 		}
 		const translator = this.translator;
-		await translator.awaitFinished(language);
-
 		let result: string[] | undefined;
 		try {
+			await translator.awaitFinished(language);
 			if (language === "ja") {
 				// Japanese
 				const map = {
@@ -954,7 +990,8 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 			client.notify("Converting...", false, 0);
 			return res;
 		} catch (error) {
-			client.notify("Convert Error!", true);
+			if (!this.active) return;
+			client.notify("Conversion failed. Try again.", true);
 			console.error(error);
 		}
 	}
@@ -964,12 +1001,26 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 	}
 
 	async onVersionChange(items: GeniusVersion[], index: number) {
+		const generation = this.requestGeneration;
+		const request = ++this.versionRequests.primary;
 		if (this.state.mode === GENIUS) {
 			this.setState({
 				genius2: this.state.genius2,
 				isLoading: true,
 			});
-			const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
+			let lyrics: string | null;
+			try {
+				lyrics = await this.props.queries.client.fetchQuery({
+					queryKey: ["genius-version", items[index]?.url],
+					queryFn: ({ signal }) => ProviderGenius.fetchLyricsVersion(items, index, signal),
+				});
+			} catch {
+				if (this.active && generation === this.requestGeneration && request === this.versionRequests.primary)
+					this.setState({ isLoading: false });
+				return;
+			}
+			if (!this.active || generation !== this.requestGeneration || request !== this.versionRequests.primary)
+				return;
 			this.setState({
 				genius: lyrics,
 				versionIndex: index,
@@ -979,12 +1030,26 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 	}
 
 	async onVersionChange2(items: GeniusVersion[], index: number) {
+		const generation = this.requestGeneration;
+		const request = ++this.versionRequests.secondary;
 		if (this.state.mode === GENIUS) {
 			this.setState({
 				genius: this.state.genius,
 				isLoading: true,
 			});
-			const lyrics = await ProviderGenius.fetchLyricsVersion(items, index);
+			let lyrics: string | null;
+			try {
+				lyrics = await this.props.queries.client.fetchQuery({
+					queryKey: ["genius-version", items[index]?.url],
+					queryFn: ({ signal }) => ProviderGenius.fetchLyricsVersion(items, index, signal),
+				});
+			} catch {
+				if (this.active && generation === this.requestGeneration && request === this.versionRequests.secondary)
+					this.setState({ isLoading: false });
+				return;
+			}
+			if (!this.active || generation !== this.requestGeneration || request !== this.versionRequests.secondary)
+				return;
 			this.setState({
 				genius2: lyrics,
 				versionIndex2: index,
@@ -1048,7 +1113,11 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 				}
 
 				this.setState({ ...localLyrics, provider: "local" });
-				CACHE[this.currentTrackUri] = { ...localLyrics, provider: "local", uri: this.currentTrackUri };
+				this.props.queries.set(this.state.explicitMode, {
+					...localLyrics,
+					uri: this.currentTrackUri,
+					provider: "local",
+				});
 				this.saveLocalLyrics(this.currentTrackUri, localLyrics);
 
 				client.notify(`Loaded ${parsedKeys.join(", ")} lyrics from file`);
@@ -1073,6 +1142,7 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 	}
 
 	componentDidMount() {
+		this.mounted = true;
 		this.onQueueChange = async ({ data: queue }) => {
 			this.state.explicitMode = this.state.lockMode;
 			this.currentTrackUri = queue.current.uri;
@@ -1085,12 +1155,10 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 			// Debounce next track fetch
 			if (!nextInfo || nextInfo.uri === this.nextTrackUri) return;
 			this.nextTrackUri = nextInfo.uri;
-			this.tryServices(nextInfo, this.state.explicitMode).then((resp) => {
-				if (resp.provider) {
-					// Cache lyrics
-					CACHE[resp.uri] = resp;
-				}
-			});
+			const mode = this.state.explicitMode;
+			void this.props.queries
+				.fetch(nextInfo, mode, (signal) => this.tryServices(nextInfo, mode, signal))
+				.catch(() => {});
 		};
 
 		if (client.player?.data?.item) {
@@ -1113,8 +1181,10 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 			}
 		});
 
-		sharedCallbacks.setReloadLyrics(() => {
-			CACHE = {};
+		sharedCallbacks.setReloadLyrics(async () => {
+			++this.requestGeneration;
+			await this.props.queries.clear();
+			if (!this.active) return;
 			this.updateVisualOnConfigChange();
 			this.forceUpdate();
 			this.fetchLyrics(client.player.data.item, this.state.explicitMode, true);
@@ -1161,6 +1231,13 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 
 	onFadRequest = () => sharedCallbacks.lyricContainerUpdate?.();
 	componentWillUnmount() {
+		this.mounted = false;
+		++this.requestGeneration;
+		this._musixmatchTranslationRequestId = null;
+		this.translator?.dispose();
+		void this.props.queries.client.cancelQueries();
+		sharedCallbacks.setReloadLyrics(undefined);
+		sharedCallbacks.setLyricContainerUpdate(undefined);
 		Utils.removeQueueListener(this.onQueueChange);
 		this.mousetrap?.reset();
 		window.removeEventListener("fad-request", this.onFadRequest);
@@ -1453,9 +1530,7 @@ class LyricsContainer extends react.Component<Record<string, never>, LyricsState
 					if (mode !== this.state.mode) {
 						// If explicitMode is not set, moving the topBar will apply the default mode value for the selected song.
 						const info = this.infoFromTrack(client.player.data.item);
-						if (info?.uri && CACHE[info?.uri]) {
-							CACHE[info.uri].mode = mode;
-						}
+						if (info?.uri) this.props.queries.rememberMode(info.uri, mode);
 
 						this.setState({ explicitMode: mode });
 						if (this.state.provider !== "local") this.fetchLyrics(client.player.data.item, mode);
@@ -1535,12 +1610,20 @@ function LyricsPlusPlaybarButton() {
 // ============================================================================
 
 export default function (ctx: ModuleRuntimeContext) {
+	const lifetime = new AbortController();
+	configureLyricsClient(client, lifetime.signal);
+	const queries = new LyricsQueries(createModuleQueryClient(ctx));
+	ctx.defer(() => {
+		lifetime.abort();
+		simplifiedChineseTranslator?.dispose();
+		simplifiedChineseTranslator = null;
+	});
 	const registrar = createRegistrar(ctx);
 	registrar.register(
 		"navlink",
 		react.createElement(NavLink, { localizedApp: "Lyrics", appRoutePath: ROUTE, icon: ICON, activeIcon: ICON }),
 	);
-	registrar.registerRoute(ROUTE, react.createElement(LyricsContainer));
+	registrar.registerRoute(ROUTE, react.createElement(LyricsContainer, { queries, signal: lifetime.signal }));
 	registrar.register("playbarButton", react.createElement(LyricsPlusPlaybarButton));
 	registrar.register(
 		"settingsSection",

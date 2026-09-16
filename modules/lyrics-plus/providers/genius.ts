@@ -7,14 +7,11 @@
 // from the other providers by design: { fetchLyrics, getNote,
 // fetchLyricsVersion } — there is no getSynced/getUnsynced here.
 
+import { responseRecord as record } from "../cosmos-responses.ts";
 import { removeExtraInfo, removeSongFeat } from "../utils.ts";
-import { lyricsClient as client } from "../runtime-client.ts";
+import { getLyricsResponse, requestLyrics } from "../runtime-client.ts";
 
 import type { GeniusVersion, TrackInfo } from "../types.ts";
-
-function record(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value)) : {};
-}
 
 export const ProviderGenius = (() => {
 	function getChildDeep(value: unknown, isDeep = false): string {
@@ -38,15 +35,15 @@ export const ProviderGenius = (() => {
 		return acc.trim();
 	}
 
-	async function getNote(id: string | number): Promise<string> {
-		const body = record(await client.cosmos.get(`https://genius.com/api/annotations/${id}`));
+	async function getNote(id: string | number, signal?: AbortSignal): Promise<string> {
+		const body = record(await getLyricsResponse(`https://genius.com/api/annotations/${id}`, signal));
 		const response = record(body.response);
 		const annotation = record(response.annotation);
 		let note = "";
 
 		// Authors annotations
 		if (record(response.referent).classification === "verified") {
-			const referentsBody = record(await client.cosmos.get(`https://genius.com/api/referents/${id}`));
+			const referentsBody = record(await getLyricsResponse(`https://genius.com/api/referents/${id}`, signal));
 			const annotations = record(record(referentsBody.response).referent).annotations;
 			if (Array.isArray(annotations)) {
 				for (const ref of annotations) note += getChildDeep(record(record(ref).body).dom);
@@ -67,30 +64,38 @@ export const ProviderGenius = (() => {
 		return note;
 	}
 
-	function fetchHTML(url: string): Promise<string> {
-		return new Promise<string>((resolve, reject) => {
-			const request = JSON.stringify({
-				method: "GET",
-				uri: url,
-			});
+	function fetchHTML(url: string, signal?: AbortSignal): Promise<string> {
+		return requestLyrics(
+			() =>
+				new Promise<string>((resolve, reject) => {
+					const request = JSON.stringify({
+						method: "GET",
+						uri: url,
+					});
 
-			window.sendCosmosRequest({
-				request,
-				persistent: false,
-				onSuccess: resolve,
-				onFailure: reject,
-			});
-		});
+					window.sendCosmosRequest({
+						request,
+						persistent: false,
+						onSuccess: resolve,
+						onFailure: reject,
+					});
+				}),
+			signal,
+		);
 	}
 
-	async function fetchLyricsVersion(results: readonly GeniusVersion[], index: number): Promise<string | null> {
+	async function fetchLyricsVersion(
+		results: readonly GeniusVersion[],
+		index: number,
+		signal?: AbortSignal,
+	): Promise<string | null> {
 		const result = results[index];
 		if (!result) {
 			console.warn(result);
 			return null;
 		}
 
-		const site = await fetchHTML(result.url);
+		const site = await fetchHTML(result.url, signal);
 		const body = record(JSON.parse(site)).body;
 		if (typeof body !== "string" || !body) {
 			return null;
@@ -115,6 +120,7 @@ export const ProviderGenius = (() => {
 
 	async function fetchLyrics(
 		info: Pick<TrackInfo, "title" | "artist">,
+		signal?: AbortSignal,
 	): Promise<{ lyrics: string | null; versions: GeniusVersion[] }> {
 		const titles = new Set([info.title]);
 
@@ -129,7 +135,7 @@ export const ProviderGenius = (() => {
 			const query = new URLSearchParams({ per_page: "20", q: `${info.artist} ${title}` });
 			const url = `https://genius.com/api/search/song?${query.toString()}`;
 
-			const geniusSearch = record(await client.cosmos.get(url));
+			const geniusSearch = record(await getLyricsResponse(url, signal));
 			const sections = record(geniusSearch.response).sections;
 			const rawHits = Array.isArray(sections) ? record(sections[0]).hits : undefined;
 			hits = Array.isArray(rawHits)
@@ -145,7 +151,7 @@ export const ProviderGenius = (() => {
 				continue;
 			}
 
-			lyrics = await fetchLyricsVersion(hits, 0);
+			lyrics = await fetchLyricsVersion(hits, 0, signal);
 			break;
 		}
 

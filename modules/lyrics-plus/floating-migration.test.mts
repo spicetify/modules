@@ -19,10 +19,12 @@ describe("Lyrics Plus owned floating-surface migration", () => {
 		assert.match(optionsMenu, /\bPopoverMenu\b/);
 		assert.match(optionsMenu, /\bPopoverMenuItem\b/);
 		assert.doesNotMatch(source, /Spicetify\.(?:ReactComponent|Mousetrap|CosmosAsync)/);
-		assert.match(source, /configureLyricsClient\(client\)/);
+		assert.match(source, /configureLyricsClient\(client, lifetime\.signal\)/);
 	});
 
-	it("declares the stdlib version that introduced floating surfaces", () => {
-		assert.equal(metadata.dependencies.stdlib, "^1.11.0");
+	it("declares the stdlib version that provides owned queries and floating surfaces", () => {
+		const minimum = /^\^(\d+)\.(\d+)\.(\d+)$/.exec(metadata.dependencies.stdlib);
+		assert.ok(minimum);
+		assert.ok(Number(minimum[1]) > 1 || (Number(minimum[1]) === 1 && Number(minimum[2]) >= 12));
 	});
 });

@@ -908,6 +908,7 @@ export const GeniusPage = react.memo(
 		// Fetch notes
 		useEffect(() => {
 			if (!container) return;
+			const controller = new AbortController();
 			notes = {};
 			let links = Array.from(container.querySelectorAll("a"));
 			if (isSplitted && container2) {
@@ -916,17 +917,23 @@ export const GeniusPage = react.memo(
 			for (const link of links) {
 				const id = link.pathname.match(/\/(\d+)\//)?.[1] ?? link.dataset.id;
 				if (!id) continue;
-				ProviderGenius.getNote(id).then((note) => {
-					if (note == null) return;
-					notes[id] = note;
-					link.classList.add("fetched");
-				});
+				ProviderGenius.getNote(id, controller.signal)
+					.then((note) => {
+						if (controller.signal.aborted || note == null) return;
+						notes[id] = note;
+						link.classList.add("fetched");
+					})
+					.catch(() => {});
 				link.onclick = (event) => {
 					event.preventDefault();
 					if (!notes[id]) return;
 					showNote(link, notes[id]);
 				};
 			}
+			return () => {
+				controller.abort();
+				for (const link of links) link.onclick = null;
+			};
 		}, [lyrics, lyrics2]);
 
 		const lyricsEl1 = react.createElement(

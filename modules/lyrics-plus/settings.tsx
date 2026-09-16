@@ -1,3 +1,5 @@
+import { requestLyrics } from "./runtime-client.ts";
+import { tokenResponse } from "./cosmos-responses.ts";
 /*
  * Copyright (C) 2026 spicetify
  * SPDX-License-Identifier: GPL-3.0-or-later
@@ -94,38 +96,44 @@ export const MusixmatchTokenSetting = ({ onTokenChange }: { onTokenChange: (toke
 
 	useEffect(() => {
 		if (buttonText === "Refreshing token...") {
-			client.cosmos
-				.get("https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0", undefined, {
-					Host: "apic-appmobile.musixmatch.com",
-					authority: "apic-appmobile.musixmatch.com",
-					"X-Cookie": "x-mxm-token-guid=",
-					"x-mxm-app-version": "10.1.1",
-					"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
-					"Accept-Language": "en-US,en;q=0.9",
-					Connection: "keep-alive",
-					Accept: "application/json",
+			const controller = new AbortController();
+			requestLyrics(
+				() =>
+					client.cosmos.get(
+						"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
+						undefined,
+						{
+							Host: "apic-appmobile.musixmatch.com",
+							authority: "apic-appmobile.musixmatch.com",
+							"X-Cookie": "x-mxm-token-guid=",
+							"x-mxm-app-version": "10.1.1",
+							"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
+							"Accept-Language": "en-US,en;q=0.9",
+							Connection: "keep-alive",
+							Accept: "application/json",
+						},
+					),
+				controller.signal,
+			)
+				.then((value) => {
+					if (controller.signal.aborted) return;
+					const response = tokenResponse(value);
+					if (response.status === 200 && response.token) {
+						setTokenCallback(response.token);
+						setButtonText("Token refreshed");
+					} else if (response.status === 401) {
+						setButtonText("Too many attempts");
+					} else {
+						setButtonText("Failed to refresh token");
+						console.error("Failed to refresh token", response);
+					}
 				})
-				.then(
-					({
-						message: response,
-					}: {
-						message: { header: { status_code: number }; body: { user_token?: string } };
-					}) => {
-						if (response.header.status_code === 200 && response.body.user_token) {
-							setTokenCallback(response.body.user_token);
-							setButtonText("Token refreshed");
-						} else if (response.header.status_code === 401) {
-							setButtonText("Too many attempts");
-						} else {
-							setButtonText("Failed to refresh token");
-							console.error("Failed to refresh token", response);
-						}
-					},
-				)
 				.catch((error) => {
+					if (controller.signal.aborted) return;
 					setButtonText("Failed to refresh token");
 					console.error("Failed to refresh token", error);
 				});
+			return () => controller.abort();
 		}
 	}, [buttonText]);
 
@@ -137,7 +145,7 @@ export const MusixmatchTokenSetting = ({ onTokenChange }: { onTokenChange: (toke
 		ariaLabel: "Musixmatch token",
 		onInput: setTokenCallback,
 		actionLabel: buttonText,
-		actionDisabled: buttonText !== "Refresh token",
+		actionDisabled: buttonText === "Refreshing token...",
 		onAction: () => setButtonText("Refreshing token..."),
 	});
 };

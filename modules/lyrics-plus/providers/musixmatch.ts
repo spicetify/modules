@@ -8,8 +8,9 @@
 // owns the state and must stay importable under node --test, so the client
 // is only touched inside the network calls.
 
+import { responseRecord as record } from "../cosmos-responses.ts";
 import { CONFIG } from "../config.ts";
-import { lyricsClient as client } from "../runtime-client.ts";
+import { getLyricsResponse, requestLyrics } from "../runtime-client.ts";
 import type { KaraokeLine, LyricLine, TimedLyricLine, TrackInfo } from "../types.ts";
 
 interface Performer {
@@ -76,9 +77,6 @@ interface SubtitleLine {
 	time: { total: number };
 }
 
-function record(value: unknown): Record<string, unknown> {
-	return value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value)) : {};
-}
 function string(value: unknown): string | undefined {
 	return typeof value === "string" ? value : undefined;
 }
@@ -289,8 +287,9 @@ export const ProviderMusixmatch = (() => {
 			pendingTokenRefresh = (async () => {
 				try {
 					const { message } = parseResponse(
-						await client.cosmos.get(
+						await getLyricsResponse(
 							"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
+							undefined,
 							undefined,
 							headers,
 						),
@@ -303,6 +302,7 @@ export const ProviderMusixmatch = (() => {
 						return token;
 					}
 				} catch (error) {
+					if (error instanceof DOMException && error.name === "AbortError") throw error;
 					console.error("Musixmatch token refresh failed", error);
 				}
 				setMusixmatchTokenValid(false);
@@ -314,20 +314,23 @@ export const ProviderMusixmatch = (() => {
 		return pendingTokenRefresh;
 	}
 
-	async function request(buildURL: (token: string) => string): Promise<ApiCall<MusixmatchBody>> {
+	async function request(
+		buildURL: (token: string) => string,
+		signal?: AbortSignal,
+	): Promise<ApiCall<MusixmatchBody>> {
 		let body = parseResponse(
-			await client.cosmos.get(buildURL(CONFIG.providers.musixmatch.token), undefined, headers),
+			await getLyricsResponse(buildURL(CONFIG.providers.musixmatch.token), signal, undefined, headers),
 		);
 		if (body?.message?.header?.status_code === 401) {
-			const token = await refreshToken();
-			if (token) body = parseResponse(await client.cosmos.get(buildURL(token), undefined, headers));
+			const token = await requestLyrics(() => refreshToken(), signal);
+			if (token) body = parseResponse(await getLyricsResponse(buildURL(token), signal, undefined, headers));
 		} else if (body?.message?.header?.status_code === 200) {
 			setMusixmatchTokenValid(true);
 		}
 		return body;
 	}
 
-	async function findLyrics(info: TrackInfo): Promise<MusixmatchLyrics> {
+	async function findLyrics(info: TrackInfo, signal?: AbortSignal): Promise<MusixmatchLyrics> {
 		const baseURL =
 			"https://apic-appmobile.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=mac-ios-v2.0&";
 
@@ -346,7 +349,7 @@ export const ProviderMusixmatch = (() => {
 			part: "track_lyrics_translation_status,track_structure,track_performer_tagging",
 		};
 
-		const response = await request(buildRequestUrl(baseURL, params));
+		const response = await request(buildRequestUrl(baseURL, params), signal);
 		const body = response.message?.body?.macro_calls;
 
 		if (!body || body["matcher.track.get"]?.message?.header?.status_code !== 200) {
@@ -655,6 +658,7 @@ export const ProviderMusixmatch = (() => {
 
 	async function getTranslation(
 		trackId: number | null | undefined,
+		signal?: AbortSignal,
 	): Promise<{ translation: string; matchedLine: string }[] | null> {
 		if (!trackId) return null;
 
@@ -669,7 +673,7 @@ export const ProviderMusixmatch = (() => {
 			selected_language: selectedLanguage,
 		};
 
-		const response = await request(buildRequestUrl(baseURL, params));
+		const response = await request(buildRequestUrl(baseURL, params), signal);
 
 		if (response.message?.header?.status_code !== 200) return null;
 
