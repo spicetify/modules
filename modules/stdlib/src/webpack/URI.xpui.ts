@@ -105,7 +105,7 @@ export const from: (uri: ParsableAsURI) => URIClass<any> = findAndExcludeBy("all
 export const fromString: (str: string) => URIClass<any> = findAndExcludeBy("Argument `uri` must be a string.") as any;
 
 is.PlaylistV1OrV2 = (
-	is.Playlist && is.PlaylistV2
+	typeof is.Playlist === "function" && typeof is.PlaylistV2 === "function"
 		? findAndExcludeBy(`${(is.Playlist as Function).name}(e)||${(is.PlaylistV2 as Function).name}(e)`)
 		: undefined
 ) as any;

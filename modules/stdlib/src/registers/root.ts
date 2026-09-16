@@ -56,7 +56,7 @@ globalThis.__renderRootChildren = () =>
 		return childrenRegistry.all();
 	});
 globalThis.__renderRootProviders = (providers: React.ReactElement[]) => {
-	const MultiProvider = ({ children }) => {
+	const MultiProvider = ({ children }: React.PropsWithChildren) => {
 		const [, refresh] = React.useReducer((n) => n + 1, 0);
 		if (!providersRegistry.refresh.value) {
 			providersRegistry.refresh.resolve(refresh);

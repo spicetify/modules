@@ -59,9 +59,9 @@ repository dependency ranges, and runs its colocated `*.test.mts` files.
 It reports explicitly when a module has no automated tests. It doesn't install
 the build into Spotify. Shared-tooling changes still require the full CI checks.
 
-Auto Skip Explicit also opts into strict TypeScript checking. The
-[module standard](docs/module-standard.md#strict-type-checking) describes how
-to migrate another module and how legacy dependency diagnostics are handled.
+Strict checking is the default for modules, stdlib, scripts, and generated
+TypeScript projects. Lyrics Plus retains its existing legacy file exemptions. The [module standard](docs/module-standard.md#strict-type-checking)
+explains the checks and the separate client and test environments.
 
 ## Docs
 

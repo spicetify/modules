@@ -248,7 +248,7 @@ describe("ProviderMusixmatch", () => {
 			null,
 		);
 
-		const withRichsyncBody = (richsync_body) => ({
+		const withRichsyncBody = (richsync_body: string) => ({
 			...matcher,
 			"track.richsync.get": {
 				message: {

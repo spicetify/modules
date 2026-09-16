@@ -22,7 +22,9 @@ const UNTHROW_TEXT = "Remove from Trashbin";
 
 const initValue = <T,>(item: string, defaultValue: T): T => {
 	try {
-		const value = JSON.parse(client.storage.get(item));
+		const stored = client.storage.get(item);
+		if (stored === null) return defaultValue;
+		const value = JSON.parse(stored);
 		return value ?? defaultValue;
 	} catch {
 		return defaultValue;

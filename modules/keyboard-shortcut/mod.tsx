@@ -266,10 +266,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const binds: Record<string, Bind> = {
 		// Shutdown Spotify using Ctrl+Q
 		"ctrl+q": {
-			callback: () =>
-				client.cosmos.post(
+			callback: () => {
+				void client.cosmos.post(
 					"sp://esperanto/spotify.desktop.lifecycle_esperanto.proto.DesktopLifecycle/Shutdown",
-				) && client.cosmos.post("sp://desktop/v1/shutdown"),
+				);
+				return client.cosmos.post("sp://desktop/v1/shutdown");
+			},
 		},
 
 		// Rotate through sidebar items using Ctrl+Tab and Ctrl+Shift+Tab

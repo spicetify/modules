@@ -214,7 +214,7 @@ export function convertParsedToUnsynced(lyrics, isBelow) {
 // trackDurationMs is supplied by the caller rather than read from the client:
 // it is only the end-time fallback for a karaoke line whose closing timestamp
 // is missing, and taking it as an argument is what keeps this file testable.
-export function parseLocalLyrics(lyrics, trackDurationMs = 0) {
+export function parseLocalLyrics(lyrics: string, trackDurationMs = 0) {
 	// Preprocess lyrics by removing [tags] and empty lines
 	const lines = lyrics
 		.replaceAll(/\[[a-zA-Z]+:.+\]/g, "")
@@ -224,13 +224,13 @@ export function parseLocalLyrics(lyrics, trackDurationMs = 0) {
 	const syncedTimestamp = /\[([0-9:.]+)\]/;
 	const karaokeTimestamp = /<([0-9:.]+)>/;
 
-	const unsynced = [];
+	const unsynced: { text: string }[] = [];
 
 	const isSynced = lines[0].match(syncedTimestamp);
-	const synced = isSynced ? [] : null;
+	const synced: { text: string; startTime: number }[] | null = isSynced ? [] : null;
 
 	const isKaraoke = lines[0].match(karaokeTimestamp);
-	const karaoke = isKaraoke ? [] : null;
+	const karaoke: { text: { word: string; time: number }[]; startTime: number }[] | null = isKaraoke ? [] : null;
 
 	function timestampToMs(timestamp) {
 		const [minutes, seconds] = timestamp.replace(/\[\]<>/, "").split(":");

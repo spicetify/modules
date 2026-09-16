@@ -70,7 +70,10 @@ export function deriveManagerState(): ManagerState {
 	// installs, and removals, and its `local` flag marks records actually
 	// loaded from localStorage (not stale shadowed copies).
 	const manifestById = new Map((manifest?.modules ?? []).map((m) => [m.identifier, m]));
-	const modules: ManagerModuleRow[] = (M?.list?.() ?? []).map((s) => ({
+	const snapshot: Array<
+		Pick<ManagerModuleRow, "version" | "loaded" | "mixedIn" | "failed"> & { identifier: string; local: boolean }
+	> = M?.list?.() ?? [];
+	const modules: ManagerModuleRow[] = snapshot.map((s) => ({
 		id: s.identifier,
 		version: s.version,
 		source: s.local ? "local" : "staged",

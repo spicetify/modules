@@ -38,6 +38,7 @@ const SYNCED_LRC = [
 describe("parseLocalLyrics", () => {
 	it("parses a synced LRC body into timed entries", () => {
 		const { synced } = parseLocalLyrics(SYNCED_LRC);
+		assert.ok(synced);
 		assert.equal(synced.length, 3);
 		assert.equal(synced[0].text, "We're talking away");
 		assert.equal(synced[0].startTime, 34130);
@@ -58,6 +59,7 @@ describe("parseLocalLyrics", () => {
 
 	it("parses word-level karaoke markers into per-word timings", () => {
 		const { karaoke } = parseLocalLyrics("[00:10.00] <00:10.00>Hello <00:10.50>world<00:11.00>");
+		assert.ok(karaoke);
 		assert.equal(karaoke.length, 1);
 		assert.equal(karaoke[0].startTime, 10000);
 		// Upstream quirk, pinned rather than corrected: the first word keeps its
@@ -76,14 +78,19 @@ describe("parseLocalLyrics", () => {
 		// The closing <mm:ss.xx> is absent, so the parser falls back. Passing a
 		// duration is what replaced the old client read.
 		const withDuration = parseLocalLyrics("[00:10.00] <00:10.00>Hello", 75000);
+		assert.ok(withDuration.karaoke);
 		const last = withDuration.karaoke[0].text.at(-1);
+		assert.ok(last);
 		assert.equal(last.time, 65000, "end time should be duration minus the word start");
 	});
 
 	it("defaults the duration to zero when the caller omits it", () => {
 		// formatTime(0) -> "00:00.00" -> 0, minus the 10s word start.
 		const parsed = parseLocalLyrics("[00:10.00] <00:10.00>Hello");
-		assert.equal(parsed.karaoke[0].text.at(-1).time, -10000);
+		assert.ok(parsed.karaoke);
+		const last = parsed.karaoke[0].text.at(-1);
+		assert.ok(last);
+		assert.equal(last.time, -10000);
 	});
 
 	it("returns an empty unsynced list for an empty body without throwing", () => {
@@ -98,7 +105,10 @@ describe("parseLocalLyrics", () => {
 		// Spicetify. Exercise exactly that branch with no client defined.
 		assert.equal(typeof globalThis.Spicetify, "undefined");
 		const parsed = parseLocalLyrics("[00:10.00] <00:10.00>Hello", 30000);
-		assert.equal(parsed.karaoke[0].text.at(-1).time, 20000);
+		assert.ok(parsed.karaoke);
+		const last = parsed.karaoke[0].text.at(-1);
+		assert.ok(last);
+		assert.equal(last.time, 20000);
 	});
 });
 
@@ -170,7 +180,7 @@ describe("string helpers", () => {
 });
 
 describe("detectLanguage", () => {
-	const lines = (text) => [{ text }];
+	const lines = (text: string) => [{ text }];
 
 	it("detects Japanese", () => {
 		assert.equal(detectLanguage(lines("ひらがなカタカナ漢字のテスト")), "ja");

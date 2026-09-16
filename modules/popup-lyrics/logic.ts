@@ -141,9 +141,7 @@ export function parseNeteaseLyrics(lyricStr: string): LyricResult {
 	const lyrics = lines
 		.flatMap((line: string) => {
 			const matchResult = line.match(/(\[.*?\])|([^[\]]+)/g) || [line];
-			if (!matchResult.length || matchResult.length === 1) {
-				return;
-			}
+			if (matchResult.length <= 1) return [];
 			const textIndex = matchResult.findIndex((slice) => !slice.endsWith("]"));
 			let text = "";
 			if (textIndex > -1) {
@@ -151,29 +149,16 @@ export function parseNeteaseLyrics(lyricStr: string): LyricResult {
 				text = LyricUtils.capitalize(LyricUtils.normalize(text, false));
 			}
 			if (text === "纯音乐, 请欣赏") noLyrics = true;
-			return matchResult.map((slice) => {
-				const result: Partial<Lyric> = {};
+			return matchResult.flatMap((slice) => {
 				const innerMatch = slice.match(/[^[\]]+/g);
-				const [key, value] = innerMatch![0].split(":") || [];
+				if (!innerMatch) return [];
+				const [key, value] = innerMatch[0].split(":");
 				const [min, sec] = [Number.parseFloat(key), Number.parseFloat(value)];
-				if (!Number.isNaN(min) && !Number.isNaN(sec) && !otherInfoRegexp.test(text)) {
-					result.startTime = min * 60 + sec;
-					result.text = text || "♪";
-					return result;
-				}
-				return;
+				if (Number.isNaN(min) || Number.isNaN(sec) || otherInfoRegexp.test(text)) return [];
+				return [{ startTime: min * 60 + sec, text: text || "♪" }];
 			});
 		})
-		.sort((a: Lyric, b: Lyric) => {
-			if (a.startTime === null) {
-				return 0;
-			}
-			if (b.startTime === null) {
-				return 1;
-			}
-			return a.startTime - b.startTime;
-		})
-		.filter(Boolean) as Lyric[];
+		.sort((a, b) => a.startTime - b.startTime);
 
 	if (noLyrics) {
 		return { error: "No lyrics" };

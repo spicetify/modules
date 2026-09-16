@@ -998,7 +998,7 @@ export function snapshotBaseline(
 
 /** Runs in Spotify. A route change alone does not prove the requested state. */
 export function inspectClassmapState(surface: string, pathname: string): boolean {
-	const visible = (element: Element | null) => {
+	const visible = (element: Element | null | undefined) => {
 		if (!element) return false;
 		const r = element.getBoundingClientRect();
 		return (
@@ -1226,7 +1226,7 @@ export async function captureClassmaps(opts: Pick<LiveOptions, "outDir" | "port"
 		viewport: CLASSMAP_VIEWPORT,
 		navigation: "History.push for pages; profile dropdown opened through its visible button",
 	};
-	let saved: {
+	type SavedClientState = {
 		route: string;
 		active: string | null;
 		scheme: string | null;
@@ -1236,9 +1236,10 @@ export async function captureClassmaps(opts: Pick<LiveOptions, "outDir" | "port"
 		zoom: number;
 		storage: Record<string, string | null>;
 		scroll: Array<{ index: number; top: number; left: number }>;
-	} | null = null;
+	};
+	let saved: SavedClientState | null = null;
 	try {
-		saved = await cdp.eval(`
+		saved = await cdp.eval<SavedClientState>(`
       const M = window.Spicetify?.Modules;
       if (!M?.unload || !M?.setScheme) throw new Error("Current module loader required");
       const zoom = window.Spicetify.Platform.SettingsAPI?.viewportZoom;

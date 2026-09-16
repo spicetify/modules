@@ -241,7 +241,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			this.mousetrap = new Mousetrap();
 		}
 
-		async getAlbumDate(uri: string) {
+		async getAlbumDate(uri: string): Promise<string | null> {
 			const { getAlbum } = client.graphQL.Definitions;
 			const { errors, data } = await client.graphQL.Request(getAlbum, {
 				uri,
@@ -295,7 +295,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 			}
 
 			// prepare release date
-			let releaseDate;
+			let releaseDate: string | null = null;
 			if (CONFIG.showReleaseDate) {
 				const albumURI = meta.album_uri;
 				if (albumURI?.startsWith("spotify:album:")) {

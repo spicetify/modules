@@ -94,7 +94,7 @@ export class PaletteManager {
 	}
 
 	public getDefault(): Palette {
-		return this.staticPalettes.values().next().value;
+		return defaultPalette;
 	}
 
 	public getPalettes(): Palette[] {

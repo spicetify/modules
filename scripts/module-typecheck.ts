@@ -5,18 +5,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { moduleFiles, workspaceModules } from "./module-files.ts";
 
-const STRICT_CONFIG = "tsconfig.strict.json";
 const SOURCE = /\.[cm]?tsx?$/;
 const TEST = /\.test\.[cm]?tsx?$/;
 
 export interface ModuleTypecheckResult {
 	ok: boolean;
 	output: string;
-}
-
-/** A module opts in by adding tsconfig.strict.json extending the shared strict config. */
-export function strictModules(root: string): string[] {
-	return workspaceModules(path.resolve(root)).filter((directory) => existsSync(path.join(directory, STRICT_CONFIG)));
 }
 
 function compile(root: string, config: string): Promise<ModuleTypecheckResult> {
@@ -44,34 +38,6 @@ function inside(directory: string, file: string): boolean {
 	return (
 		relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative))
 	);
-}
-
-/**
- * Keep the dependency sources in the strict program so their inferred nullable
- * types reach consumers. Only strict diagnostics owned by the selected module
- * are gated here; the preceding baseline pass gates ALL dependency diagnostics.
- * Declaration emission under strict:false would erase inferred nullability.
- */
-function scopedStrictResult(result: ModuleTypecheckResult, root: string, directory: string) {
-	const diagnostics = result.output
-		.trim()
-		.split(/\r?\n(?=\S)/)
-		.filter(Boolean);
-	const deferred: string[] = [];
-	const failures: string[] = [];
-	for (const diagnostic of diagnostics) {
-		const match = /^(.+)\(\d+,\d+\): error TS\d+:/.exec(diagnostic);
-		const file = match ? path.resolve(root, match[1]) : undefined;
-		// Global errors, compiler failures, and diagnostics outside workspace
-		// module dependencies must never disappear through scoping.
-		if (file && inside(path.join(root, "modules"), file) && !inside(directory, file)) deferred.push(diagnostic);
-		else failures.push(diagnostic);
-	}
-	return {
-		ok: failures.length === 0 && (result.ok || deferred.length > 0),
-		output: failures.join("\n"),
-		deferred: deferred.length,
-	};
 }
 
 /** Check complete selected modules, accepting absolute or repository-relative directories. */
@@ -102,7 +68,6 @@ export async function typecheckModules({
 				output.push(`${label}: no TypeScript sources`);
 				continue;
 			}
-			const strict = existsSync(path.join(directory, STRICT_CONFIG));
 			const globals = ["spicetify.d.ts", "platform.d.ts", "remote-modules.d.ts", "modules/stdlib/src/chunks.d.ts"]
 				.map((file) => path.join(root, file))
 				.filter(existsSync);
@@ -117,52 +82,36 @@ export async function typecheckModules({
 				["tests", tests],
 			] as const) {
 				if (!files.length) continue;
-				for (const mode of strict ? ["baseline", "strict"] : ["baseline"]) {
-					const config = path.join(temporary, "tsconfig.json");
-					writeFileSync(
-						config,
-						JSON.stringify({
-							extends:
-								mode === "strict"
-									? path.join(directory, STRICT_CONFIG)
-									: path.join(root, "tsconfig.module.json"),
-							compilerOptions: {
-								noEmit: true,
-								noCheck: false,
-								strict: mode === "strict",
-								...(mode === "strict"
-									? {
-											alwaysStrict: true,
-											noImplicitAny: true,
-											noImplicitThis: true,
-											strictBindCallApply: true,
-											strictBuiltinIteratorReturn: true,
-											strictFunctionTypes: true,
-											strictNullChecks: true,
-											strictPropertyInitialization: true,
-											useUnknownInCatchVariables: true,
-										}
-									: {}),
-								types: environment === "tests" ? ["node"] : [],
-								typeRoots: [path.join(root, "node_modules/@types")],
-							},
-							files: [...globals, ...files.filter((file) => path.basename(file) !== "classmap.d.ts")],
-							include: [],
-							exclude: [],
-						}),
-					);
-					const result = await compile(root, config);
-					const checked = mode === "strict" ? scopedStrictResult(result, root, directory) : result;
-					ok &&= checked.ok;
-					output.push(`${label} (${environment}, ${mode}): ${checked.ok ? "passed" : "failed"}`);
-					if (checked.output) output.push(checked.output.trim());
-					if ("deferred" in checked && checked.deferred) {
-						output.push(
-							`  ${checked.deferred} strict dependency diagnostics deferred; dependencies passed the baseline gate, not strict.`,
-						);
-					}
-					if (!checked.ok) break;
-				}
+				const config = path.join(temporary, "tsconfig.json");
+				writeFileSync(
+					config,
+					JSON.stringify({
+						extends: path.join(root, "tsconfig.module.json"),
+						compilerOptions: {
+							noEmit: true,
+							noCheck: false,
+							strict: true,
+							alwaysStrict: true,
+							noImplicitAny: true,
+							noImplicitThis: true,
+							strictBindCallApply: true,
+							strictBuiltinIteratorReturn: true,
+							strictFunctionTypes: true,
+							strictNullChecks: true,
+							strictPropertyInitialization: true,
+							useUnknownInCatchVariables: true,
+							types: environment === "tests" ? ["node"] : [],
+							typeRoots: [path.join(root, "node_modules/@types")],
+						},
+						files: [...globals, ...files.filter((file) => path.basename(file) !== "classmap.d.ts")],
+						include: [],
+						exclude: [],
+					}),
+				);
+				const result = await compile(root, config);
+				ok &&= result.ok;
+				output.push(`${label} (${environment}, strict): ${result.ok ? "passed" : "failed"}`);
+				if (result.output) output.push(result.output.trim());
 			}
 		}
 		return { ok, output: output.join("\n") };
@@ -176,13 +125,13 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 	const root = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 	if (
 		args.length === 0 ||
-		(args.some((arg) => arg.startsWith("--")) && !(args.length === 1 && args[0] === "--strict"))
+		(args.some((arg) => arg.startsWith("--")) && !(args.length === 1 && args[0] === "--all"))
 	) {
-		console.error("Usage: node scripts/module-typecheck.ts --strict | modules/<name> [...]");
+		console.error("Usage: node scripts/module-typecheck.ts --all | modules/<name> [...]");
 		process.exitCode = 1;
 	} else {
-		const result = await typecheckModules({ root, modules: args[0] === "--strict" ? strictModules(root) : args });
-		console.log(result.output || "No modules have opted into strict checking.");
+		const result = await typecheckModules({ root, modules: args[0] === "--all" ? workspaceModules(root) : args });
+		console.log(result.output || "No workspace modules found.");
 		if (!result.ok) process.exitCode = 1;
 	}
 }

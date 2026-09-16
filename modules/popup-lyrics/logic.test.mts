@@ -123,6 +123,18 @@ describe("parseNeteaseLyrics", () => {
 		});
 	});
 
+	it("sorts timed lines and discards invalid timestamps and untimed text", () => {
+		assert.deepEqual(
+			parseNeteaseLyrics("[00:15.00] Later\nUntimed\n[invalid] Ignore\n[] Empty\n[00:01.00] First"),
+			{
+				lyrics: [
+					{ startTime: 1, text: "First" },
+					{ startTime: 15, text: "Later" },
+				],
+			},
+		);
+	});
+
 	it("treats the pure-music marker as no lyrics", () => {
 		assert.deepEqual(parseNeteaseLyrics("[00:01.00] 纯音乐, 请欣赏"), { error: "No lyrics" });
 	});

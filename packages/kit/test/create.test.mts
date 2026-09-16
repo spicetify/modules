@@ -53,6 +53,8 @@ for (const template of TEMPLATES) {
 	test(`create --template ${template}: starter test imports logic.ts, never mod.tsx or client URLs`, async () => {
 		const root = freshRoot();
 		await runCreate([name, "--template", template], root);
+		const config = JSON.parse(readFileSync(path.join(root, name, "tsconfig.json"), "utf8"));
+		assert.equal(config.compilerOptions.strict, true);
 		const testSrc = readFileSync(path.join(root, name, "test", `${name}.test.mts`), "utf8");
 		assert.doesNotMatch(testSrc, /mod\.tsx|mod\.js/);
 		assert.doesNotMatch(testSrc, /\/modules\//);

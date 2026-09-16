@@ -5,7 +5,7 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { strictModules, typecheckModules } from "./module-typecheck.ts";
+import { typecheckModules } from "./module-typecheck.ts";
 
 const repository = fileURLToPath(new URL("..", import.meta.url));
 
@@ -14,7 +14,7 @@ function fixture() {
 	const module = path.join(root, "modules/pilot");
 	mkdirSync(module, { recursive: true });
 	symlinkSync(path.join(repository, "node_modules"), path.join(root, "node_modules"), "junction");
-	for (const config of ["tsconfig.module.json", "tsconfig.module-strict.json"]) {
+	for (const config of ["tsconfig.module.json"]) {
 		copyFileSync(path.join(repository, config), path.join(root, config));
 	}
 	writeFileSync(
@@ -44,12 +44,6 @@ function fixture() {
 		root,
 		module,
 		write,
-		strict() {
-			write(
-				"modules/pilot/tsconfig.strict.json",
-				JSON.stringify({ extends: "../../tsconfig.module-strict.json" }),
-			);
-		},
 		check() {
 			return typecheckModules({ root, modules: [module] });
 		},
@@ -62,13 +56,11 @@ function fixture() {
 test("checks a complete strict module, including unimported TSX and implicit parameters", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
-	f.strict();
 	f.write("modules/pilot/index.ts", "export const ready = true;");
 	f.write(
 		"modules/pilot/unimported.tsx",
 		"export const element = <span>Ready</span>; export function identity(value) { return value; }",
 	);
-	assert.deepEqual(strictModules(f.root), [f.module]);
 	const result = await f.check();
 	assert.equal(result.ok, false);
 	assert.match(result.output, /unimported\.tsx.*TS7006/);
@@ -79,10 +71,9 @@ test("checks a complete strict module, including unimported TSX and implicit par
 	assert.equal((await f.check()).ok, true);
 });
 
-test("keeps inferred dependency nullability while deferring only its strict diagnostics", async (t) => {
+test("rejects strict dependency errors and preserves inferred nullability", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
-	f.strict();
 	f.write(
 		"modules/legacy/mod.ts",
 		"export function lookup() { return Math.random() > 0.5 ? 'ready' : undefined; } export function identity(value) { return value; }",
@@ -94,46 +85,49 @@ test("keeps inferred dependency nullability while deferring only its strict diag
 	const failed = await f.check();
 	assert.equal(failed.ok, false);
 	assert.match(failed.output, /TS2322/);
-	assert.match(failed.output, /strict dependency diagnostics deferred/);
+	assert.match(failed.output, /legacy[/\\]mod\.ts.*TS7006/);
 	f.write(
 		"modules/pilot/index.ts",
 		"import { lookup } from '/modules/legacy/mod.ts'; export const value: string = lookup() ?? 'missing';",
 	);
-	const passed = await f.check();
-	assert.equal(passed.ok, true);
-	assert.match(passed.output, /1 strict dependency diagnostics deferred/);
+	const dependencyError = await f.check();
+	assert.equal(dependencyError.ok, false);
+	assert.match(dependencyError.output, /legacy[/\\]mod\.ts.*TS7006/);
+	f.write(
+		"modules/legacy/mod.ts",
+		"export function lookup() { return Math.random() > 0.5 ? 'ready' : undefined; } export function identity(value: string) { return value; }",
+	);
+	assert.equal((await f.check()).ok, true);
 });
 
-test("fails ordinary dependency errors before strict diagnostic scoping", async (t) => {
+test("rejects ordinary dependency errors", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
-	f.strict();
 	f.write("modules/legacy/mod.ts", "export const value: number = 'wrong';");
 	f.write("modules/pilot/index.ts", "export { value } from '/modules/legacy/mod.ts';");
 	const result = await f.check();
 	assert.equal(result.ok, false);
-	assert.match(result.output, /client, baseline\): failed/);
+	assert.match(result.output, /client, strict\): failed/);
 	assert.match(result.output, /legacy[/\\]mod\.ts.*TS2322/);
 	assert.doesNotMatch(result.output, /deferred/);
 });
 
-test("checks non-strict modules without migrating unrelated modules", async (t) => {
+test("checks every selected module strictly without pulling in unrelated modules", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
 	f.write("modules/pilot/index.ts", "export const value: number = 'wrong';");
 	f.write("modules/unrelated/index.ts", "this is not valid TypeScript");
-	assert.deepEqual(strictModules(f.root), []);
 	assert.equal((await f.check()).ok, false);
 	f.write("modules/pilot/index.ts", "export function identity(value) { return value; }");
 	const result = await f.check();
-	assert.equal(result.ok, true);
-	assert.doesNotMatch(result.output, /strict\)/);
+	assert.equal(result.ok, false);
+	assert.match(result.output, /TS7006/);
+	assert.doesNotMatch(result.output, /unrelated/);
 });
 
 test("checks Node tests separately from browser sources", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
-	f.strict();
 	f.write("modules/pilot/index.ts", "export const title: string = document.title;");
 	f.write(
 		"modules/pilot/logic.test.mts",
@@ -153,18 +147,17 @@ test("checks Node tests separately from browser sources", async (t) => {
 	assert.match(testError.output, /tests, strict\): failed/);
 });
 
-test("compiler configuration failures cannot be deferred as dependency debt", async (t) => {
+test("reports compiler configuration failures", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
-	f.strict();
 	f.write("modules/pilot/index.ts", "export const ready = true;");
-	f.write("modules/pilot/tsconfig.strict.json", JSON.stringify({ extends: "../../missing.json" }));
+	f.write("tsconfig.module.json", JSON.stringify({ extends: "./missing.json" }));
 	const result = await f.check();
 	assert.equal(result.ok, false);
 	assert.match(result.output, /missing\.json/);
 });
 
-test("module configuration cannot weaken the strict gate", async (t) => {
+test("shared compiler options cannot weaken the verification gate", async (t) => {
 	const f = fixture();
 	t.after(f.cleanup);
 	f.write(
@@ -173,9 +166,9 @@ test("module configuration cannot weaken the strict gate", async (t) => {
 	);
 	for (const compilerOptions of [{ noCheck: true }, { noImplicitAny: false }, { strictNullChecks: false }]) {
 		f.write(
-			"modules/pilot/tsconfig.strict.json",
+			"tsconfig.module.json",
 			JSON.stringify({
-				extends: "../../tsconfig.module-strict.json",
+				extends: "./tsconfig.json",
 				compilerOptions,
 			}),
 		);
@@ -186,8 +179,7 @@ test("module configuration cannot weaken the strict gate", async (t) => {
 	}
 });
 
-test("the first strict pilot checks its real entry, settings UI, logic, and tests", async () => {
-	assert.ok(strictModules(repository).includes(path.join(repository, "modules/auto-skip-explicit")));
+test("checks a real module entry, settings UI, logic, tests, and dependency closure", async () => {
 	const result = await typecheckModules({ root: repository, modules: ["modules/auto-skip-explicit"] });
 	assert.equal(result.ok, true, result.output);
 	assert.match(result.output, /client, strict\): passed/);

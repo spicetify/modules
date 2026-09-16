@@ -1,6 +1,0 @@
-{
-	"extends": "../../tsconfig.module-strict.json",
-	"include": ["**/*.ts", "**/*.tsx"],
-	"files": ["../../spicetify.d.ts", "../../remote-modules.d.ts", "../stdlib/src/chunks.d.ts"],
-	"exclude": ["**/*.test.ts", "**/*.test.tsx"]
-}
