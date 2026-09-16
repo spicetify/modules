@@ -4,7 +4,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
-import { verificationTarget, moduleTests, verifyModule } from "./verify-module.ts";
+import {
+	verificationTarget,
+	moduleTests,
+	verifyModule,
+	verifyChanged,
+	parseVerificationArgs,
+} from "./verify-module.ts";
 
 const root = realpathSync(mkdtempSync(path.join(tmpdir(), "verify-module-")));
 after(() => rmSync(root, { recursive: true, force: true }));
@@ -93,4 +99,70 @@ test("reports no automated tests explicitly for a CSS-only target", async () => 
 	});
 	assert.ok(messages.some((message) => message.includes("No module tests")));
 	assert.ok(!commands.some((args) => args[0] === "--test"));
+});
+
+test("accepts changed mode with an optional base and rejects ambiguous arguments", () => {
+	assert.deepEqual(parseVerificationArgs(["--changed"]), { kind: "changed", base: "origin/main" });
+	assert.deepEqual(parseVerificationArgs(["--changed", "--base", "HEAD~2"]), { kind: "changed", base: "HEAD~2" });
+	assert.deepEqual(parseVerificationArgs(["example"]), { kind: "module", target: "example" });
+	for (const args of [
+		["--base", "main"],
+		["--changed", "example"],
+		["--changed", "--base"],
+		["--changed", "--base", "--all"],
+	]) {
+		assert.throws(() => parseVerificationArgs(args), /Usage/);
+	}
+});
+
+test("changed verification runs only affected modules and shared changes invoke the full gate", async () => {
+	const changedRoot = mkdtempSync(path.join(tmpdir(), "verify-changed-"));
+	for (const [id, dependencies] of [
+		["library", {}],
+		["consumer", { library: "*" }],
+		["unrelated", {}],
+	] as const) {
+		const directory = path.join(changedRoot, "modules", id);
+		mkdirSync(directory, { recursive: true });
+		writeFileSync(
+			path.join(directory, "metadata.json"),
+			JSON.stringify({ name: id, version: "1.0.0", dependencies }),
+		);
+	}
+	const builds: string[] = [];
+	const messages: string[] = [];
+	let fullRuns = 0;
+	let dependencyRuns = 0;
+	const steps = {
+		build: async (directory: string) => {
+			builds.push(path.basename(directory));
+		},
+		types: async () => ({ ok: true, output: "" }),
+		boundary: () => {},
+		run: (args: string[]) => {
+			if (args[0].endsWith("scripts/check-deps.ts")) dependencyRuns++;
+		},
+		log: (message: string) => {
+			messages.push(message);
+		},
+		full: async () => {
+			fullRuns++;
+		},
+	};
+	try {
+		await verifyChanged({ root: changedRoot, files: ["modules/library/deleted.ts"], steps });
+		assert.deepEqual(builds, ["consumer", "library"]);
+		assert.equal(dependencyRuns, 1);
+		assert.equal(fullRuns, 0);
+		builds.length = 0;
+		await verifyChanged({ root: changedRoot, files: ["scripts/stitch.ts"], steps });
+		assert.deepEqual(builds, ["consumer", "library", "unrelated"]);
+		assert.equal(fullRuns, 1);
+		builds.length = 0;
+		await verifyChanged({ root: changedRoot, files: [], steps });
+		assert.deepEqual(builds, []);
+		assert.ok(messages.some((message) => message.includes("No affected modules")));
+	} finally {
+		rmSync(changedRoot, { recursive: true, force: true });
+	}
 });

@@ -57,7 +57,21 @@ The command builds the selected module, checks its TypeScript and imported
 dependencies, lints, checks formatting and stdlib boundaries, validates
 repository dependency ranges, and runs its colocated `*.test.mts` files.
 It reports explicitly when a module has no automated tests. It doesn't install
-the build into Spotify. Shared-tooling changes still require the full CI checks.
+the build into Spotify.
+
+To verify your changes and modules that depend on them, run:
+
+```shell
+pnpm verify --changed
+pnpm verify --changed --base origin/main
+```
+
+Changed mode compares against the merge base with `origin/main` by default,
+including committed, staged, unstaged, and untracked files. It checks affected
+modules and their reverse dependencies. Shared tooling changes run all module
+builds and the full repository checks. CI continues to run the full suite.
+Fetch your target branch first when you need its latest state. Live Spotify
+verification remains a separate step.
 
 Strict checking is the default for modules, stdlib, scripts, and generated
 TypeScript projects, including Lyrics Plus. File-level type-checking exemptions
