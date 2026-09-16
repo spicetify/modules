@@ -87,6 +87,17 @@ describe("CONFIG", () => {
 		assert.equal(CONFIG.providersOrder.length, Object.keys(CONFIG.providers).length);
 	});
 
+	it("rejects duplicate and non-string provider keys from stored JSON", async () => {
+		for (const order of [
+			["lrclib", "lrclib", "musixmatch", "spotify", "local"],
+			["lrclib", "netease", "musixmatch", "spotify", {}],
+		]) {
+			localStorage.setItem("lyrics-plus:services-order", JSON.stringify(order));
+			const { CONFIG } = await import(`./config.ts?invalid-order=${JSON.stringify(order)}`);
+			assert.deepEqual(CONFIG.providersOrder, Object.keys(CONFIG.providers));
+		}
+	});
+
 	it("removes Genius from a previously stored provider order", async () => {
 		localStorage.setItem(
 			"lyrics-plus:services-order",

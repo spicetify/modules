@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// @ts-nocheck — extracted verbatim from the untyped lyrics-plus port; see the
-// header note in mod.tsx.
-
 // The client-free half of the classic Utils object, as named exports so each
 // parser can be imported and unit-tested on its own. mod.tsx re-attaches them
 // with `import * as Utils`, so its ~30 call sites are unchanged.
@@ -15,8 +12,9 @@
 // rubyTextToReact, processTranslatedLyrics, and toSimplifiedChinese.
 
 import { CONFIG } from "./config.ts";
+import type { DisplayLyricLine, KaraokeLine, LyricLine, LyricWord, TimedLyricLine } from "./types.ts";
 
-export function convertIntToRGB(colorInt, div = 1) {
+export function convertIntToRGB(colorInt: number, div = 1) {
 	const rgb = {
 		r: Math.round(((colorInt >> 16) & 0xff) / div),
 		g: Math.round(((colorInt >> 8) & 0xff) / div),
@@ -25,7 +23,7 @@ export function convertIntToRGB(colorInt, div = 1) {
 	return `rgb(${rgb.r},${rgb.g},${rgb.b})`;
 }
 
-export function normalize(s, emptySymbol = true) {
+export function normalize(s: string, emptySymbol = true) {
 	let result = s
 		.replace(/（/g, "(")
 		.replace(/）/g, ")")
@@ -47,12 +45,12 @@ export function normalize(s, emptySymbol = true) {
 	return result.replace(/\s+/g, " ").trim();
 }
 
-export function containsHanCharacter(s) {
+export function containsHanCharacter(s: string) {
 	const hanRegex = /\p{Script=Han}/u;
 	return hanRegex.test(s);
 }
 
-export function removeSongFeat(s) {
+export function removeSongFeat(s: string) {
 	return (
 		s
 			.replace(/-\s+(feat|with|prod).*/i, "")
@@ -61,23 +59,23 @@ export function removeSongFeat(s) {
 	);
 }
 
-export function removeExtraInfo(s) {
+export function removeExtraInfo(s: string) {
 	return s.replace(/\s-\s.*/, "");
 }
 
-export function capitalize(s) {
-	return s.replace(/^(\w)/, ($1) => $1.toUpperCase());
+export function capitalize(s: string) {
+	return s.replace(/^(\w)/, ($1: string) => $1.toUpperCase());
 }
 
-export function detectLanguage(lyrics) {
-	if (!Array.isArray(lyrics)) return;
+export function detectLanguage(lyrics: readonly DisplayLyricLine[] | null | undefined) {
+	if (!lyrics?.length) return;
 
 	// Should return IETF BCP 47 language tags.
 	// This should detect the song's main language.
 	// Remember there is a possibility of a song referencing something in another language and the lyrics show it in that native language!
 	const rawLyrics = lyrics[0].originalText
-		? lyrics.map((line) => line.originalText).join(" ")
-		: lyrics.map((line) => line.text).join(" ");
+		? lyrics.map((line) => lyricText(line.originalText)).join(" ")
+		: lyrics.map((line) => lyricText(line.text)).join(" ");
 
 	const kanaRegex =
 		/[\u3001-\u3003]|[\u3005\u3007]|[\u301d-\u301f]|[\u3021-\u3035]|[\u3038-\u303a]|[\u3040-\u30ff]|[\uff66-\uff9f]/gu;
@@ -120,31 +118,48 @@ export function detectLanguage(lyrics) {
 		: "zh-hant";
 }
 
-export function formatTime(timestamp) {
+export function formatTime(timestamp: number) {
 	if (Number.isNaN(timestamp)) return timestamp.toString();
-	let minutes = Math.trunc(timestamp / 60000);
-	let seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
-
-	if (minutes < 10) minutes = `0${minutes}`;
-	if (seconds < 10) seconds = `0${seconds}`;
-
-	return `${minutes}:${seconds}`;
+	const minutes = Math.trunc(timestamp / 60000);
+	const seconds = ((timestamp - minutes * 60000) / 1000).toFixed(2);
+	const paddedMinutes = minutes < 10 ? `0${minutes}` : String(minutes);
+	const paddedSeconds = Number(seconds) < 10 ? `0${seconds}` : seconds;
+	return `${paddedMinutes}:${paddedSeconds}`;
 }
 
-export function formatTextWithTimestamps(text, startTime = 0) {
-	if (text.props?.children) {
-		return text.props.children
-			.map((child) => {
-				if (typeof child === "string") {
-					return child;
-				}
-				if (child.props?.children) {
-					return child.props?.children[0];
-				}
-			})
-			.join("");
-	}
-	if (Array.isArray(text)) {
+function isLyricWord(value: unknown): value is LyricWord {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"word" in value &&
+		typeof value.word === "string" &&
+		"time" in value &&
+		typeof value.time === "number"
+	);
+}
+
+function childrenOf(value: unknown): unknown {
+	if (typeof value !== "object" || value === null || !("props" in value)) return;
+	const props = value.props;
+	if (typeof props === "object" && props !== null && "children" in props) return props.children;
+}
+
+// Ruby's first child is the original text; its later children are phonetic annotations.
+function rubyBaseText(value: unknown): string {
+	if (typeof value === "string" || typeof value === "number") return String(value);
+	const children = childrenOf(value);
+	return children === undefined ? "" : rubyBaseText(Array.isArray(children) ? children[0] : children);
+}
+
+export function lyricText(text: unknown): string {
+	if (typeof text === "string" || typeof text === "number") return String(text);
+	if (Array.isArray(text) && text.every(isLyricWord)) return text.map((word) => word.word).join("");
+	const children = childrenOf(text);
+	return Array.isArray(children) ? children.map(rubyBaseText).join("") : rubyBaseText(children);
+}
+
+export function formatTextWithTimestamps(text: unknown, startTime = 0): string {
+	if (Array.isArray(text) && text.every(isLyricWord)) {
 		let wordTime = startTime;
 		return text
 			.map((word) => {
@@ -153,62 +168,29 @@ export function formatTextWithTimestamps(text, startTime = 0) {
 			})
 			.join("");
 	}
-	return text;
+	return lyricText(text);
 }
 
-export function convertParsedToLRC(lyrics, isBelow) {
+export function convertParsedToLRC(lyrics: readonly DisplayLyricLine[], isBelow: boolean) {
 	let original = "";
 	let conver = "";
-
-	if (isBelow) {
-		for (const line of lyrics) {
-			original += `[${formatTime(line.startTime)}]${formatTextWithTimestamps(line.originalText, line.startTime)}\n`;
-			conver += `[${formatTime(line.startTime)}]${formatTextWithTimestamps(line.text, line.startTime)}\n`;
-		}
-	} else {
-		for (const line of lyrics) {
-			original += `[${formatTime(line.startTime)}]${formatTextWithTimestamps(line.text, line.startTime)}\n`;
-		}
+	for (const line of lyrics) {
+		const startTime = line.startTime ?? 0;
+		const prefix = `[${formatTime(startTime)}]`;
+		original += `${prefix}${formatTextWithTimestamps(isBelow ? line.originalText : line.text, startTime)}\n`;
+		if (isBelow) conver += `${prefix}${formatTextWithTimestamps(line.text, startTime)}\n`;
 	}
-
-	return {
-		original,
-		conver,
-	};
+	return { original, conver };
 }
 
-export function convertParsedToUnsynced(lyrics, isBelow) {
+export function convertParsedToUnsynced(lyrics: readonly DisplayLyricLine[], isBelow: boolean) {
 	let original = "";
 	let conver = "";
-
-	if (isBelow) {
-		for (const line of lyrics) {
-			if (typeof line.originalText === "object") {
-				original += `${line.originalText?.props?.children?.[0]}\n`;
-			} else {
-				original += `${line.originalText}\n`;
-			}
-
-			if (typeof line.text === "object") {
-				conver += `${line.text?.props?.children?.[0]}\n`;
-			} else {
-				conver += `${line.text}\n`;
-			}
-		}
-	} else {
-		for (const line of lyrics) {
-			if (typeof line.text === "object") {
-				original += `${line.text?.props?.children?.[0]}\n`;
-			} else {
-				original += `${line.text}\n`;
-			}
-		}
+	for (const line of lyrics) {
+		original += `${lyricText(isBelow ? line.originalText : line.text)}\n`;
+		if (isBelow) conver += `${lyricText(line.text)}\n`;
 	}
-
-	return {
-		original,
-		conver,
-	};
+	return { original, conver };
 }
 
 // trackDurationMs is supplied by the caller rather than read from the client:
@@ -224,22 +206,22 @@ export function parseLocalLyrics(lyrics: string, trackDurationMs = 0) {
 	const syncedTimestamp = /\[([0-9:.]+)\]/;
 	const karaokeTimestamp = /<([0-9:.]+)>/;
 
-	const unsynced: { text: string }[] = [];
+	const unsynced: LyricLine[] = [];
 
 	const isSynced = lines[0].match(syncedTimestamp);
-	const synced: { text: string; startTime: number }[] | null = isSynced ? [] : null;
+	const synced: TimedLyricLine[] | null = isSynced ? [] : null;
 
 	const isKaraoke = lines[0].match(karaokeTimestamp);
-	const karaoke: { text: { word: string; time: number }[]; startTime: number }[] | null = isKaraoke ? [] : null;
+	const karaoke: KaraokeLine[] | null = isKaraoke ? [] : null;
 
-	function timestampToMs(timestamp) {
+	function timestampToMs(timestamp: string) {
 		const [minutes, seconds] = timestamp.replace(/\[\]<>/, "").split(":");
 		return Number(minutes) * 60 * 1000 + Number(seconds) * 1000;
 	}
 
-	function parseKaraokeLine(line, startTime) {
+	function parseKaraokeLine(line: string, startTime: string) {
 		let wordTime = timestampToMs(startTime);
-		const karaokeLine = [];
+		const karaokeLine: LyricWord[] = [];
 		const karaoke = line.matchAll(/(\S+ ?)<([0-9:.]+)>/g);
 		for (const match of karaoke) {
 			const word = match[1];
@@ -256,7 +238,7 @@ export function parseLocalLyrics(lyrics: string, trackDurationMs = 0) {
 		const lyric = lyricContent.replaceAll(/<([0-9:.]+)>/g, "").trim();
 
 		if (line.trim() !== "") {
-			if (isKaraoke) {
+			if (karaoke && time) {
 				if (!lyricContent.endsWith(">")) {
 					// For some reason there are a variety of formats for karaoke lyrics, Wikipedia is also inconsisent in their examples
 					const endTime = lines[i + 1]?.match(syncedTimestamp)?.[1] || formatTime(Number(trackDurationMs));
@@ -265,7 +247,7 @@ export function parseLocalLyrics(lyrics: string, trackDurationMs = 0) {
 				const karaokeLine = parseKaraokeLine(lyricContent, time);
 				karaoke.push({ text: karaokeLine, startTime: timestampToMs(time) });
 			}
-			if (isSynced && time) synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
+			if (synced && time) synced.push({ text: lyric || "♪", startTime: timestampToMs(time) });
 			unsynced.push({ text: lyric || "♪" });
 		}
 	}
@@ -273,7 +255,7 @@ export function parseLocalLyrics(lyrics: string, trackDurationMs = 0) {
 	return { synced, unsynced, karaoke };
 }
 
-export function processLyrics(lyrics) {
+export function processLyrics(lyrics: string) {
 	return lyrics
 		.replace(/　| /g, "") // Remove space
 		.replace(/[!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~？！，。、《》【】「」]/g, ""); // Remove punctuation
