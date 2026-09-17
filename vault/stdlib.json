@@ -230,6 +230,13 @@
 			"checksum": "sha256:e1a23b9b3bb19bcc5867112d3a95016c3f2522439f0d5cbdbee4c44576032ed6",
 			"updatedAt": "2026-09-16",
 			"hidden": true
+		},
+		"1.13.0": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/stdlib@1.13.0/stdlib@1.13.0.zip"],
+			"providers": [],
+			"checksum": "sha256:859d0b0b48e3e5b3fed892e1eae7f61917b2f1ec9b050cd2213016cfb753df89",
+			"updatedAt": "2026-09-17",
+			"hidden": true
 		}
 	}
 }
