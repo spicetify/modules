@@ -11,11 +11,14 @@ describe("ziro current-client compatibility", () => {
 		assert.doesNotMatch(css, /\.main-nowPlayingView-contextItemInfo::before/);
 	});
 
-	it("uses the current playback bar flow for both timestamps", () => {
-		assert.match(
-			css,
-			/\.playback-bar__progress-time-elapsed,\s*\.main-playbackBarRemainingTime-container\s*\{[^}]*position:\s*static\s*;[^}]*margin:\s*0\s*;[^}]*width:\s*auto\s*;/s,
-		);
+	it("keeps both timestamp containers positioned so their absolute children cannot cover the viewport", () => {
+		const rule = css.match(
+			/\.playback-bar__progress-time-elapsed,\s*\.main-playbackBarRemainingTime-container\s*\{([^}]*)\}/s,
+		)?.[1];
+		assert.ok(rule, "both timestamps must share a containing-block rule");
+		assert.match(rule, /position:\s*relative\s*;/);
+		assert.match(rule, /margin:\s*0\s*;/);
+		assert.doesNotMatch(rule, /\bwidth\s*:/, "preserve Spotify's width for the absolute time spans");
 		assert.match(css, /\.playback-bar__progress-time-elapsed::after\s*\{[^}]*content:\s*none\s*;/s);
 		assert.doesNotMatch(
 			css,
@@ -24,6 +27,6 @@ describe("ziro current-client compatibility", () => {
 	});
 
 	it("ships as a patch release", () => {
-		assert.equal(metadata.version, "0.1.3");
+		assert.equal(metadata.version, "0.1.4");
 	});
 });

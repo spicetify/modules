@@ -129,9 +129,8 @@
 .playback-bar__progress-time-elapsed,
 .main-playbackBarRemainingTime-container {
 	color: var(--spice-text);
-	position: static;
+	position: relative;
 	margin: 0;
-	width: auto;
 }
 .playback-bar__progress-time-elapsed::after {
 	content: none;
