@@ -32,6 +32,34 @@ export interface DaemonCapabilities {
 	unblockUpdates(): Promise<unknown>;
 	updateAndApplySupported?(): Promise<boolean | null>;
 	updateAndApply?: UpdateAndApplyCapability;
+	managedSpotify?: ManagedSpotifyCapability;
+}
+
+export type ManagedSpotifyJob =
+	| { kind: "idle" }
+	| { kind: "running"; jobId: string; phase: "checking" | "downloading" | "preparing" | "activating" }
+	| { kind: "complete"; jobId: string }
+	| { kind: "failed"; jobId: string; message: string };
+
+export type ManagedSpotifyInstallation =
+	| { kind: "external" }
+	| { kind: "unavailable"; message: string }
+	| { kind: "managed"; version: string; channel: "stable" | "testing"; nativeBlocked: boolean | null };
+
+export type ManagedSpotifyAvailability =
+	| { kind: "current"; version: string }
+	| { kind: "ready"; version: string }
+	| { kind: "unavailable"; version: string; message: string };
+
+export interface ManagedSpotifySnapshot {
+	installation: ManagedSpotifyInstallation;
+	job: ManagedSpotifyJob;
+}
+
+export interface ManagedSpotifyCapability {
+	status(): Promise<ManagedSpotifySnapshot | null>;
+	check(): Promise<ManagedSpotifyAvailability>;
+	update(): Promise<UpdateAdmission>;
 }
 
 export type UpdateFailureCode =

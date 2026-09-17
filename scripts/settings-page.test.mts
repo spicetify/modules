@@ -148,7 +148,7 @@ describe("standalone Spicetify Settings", () => {
 			compareVersions(manager.version, "1.3.0") >= 0,
 			"Manager must include the standalone settings contract",
 		);
-		assert.equal(manager.dependencies.stdlib, "^1.11.0");
+		assert.equal(manager.dependencies.stdlib, "^1.13.0");
 		const installedMinor = Number(stdlib.version.match(/^1\.(\d+)\.\d+$/)?.[1]);
 		const requiredMinor = Number(lyricsPlus.dependencies.stdlib.match(/^\^1\.(\d+)\.\d+$/)?.[1]);
 		assert.ok(installedMinor >= requiredMinor, "Lyrics Plus must accept the installed stdlib");
