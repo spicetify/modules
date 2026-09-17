@@ -4577,6 +4577,12 @@
 					"providers": [],
 					"checksum": "sha256:fef0e6abbccb0be423e51f77a716d8f60be979be9feb2ad0988c4d8aea7512b1",
 					"updatedAt": "2026-08-19"
+				},
+				"0.1.4": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/ziro@0.1.4/ziro@0.1.4.zip"],
+					"providers": [],
+					"checksum": "sha256:f18cff48ca5eed2aada5622cd344e5daf86438a07a128ff54ff5ad6d5ddb9cfa",
+					"updatedAt": "2026-09-17"
 				}
 			},
 			"metadata": {
