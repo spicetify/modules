@@ -20,6 +20,7 @@ import {
 	type SpotifyAvailabilityStatus,
 } from "./state.ts";
 import { retryNotice } from "./notice.ts";
+import { ManagedSpotifyUpdates } from "./managedSpotify.tsx";
 
 const M = () => client.modules;
 
@@ -352,124 +353,133 @@ export const ManagerPage = () => {
 				)}
 			</section>
 
-			{(() => {
-				const sup = effectiveSupport(state, support);
-				const advice = updateAdvice(state.spotifyVersion, sup);
-				const cmd = (text: string, label: string) => (
-					<button
-						type="button"
-						onClick={() => void copyToClipboard(text, `${label.replace(/^copy /, "")} copied`)}
-					>
-						{label}
-					</button>
-				);
-				// Every one of these restarts Spotify: apply rebuilds the served
-				// tree, and the update policy is patched into Spotify's binary,
-				// which cannot happen while it runs.
-				const run = (label: string, fn: () => Promise<unknown>) => (
-					<button
-						type="button"
-						disabled={busy}
-						onClick={() => {
-							if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
-							onAction(label, fn);
-						}}
-					>
-						{label}
-					</button>
-				);
-				const action = (label: string, method: DaemonMethod, fallback: string) =>
-					daemon ? run(label, () => daemon[method]()) : cmd(fallback, label);
-				const daemonMessage = (() => {
-					switch (daemonProbe.kind) {
-						case "checking":
-							return "Checking the local daemon. These actions may be unavailable until the check finishes.";
-						case "unavailable":
-							return "Manager cannot reach the daemon. The buttons below copy terminal commands; they do not run them.";
-						case "availability-error":
-							return "Manager could not check whether the daemon is running. It will retry; until then, copy a terminal command below.";
-						case "support-error":
-							return "The daemon is running, but Manager could not check Update & Apply support. Block and allow still use the daemon, and Manager will retry the check.";
-						case "available":
-							return daemonProbe.updateAndApplySupported === true
-								? "Update handling runs through the local daemon. Spotify restarts."
-								: daemonProbe.updateAndApplySupported === false
-									? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
-									: "One-step Update & Apply needs a current Spicetify daemon and wrapper.";
-					}
-				})();
-				const updateMessage = (() => {
-					switch (updateStatus.kind) {
-						case "idle":
-							return null;
-						case "accepted":
-							return "Update accepted. Spotify's updater is starting.";
-						case "waiting-for-update":
-							return "Waiting for Spotify to offer the verified update.";
-						case "downloading":
-							return `Downloading Spotify ${updateStatus.targetVersion}.`;
-						case "installing-spotify":
-							return `Installing Spotify ${updateStatus.targetVersion}. Spotify will restart.`;
-						case "applying-spicetify":
-							return `Spotify ${updateStatus.targetVersion} is installed; reapplying the customization.`;
-						case "securing":
-							return updateStatus.message ?? "Restoring and verifying the Spotify update block.";
-						case "complete":
-							return `Last update completed: Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}. Spicetify was reapplied and the update block restored.`;
-						case "failed-safe":
-							return `Last update attempt stopped safely: ${updateStatus.message}`;
-					}
-				})();
-				return (
-					<section>
-						<div className="spicetify-manager-section-head">
-							<h2>Updates</h2>
-						</div>
-						<div className="spicetify-manager-env">
-							<Badge>installed {show(state.spotifyVersion)}</Badge>
-							<Badge kind={sup?.supportedSpotify ? "ok" : undefined}>
-								supported {show(sup?.supportedSpotify)}
-							</Badge>
-							<Badge>available {show(sup?.latestSpotify)}</Badge>
-						</div>
-						<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
-							{advice.message}
-						</p>
-						{state.classmapFallback && (
-							<p className="spicetify-manager-update spicetify-manager-update--unsupported">
-								Running on a fallback classmap: this Spotify build has no verified classmap yet, so some
-								chrome may be off. It self-heals once one ships.
+			{state.managedSpotify ? (
+				<ManagedSpotifyUpdates
+					api={daemon?.managedSpotify}
+					daemonAvailable={daemon !== null}
+					channel={state.managedSpotify}
+					installed={state.spotifyVersion}
+				/>
+			) : (
+				(() => {
+					const sup = effectiveSupport(state, support);
+					const advice = updateAdvice(state.spotifyVersion, sup);
+					const cmd = (text: string, label: string) => (
+						<button
+							type="button"
+							onClick={() => void copyToClipboard(text, `${label.replace(/^copy /, "")} copied`)}
+						>
+							{label}
+						</button>
+					);
+					// Every one of these restarts Spotify: apply rebuilds the served
+					// tree, and the update policy is patched into Spotify's binary,
+					// which cannot happen while it runs.
+					const run = (label: string, fn: () => Promise<unknown>) => (
+						<button
+							type="button"
+							disabled={busy}
+							onClick={() => {
+								if (!globalThis.confirm(`${label}: Spotify will restart. Continue?`)) return;
+								onAction(label, fn);
+							}}
+						>
+							{label}
+						</button>
+					);
+					const action = (label: string, method: DaemonMethod, fallback: string) =>
+						daemon ? run(label, () => daemon[method]()) : cmd(fallback, label);
+					const daemonMessage = (() => {
+						switch (daemonProbe.kind) {
+							case "checking":
+								return "Checking the local daemon. These actions may be unavailable until the check finishes.";
+							case "unavailable":
+								return "Manager cannot reach the daemon. The buttons below copy terminal commands; they do not run them.";
+							case "availability-error":
+								return "Manager could not check whether the daemon is running. It will retry; until then, copy a terminal command below.";
+							case "support-error":
+								return "The daemon is running, but Manager could not check Update & Apply support. Block and allow still use the daemon, and Manager will retry the check.";
+							case "available":
+								return daemonProbe.updateAndApplySupported === true
+									? "Update handling runs through the local daemon. Spotify restarts."
+									: daemonProbe.updateAndApplySupported === false
+										? "One-step Update & Apply is unavailable on this platform or Spotify client. Choose allow, update Spotify normally, then run spicetify apply."
+										: "One-step Update & Apply needs a current Spicetify daemon and wrapper.";
+						}
+					})();
+					const updateMessage = (() => {
+						switch (updateStatus.kind) {
+							case "idle":
+								return null;
+							case "accepted":
+								return "Update accepted. Spotify's updater is starting.";
+							case "waiting-for-update":
+								return "Waiting for Spotify to offer the verified update.";
+							case "downloading":
+								return `Downloading Spotify ${updateStatus.targetVersion}.`;
+							case "installing-spotify":
+								return `Installing Spotify ${updateStatus.targetVersion}. Spotify will restart.`;
+							case "applying-spicetify":
+								return `Spotify ${updateStatus.targetVersion} is installed; reapplying the customization.`;
+							case "securing":
+								return updateStatus.message ?? "Restoring and verifying the Spotify update block.";
+							case "complete":
+								return `Last update completed: Spotify ${updateStatus.fromVersion} → ${updateStatus.toVersion}. Spicetify was reapplied and the update block restored.`;
+							case "failed-safe":
+								return `Last update attempt stopped safely: ${updateStatus.message}`;
+						}
+					})();
+					return (
+						<section>
+							<div className="spicetify-manager-section-head">
+								<h2>Updates</h2>
+							</div>
+							<div className="spicetify-manager-env">
+								<Badge>installed {show(state.spotifyVersion)}</Badge>
+								<Badge kind={sup?.supportedSpotify ? "ok" : undefined}>
+									supported {show(sup?.supportedSpotify)}
+								</Badge>
+								<Badge>available {show(sup?.latestSpotify)}</Badge>
+							</div>
+							<p className={`spicetify-manager-update spicetify-manager-update--${advice.kind}`}>
+								{advice.message}
 							</p>
-						)}
-						<p className="spicetify-manager-note">{daemonMessage}</p>
-						{advice.kind === "ready" && updateAndApplySupported === null && (
-							<p className="spicetify-manager-note">{SPICETIFY_UPGRADE.instructions}</p>
-						)}
-						{updateMessage && (
-							<p
-								className={`spicetify-manager-update spicetify-manager-update--${updateStatus.kind === "securing" && updateStatus.manualRecovery ? "unsupported" : "ready"}`}
-							>
-								{updateMessage}
-							</p>
-						)}
-						<div className="spicetify-manager-update-actions">
-							{action("block", "blockUpdates", "spicetify spotify-updates block")}
-							{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
-							{advice.kind === "ready" &&
-								(updateAndApplySupported && daemon?.updateAndApply
-									? run("update & apply", async () => {
-											const admission = await daemon.updateAndApply!();
-											return admission.disposition === "joined"
-												? "joined existing update"
-												: "update accepted";
-										})
-									: updateAndApplySupported === null
-										? cmd(SPICETIFY_UPGRADE.command, SPICETIFY_UPGRADE.label)
-										: cmd("spicetify apply", "copy apply command"))}
-						</div>
-					</section>
-				);
-			})()}
+							{state.classmapFallback && (
+								<p className="spicetify-manager-update spicetify-manager-update--unsupported">
+									Running on a fallback classmap: this Spotify build has no verified classmap yet, so
+									some chrome may be off. It self-heals once one ships.
+								</p>
+							)}
+							<p className="spicetify-manager-note">{daemonMessage}</p>
+							{advice.kind === "ready" && updateAndApplySupported === null && (
+								<p className="spicetify-manager-note">{SPICETIFY_UPGRADE.instructions}</p>
+							)}
+							{updateMessage && (
+								<p
+									className={`spicetify-manager-update spicetify-manager-update--${updateStatus.kind === "securing" && updateStatus.manualRecovery ? "unsupported" : "ready"}`}
+								>
+									{updateMessage}
+								</p>
+							)}
+							<div className="spicetify-manager-update-actions">
+								{action("block", "blockUpdates", "spicetify spotify-updates block")}
+								{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
+								{advice.kind === "ready" &&
+									(updateAndApplySupported && daemon?.updateAndApply
+										? run("update & apply", async () => {
+												const admission = await daemon.updateAndApply!();
+												return admission.disposition === "joined"
+													? "joined existing update"
+													: "update accepted";
+											})
+										: updateAndApplySupported === null
+											? cmd(SPICETIFY_UPGRADE.command, SPICETIFY_UPGRADE.label)
+											: cmd("spicetify apply", "copy apply command"))}
+							</div>
+						</section>
+					);
+				})()
+			)}
 
 			<section>
 				<h2>Modules</h2>
