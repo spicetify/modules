@@ -48,7 +48,8 @@ const hooks = registerHooks({
 		return nextLoad(url, context);
 	},
 });
-const { SearchBar, SyncedLyricsPage, SyncedExpandedLyricsPage, VersionSelector } = await import("./pages.tsx");
+const { LyricsBackground, SearchBar, SyncedLyricsPage, SyncedExpandedLyricsPage, VersionSelector } =
+	await import("./pages.tsx");
 hooks.deregister();
 
 const roots: Root[] = [];
@@ -73,6 +74,39 @@ it("renders both synchronized views while lyrics are empty", async () => {
 	await render(React.createElement(SyncedLyricsPage, { lyrics: [] }));
 	await render(React.createElement(SyncedExpandedLyricsPage, { lyrics: [] }));
 	assert.equal(document.querySelectorAll(".lyrics-idling-indicator").length, 2);
+});
+
+it("uses Spotify artwork for the backdrop and falls back if it fails to load", async () => {
+	const container = await render(React.createElement(LyricsBackground, { image: "spotify:image:abc123" }));
+	const image = container.querySelector("img");
+	assert.ok(image);
+	assert.equal(image.src, "https://i.scdn.co/image/abc123");
+	assert.equal(image.alt, "");
+	assert.equal(container.firstElementChild?.getAttribute("aria-hidden"), "true");
+	await React.act(async () => image.dispatchEvent(new Event("error")));
+	assert.equal(container.querySelectorAll("img").length, 0);
+});
+
+it("keeps a solid backdrop when there is no artwork", async () => {
+	const container = await render(React.createElement(LyricsBackground, { image: "" }));
+	assert.equal(container.querySelectorAll("img").length, 0);
+});
+
+it("keeps active scrolling lyrics sharp and caps blur on distant lines", async () => {
+	playback.position = 1000;
+	const container = await render(
+		React.createElement(SyncedExpandedLyricsPage, {
+			lyrics: Array.from({ length: 8 }, (_, i) => ({ text: `Line ${i}`, startTime: i * 1000 })),
+		}),
+	);
+	const active = container.querySelector<HTMLElement>(
+		".lyrics-lyricsContainer-LyricsLine-active:not(.lyrics-idling-indicator)",
+	);
+	assert.equal(active?.style.getPropertyValue("--blur-index"), "0");
+	const distant = [...container.querySelectorAll<HTMLElement>(".lyrics-lyricsContainer-LyricsLine")].find(
+		(line) => line.textContent === "Line 7",
+	);
+	assert.equal(distant?.style.getPropertyValue("--blur-index"), "4");
 });
 
 it("selects Genius versions with a numeric index", async () => {

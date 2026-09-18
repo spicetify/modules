@@ -499,11 +499,12 @@ describe("createProviders registry", () => {
 		spicetifyVersion: () => "3.2.0",
 	});
 
-	it("exposes exactly the six entries, all callable", () => {
+	it("exposes all supported entries, all callable", () => {
 		assert.deepEqual(Object.keys(providers).sort(), [
 			"genius",
 			"local",
 			"lrclib",
+			"lyricsovh",
 			"musixmatch",
 			"netease",
 			"spotify",

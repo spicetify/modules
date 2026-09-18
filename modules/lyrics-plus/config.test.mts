@@ -64,6 +64,8 @@ describe("CONFIG", () => {
 		assert.equal(CONFIG.visual.alignment, "center");
 		assert.equal(CONFIG.visual["background-color"], "var(--spice-main)");
 		assert.equal(CONFIG.visual["playbar-button"], false);
+		assert.equal(CONFIG.visual["animated-background"], false);
+		assert.equal(CONFIG.visual["inactive-blur"], false);
 		// Numeric coercion runs after the literal.
 		assert.equal(CONFIG.visual["font-size"], 32);
 		assert.equal(CONFIG.visual["lines-before"], 0);
@@ -89,6 +91,7 @@ describe("CONFIG", () => {
 
 	it("rejects duplicate and non-string provider keys from stored JSON", async () => {
 		for (const order of [
+			["local", "lrclib", "lyricsovh", "musixmatch", "netease"],
 			["lrclib", "lrclib", "musixmatch", "spotify", "local"],
 			["lrclib", "netease", "musixmatch", "spotify", {}],
 		]) {
@@ -147,6 +150,22 @@ describe("CONFIG", () => {
 
 	it("exposes only supported providers in configuration", async () => {
 		const { CONFIG } = await import(`./config.ts?providers=${Date.now()}`);
-		assert.deepEqual(Object.keys(CONFIG.providers).sort(), ["local", "lrclib", "musixmatch", "netease", "spotify"]);
+		assert.deepEqual(Object.keys(CONFIG.providers).sort(), [
+			"local",
+			"lrclib",
+			"lyricsovh",
+			"musixmatch",
+			"netease",
+			"spotify",
+		]);
+	});
+
+	it("appends Lyrics.ovh without resetting the user's existing provider priority", async () => {
+		const order = ["local", "spotify", "musixmatch", "netease", "lrclib"];
+		localStorage.setItem("lyrics-plus:services-order", JSON.stringify(order));
+		const { CONFIG, UNSYNCED } = await import(`./config.ts?new-provider=${Date.now()}`);
+		assert.deepEqual(CONFIG.providersOrder, [...order, "lyricsovh"]);
+		assert.deepEqual(CONFIG.providers.lyricsovh.modes, [UNSYNCED]);
+		assert.deepEqual(JSON.parse(localStorage.getItem("lyrics-plus:services-order")!), CONFIG.providersOrder);
 	});
 });

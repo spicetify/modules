@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// The six-entry provider registry: four delegate to the provider files,
+// The provider registry delegates to the provider files;
 // spotify and local are implemented inline. Client-bound policy arrives as
 // injected deps — the caller supplies the PLAYING track's duration (KTD5a)
 // and the Han-simplification helper (KTD6) — so this file imports clean
@@ -16,6 +16,7 @@ import { getLyricsResponse } from "../runtime-client.ts";
 import { processLyrics } from "../utils.ts";
 import { ProviderGenius } from "./genius.ts";
 import { ProviderLRCLIB } from "./lrclib.ts";
+import { lyricsOvh } from "./lyricsovh.ts";
 import { ProviderMusixmatch } from "./musixmatch.ts";
 import { ProviderNetease } from "./netease.ts";
 
@@ -162,6 +163,7 @@ export interface ProviderDeps {
 
 export function createProviders(deps: ProviderDeps) {
 	return {
+		lyricsovh: lyricsOvh,
 		spotify: async (info: Pick<TrackInfo, "uri">, signal?: AbortSignal): Promise<ProviderResult> => {
 			const result: ProviderResult = {
 				uri: info.uri,

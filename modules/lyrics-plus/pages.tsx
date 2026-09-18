@@ -15,6 +15,32 @@ import { convertParsedToLRC, convertParsedToUnsynced, lyricText, isKaraokeWords 
 
 const { useState, useEffect, useMemo, useRef } = react;
 
+export function LyricsBackground({ image }: { image: string }) {
+	const [failedImage, setFailedImage] = useState<string | null>(null);
+	const source = image.startsWith("spotify:image:")
+		? `https://i.scdn.co/image/${image.slice("spotify:image:".length)}`
+		: image;
+	return react.createElement(
+		"div",
+		{ className: "lyrics-lyricsContainer-LyricsBackground", "aria-hidden": true },
+		source &&
+			failedImage !== image &&
+			react.createElement(
+				"div",
+				{ className: "lyrics-album-art" },
+				[0, 1].map((layer) =>
+					react.createElement("img", {
+						key: layer,
+						src: source,
+						alt: "",
+						draggable: false,
+						onError: () => setFailedImage(image),
+					}),
+				),
+			),
+	);
+}
+
 interface CreditProps {
 	reRenderLyricsPage?: boolean;
 	provider?: string | null;
@@ -676,7 +702,7 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 	return react.createElement(
 		"div",
 		{
-			className: "lyrics-lyricsContainer-UnsyncedLyricsPage",
+			className: "lyrics-lyricsContainer-UnsyncedLyricsPage lyrics-expanded-synced",
 			key: lyricsId,
 			ref: pageRef,
 		},
@@ -730,6 +756,7 @@ export const SyncedExpandedLyricsPage = react.memo(({ lyrics, provider, copyrigh
 					key: i,
 					style: {
 						cursor: "pointer",
+						"--blur-index": isActive ? 0 : Math.min(Math.abs(i - activeLineIndex), 4),
 					},
 					dir: "auto",
 					ref: isFocused ? activeLineRef : null,

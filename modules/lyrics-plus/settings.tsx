@@ -458,7 +458,8 @@ export const ServiceOption = ({
 	const toggleDisabled = musixmatchInvalid;
 
 	return react.createElement(SettingsProviderRow, {
-		label: item.name.replace(/^./, (character) => character.toUpperCase()),
+		label:
+			item.name === "lyricsovh" ? "Lyrics.ovh" : item.name.replace(/^./, (character) => character.toUpperCase()),
 		description: item.desc,
 		value: active,
 		disabled: toggleDisabled,
@@ -764,6 +765,12 @@ export function LyricsPlusAppearanceSettings() {
 							},
 						},
 						{
+							desc: "Blur inactive lines",
+							info: "In the scrolling view, soften lines farther from the current lyric. Hover a line to read it.",
+							key: "inactive-blur",
+							kind: "toggle",
+						},
+						{
 							desc: "Fullscreen hotkey",
 							info: "Focus the field, then press the shortcut you want to use.",
 							key: "fullscreen-key",
@@ -802,6 +809,12 @@ export function LyricsPlusAppearanceSettings() {
 				<AppearanceOptions
 					items={[
 						{
+							desc: "Animated album art",
+							info: "Move blurred artwork behind white lyrics. Stays still when reduced motion is enabled.",
+							key: "animated-background",
+							kind: "toggle",
+						},
+						{
 							desc: "Noise overlay",
 							info: "Add subtle texture behind the lyrics.",
 							key: "noise",
@@ -812,30 +825,31 @@ export function LyricsPlusAppearanceSettings() {
 							info: "Derive the backdrop and text colors from the current artwork.",
 							key: "colorful",
 							kind: "toggle",
+							when: () => !CONFIG.visual["animated-background"],
 						},
 						{
 							desc: "Background color",
 							key: "background-color",
 							kind: "text",
-							when: () => !CONFIG.visual.colorful,
+							when: () => !CONFIG.visual.colorful && !CONFIG.visual["animated-background"],
 						},
 						{
 							desc: "Active text color",
 							key: "active-color",
 							kind: "text",
-							when: () => !CONFIG.visual.colorful,
+							when: () => !CONFIG.visual.colorful && !CONFIG.visual["animated-background"],
 						},
 						{
 							desc: "Inactive text color",
 							key: "inactive-color",
 							kind: "text",
-							when: () => !CONFIG.visual.colorful,
+							when: () => !CONFIG.visual.colorful && !CONFIG.visual["animated-background"],
 						},
 						{
 							desc: "Highlight text background",
 							key: "highlight-color",
 							kind: "text",
-							when: () => !CONFIG.visual.colorful,
+							when: () => !CONFIG.visual.colorful && !CONFIG.visual["animated-background"],
 						},
 					]}
 					onChange={onChange}
