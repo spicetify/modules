@@ -166,12 +166,6 @@
 	}
 }
 
-@media (prefers-reduced-motion: reduce) {
-	.lyrics-album-art img {
-		animation: none;
-	}
-}
-
 .lyrics-lyricsContainer-LyricsContainer.inactive-blur-enabled
 	.lyrics-expanded-synced
 	.lyrics-lyricsContainer-LyricsLine {
@@ -185,6 +179,18 @@
 	.lyrics-expanded-synced
 	.lyrics-lyricsContainer-LyricsLine:hover {
 	filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.lyrics-album-art img {
+		animation: none;
+	}
+
+	.lyrics-lyricsContainer-LyricsContainer.inactive-blur-enabled
+		.lyrics-expanded-synced
+		.lyrics-lyricsContainer-LyricsLine {
+		transition: none;
+	}
 }
 
 .lyrics-lyricsContainer-Provider {
