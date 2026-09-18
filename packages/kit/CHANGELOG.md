@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/spicetify/modules/compare/kit@0.3.1...kit@0.4.0) (2026-09-18)
+
+
+### Features
+
+* **manager:** update managed Linux Spotify installations ([#19](https://github.com/spicetify/modules/issues/19)) ([469395a](https://github.com/spicetify/modules/commit/469395a7d2dfdec592e9b39395fe0c5647d133ab))
+* strengthen module verification and runtime reliability ([#16](https://github.com/spicetify/modules/issues/16)) ([8790c4a](https://github.com/spicetify/modules/commit/8790c4a064b0298bf53430e14dfc75ae32d5f5e7))
+
+
+### Bug Fixes
+
+* **ci:** bump changed module releases ([97f97f9](https://github.com/spicetify/modules/commit/97f97f97b8ad135826474fa3ae97b7c224b2db0a))
+* **stdlib:** pin profile settings below Spotify settings ([ab85f91](https://github.com/spicetify/modules/commit/ab85f9157c4aff9ce29e772b4445ad7534742a5a))
+* **stdlib:** resolve the actual playlist menu component ([7e914ce](https://github.com/spicetify/modules/commit/7e914cee43a4323769a97f7e0c6d125732e4ba65))
+* **themes:** style native Settings controls consistently ([098579d](https://github.com/spicetify/modules/commit/098579da23874e03137666e0664f6ac6d52313f9))
+
 ## [0.3.1](https://github.com/spicetify/modules/compare/kit@0.3.0...kit@0.3.1) (2026-09-05)
 
 
