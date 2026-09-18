@@ -56,7 +56,14 @@ import { TopBarContent } from "./tab-bar.tsx";
 import { LyricsPlusSettings, openLyricsPlusAppearanceSettings } from "./settings.tsx";
 import { lyricsReplacementReady, mountLyricsPlaybarStyleWhenReady, watchLyricsHistory } from "./playbar-lifecycle.ts";
 import type { LyricsHistory } from "./playbar-lifecycle.ts";
-import { GeniusPage, LoadingIcon, SyncedExpandedLyricsPage, SyncedLyricsPage, UnsyncedLyricsPage } from "./pages.tsx";
+import {
+	GeniusPage,
+	LoadingIcon,
+	LyricsBackground,
+	SyncedExpandedLyricsPage,
+	SyncedLyricsPage,
+	UnsyncedLyricsPage,
+} from "./pages.tsx";
 import { ProviderMusixmatch } from "./providers/musixmatch.ts";
 import { configureLyricsClient, getLyricsResponse, requestLyrics } from "./runtime-client.ts";
 
@@ -76,6 +83,7 @@ const ICON =
 interface LyricsState extends CachedLyrics {
 	currentLyrics: DisplayLyricLine[] | null;
 	colors: { background: string; inactive: string };
+	image: string;
 	tempo: string;
 	explicitMode: number;
 	lockMode: number;
@@ -348,6 +356,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 				background: "",
 				inactive: "",
 			},
+			image: "",
 			tempo: "0.25s",
 			explicitMode: -1,
 			lockMode: CONFIG.locked,
@@ -646,9 +655,11 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 		const generation = ++this.requestGeneration;
 		const info = this.infoFromTrack(track);
 		if (!info) {
-			this.setState({ error: "No track info" });
+			this.setState({ error: "No track info", image: "" });
 			return;
 		}
+		const image = info.image ?? "";
+		this.setState((state) => (state.image === image ? null : { image }));
 
 		if (mode === -1) mode = this.props.queries.preferredMode(info.uri) ?? -1;
 		this.state.explicitMode = mode;
@@ -1285,6 +1296,15 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 				"--lyrics-background-noise": CONFIG.visual.noise ? "var(--background-noise)" : "unset",
 			};
 		}
+		if (CONFIG.visual["animated-background"] && !this.state.isFADMode) {
+			this.styleVariables = {
+				...this.styleVariables,
+				"--lyrics-color-active": "white",
+				"--lyrics-color-inactive": "rgba(255,255,255,0.65)",
+				"--lyrics-color-background": "#161616",
+				"--lyrics-highlight-background": "rgba(255,255,255,0.2)",
+			};
+		}
 
 		this.styleVariables = {
 			...this.styleVariables,
@@ -1400,7 +1420,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 		const out = react.createElement(
 			"div",
 			{
-				className: `lyrics-lyricsContainer-LyricsContainer${CONFIG.visual["fade-blur"] ? " blur-enabled" : ""}${
+				className: `lyrics-lyricsContainer-LyricsContainer${CONFIG.visual["fade-blur"] ? " blur-enabled" : ""}${CONFIG.visual["inactive-blur"] ? " inactive-blur-enabled" : ""}${
 					fadLyricsContainer ? " fad-enabled" : ""
 				}`,
 				style: this.styleVariables,
@@ -1409,8 +1429,8 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 					el.onwheel = this.onFontSizeChange;
 				},
 			},
-			react.createElement("div", {
-				className: "lyrics-lyricsContainer-LyricsBackground",
+			react.createElement(LyricsBackground, {
+				image: CONFIG.visual["animated-background"] && !fadLyricsContainer ? this.state.image : "",
 			}),
 			react.createElement(
 				"div",

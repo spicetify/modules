@@ -75,6 +75,11 @@ const providers = {
 		desc: "Provide lyrics from cache/local files loaded from previous Spotify sessions.",
 		modes: [KARAOKE, SYNCED, UNSYNCED],
 	},
+	lyricsovh: {
+		on: getConfig("lyrics-plus:provider:lyricsovh:on"),
+		desc: "Unsynced lyrics from lyrics.ovh. Used as a fallback when earlier providers have no lyrics.",
+		modes: [UNSYNCED],
+	},
 };
 
 export type ProviderKey = keyof typeof providers;
@@ -85,6 +90,8 @@ export const CONFIG = {
 	visual: {
 		"playbar-button": getConfig("lyrics-plus:visual:playbar-button", false),
 		colorful: getConfig("lyrics-plus:visual:colorful"),
+		"animated-background": getConfig("lyrics-plus:visual:animated-background", false),
+		"inactive-blur": getConfig("lyrics-plus:visual:inactive-blur", false),
 		noise: getConfig("lyrics-plus:visual:noise"),
 		"background-color": localStorage.getItem("lyrics-plus:visual:background-color") || "var(--spice-main)",
 		"active-color": localStorage.getItem("lyrics-plus:visual:active-color") || "var(--spice-text)",
@@ -134,13 +141,20 @@ try {
 	const storedOrder: unknown = JSON.parse(localStorage.getItem("lyrics-plus:services-order") ?? "null");
 	if (
 		!Array.isArray(storedOrder) ||
-		storedOrder.length !== providerKeys.length ||
-		new Set(storedOrder).size !== providerKeys.length ||
+		!(
+			storedOrder.length === providerKeys.length ||
+			(storedOrder.length === providerKeys.length - 1 && !storedOrder.includes("lyricsovh"))
+		) ||
+		new Set(storedOrder).size !== storedOrder.length ||
 		!storedOrder.every(isProviderKey)
 	) {
 		throw new Error("Invalid stored provider order");
 	}
-	CONFIG.providersOrder = storedOrder;
+	const missingProviders = providerKeys.filter((key) => !storedOrder.includes(key));
+	CONFIG.providersOrder = [...storedOrder, ...missingProviders];
+	if (missingProviders.length) {
+		localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));
+	}
 } catch {
 	CONFIG.providersOrder = providerKeys;
 	localStorage.setItem("lyrics-plus:services-order", JSON.stringify(CONFIG.providersOrder));

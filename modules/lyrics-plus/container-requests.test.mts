@@ -25,7 +25,14 @@ const components: Record<string, string[]> = {
 	"./options-menu.tsx": ["AdjustmentsMenu", "TranslationMenu"],
 	"./tab-bar.tsx": ["TopBarContent"],
 	"./settings.tsx": ["LyricsPlusSettings", "openLyricsPlusAppearanceSettings"],
-	"./pages.tsx": ["GeniusPage", "LoadingIcon", "SyncedExpandedLyricsPage", "SyncedLyricsPage", "UnsyncedLyricsPage"],
+	"./pages.tsx": [
+		"GeniusPage",
+		"LoadingIcon",
+		"LyricsBackground",
+		"SyncedExpandedLyricsPage",
+		"SyncedLyricsPage",
+		"UnsyncedLyricsPage",
+	],
 	"/modules/stdlib/lib/primitives.js": ["SettingsSection", "Tooltip"],
 };
 const hooks = registerHooks({
