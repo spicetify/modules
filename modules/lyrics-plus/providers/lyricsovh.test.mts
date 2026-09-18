@@ -65,3 +65,32 @@ it("returns no lyrics when a provider request fails", async (t) => {
 	});
 	assert.equal((await providers.lyricsovh(track)).error, "No lyrics");
 });
+
+it("retries a missing edition title with the existing title-cleanup helper", async (t) => {
+	const calls: string[] = [];
+	t.mock.method(globalThis, "fetch", async (url: string) => {
+		calls.push(url);
+		return calls.length === 1
+			? Response.json({ error: "No lyrics found" }, { status: 404 })
+			: Response.json({ lyrics: "Found the original song" });
+	});
+	const result = await providers.lyricsovh({ ...track, title: "Let It Be - Remastered 2009" });
+	assert.deepEqual(calls, [
+		"https://api.lyrics.ovh/v1/Artist%20%26%20Two/Let%20It%20Be%20-%20Remastered%202009",
+		"https://api.lyrics.ovh/v1/Artist%20%26%20Two/Let%20It%20Be",
+	]);
+	assert.deepEqual(result.unsynced, [{ text: "Found the original song" }]);
+});
+
+it("does not retry edition titles on server errors or after cancellation", async (t) => {
+	for (const cancel of [false, true]) {
+		const controller = new AbortController();
+		const fetch = t.mock.method(globalThis, "fetch", async () => {
+			if (cancel) controller.abort();
+			return Response.json({}, { status: cancel ? 404 : 503 });
+		});
+		await providers.lyricsovh({ ...track, title: "Let It Be - Remastered 2009" }, controller.signal);
+		assert.equal(fetch.mock.callCount(), 1);
+		fetch.mock.restore();
+	}
+});

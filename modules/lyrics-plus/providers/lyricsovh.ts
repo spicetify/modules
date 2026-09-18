@@ -5,6 +5,7 @@
 
 import type { ProviderResult, TrackInfo } from "../types.ts";
 import { requestLyrics } from "../runtime-client.ts";
+import { removeExtraInfo } from "../utils.ts";
 
 export async function lyricsOvh(info: TrackInfo, signal?: AbortSignal): Promise<ProviderResult> {
 	const result: ProviderResult = {
@@ -17,10 +18,13 @@ export async function lyricsOvh(info: TrackInfo, signal?: AbortSignal): Promise<
 	};
 	try {
 		const body: unknown = await requestLyrics(async (requestSignal) => {
-			const response = await fetch(
-				`https://api.lyrics.ovh/v1/${encodeURIComponent(info.artist)}/${encodeURIComponent(info.title)}`,
-				{ signal: requestSignal },
-			);
+			const base = `https://api.lyrics.ovh/v1/${encodeURIComponent(info.artist)}/`;
+			let response = await fetch(`${base}${encodeURIComponent(info.title)}`, { signal: requestSignal });
+			const title = removeExtraInfo(info.title).trim();
+			if (response.status === 404 && title && title !== info.title) {
+				requestSignal.throwIfAborted();
+				response = await fetch(`${base}${encodeURIComponent(title)}`, { signal: requestSignal });
+			}
 			return response.ok ? response.json() : null;
 		}, signal);
 		if (
