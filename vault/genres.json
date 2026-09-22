@@ -1,0 +1,29 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://code.vexcited.com/spicetify/genres/releases/download/0.1.0/genres-0.1.0.zip"
+			],
+			"checksum": "sha256:6bbf828473238788c778b6557b12068e4198611b339a83ffa8aa4bcce31a70be",
+			"updatedAt": "2026-09-22"
+		}
+	},
+	"metadata": {
+		"name": "genres",
+		"description": "Show the genres of the currently playing track in the player bar, with a click-through to the matching 'The Sound of Spotify' playlist.",
+		"authors": [
+			{
+				"name": "Vexcited"
+			},
+			{
+				"name": "Tetrax-10"
+			},
+			{
+				"name": "Golevka2001"
+			}
+		],
+		"preview": "https://cdn.vexcited.com/uploads/537192869-5c23ba9e-8e92-4b3b-9e0f-71a37501589e.png",
+		"repository": "https://code.vexcited.com/spicetify/genres",
+		"license": "MIT"
+	}
+}
