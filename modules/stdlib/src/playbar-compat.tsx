@@ -10,6 +10,7 @@
 // Button/Widget with the v3 playbarButton register so classic extensions and
 // muscle memory keep working, and the typed API never hands you a dead helper.
 
+import { client } from "./client.ts";
 import { React } from "./expose/React.ts";
 import playbarButtons, { PlaybarButton } from "./registers/playbarButton.tsx";
 
@@ -20,6 +21,8 @@ const innerSvg = (icon: string): string => {
 	const match = /<svg[^>]*>([\s\S]*)<\/svg>/i.exec(icon);
 	return match ? match[1] : icon;
 };
+
+const toInnerSvg = (icon: string): string => client.icons?.[icon as Spicetify.Icon] ?? innerSvg(icon);
 
 class PlaybarCompat {
 	onClick: (self: PlaybarCompat) => void;
@@ -102,7 +105,7 @@ class PlaybarCompat {
 			return (
 				<PlaybarButton
 					label={self._label}
-					icon={innerSvg(self._icon)}
+					icon={toInnerSvg(self._icon)}
 					isActive={self._active}
 					disabled={self._disabled}
 					onClick={() => self.onClick(self)}
