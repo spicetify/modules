@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0](https://github.com/spicetify/modules/compare/kit@0.3.1...kit@0.4.0) (2026-09-28)
+
+
+### Features
+
+* **kit:** add a remove script and clearer next steps to scaffolds ([3fee166](https://github.com/spicetify/modules/commit/3fee16642ee618fbe16c9f540466bc275d13b3ef))
+* **kit:** launch Spotify from dev and remove the override on exit ([73a977e](https://github.com/spicetify/modules/commit/73a977ecfb0610a77b1cac0756a0d2570beb784e))
+* **manager:** update managed Linux Spotify installations ([#19](https://github.com/spicetify/modules/issues/19)) ([469395a](https://github.com/spicetify/modules/commit/469395a7d2dfdec592e9b39395fe0c5647d133ab))
+* strengthen module verification and runtime reliability ([#16](https://github.com/spicetify/modules/issues/16)) ([8790c4a](https://github.com/spicetify/modules/commit/8790c4a064b0298bf53430e14dfc75ae32d5f5e7))
+
+
+### Bug Fixes
+
+* **ci:** bump changed module releases ([97f97f9](https://github.com/spicetify/modules/commit/97f97f97b8ad135826474fa3ae97b7c224b2db0a))
+* **kit:** fail a client evaluation when the socket closes early ([a4e3814](https://github.com/spicetify/modules/commit/a4e3814788085266bb3a9ad538890f5f300cde17))
+* **kit:** finish dev shutdown cleanly after --once and watcher errors ([602ebf6](https://github.com/spicetify/modules/commit/602ebf654575c1bb38cdd2e32c221f68880adf05))
+* **kit:** reject a flag given without its value ([7fe4c8e](https://github.com/spicetify/modules/commit/7fe4c8e5c51530968b9f6dd151bdd7d009ccab5b))
+* **kit:** stop dev rebuilding on its own build output ([eb923c9](https://github.com/spicetify/modules/commit/eb923c99e4c3772634a4f0f9b2811217c34151b5))
+* **kit:** stop hot-push leaving modules disabled ([3234ff1](https://github.com/spicetify/modules/commit/3234ff1cb1b5bd19fc8f8d9fc7a50e5d0bc06767))
+* **stdlib:** pin profile settings below Spotify settings ([ab85f91](https://github.com/spicetify/modules/commit/ab85f9157c4aff9ce29e772b4445ad7534742a5a))
+* **stdlib:** resolve the actual playlist menu component ([7e914ce](https://github.com/spicetify/modules/commit/7e914cee43a4323769a97f7e0c6d125732e4ba65))
+* **themes:** style native Settings controls consistently ([098579d](https://github.com/spicetify/modules/commit/098579da23874e03137666e0664f6ac6d52313f9))
+
 ## [0.3.1](https://github.com/spicetify/modules/compare/kit@0.3.0...kit@0.3.1) (2026-09-05)
 
 
