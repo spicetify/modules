@@ -235,6 +235,12 @@ export function evaluate(port: string, expr: string, timeoutMs = 15_000): Promis
 				clearTimeout(timer);
 				reject(new Error(`websocket error: ${String((e as ErrorEvent).message ?? e)}`));
 			});
+			// A settled promise ignores this; it only fires for a socket the client
+			// closed before answering (for instance Spotify quitting mid-push).
+			ws.addEventListener("close", () => {
+				clearTimeout(timer);
+				reject(new Error("the client closed the connection before answering"));
+			});
 			ws.addEventListener("open", () => {
 				ws.send(
 					JSON.stringify({
