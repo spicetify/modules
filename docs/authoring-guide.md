@@ -12,13 +12,24 @@ actually give you.
 ```sh
 npm create spicetify-module my-module    # or: spicetify-kit create my-module
 cd my-module
-npm run dev -- --launch                  # watch + hot-push over CDP (~1s)
+npm run dev                              # start Spotify, then hot-push over CDP (~1s)
 ```
 
-`dev` rebuilds and pushes on every save with no restage and no restart.
-`--launch` starts (or reuses) Spotify with the remote-debugging port for you;
-without it, start Spotify yourself with `--remote-debugging-port=9229`. Drop the
-hot-pushed override with `Spicetify.Modules.removeLocal("my-module")`.
+`dev` starts Spotify with the remote-debugging port (or reuses a client already
+running with it), then rebuilds and pushes on every save with no restage and no
+restart. Spotify must have Spicetify v3 applied. Stopping `dev` with ctrl-c
+removes the pushed override, so the client falls back to the installed copy.
+
+- `npm run dev -- --keep` leaves the override installed when `dev` stops;
+  `npm run remove` drops it later.
+- `npm run dev -- --no-launch` never touches Spotify and waits for one you
+  started yourself with `--remote-debugging-port=9229`.
+- The port defaults to 9229, which is also Node's inspector port. If
+  `node --inspect` or `wrangler dev` holds it, `dev` says so; pick another with
+  `--port <n>` or `SPICETIFY_CDP_PORT=<n>`.
+
+Inside this monorepo the same loop is `pnpm new <name>` to scaffold and
+`pnpm dev modules/<name>` to run it.
 
 What the scaffold generates:
 
