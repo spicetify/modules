@@ -68,6 +68,8 @@ test("scaffold package.json: escaped-double-quote test script, happy-dom devDep,
 	await runCreate(["demo-pkg", "--template", "basic"], root);
 	const pkg = JSON.parse(readFileSync(path.join(root, "demo-pkg", "package.json"), "utf8"));
 	assert.equal(pkg.scripts.test, 'node --test "test/*.test.mts"');
+	assert.equal(pkg.scripts.dev, "spicetify-kit dev .");
+	assert.equal(pkg.scripts.remove, "spicetify-kit remove .");
 	assert.ok(pkg.devDependencies["happy-dom"], "happy-dom is a devDependency");
 	assert.equal(pkg.devDependencies["@spicetify/kit"], KIT_DEPENDENCY_RANGE);
 	assert.match(pkg.engines.node, />=22/);
@@ -124,6 +126,7 @@ test("theme template: check-only scripts, no TypeScript or React devDeps, no tes
 	const project = path.join(root, "demo-theme");
 	const pkg = JSON.parse(readFileSync(path.join(project, "package.json"), "utf8"));
 	assert.equal(pkg.scripts.check, "spicetify-kit check .");
+	assert.equal(pkg.scripts.remove, "spicetify-kit remove .");
 	assert.equal(pkg.devDependencies["@spicetify/kit"], KIT_DEPENDENCY_RANGE);
 	assert.equal(pkg.scripts.test, undefined);
 	const dd = Object.keys(pkg.devDependencies ?? {});

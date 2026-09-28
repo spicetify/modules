@@ -306,6 +306,7 @@ notification       = 1C1C30
 					scripts: {
 						build: "spicetify-kit build .",
 						dev: "spicetify-kit dev .",
+						remove: "spicetify-kit remove .",
 						check: "spicetify-kit check .",
 					},
 					devDependencies: { "@spicetify/kit": KIT_DEPENDENCY_RANGE },
@@ -325,7 +326,7 @@ notification       = 1C1C30
 	if (!bare) {
 		console.log("next steps:");
 		console.log(`  cd ${rel} && npm install`);
-		console.log("  npm run dev        # hot-push into a running client");
+		console.log("  npm run dev        # start Spotify, then rebuild and hot-push on every save");
 	}
 }
 
@@ -443,6 +444,7 @@ export async function load(ctx: ModuleRuntimeContext) {
 					scripts: {
 						build: "spicetify-kit build .",
 						dev: "spicetify-kit dev .",
+						remove: "spicetify-kit remove .",
 						check: "tsc && spicetify-kit check .",
 						test: 'node --test "test/*.test.mts"',
 					},
@@ -509,13 +511,13 @@ export async function load(ctx: ModuleRuntimeContext) {
 	console.log(`created ${rel}/`);
 	console.log("next steps:");
 	if (bare) {
-		console.log(`  node scripts/stitch.ts modules/${name}     # one-off build into dist/`);
-		console.log(`  node scripts/dev.ts modules/${name}        # watch + hot-push into a running client`);
+		console.log(`  pnpm stitch modules/${name}     # one-off build into dist/`);
+		console.log(`  pnpm dev modules/${name}        # start Spotify, then rebuild and hot-push on every save`);
 	} else {
 		console.log(`  cd ${rel} && npm install`);
-		console.log(
-			"  npm run dev        # watch + hot-push into a running client (Spotify started with --remote-debugging-port=9229)",
-		);
+		console.log("  npm run dev        # start Spotify, then rebuild and hot-push on every save");
 		console.log("  npm run build      # one-off build into dist/");
+		console.log("stopping dev removes the pushed override; `npm run dev -- --keep` leaves it installed.");
+		console.log("Spotify needs Spicetify v3 applied (`spicetify apply`) for the push to land.");
 	}
 }
