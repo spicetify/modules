@@ -6,6 +6,8 @@
 	},
 	"type": "module",
 	"scripts": {
+		"new": "node scripts/create-module.ts",
+		"dev": "node scripts/dev.ts",
 		"stitch": "node scripts/stitch.ts",
 		"verify": "node scripts/verify-module.ts",
 		"check": "tsc && node scripts/module-typecheck.ts --all && oxlint && node scripts/stdlib-boundary.ts && node scripts/check-deps.ts",
