@@ -15,6 +15,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { flagValue } from "./args.ts";
 import { formatPushResult, push, record, resolvePort } from "./push.ts";
 
 const USAGE = "spicetify-kit install <zip|dist-dir> [--port 9229]\n  (requires `unzip` on PATH for a .zip)";
@@ -29,10 +30,7 @@ function unzipTo(zipPath: string, dest: string): void {
 
 export async function runInstall(argv: string[], cwd = process.cwd()): Promise<void> {
 	const target = argv.find((a) => !a.startsWith("--"));
-	const flag = (n: string) => {
-		const i = argv.indexOf(`--${n}`);
-		return i >= 0 ? argv[i + 1] : undefined;
-	};
+	const flag = (n: string) => flagValue(argv, n);
 	const port = resolvePort(flag("port"));
 	if (!target) throw new Error(USAGE);
 

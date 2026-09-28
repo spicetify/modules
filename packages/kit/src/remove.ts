@@ -12,6 +12,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { flagValue } from "./args.ts";
 import { formatRemoveOutcome, removeLocal, resolvePort } from "./push.ts";
 
 const USAGE = "spicetify-kit remove <module-dir|id> [--port 9229]";
@@ -33,8 +34,7 @@ export async function runRemove(argv: string[], cwd = process.cwd()): Promise<vo
 		if (!target) process.exitCode = 1;
 		return;
 	}
-	const i = argv.indexOf("--port");
-	const port = resolvePort(i >= 0 ? argv[i + 1] : undefined);
+	const port = resolvePort(flagValue(argv, "port"));
 	const id = moduleId(target, cwd);
 	console.log(`[remove] ${formatRemoveOutcome(id, await removeLocal(id, port))}`);
 }
