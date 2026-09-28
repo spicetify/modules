@@ -11,10 +11,11 @@ usage: spicetify-kit <command> [args]
   check [module]     audit a module against the module standard (advisory)
   from-theme <dir>   migrate a classic theme (user.css + color.ini) to a module
   build [module...]  bundle modules (rolldown + scss) into dist/
-  dev <module>       watch, rebuild, and hot-push into a running client
+  dev <module>       watch, rebuild, and hot-push into Spotify (starts it if needed)
   pack <dist-dir>    zip a built module and print its sha256
   vault add <dir>    record a built module into a vault file (--artifact <url>)
   install <zip|dir>  sideload a packed module into a running client
+  remove <dir|id>    drop a hot-pushed override from a running client
 
 run a command with --help for its flags`;
 
@@ -38,6 +39,8 @@ export async function main(argv: string[]): Promise<void> {
 				return await (await import("./vault.ts")).runVault(rest);
 			case "install":
 				return await (await import("./install.ts")).runInstall(rest);
+			case "remove":
+				return await (await import("./remove.ts")).runRemove(rest);
 			case undefined:
 			case "--help":
 			case "-h":

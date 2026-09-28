@@ -19,6 +19,8 @@ import { execFileSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+import { portInUseMessage, probePort, type PortProbe } from "./push.ts";
+
 export type SpotifyTarget =
 	| { kind: "macos"; app: string }
 	| { kind: "windows"; exe: string }
@@ -28,7 +30,7 @@ export type SpotifyTarget =
 const APPX_MESSAGE =
 	"Spotify is a Microsoft Store (AppX) install, which the kit cannot launch with a debug port: " +
 	"it needs the spicetify-staged --app-directory, which only the CLI knows. " +
-	"Start Spotify yourself with --remote-debugging-port, or run `spicetify-kit dev` without --launch.";
+	"Start Spotify yourself with --remote-debugging-port, then run `spicetify-kit dev --no-launch`.";
 
 // which returns the resolved path of a command on PATH, or null.
 function defaultWhich(cmd: string): string | null {
@@ -54,7 +56,7 @@ export function discoverSpotify(
 		const app = "/Applications/Spotify.app";
 		if (exists(app)) return { kind: "macos", app };
 		throw new Error(
-			`Spotify not found at ${app}. Install Spotify, or start it yourself with --remote-debugging-port and run dev without --launch.`,
+			`Spotify not found at ${app}. Install Spotify, or start it yourself with --remote-debugging-port and run dev with --no-launch.`,
 		);
 	}
 	if (platform === "win32") {
@@ -70,30 +72,22 @@ export function discoverSpotify(
 	const onPath = which("spotify");
 	if (onPath) return { kind: "linux", exe: onPath };
 	throw new Error(
-		"'spotify' not found on PATH. Install Spotify, or start it yourself with --remote-debugging-port and run dev without --launch.",
+		"'spotify' not found on PATH. Install Spotify, or start it yourself with --remote-debugging-port and run dev with --no-launch.",
 	);
 }
 
-// hasXpuiTarget reports whether a debuggable xpui page is already listening
-// on the port, so an already-good client is reused rather than killed.
-export async function hasXpuiTarget(port: string): Promise<boolean> {
-	try {
-		const res = await fetch(`http://localhost:${port}/json/list`);
-		if (!res.ok) return false;
-		const targets = (await res.json()) as Array<{ url?: string }>;
-		return targets.some((t) => t.url?.includes("xpui"));
-	} catch {
-		return false;
-	}
-}
-
 // waitForTarget polls until an xpui debug target appears or the timeout
-// fires; the timeout error names the port and the flag so the remedy is
-// obvious.
-export async function waitForTarget(port: string, timeoutMs = 30_000): Promise<void> {
+// fires. A foreign listener fails fast instead of burning the whole timeout.
+export async function waitForTarget(
+	port: string,
+	timeoutMs = 30_000,
+	probe: (port: string) => Promise<PortProbe> = probePort,
+): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
-		if (await hasXpuiTarget(port)) return;
+		const state = await probe(port);
+		if (state.state === "xpui") return;
+		if (state.state === "other") throw new Error(portInUseMessage(port, state.what));
 		await new Promise((r) => setTimeout(r, 500));
 	}
 	throw new Error(
@@ -124,9 +118,19 @@ export async function launchSpotify(
 	port: string,
 	log: (msg: string) => void = console.log,
 	platform: NodeJS.Platform = process.platform,
+	probe: (port: string) => Promise<PortProbe> = probePort,
 ): Promise<"reused" | "launched"> {
-	if (await hasXpuiTarget(port)) {
+	const state = await probe(port);
+	if (state.state === "xpui") {
 		log(`[dev] reusing the Spotify client already debuggable on port ${port}`);
+		return "reused";
+	}
+	// Killing Spotify would not free the port, so the relaunch could never bind it.
+	if (state.state === "other") throw new Error(portInUseMessage(port, state.what));
+	if (state.state === "unknown") throw new Error(portInUseMessage(port, "a process that is not a DevTools endpoint"));
+	if (state.state === "spotify") {
+		log(`[dev] Spotify is starting on port ${port}, waiting for it`);
+		await waitForTarget(port, 30_000, probe);
 		return "reused";
 	}
 
@@ -141,6 +145,6 @@ export async function launchSpotify(
 	if (target.kind === "macos") spawnDetached("open", ["-a", target.app, "--args", portFlag]);
 	else spawnDetached(target.exe, [portFlag]);
 
-	await waitForTarget(port);
+	await waitForTarget(port, 30_000, probe);
 	return "launched";
 }

@@ -25,7 +25,8 @@
 		"./from-theme": "./dist/from-theme.js",
 		"./check": "./dist/check.js",
 		"./vault": "./dist/vault.js",
-		"./install": "./dist/install.js"
+		"./install": "./dist/install.js",
+		"./remove": "./dist/remove.js"
 	},
 	"files": [
 		"bin",
