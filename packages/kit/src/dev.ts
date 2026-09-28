@@ -30,6 +30,16 @@ const USAGE =
 	"spicetify-kit dev <module> [--launch] [--port 9229] [--once] [--classmap <key|path>] [--out <dir>]\n" +
 	"  --launch   start (or reuse) Spotify with the remote-debugging port itself";
 
+// isSourceChange filters watcher events down to module sources. A standalone
+// project's module dir is the project root, so the build's own dist/ output,
+// node_modules, and dot-dirs all sit inside the watched tree.
+export function isSourceChange(file: string, moduleDir: string, outDir: string): boolean {
+	const segments = file.split(/[\\/]/);
+	if (segments.some((s) => s.startsWith(".") || s === "node_modules")) return false;
+	const rel = path.relative(outDir, path.resolve(moduleDir, file));
+	return rel.startsWith("..") || path.isAbsolute(rel);
+}
+
 export async function runDev(argv: string[], cwd = process.cwd()): Promise<void> {
 	const moduleArg = argv.find((a) => !a.startsWith("--"));
 	const flag = (n: string) => {
@@ -94,7 +104,7 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 			}
 			return;
 		}
-		if (file.startsWith(".")) return;
+		if (!isSourceChange(file, moduleDir, outDir)) return;
 		clearTimeout(timer);
 		timer = setTimeout(() => void cycle(), 200);
 	});
