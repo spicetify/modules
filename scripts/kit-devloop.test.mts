@@ -75,6 +75,12 @@ describe("formatPushResult stamp handling", () => {
 		assert.match(r.message, /no execution stamp/);
 	});
 
+	it("says when a push turned a disabled module back on", () => {
+		const r = formatPushResult(JSON.stringify({ loaded: true, failed: null, stamp: "live", reenabled: true }));
+		assert.equal(r.ok, true);
+		assert.match(r.message, /was disabled in the client; the push turned it back on/);
+	});
+
 	it("still reports load failures first", () => {
 		const r = formatPushResult(JSON.stringify({ loaded: true, failed: "boom", stamp: "live" }));
 		assert.equal(r.ok, false);

@@ -145,8 +145,12 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 		const id = ${JSON.stringify(id)};
 		const before = M.list().filter((m) => m.loaded).map((m) => m.identifier);
 		const hadPrevious = before.includes(id);
-		await M.disable(id).catch(() => {});
-		await M.installLocal(id, rec);
+		const installed = await M.installLocal(id, rec);
+		// installLocal keeps a module the client has marked disabled off. Pushing
+		// it is an explicit request to run it, so load it for this session;
+		// reload is transient, so the persisted choice still applies after removal.
+		const reenabled = installed?.disabled === true;
+		if (reenabled) await (M.reload ?? M.enable)(id);
 		// Re-enabling a theme the loader just unloaded would fight the
 		// single-active-theme invariant and knock the pushed theme back off.
 		const pushedIsTheme = (rec.metadata.tags ?? []).includes("theme");
@@ -163,6 +167,7 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 			failed: M.report?.failed?.[id] ?? null,
 			stamp: ${stamped ? '(stampLive ? "live" : "stale")' : '"unstamped"'},
 			hadPrevious,
+			reenabled,
 		});
 	})()`;
 
@@ -207,6 +212,7 @@ export function formatPushResult(raw: string): { ok: boolean; message: string } 
 		failed?: string | null;
 		stamp?: "live" | "stale" | "unstamped";
 		hadPrevious?: boolean;
+		reenabled?: boolean;
 	};
 	try {
 		parsed = JSON.parse(raw);
@@ -232,9 +238,10 @@ export function formatPushResult(raw: string): { ok: boolean; message: string } 
 				"Restart the client (or removeLocal, then push again) before trusting any verification.",
 		};
 	}
-	const remount = parsed.hadPrevious
-		? " — UI mounted before the push may still be the old build; re-navigate to its surface to remount"
-		: "";
+	const remount =
+		(parsed.hadPrevious
+			? " — UI mounted before the push may still be the old build; re-navigate to its surface to remount"
+			: "") + (parsed.reenabled ? " (it was disabled in the client; the push turned it back on)" : "");
 	if (parsed.stamp === "live") return { ok: true, message: `loaded, pushed build verified executing${remount}` };
 	// css-only records carry no executable entry to stamp.
 	if (parsed.stamp === "unstamped") return { ok: true, message: `loaded (css-only, no execution stamp)${remount}` };
