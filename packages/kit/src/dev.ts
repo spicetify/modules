@@ -19,6 +19,7 @@
 import { watch } from "node:fs";
 import path from "node:path";
 
+import { flagValue } from "./args.ts";
 import { buildModule, readMetadata, resolveModuleDir } from "./build.ts";
 import { loadConfig, resolveClassmap, type ClassmapResolution } from "./classmap.ts";
 import { launchSpotify, waitForTarget } from "./launch.ts";
@@ -50,10 +51,7 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 	}
 	const valueFlags = new Set(["--port", "--classmap", "--out"]);
 	const moduleArg = argv.find((a, i) => !a.startsWith("--") && !valueFlags.has(argv[i - 1]));
-	const flag = (n: string) => {
-		const i = argv.indexOf(`--${n}`);
-		return i >= 0 ? argv[i + 1] : undefined;
-	};
+	const flag = (n: string) => flagValue(argv, n);
 	if (!moduleArg) throw new Error(USAGE);
 	const port = resolvePort(flag("port"));
 	const once = argv.includes("--once");
@@ -95,9 +93,10 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 		}
 		if (stopping) return;
 		try {
+			const pending = push(record(distDir, id), id, port);
 			// Set before the await: a ctrl-c mid-push must still remove what lands.
 			pushed = true;
-			const raw = await push(record(distDir, id), id, port);
+			const raw = await pending;
 			const result = formatPushResult(raw);
 			const line = `[dev] ${id} ${result.message} (${Date.now() - started}ms)`;
 			if (result.ok) console.log(line);
@@ -109,26 +108,31 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 
 	let current: Promise<void> = Promise.resolve();
 	let timer: NodeJS.Timeout | undefined;
-	const stop = async () => {
+	const stop = async (code = 0) => {
 		if (stopping) process.exit(130);
 		stopping = true;
 		clearTimeout(timer);
 		await current;
-		if (keep || !pushed) process.exit(0);
+		if (keep || !pushed) process.exit(code);
 		try {
 			console.log(`[dev] ${formatRemoveOutcome(id, await removeLocal(id, port))}`);
 		} catch (e) {
 			console.error(`[dev] could not remove the override: ${(e as Error).message}`);
 			console.error(`[dev] run \`spicetify-kit remove ${id}\` once Spotify is reachable`);
 		}
-		process.exit(0);
+		process.exit(code);
 	};
-	process.on("SIGINT", () => void stop());
-	process.on("SIGTERM", () => void stop());
+	const onSignal = () => void stop();
+	process.on("SIGINT", onSignal);
+	process.on("SIGTERM", onSignal);
 
 	current = cycle();
 	await current;
-	if (once) return;
+	if (once) {
+		process.off("SIGINT", onSignal);
+		process.off("SIGTERM", onSignal);
+		return;
+	}
 
 	const onExit = keep ? "the override stays installed" : "the override is removed";
 	console.log(`[dev] watching ${moduleDir} (ctrl-c to stop; ${onExit})`);
@@ -152,7 +156,7 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 	});
 	watcher.on("error", (e) => {
 		console.error(`[dev] watcher failed: ${e.message}`);
-		void stop();
+		void stop(1);
 	});
 	// Keep the process alive while the watcher runs.
 	await new Promise(() => {});
