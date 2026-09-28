@@ -17,11 +17,11 @@ walkthrough (scaffold, registrars, `placeButton`, the typed surface), see the
 1. `npm create spicetify-module my-module` — a typed project: the loader entry
    shim, a hello-world `mod.tsx`, SCSS, and a `tsconfig` wired to stdlib's
    vendored types.
-2. `npm run dev` — watch, rebuild, and hot-push into a running client over CDP
-   in about a second. No restage, no restart. Pass `-- --launch` to have the
-   kit start (or reuse) Spotify with the remote-debugging port itself; without
-   it, start Spotify with `--remote-debugging-port=9229` yourself.
-   `Spicetify.Modules.removeLocal` drops the override.
+2. `npm run dev` — start (or reuse) Spotify with the remote-debugging port,
+   then watch, rebuild, and hot-push into it over CDP in about a second. No
+   restage, no restart. Stopping it removes the override; `-- --keep` leaves
+   it, `npm run remove` drops it later, and `-- --no-launch` waits for a
+   client you started yourself.
 3. `npm run check` and `npm run test` — typecheck plus happy-dom unit tests.
    Testable behavior lives in a dependency-free `logic.ts` (no `/modules/*` or
    client imports); `mod.tsx` passes values from stdlib's typed `client`
