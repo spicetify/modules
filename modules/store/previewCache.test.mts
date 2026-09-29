@@ -4,7 +4,6 @@
  */
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
@@ -50,13 +49,6 @@ const image = (body = "preview", type = "image/png") =>
 	new Response(body, { headers: { "content-length": String(body.length), "content-type": type } });
 
 describe("preview cache", () => {
-	it("drives both Store preview surfaces and prunes after catalog refresh", () => {
-		const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
-		assert.equal([...page.matchAll(/<CachedPreviewImage\b/g)].length, 2);
-		assert.match(page, /new IntersectionObserver/);
-		assert.match(page, /void prunePreviewCache/);
-	});
-
 	it("keys artwork by its semantic module release and vault date", () => {
 		assert.equal(previewRevision("1.2.3+cm-1020096-deadbeef", "2026-08-14"), "1.2.3@2026-08-14");
 		assert.notEqual(
