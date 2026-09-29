@@ -46,7 +46,7 @@
 		},
 		{
 			"module": "hide-window-controls",
-			"file": "modules/hide-window-controls/mod.tsx",
+			"file": "modules/hide-window-controls/spacer.ts",
 			"rules": ["client-dom"],
 			"reason": "The module's purpose requires correcting Spotify's native window-control spacer when the shell controls are hidden."
 		},
