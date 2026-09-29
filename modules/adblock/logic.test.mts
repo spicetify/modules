@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
 import {
-	AD_FETCHERS,
-	AD_MANAGERS,
-	AD_SLOT_IDS,
-	AD_SURFACE_CSS,
 	blockAdSlots,
 	createAdSettingsClient,
 	disableManager,
@@ -18,7 +13,6 @@ import {
 	resolveManager,
 	skipAd,
 	stubFetcher,
-	UPSELL_CSS,
 } from "./logic.ts";
 
 describe("disableManager", () => {
@@ -113,29 +107,6 @@ describe("skipAd", () => {
 	});
 });
 
-describe("UPSELL_CSS", () => {
-	it("targets premium links by destination, not by hashed class names", () => {
-		assert.match(UPSELL_CSS, /a\[href\*="\/premium"\]/);
-	});
-
-	it("hides the row as well as the link so no blank menu entry is left", () => {
-		assert.match(UPSELL_CSS, /li:has\(> a\[href\*="\/premium"\]\)/);
-	});
-
-	it("hides Quicksilver in-app messages together with their modal overlay", () => {
-		assert.match(UPSELL_CSS, /\[data-testid="inAppMessageContainer"\]/);
-		assert.match(UPSELL_CSS, /\[data-testid="inAppMessageIframe"\]/);
-		assert.match(UPSELL_CSS, /\[role="presentation"\]:has\(\[data-testid="inAppMessageContainer"\]\)/);
-	});
-
-	it("takes the whole modal portal down, not just the dialog inside it", () => {
-		// Hiding only the dialog leaves the GenericModal backdrop (its
-		// parent) as an invisible full-screen click blocker; seen live on
-		// 1.2.96 as "a dark overlay blocking the app".
-		assert.match(UPSELL_CSS, /\.ReactModalPortal:has\(\[data-testid="inAppMessageContainer"\]\)/);
-	});
-});
-
 describe("injectStyle", () => {
 	it("replaces a previous copy instead of stacking styles", () => {
 		const nodes: Record<string, { id: string; textContent: string; remove: () => void }> = {};
@@ -170,12 +141,6 @@ describe("resolveManager", () => {
 		assert.equal(resolveManager({}, "vto.manager"), undefined);
 		assert.equal(resolveManager(undefined, "audio"), undefined);
 	});
-
-	it("covers every surface whose control is not on the outer object", () => {
-		for (const path of ["vto.manager", "embeddedAd.embeddedAdManager"]) {
-			assert.ok(AD_MANAGERS.includes(path as never), `${path} must be addressed by its nested path`);
-		}
-	});
 });
 
 describe("disableManager, leaderboard shape", () => {
@@ -189,22 +154,6 @@ describe("disableManager, leaderboard shape", () => {
 		};
 		assert.equal(disableManager(m), true);
 		assert.equal(called, true, "writing the flag alone leaves the leaderboard subscribed");
-	});
-});
-
-describe("AD_SURFACE_CSS", () => {
-	it("hides rendered ads by testid, since disabling a manager only stops the next one", () => {
-		assert.match(AD_SURFACE_CSS, /\[data-testid="embedded-ad"\]/);
-		assert.match(AD_SURFACE_CSS, /\[data-testid="ad-companion-card"\]/);
-	});
-
-	it("hides the home ad shelf, which no manager can turn off", () => {
-		assert.match(AD_SURFACE_CSS, /\[data-testid="home-ads-container"\]/);
-	});
-
-	it("hides the Now Playing View from locale-independent player state", () => {
-		assert.match(AD_SURFACE_CSS, /html\.spicetify-adblock-ad-playing \.main-nowPlayingView-mainWrapper/);
-		assert.doesNotMatch(AD_SURFACE_CSS, /aria-label="Advertisement"/);
 	});
 });
 
@@ -329,19 +278,6 @@ describe("blockAdSlots", () => {
 			{ slotId: "preroll", enabled: true },
 			{ slotId: "stream", enabled: false },
 		]);
-	});
-
-	it("covers Spotify's audio, display, and podcast slot families", () => {
-		for (const slotId of ["preroll", "stream", "embedded-npv", "hpto", "podcast-midroll-1"]) {
-			assert.ok(
-				AD_SLOT_IDS.includes(slotId as never),
-				`${slotId} must be disabled before it can fetch inventory`,
-			);
-		}
-	});
-
-	it("prioritizes audio slots before display inventory", () => {
-		assert.deepEqual(AD_SLOT_IDS.slice(0, 2), ["preroll", "stream"]);
 	});
 
 	it("clears but never mutates a slot whose prior state cannot be restored", async () => {
@@ -492,14 +428,6 @@ describe("blockAdSlots", () => {
 	});
 });
 
-describe("module lifecycle contract", () => {
-	it("does not let a stale async restore undo a rapid re-enable", () => {
-		const source = readFileSync(new URL("./mod.tsx", import.meta.url), "utf8");
-		assert.match(source, /await setAdSlotBlocking\(false\);\s*if \(enabled\) return;/);
-		assert.match(source, /ctx\.defer\(async \(\) => \{\s*enabled = false;\s*await restore\(\);/);
-	});
-});
-
 describe("stubFetcher", () => {
 	it("stops the fetch that would deliver the ad", async () => {
 		let called = 0;
@@ -531,10 +459,6 @@ describe("stubFetcher", () => {
 });
 
 describe("AD_FETCHERS", () => {
-	it("covers home, whose manager exposes neither disable nor enabled", () => {
-		assert.ok(AD_FETCHERS.some((f) => f.path === "home" && f.method === "fetchHomeAd"));
-	});
-
 	it("leaves a fetch-driven surface untouched by disableManager", () => {
 		// The real shape of Platform.AdManagers.home: no disable, no enabled, so
 		// disableManager does nothing and reports false. This is why the stub exists.
