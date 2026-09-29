@@ -165,6 +165,30 @@ describe("release.ts status", () => {
 		assert.match(res.stdout, /ok: every changed module/);
 	});
 
+	it("ignores changes to tests and their fixtures, which never ship", () => {
+		const f = fixture();
+		f.addModule("mod", "0.1.0");
+		f.publish("mod", "0.1.0");
+		f.touch("mod", "logic.test.mts", "test(mod): drop a hollow assertion");
+		mkdirSync(path.join(f.dir, "modules", "mod", "__fixtures__"));
+		f.touch("mod", "__fixtures__/response.json", "feat(mod): capture a new response");
+		const res = run(f.dir, "status");
+		assert.equal(res.code, 0, res.stderr);
+		assert.match(res.stdout, /ok: every changed module/);
+	});
+
+	it("still requires a bump when shipped code changes alongside a test", () => {
+		const f = fixture();
+		f.addModule("mod", "0.1.0");
+		f.publish("mod", "0.1.0");
+		f.touch("mod", "logic.test.mts", "feat(mod): cover the new option");
+		f.touch("mod", "index.css", "fix(mod): correct the spacing");
+		const res = run(f.dir, "status");
+		assert.equal(res.code, 1);
+		assert.match(res.stderr, /mod: changed since mod@0\.1\.0/);
+		assert.match(res.stderr, /suggest patch -> 0\.1\.1/);
+	});
+
 	it("does not let an earlier exclusion hide a later releasable change", () => {
 		const f = fixture();
 		f.addModule("mod", "0.1.0");

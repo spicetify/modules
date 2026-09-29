@@ -56,7 +56,7 @@ type Level = (typeof LEVELS)[number];
 const SKIP_TRAILER = /^Release-As:\s*none$/im;
 
 function releaseCommitSubjects(id: string, since: string): string[] {
-	const hashes = git(["log", `${since}..HEAD`, "--format=%H", "--", moduleDir(id)])
+	const hashes = git(["log", `${since}..HEAD`, "--format=%H", "--", ...shippedPathspec(id)])
 		.split("\n")
 		.filter(Boolean);
 	return hashes.flatMap((hash) => {
@@ -112,6 +112,14 @@ function moduleDir(id: string): string {
 	if (dirs.length > 1) throw new Error(`${id} exists in multiple roots: ${dirs.join(", ")}`);
 	if (!dirs.length) throw new Error(`no module directory for ${id} in ${ROOTS.join("/")}`);
 	return dirs[0];
+}
+
+// The git pathspec for a module's shipped files. Tests (every *.mts, including
+// shared setup) and their __fixtures__ sit beside the code but never reach an
+// artifact, so changing only them neither needs a release nor sets its level.
+function shippedPathspec(id: string): string[] {
+	const dir = moduleDir(id);
+	return [dir, `:(exclude,glob)${dir}/**/*.mts`, `:(exclude,glob)${dir}/**/__fixtures__/**`];
 }
 
 function readMetadata(id: string): { name?: string; version?: string; dependencies?: Record<string, string> } {
@@ -198,7 +206,7 @@ function analyze(): { states: ModuleState[]; malformed: string[] } {
 		const vaultId = now.name ?? id;
 		const published = !!vault.modules?.[vaultId]?.v?.[now.version];
 		const subjectsSince = (baseline: string) =>
-			git(["log", `${baseline}..HEAD`, "--format=%s", "--", moduleDir(id)])
+			git(["log", `${baseline}..HEAD`, "--format=%s", "--", ...shippedPathspec(id)])
 				.split("\n")
 				.filter(Boolean);
 		if (!published) {
@@ -219,7 +227,7 @@ function analyze(): { states: ModuleState[]; malformed: string[] } {
 		const baseline = git(["tag", "--list", releasedTag]) ? releasedTag : lastModuleTag(vaultId);
 		if (!baseline) continue; // published outside tags (legacy/inline); no diff possible
 		const commits = subjectsSince(baseline);
-		if (git(["diff", "--name-only", `${baseline}..HEAD`, "--", moduleDir(id)])) {
+		if (git(["diff", "--name-only", `${baseline}..HEAD`, "--", ...shippedPathspec(id)])) {
 			const level = suggestLevel(id, baseline);
 			states.push({
 				id,
@@ -329,7 +337,7 @@ function bump(id: string, level: Level): void {
 
 function skipsRelease(id: string, since: string | null): boolean {
 	if (!since) return false;
-	const touching = git(["log", `${since}..HEAD`, "--format=%H", "--", moduleDir(id)])
+	const touching = git(["log", `${since}..HEAD`, "--format=%H", "--", ...shippedPathspec(id)])
 		.split("\n")
 		.filter(Boolean);
 	return touching.length > 0 && releaseCommitSubjects(id, since).length === 0;
