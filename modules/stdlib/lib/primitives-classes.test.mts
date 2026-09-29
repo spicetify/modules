@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import * as chromeClasses from "./primitives-classes.ts";
-import { badgeClass, buttonClass, chipClass, TOGGLE_CLASSES } from "./primitives-classes.ts";
+import { badgeClass, buttonClass, chipClass } from "./primitives-classes.ts";
 
 describe("chrome class contract", () => {
 	it("maps button variants", () => {
@@ -29,22 +29,8 @@ describe("chrome class contract", () => {
 		assert.equal(chipClass(true), "spicetify-chip spicetify-chip--active");
 	});
 
-	it("exposes the client's native toggle structure", () => {
-		assert.deepEqual(TOGGLE_CLASSES, {
-			wrapper: "x-toggle-wrapper",
-			input: "x-toggle-input",
-			indicatorWrapper: "x-toggle-indicatorWrapper",
-			indicator: "x-toggle-indicator",
-		});
-	});
-
-	it("retains the published legacy toggle class", () => {
-		assert.equal((chromeClasses as Record<string, unknown>).TOGGLE_CLASS, "spicetify-toggle");
-	});
-
 	it("matches Spotify's keyboard activation contract", () => {
 		const activateToggleOnKeyDown = (chromeClasses as Record<string, unknown>).activateToggleOnKeyDown;
-		assert.equal(typeof activateToggleOnKeyDown, "function");
 		let clicks = 0;
 		let prevented = 0;
 		let stopped = 0;

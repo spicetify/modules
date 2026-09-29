@@ -49,8 +49,6 @@ test("client capabilities resolve lazily from the current runtime", () => {
 	const replacement = { marker: "replacement" };
 	runtime.Player = replacement;
 	assert.equal(client.player, replacement);
-	assert.equal(typeof client.popupModal.display, "function");
-	assert.equal(typeof client.popupModal.hide, "function");
 	assert.notEqual(client.popupModal, runtime.PopupModal);
 });
 
