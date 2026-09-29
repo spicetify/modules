@@ -23,8 +23,13 @@
 	background-color: var(--spice-main);
 }
 .main-topBar-background {
-	opacity: 1 !important;
 	background-color: var(--spice-main) !important;
+}
+/* keep the zoomed header image one pixel inside the rounded main view edge */
+.main-view-container > .before-scroll-node {
+	position: absolute;
+	inset: 1px 1px 0;
+	overflow: hidden;
 }
 * {
 	box-shadow: none !important;

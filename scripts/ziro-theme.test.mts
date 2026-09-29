@@ -26,7 +26,21 @@ describe("ziro current-client compatibility", () => {
 		);
 	});
 
+	it("lets the client fade the top bar in on scroll", () => {
+		const rule = css.match(/\.main-topBar-background\s*\{([^}]*)\}/s)?.[1];
+		assert.ok(rule, "the top bar keeps its theme colour rule");
+		assert.doesNotMatch(rule, /opacity/, "a forced opacity covers the entity header at scroll top");
+	});
+
+	it("clips the zoomed header image inside the rounded main view edge", () => {
+		const rule = css.match(/\.main-view-container\s*>\s*\.before-scroll-node\s*\{([^}]*)\}/s)?.[1];
+		assert.ok(rule, "the header image layer needs its own clip");
+		assert.match(rule, /position:\s*absolute\s*;/);
+		assert.match(rule, /inset:\s*1px 1px 0\s*;/);
+		assert.match(rule, /overflow:\s*hidden\s*;/);
+	});
+
 	it("ships as a patch release", () => {
-		assert.equal(metadata.version, "0.1.4");
+		assert.equal(metadata.version, "0.1.5");
 	});
 });
