@@ -16,6 +16,8 @@ import {
 	STORAGE_KEY,
 } from "./logic.ts";
 
+import { SPACER_CSS } from "./spacer.ts";
+
 const isRequired = () => document.documentElement.hasAttribute(HIDE_WINDOW_CONTROLS_REQUIRED_ATTRIBUTE);
 const isEnabled = () => resolveHiddenState(localStorage.getItem(STORAGE_KEY), isRequired());
 
@@ -27,27 +29,6 @@ const setButtonsVisible = async (visible: boolean) => {
 	if (!updateUiClient?.setButtonsVisibility) throw new Error("Spotify's window controls API is unavailable");
 	await updateUiClient.setButtonsVisibility({ showButtons: visible });
 };
-
-// The client parks an empty 52px div at the head of the nav's history buttons
-// so the macOS traffic lights have somewhere to sit. Hiding the lights leaves
-// it behind as a hole at the top left, with the back and forward buttons
-// starting 106px in from the edge for no reason anyone can see.
-//
-// Keyed on :empty and on the css-map name of the wrapper rather than the
-// spacer's own class, which is a per-build hash. Windows reserves a separate
-// menu slot on the left and a window-button slot on the right, with a negative
-// margin to meet the window edge.
-// Only collapse empty slots so real controls remain visible.
-const SPACER_CSS = `.spotify__os--is-macos .main-globalNav-historyButtonsWrapper > div:first-child:empty {
-	width: 0 !important;
-}
-.spotify__os--is-windows .main-globalNav-historyButtonsWrapper > div:first-child:empty,
-.spotify__os--is-windows .main-globalNav-contentRight > .main-topBar-topbarContentRight:last-child:empty {
-	display: none !important;
-}
-.spotify__container--is-desktop.spotify__os--is-windows .main-globalNav-contentRight {
-	margin-inline-end: 0 !important;
-}`;
 
 const SPACER_STYLE_ID = "spicetify-hide-window-controls-spacer";
 const SHARED_RECONCILER_KEY = "__spicetifyHideWindowControlsReconciler";

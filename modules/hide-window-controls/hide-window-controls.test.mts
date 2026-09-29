@@ -17,6 +17,37 @@ import {
 	shouldHide,
 } from "./logic.ts";
 
+import { SPACER_CSS } from "./spacer.ts";
+
+test("Windows collapses mapped and unmapped caption slots without hiding real controls", () => {
+	for (const container of ["main-globalNav-contentRight", "unmapped-container"]) {
+		document.documentElement.className = "spotify__os--is-windows spotify__container--is-desktop";
+		document.body.innerHTML = `<div class="Root__globalNav"><div class="${container}" style="margin-inline-end: -8px">
+			<div class="main-topBar-topbarContentRight"><button>Account</button></div><div class="unmapped-spacer"></div>
+		</div></div>`;
+		const style = document.createElement("style");
+		style.textContent = SPACER_CSS;
+		document.head.appendChild(style);
+		const nav = document.querySelector<HTMLElement>(`.${container}`)!;
+		const slot = nav.lastElementChild!;
+		try {
+			assert.equal(window.getComputedStyle(slot).display, "none");
+			assert.equal(window.getComputedStyle(nav).marginInlineEnd, "0");
+			assert.notEqual(window.getComputedStyle(nav.firstElementChild!).display, "none");
+			slot.innerHTML = "<button>Real control</button>";
+			assert.notEqual(window.getComputedStyle(slot).display, "none");
+			slot.replaceChildren();
+			style.remove();
+			assert.notEqual(window.getComputedStyle(slot).display, "none");
+			assert.equal(window.getComputedStyle(nav).marginInlineEnd, "-8px");
+		} finally {
+			style.remove();
+			document.body.replaceChildren();
+			document.documentElement.className = "";
+		}
+	}
+});
+
 test("Windows controls stay visible when the native daemon is unavailable", async () => {
 	const states: boolean[] = [];
 	const apply = createNativeWindowControls(
