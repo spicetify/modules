@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, test } from "node:test";
 
+import { metadataSubset } from "../src/vault-metadata.ts";
 import { runVault } from "../src/vault.ts";
 
 const tmps: string[] = [];
@@ -53,7 +54,7 @@ test("vault add: embeds the metadata subset and a sha256 of the zip; re-adds cle
 	assert.equal(entry.checksum, sha(zipBytes));
 	// Card metadata lives at the module level, not per version; plain
 	// author names normalize to objects so each can carry a github.
-	assert.deepEqual(mod.metadata, { name: "demo", description: "D", authors: [{ name: "a" }], tags: ["extension"] });
+	assert.deepEqual(mod.metadata, { name: "demo", description: "D", authors: [{ name: "a" }], kind: "extension" });
 	assert.equal(entry.metadata, undefined);
 	assert.deepEqual(entry.artifacts, ["https://example.com/demo.zip"]);
 
@@ -89,4 +90,18 @@ test("vault add: a checksum mismatch against an existing entry aborts without wr
 		/checksum mismatch/,
 	);
 	assert.equal(readFileSync(vaultPath, "utf8"), before, "vault left unchanged");
+});
+
+test("vault add: records the declared kind, which is what the registry validator compares", async () => {
+	const root = mk();
+	const meta = { name: "demo", version: "1.0.0", description: "D", authors: ["a"], kind: "extension" };
+	const dist = fixtureDist(root, meta);
+	const zip = path.join(root, "art.zip");
+	writeFileSync(zip, Buffer.from("X"));
+	const vaultPath = path.join(root, "vault.json");
+	await runVault(["add", dist, "--artifact", "u", "--zip", zip, "--vault", vaultPath], root);
+	const mod = JSON.parse(readFileSync(vaultPath, "utf8"));
+	assert.equal(mod.metadata.kind, "extension");
+	assert.equal(mod.metadata.tags, undefined);
+	assert.deepEqual(mod.metadata, metadataSubset(meta));
 });

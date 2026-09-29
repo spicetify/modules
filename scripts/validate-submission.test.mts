@@ -25,6 +25,8 @@ import {
 	unsafeZipEntries,
 	validate,
 } from "./validate-submission.ts";
+import { metadataSubset } from "../packages/kit/src/vault-metadata.ts";
+import { runVault } from "../packages/kit/src/vault.ts";
 
 describe("ownerOf", () => {
 	it("collapses github URLs to the account", () => {
@@ -365,4 +367,34 @@ describe("validate against a fixture repo", () => {
 		git("commit", "-m", "unrelated");
 		assert.deepEqual(await report(), "");
 	});
+});
+
+describe("kit vault add submissions", () => {
+	const root = mkdtempSync(path.join(tmpdir(), "kit-submission-"));
+	after(() => rmSync(root, { recursive: true, force: true }));
+
+	for (const declared of [{ kind: "extension" }, { tags: ["theme"] }]) {
+		it(`writes a card the validator accepts for ${JSON.stringify(declared)}`, async () => {
+			const meta = {
+				name: "demo",
+				version: "1.0.0",
+				description: "D",
+				authors: ["a"],
+				license: "MIT",
+				...declared,
+			};
+			const dist = path.join(root, `dist-${Object.keys(declared)[0]}`);
+			mkdirSync(dist, { recursive: true });
+			writeFileSync(path.join(dist, "metadata.json"), JSON.stringify(meta));
+			const zip = path.join(dist, "art.zip");
+			writeFileSync(zip, "X");
+			const vaultPath = path.join(dist, "vault.json");
+			await runVault(
+				["add", dist, "--artifact", "https://example.com/demo.zip", "--zip", zip, "--vault", vaultPath],
+				root,
+			);
+			const entry = JSON.parse(readFileSync(vaultPath, "utf8"));
+			assert.deepEqual(metadataMismatches(entry.metadata, metadataSubset(meta) as Record<string, unknown>), []);
+		});
+	}
 });
