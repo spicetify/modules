@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/spicetify/modules/compare/kit@0.4.0...kit@0.4.1) (2026-09-29)
+
+
+### Bug Fixes
+
+* **kit:** record kind in vault add entries ([4246a82](https://github.com/spicetify/modules/commit/4246a82a5acb3b2385a27d1709cbdf2f5205e5f5))
+
 ## [0.4.0](https://github.com/spicetify/modules/compare/kit@0.3.1...kit@0.4.0) (2026-09-28)
 
 
