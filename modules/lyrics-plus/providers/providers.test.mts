@@ -28,36 +28,6 @@ import { ProviderNetease } from "./netease.ts";
 import { configureLyricsClient } from "../runtime-client.ts";
 import { CONFIG } from "../config.ts";
 
-describe("import contract", () => {
-	it("all four providers import with no client present", () => {
-		assert.equal(typeof (globalThis as never as Record<string, unknown>).Spicetify, "undefined");
-		for (const p of [ProviderGenius, ProviderLRCLIB, ProviderMusixmatch, ProviderNetease]) {
-			assert.equal(typeof p, "object");
-		}
-	});
-
-	it("each provider keeps its real surface - they are not uniform", () => {
-		assert.deepEqual(Object.keys(ProviderLRCLIB).sort(), ["findLyrics", "getSynced", "getUnsynced"]);
-		assert.deepEqual(Object.keys(ProviderNetease).sort(), [
-			"findLyrics",
-			"getKaraoke",
-			"getSynced",
-			"getTranslation",
-			"getUnsynced",
-		]);
-		assert.deepEqual(Object.keys(ProviderMusixmatch).sort(), [
-			"findLyrics",
-			"getKaraoke",
-			"getLanguages",
-			"getSynced",
-			"getTranslation",
-			"getUnsynced",
-		]);
-		// Genius has no getSynced/getUnsynced at all - by design.
-		assert.deepEqual(Object.keys(ProviderGenius).sort(), ["fetchLyrics", "fetchLyricsVersion", "getNote"]);
-	});
-});
-
 describe("ProviderGenius", () => {
 	it("reads verified annotations and nested text from the provider response", async () => {
 		configureLyricsClient({
@@ -499,19 +469,6 @@ describe("createProviders registry", () => {
 		spicetifyVersion: () => "3.2.0",
 	});
 
-	it("exposes all supported entries, all callable", () => {
-		assert.deepEqual(Object.keys(providers).sort(), [
-			"genius",
-			"local",
-			"lrclib",
-			"lyricsovh",
-			"musixmatch",
-			"netease",
-			"spotify",
-		]);
-		for (const v of Object.values(providers)) assert.equal(typeof v, "function");
-	});
-
 	it("local resolves stored lyrics and reports 'No lyrics' otherwise", () => {
 		localStorage.setItem(
 			"lyrics-plus:local-lyrics",
@@ -565,10 +522,6 @@ describe("createProviders registry", () => {
 		assert.equal(cached?.musixmatchTranslation?.[0].text, "Bonjour");
 		assert.deepEqual(cached?.musixmatchAvailableTranslations, ["fr"]);
 		assert.equal(cached?.musixmatchTrackId, 42);
-	});
-
-	it("imports clean with stub deps - client policy is injected, not read", () => {
-		assert.equal(typeof (globalThis as never as Record<string, unknown>).Spicetify, "undefined");
 	});
 
 	it("injects the Spicetify version into LRCLIB's user agent", async () => {

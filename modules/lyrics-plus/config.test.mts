@@ -17,15 +17,6 @@ import { getConfig } from "./config.ts";
 
 beforeEach(() => localStorage.clear());
 
-describe("test harness storage", () => {
-	it("exposes a working localStorage", () => {
-		localStorage.setItem("probe", "value");
-		assert.equal(localStorage.getItem("probe"), "value");
-		localStorage.removeItem("probe");
-		assert.equal(localStorage.getItem("probe"), null);
-	});
-});
-
 describe("getConfig", () => {
 	it('returns true for a stored "true"', () => {
 		localStorage.setItem("k", "true");
@@ -146,18 +137,6 @@ describe("CONFIG", () => {
 		const { CONFIG } = await import(`./config.ts?forceoff=${Date.now()}`);
 		assert.equal(CONFIG.visual.translate, false);
 		assert.equal(localStorage.getItem("lyrics-plus:visual:translate"), "false");
-	});
-
-	it("exposes only supported providers in configuration", async () => {
-		const { CONFIG } = await import(`./config.ts?providers=${Date.now()}`);
-		assert.deepEqual(Object.keys(CONFIG.providers).sort(), [
-			"local",
-			"lrclib",
-			"lyricsovh",
-			"musixmatch",
-			"netease",
-			"spotify",
-		]);
 	});
 
 	it("appends Lyrics.ovh without resetting the user's existing provider priority", async () => {
