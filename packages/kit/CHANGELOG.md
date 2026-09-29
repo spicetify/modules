@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/spicetify/modules/compare/kit@0.4.1...kit@0.4.2) (2026-09-29)
+
+
+### Bug Fixes
+
+* **stdlib:** resolve icon names in Playbar.Button/Widget ([6098399](https://github.com/spicetify/modules/commit/6098399fb4dd62500da89cce527bcfe4b79e4376))
+
 ## [0.4.1](https://github.com/spicetify/modules/compare/kit@0.4.0...kit@0.4.1) (2026-09-29)
 
 
