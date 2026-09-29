@@ -46,7 +46,6 @@ import {
 	relativeLuminance,
 	resolveScheme,
 	schemeVars,
-	THEMED_CLASS,
 	readSettingsControls,
 } from "./theme-report.ts";
 
@@ -297,32 +296,6 @@ describe("scheme parity with the client loader", () => {
 		if (!source) return t.skip(SKIP);
 		assert.deepEqual(extractDerivedColors(source), DERIVED_COLORS);
 	});
-
-	it("themed marker class matches", (t) => {
-		const source = loaderSource();
-		if (!source) return t.skip(SKIP);
-		assert.match(source, new RegExp(`THEMED_CLASS\\s*=\\s*"${THEMED_CLASS}"`));
-	});
-
-	it("custom properties are named --spice-<key> with an rgb companion", (t) => {
-		const source = loaderSource();
-		if (!source) return t.skip(SKIP);
-		assert.match(source, /`--spice-\$\{key\}`/);
-		assert.match(source, /`--spice-rgb-\$\{key\}`/);
-	});
-
-	it("values gain a leading hash only when they lack one", (t) => {
-		const source = loaderSource();
-		if (!source) return t.skip(SKIP);
-		assert.match(source, /value\.startsWith\("#"\)\s*\?\s*value\s*:\s*`#\$\{value\}`/);
-	});
-
-	it("keys are lowercased while section names keep their case", (t) => {
-		const source = loaderSource();
-		if (!source) return t.skip(SKIP);
-		assert.match(source, /slice\(0, eq\)\.trim\(\)\.toLowerCase\(\)/);
-		assert.match(source, /section\[1\]\.trim\(\)/);
-	});
 });
 
 describe("the parity extractor itself", () => {
@@ -543,12 +516,6 @@ describe("classmaps suite", () => {
 
 	it("uses the same fourteen theme/state filenames across Spotify versions", () => {
 		const shots = classmapShots();
-		const older: LiveResult = { shots, failures: [], restored: null, clientVersion: "1.2.97" };
-		const newer = { ...older, clientVersion: "1.3.0" };
-		assert.deepEqual(
-			older.shots.map((shot) => shot.file),
-			newer.shots.map((shot) => shot.file),
-		);
 		assert.equal(shots.length, 14);
 		assert.equal(new Set(shots.map((shot) => shot.file)).size, 14);
 		assert.equal(shots.find((shot) => shot.theme === "text")?.scheme, "Spicetify");

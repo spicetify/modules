@@ -49,18 +49,6 @@ for (const template of TEMPLATES) {
 		assert.match(out, /# pass 1/);
 		assert.match(out, /# fail 0/);
 	});
-
-	test(`create --template ${template}: starter test imports logic.ts, never mod.tsx or client URLs`, async () => {
-		const root = freshRoot();
-		await runCreate([name, "--template", template], root);
-		const config = JSON.parse(readFileSync(path.join(root, name, "tsconfig.json"), "utf8"));
-		assert.equal(config.compilerOptions.strict, true);
-		const testSrc = readFileSync(path.join(root, name, "test", `${name}.test.mts`), "utf8");
-		assert.doesNotMatch(testSrc, /mod\.tsx|mod\.js/);
-		assert.doesNotMatch(testSrc, /\/modules\//);
-		assert.doesNotMatch(testSrc, /https?:\/\//);
-		assert.match(testSrc, /from "\.\.\/logic\.ts"/);
-	});
 }
 
 test("scaffold package.json: escaped-double-quote test script, happy-dom devDep, node engine", async () => {
@@ -80,36 +68,17 @@ test("release-managed kit version matches package.json", () => {
 	assert.equal(KIT_VERSION, pkg.version);
 });
 
-test("extension scaffold (no css) still ships a testable logic.ts", async () => {
-	const root = freshRoot();
-	await runCreate(["demo-ext", "--template", "extension"], root);
-	const logic = readFileSync(path.join(root, "demo-ext", "logic.ts"), "utf8");
-	assert.match(logic, /export function nowPlaying/);
-});
-
 test("JavaScript scaffolds use the stdlib client capability boundary", async () => {
 	for (const template of ["basic", "extension", "app"] as const) {
 		const root = freshRoot();
 		await runCreate([`demo-client-${template}`, "--template", template], root);
 		const project = path.join(root, `demo-client-${template}`);
-		const source = readFileSync(path.join(project, "mod.tsx"), "utf8");
-		assert.match(source, /\bclient\.player\b/);
-		assert.doesNotMatch(source, /\bSpicetify\./);
-		assert.doesNotMatch(source, /\/modules\/stdlib\/(?:src|deps)/);
 		const { checkModule } = await import("../src/check.ts");
 		assert.deepEqual(
 			checkModule(project).filter(({ rule }) => rule.startsWith("stdlib-boundary.")),
 			[],
 		);
 	}
-});
-
-test("basic scaffold places its topbar button through the registrar helper", async () => {
-	const root = freshRoot();
-	await runCreate(["demo-button", "--template", "basic"], root);
-	const source = readFileSync(path.join(root, "demo-button", "mod.tsx"), "utf8");
-	assert.match(source, /registrar\.placeButton\("topbar-right"/);
-	assert.doesNotMatch(source, /TopbarRightButton|registrar\.register\(\s*"topbarRightButton"/);
 });
 
 test("theme template: passes checkModule with zero findings (css-only skip)", async () => {

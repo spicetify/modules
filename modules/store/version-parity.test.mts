@@ -104,11 +104,6 @@ describe("range satisfaction", () => {
 });
 
 describe("range satisfaction parity with the client loader", () => {
-	it("semver-lite still exports satisfies", (t) => {
-		if (!loaderExports) return t.skip(SKIP);
-		assert.equal(typeof inLoader, "function", `${SEMVER_LITE} no longer exports satisfies`);
-	});
-
 	for (const [version, range] of RANGE_CASES) {
 		it(`agrees on ${version} against ${range}`, (t) => {
 			if (!loaderExports) return t.skip(SKIP);

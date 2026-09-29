@@ -42,7 +42,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("exclusively opens registered panels and restores native sidebar state", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		shell.top.style.setProperty("grid-template-columns", "11px 1fr 22px", "important");
 		shell.sidebar.style.setProperty("width", "22px");
@@ -115,7 +114,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("closes on Escape, restores focus, and removes an active registration", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		buildShell();
 		const opener = document.createElement("button");
 		document.body.append(opener);
@@ -151,7 +149,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("preserves the original opener when one custom panel replaces another", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		buildShell();
 		const opener = document.createElement("button");
 		document.body.append(opener);
@@ -171,7 +168,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("suspends native children added or replaced while a panel is open", async () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		const coordinator = panelModule!.createPanelCoordinator({
 			document,
@@ -202,7 +198,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("clamps configured width and rejects duplicate panel ids", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		buildShell();
 		const coordinator = panelModule!.createPanelCoordinator({
 			document,
@@ -243,7 +238,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("contains lifecycle callback failures and remains usable", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		const errors: unknown[] = [];
 		const originalError = console.error;
@@ -276,7 +270,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("rolls back a renderer failure so another panel can open", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		const coordinator = panelModule!.createPanelCoordinator({
 			document,
@@ -298,7 +291,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("disposes the coordinator and rejects work from a stale generation", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		let unmounted = 0;
 		const coordinator = panelModule!.createPanelCoordinator({
@@ -320,7 +312,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("contains subscriber and unmount failures while restoring the shell", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		const errors: unknown[] = [];
 		const originalError = console.error;
@@ -351,7 +342,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("serializes panel requests made from lifecycle callbacks", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		buildShell();
 		const coordinator = panelModule!.createPanelCoordinator({
 			document,
@@ -385,7 +375,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("drains disposal after a lifecycle callback queues open then dispose", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		buildShell();
 		const coordinator = panelModule!.createPanelCoordinator({ document, window, mount: () => () => {} });
 		let other: ReturnType<typeof coordinator.register>;
@@ -409,7 +398,6 @@ describe("owned panel coordinator", () => {
 	});
 
 	it("preserves a theme-owned trailing shell track and includes it in the width budget", () => {
-		assert.equal(typeof panelModule?.createPanelCoordinator, "function", "owned coordinator is not implemented");
 		const shell = buildShell();
 		shell.top.style.gridTemplateColumns = "72px 1fr 32px 200px";
 		const coordinator = panelModule!.createPanelCoordinator({ document, window, mount: () => () => {} });
