@@ -6,7 +6,7 @@
 /**
  * vault - record a built module into a vault file for the module store.
  *
- * Card data (name, description, authors, tags) is embedded at the module
+ * Card data (name, description, authors, kind) is embedded at the module
  * level from the dist dir's own metadata.json so it cannot drift from what
  * installs, alongside a per-version sha256 checksum of the artifact.
  */
@@ -15,51 +15,10 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { metadataSubset, type VaultMetadata } from "./vault-metadata.ts";
+
 const USAGE =
 	"spicetify-kit vault add <dist-dir> --artifact <url> [--zip <file>] [--vault <path>]\n  (default target: vault/<id>.json, the shape a store submission takes)";
-
-// Every author may carry their own GitHub username; plain names in
-// metadata.json normalize to { name }.
-interface VaultAuthor {
-	name: string;
-	github?: string;
-}
-
-interface VaultMetadata {
-	name?: string;
-	description?: string;
-	authors?: VaultAuthor[];
-	tags?: string[];
-	preview?: string;
-	repository?: string;
-	readme?: string;
-	// SPDX identifier: the registry requires one, and the store shows it
-	// next to the install button.
-	license?: string;
-}
-
-const normalizeAuthors = (authors: unknown[]): VaultAuthor[] =>
-	authors.flatMap((a) => {
-		if (typeof a === "string") return [{ name: a }];
-		if (a && typeof a === "object" && typeof (a as VaultAuthor).name === "string") {
-			const { name, github } = a as VaultAuthor;
-			return [{ name, ...(typeof github === "string" ? { github } : {}) }];
-		}
-		return [];
-	});
-
-const metadataSubset = (meta: Record<string, unknown>): VaultMetadata => {
-	const out: VaultMetadata = {};
-	if (typeof meta.name === "string") out.name = meta.name;
-	if (typeof meta.description === "string") out.description = meta.description;
-	if (Array.isArray(meta.authors)) out.authors = normalizeAuthors(meta.authors);
-	if (Array.isArray(meta.tags)) out.tags = meta.tags as string[];
-	if (typeof meta.preview === "string" && /^https?:\/\//.test(meta.preview)) out.preview = meta.preview;
-	if (typeof meta.repository === "string" && meta.repository.startsWith("https://")) out.repository = meta.repository;
-	if (typeof meta.readme === "string" && meta.readme.startsWith("https://")) out.readme = meta.readme;
-	if (typeof meta.license === "string" && meta.license.trim()) out.license = meta.license.trim();
-	return out;
-};
 
 const sha256 = (bytes: Buffer) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const today = () => new Date().toISOString().slice(0, 10);

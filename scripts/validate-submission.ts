@@ -24,9 +24,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { metadataSubset } from "../packages/kit/src/vault-metadata.ts";
 import { downloadCapped } from "./download.ts";
 import { SOURCE_DIR, sourceIds, sourcePath, type VaultModule, type VaultVersionEntry } from "./vault-build.ts";
-import { metadataSubset } from "./vault.ts";
 
 // An artifact is a module, not a payload: the largest thing in the vault
 // today is under 2 MB, and the cap exists so a submission cannot make the
