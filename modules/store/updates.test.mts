@@ -11,7 +11,7 @@ import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
 import type { InstallOutcome } from "./install.ts";
-import { markStdlibDiskStaged, stdlibDiskStaged } from "./runtime.ts";
+import { markStdlibDiskStaged, setOnRegistryChanged, stdlibDiskStaged } from "./runtime.ts";
 import {
 	announceUpdates,
 	clearSettledStdlibMarker,
@@ -417,9 +417,13 @@ describe("finishing held-back updates at boot", () => {
 		];
 		serveVault({ stdlib: "1.14.0+cm-1020094", a: "1.1.0" });
 		const installed: string[] = [];
+		let refreshed = 0;
+		setOnRegistryChanged(() => refreshed++);
 		await announceUpdates(install(installed));
+		setOnRegistryChanged(null);
 		assert.deepEqual(installed, ["a"]);
 		assert.equal(resumePending(), false);
+		assert.equal(refreshed, 1, "an open Store page re-reads what the resume installed");
 	});
 
 	it("waits for another boot while the staged stdlib still isn't running", async () => {
