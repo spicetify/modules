@@ -12,7 +12,9 @@ import { beforeEach, describe, it } from "node:test";
 import type { Catalog, VaultModule } from "./catalog.ts";
 import { markStdlibDiskStaged, stdlibDiskStaged } from "./runtime.ts";
 import {
+	announceUpdates,
 	clearSettledStdlibMarker,
+	loaderReady,
 	pendingUpdates,
 	stdlibGate,
 	stdlibMarkerWithdrawn,
@@ -33,7 +35,9 @@ const storage = new Map<string, string>();
 	setItem: (key: string, value: string) => void storage.set(key, String(value)),
 	removeItem: (key: string) => void storage.delete(key),
 };
-(globalThis as never as Record<string, unknown>).Spicetify = {
+const toasts: string[] = [];
+const spicetify: Record<string, unknown> = {
+	showNotification: (message: string) => void toasts.push(message),
 	Modules: {
 		listLocal: () => locals,
 		list: () => stagedStates,
@@ -44,6 +48,8 @@ const storage = new Map<string, string>();
 		},
 	},
 };
+const modules = spicetify.Modules;
+(globalThis as never as Record<string, unknown>).Spicetify = spicetify;
 
 const entry = (id: string, version: string): VaultModule => ({ id, version, artifacts: ["x"], vault: "default" });
 const catalog = (modules: VaultModule[], revoked: Record<string, string> = {}): Catalog => ({
@@ -57,6 +63,40 @@ beforeEach(() => {
 	stagedStates = [];
 	manifestModules = [];
 	storage.clear();
+	toasts.length = 0;
+	spicetify.Modules = modules;
+});
+
+const serveVault = (modules: Record<string, string>) =>
+	storage.set(
+		"spicetify:defaultVaultUrl",
+		`data:application/json,${encodeURIComponent(
+			JSON.stringify({
+				modules: Object.fromEntries(
+					Object.entries(modules).map(([id, version]) => [id, { v: { [version]: { artifacts: ["x"] } } }]),
+				),
+			}),
+		)}`,
+	);
+
+describe("announceUpdates", () => {
+	it("waits for the loader to publish Spicetify.Modules before checking", async () => {
+		locals = [{ metadata: { identifier: "trashbin" }, sidecar: { installed_version: "0.2.5" } }];
+		serveVault({ trashbin: "0.2.6" });
+		spicetify.Modules = undefined;
+		const announcing = announceUpdates();
+		setTimeout(() => (spicetify.Modules = modules), 50);
+		await announcing;
+		assert.deepEqual(toasts, ["1 module update available in the Module Store"]);
+		assert.equal(storage.get("spicetify:store:announcedUpdates"), "trashbin@0.2.6");
+	});
+
+	it("gives up quietly when the loader never comes up", async () => {
+		spicetify.Modules = undefined;
+		assert.equal(await loaderReady(40, 10), false);
+		spicetify.Modules = modules;
+		assert.equal(await loaderReady(40, 10), true);
+	});
 });
 
 describe("pendingUpdates", () => {
