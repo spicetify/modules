@@ -5,7 +5,15 @@
 
 import { type Catalog, compareVersions, displayVersion, loadCatalog, type VaultModule } from "./catalog.ts";
 import { type InstallOutcome, installedRecords, installModule, isCustomRecord } from "./install.ts";
-import { disposed, dropStdlibDiskStaged, M, retryTimers, stdlibDiskStaged, toast } from "./runtime.ts";
+import {
+	disposed,
+	dropStdlibDiskStaged,
+	M,
+	onRegistryChanged,
+	retryTimers,
+	stdlibDiskStaged,
+	toast,
+} from "./runtime.ts";
 
 // Installed modules (localStorage or CLI-staged) the catalog has a different
 // version for, dependencies before dependents: "Update all" installs
@@ -222,6 +230,7 @@ export async function announceUpdates(install: Install = installModule): Promise
 			}
 			toast(`finishing ${pending.length} module update${pending.length === 1 ? "" : "s"} held back for stdlib…`);
 			await runUpdates(pending, () => {}, install);
+			onRegistryChanged?.();
 			return;
 		}
 		if (!pending.length) {

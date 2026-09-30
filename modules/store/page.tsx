@@ -56,7 +56,15 @@ import {
 	removeLocalRecord,
 	uninstallStaged,
 } from "./install.ts";
-import { M, openDialogClosers, PLATFORM, setOnCountsChanged, stdlibDiskStaged, toast } from "./runtime.ts";
+import {
+	M,
+	openDialogClosers,
+	PLATFORM,
+	setOnCountsChanged,
+	setOnRegistryChanged,
+	stdlibDiskStaged,
+	toast,
+} from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
 import { pendingUpdates, runUpdates, stdlibRestartPending } from "./updates.ts";
 
@@ -1029,6 +1037,11 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	React.useEffect(() => {
 		setOnCountsChanged(() => bumpCounts());
 		return () => setOnCountsChanged(null);
+	}, []);
+
+	React.useEffect(() => {
+		setOnRegistryChanged(() => refreshRegistry());
+		return () => setOnRegistryChanged(null);
 	}, []);
 
 	React.useEffect(

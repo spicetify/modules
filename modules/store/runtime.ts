@@ -79,6 +79,8 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 
 // The page subscribes so a freshly counted install refreshes its badge.
 export let onCountsChanged: (() => void) | null = null;
+// The page subscribes so installs made outside it (the boot resume) show up.
+export let onRegistryChanged: (() => void) | null = null;
 // Module lifecycle: dispose() must cancel retry timers and close
 // overlays; nothing may outlive the module.
 export let disposed = false;
@@ -90,6 +92,10 @@ export const openDialogClosers = new Set<() => void>();
 // the live bindings directly.
 export function setOnCountsChanged(fn: (() => void) | null): void {
 	onCountsChanged = fn;
+}
+
+export function setOnRegistryChanged(fn: (() => void) | null): void {
+	onRegistryChanged = fn;
 }
 
 export function markDisposed(): void {
