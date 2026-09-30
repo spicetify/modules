@@ -171,10 +171,18 @@ const ANNOUNCED_KEY = "spicetify:store:announcedUpdates";
 
 // The store loads during the loader's boot, before Spicetify.Modules is
 // published, so boot-time work waits for it. False on timeout or dispose.
+function loaderPublished(): boolean {
+	try {
+		return !!M();
+	} catch {
+		return false;
+	}
+}
+
 export async function loaderReady(timeoutMs = 60_000, intervalMs = 250): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (!disposed) {
-		if ((globalThis as never as { Spicetify?: { Modules?: unknown } }).Spicetify?.Modules) return true;
+		if (loaderPublished()) return true;
 		if (Date.now() >= deadline) return false;
 		await new Promise<void>((resolve) => {
 			const timer = setTimeout(() => {
