@@ -19,6 +19,7 @@ import {
 	type ManagerModuleRow,
 	type SpotifyAvailabilityStatus,
 } from "./state.ts";
+import { type AutoUpdateApi, type DaemonInfo, pendingCliUpdate } from "./autoUpdate.ts";
 import { retryNotice } from "./notice.ts";
 import { ManagedSpotifyUpdates } from "./managedSpotify.tsx";
 
@@ -121,7 +122,7 @@ const ModuleRow = ({
 // older apply, and unusable when the daemon is not running, so the panel has
 // to degrade to copy-a-command rather than assume it.
 type DaemonMethod = "apply" | "blockUpdates" | "unblockUpdates";
-type DaemonApi = DaemonCapabilities & Record<DaemonMethod, () => Promise<unknown>>;
+type DaemonApi = DaemonCapabilities & Record<DaemonMethod, () => Promise<unknown>> & AutoUpdateApi;
 type DaemonProbeState =
 	| { kind: "checking" }
 	| { kind: "unavailable" }
@@ -139,6 +140,7 @@ export const ManagerPage = () => {
 	const [support, setSupport] = React.useState<SpotifyAvailabilityStatus | null>(null);
 	const [daemonProbe, setDaemonProbe] = React.useState<DaemonProbeState>({ kind: "checking" });
 	const [updateStatus, setUpdateStatus] = React.useState<UpdateAndApplyStatus>({ kind: "idle" });
+	const [daemonInfo, setDaemonInfo] = React.useState<DaemonInfo | null>(null);
 	const daemon = daemonProbe.kind === "available" || daemonProbe.kind === "support-error" ? daemonProbe.api : null;
 	const updateAndApplySupported = daemonProbe.kind === "available" ? daemonProbe.updateAndApplySupported : null;
 
@@ -166,6 +168,8 @@ export const ManagerPage = () => {
 					setDaemonProbe({ kind: "unavailable" });
 					return;
 				}
+				const info = await api.daemonInfo?.().catch(() => null);
+				if (!cancelled) setDaemonInfo(info ?? null);
 				try {
 					const updateSupported = (await api.updateAndApplySupported?.()) ?? null;
 					if (!cancelled) {
@@ -407,6 +411,7 @@ export const ManagerPage = () => {
 										: "One-step Update & Apply needs a current Spicetify daemon and wrapper.";
 						}
 					})();
+					const pendingCli = pendingCliUpdate(daemonInfo, state.cliVersion);
 					const updateMessage = (() => {
 						switch (updateStatus.kind) {
 							case "idle":
@@ -451,6 +456,28 @@ export const ManagerPage = () => {
 								</p>
 							)}
 							<p className="spicetify-manager-note">{daemonMessage}</p>
+							{pendingCli && (
+								<p className="spicetify-manager-update spicetify-manager-update--ready">
+									{`Spicetify ${pendingCli} is installed. Apply to use it in Spotify.`}
+								</p>
+							)}
+							{daemon?.setAutoUpdate && typeof daemonInfo?.autoUpdate === "boolean" && (
+								<label className="spicetify-manager-toggle">
+									<input
+										type="checkbox"
+										checked={daemonInfo.autoUpdate}
+										disabled={busy}
+										onChange={(e) => {
+											const on = e.currentTarget.checked;
+											onAction(`automatic updates ${on ? "on" : "off"}`, async () => {
+												await daemon.setAutoUpdate!(on);
+												setDaemonInfo({ ...daemonInfo, autoUpdate: on });
+											});
+										}}
+									/>
+									Install Spicetify updates automatically
+								</label>
+							)}
 							{advice.kind === "ready" && updateAndApplySupported === null && (
 								<p className="spicetify-manager-note">{SPICETIFY_UPGRADE.instructions}</p>
 							)}
@@ -462,6 +489,7 @@ export const ManagerPage = () => {
 								</p>
 							)}
 							<div className="spicetify-manager-update-actions">
+								{pendingCli && daemon && run("apply", () => daemon.apply())}
 								{action("block", "blockUpdates", "spicetify spotify-updates block")}
 								{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
 								{advice.kind === "ready" &&
