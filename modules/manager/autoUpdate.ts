@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// What the daemon reports about itself. Either field is null when the daemon
-// predates it.
-export type DaemonInfo = { version: string | null; autoUpdate: boolean | null };
+// What the daemon reports about itself: its version, the automatic-update
+// setting, and whether that setting takes effect (only an install in the
+// official installer's folder updates itself). A field is null when the
+// daemon predates it.
+export type DaemonInfo = { version: string | null; autoUpdate: boolean | null; autoUpdateActive?: boolean | null };
 
 // The automatic-update surface of the wrapper's daemon API. Absent on a
 // client patched before it existed.
