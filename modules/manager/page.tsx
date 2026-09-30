@@ -471,12 +471,18 @@ export const ManagerPage = () => {
 											const on = e.currentTarget.checked;
 											onAction(`automatic updates ${on ? "on" : "off"}`, async () => {
 												await daemon.setAutoUpdate!(on);
-												setDaemonInfo({ ...daemonInfo, autoUpdate: on });
+												setDaemonInfo((prev) => (prev ? { ...prev, autoUpdate: on } : prev));
 											});
 										}}
 									/>
 									Install Spicetify updates automatically
 								</label>
+							)}
+							{daemonInfo?.autoUpdate && daemonInfo.autoUpdateActive === false && (
+								<p className="spicetify-manager-note">
+									This copy of Spicetify isn't in the installer's folder, so it doesn't update itself.
+									Update it the way you installed it.
+								</p>
 							)}
 							{advice.kind === "ready" && updateAndApplySupported === null && (
 								<p className="spicetify-manager-note">{SPICETIFY_UPGRADE.instructions}</p>
