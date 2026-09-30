@@ -5,7 +5,7 @@
 
 import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
 import { installedRecords, isCustomRecord } from "./install.ts";
-import { disposed, dropStdlibDiskStaged, M, stdlibDiskStaged, toast } from "./runtime.ts";
+import { disposed, dropStdlibDiskStaged, M, retryTimers, stdlibDiskStaged, toast } from "./runtime.ts";
 
 // Installed modules (localStorage or CLI-staged) the catalog has a different
 // version for, dependencies before dependents: "Update all" installs
@@ -109,8 +109,27 @@ export function stdlibGate(
 // so the same pending updates don't re-toast on every client start.
 const ANNOUNCED_KEY = "spicetify:store:announcedUpdates";
 
+// The store loads during the loader's boot, before Spicetify.Modules is
+// published, so boot-time work waits for it. False on timeout or dispose.
+export async function loaderReady(timeoutMs = 60_000, intervalMs = 250): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	while (!disposed) {
+		if ((globalThis as never as { Spicetify?: { Modules?: unknown } }).Spicetify?.Modules) return true;
+		if (Date.now() >= deadline) return false;
+		await new Promise<void>((resolve) => {
+			const timer = setTimeout(() => {
+				retryTimers.delete(timer);
+				resolve();
+			}, intervalMs);
+			retryTimers.add(timer);
+		});
+	}
+	return false;
+}
+
 export async function announceUpdates(): Promise<void> {
 	try {
+		if (!(await loaderReady())) return;
 		clearSettledStdlibMarker();
 		const catalog = await loadCatalog();
 		if (!catalog.ok || disposed) return;
