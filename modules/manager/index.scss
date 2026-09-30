@@ -267,6 +267,14 @@
 	}
 }
 
+.spicetify-manager-page .spicetify-manager-toggle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 10px;
+	font-size: 13px;
+}
+
 .spicetify-manager-page .spicetify-manager-update-actions {
 	display: flex;
 	flex-wrap: wrap;
