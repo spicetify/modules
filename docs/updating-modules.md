@@ -12,8 +12,12 @@ Open the Module Store from Spotify's navigation bar, then follow these steps:
 2. If the Store shows **Apply stdlib update**, select it, then select
    **Apply and restart**. Playback stops while Spicetify rebuilds the client.
    You can select **Cancel** before confirming; the confirmation does not expire.
-3. After Spotify returns, open the Store again. Update any modules that were
-   held back until the new stdlib could run.
+3. After Spotify returns, the Store installs the updates it held back until
+   the new stdlib could run. You don't need to select **Update all** again.
+
+Without the background service, the Store installs stdlib inside Spotify
+instead. Restart Spotify when it asks you to, and the held-back updates install
+the same way.
 
 The Store clears an old staged-version notice once the loader reports that
 version or a newer one running. Merely sending an apply request does not count
