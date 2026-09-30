@@ -12,7 +12,7 @@ import type { VaultModule } from "./catalog.ts";
 import { markDisposed } from "./runtime.ts";
 import { RESUME_UPDATES_KEY, runUpdates } from "./updates.ts";
 
-const storage = new Map<string, string>([[RESUME_UPDATES_KEY, "1"]]);
+const storage = new Map<string, string>();
 (globalThis as never as Record<string, unknown>).localStorage = {
 	getItem: (key: string) => storage.get(key) ?? null,
 	setItem: (key: string, value: string) => void storage.set(key, String(value)),

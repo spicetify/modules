@@ -126,6 +126,9 @@ export async function runUpdates(
 	install: Install = installModule,
 ): Promise<void> {
 	const { install: first, deferred } = stdlibGate(pending, stdlibRestartPending());
+	// Set for the whole run, so a store instance this batch replaces, or a
+	// boot after a crash mid-batch, finishes it.
+	globalThis.localStorage?.setItem(RESUME_UPDATES_KEY, "1");
 	// "staged" when the new stdlib only arrives with the next boot,
 	// "failed" when it did not land at all, null when it is live (or was
 	// never part of the batch) and the deferred updates can proceed.
@@ -152,7 +155,6 @@ export async function runUpdates(
 		}
 	}
 	if (hold === "staged") {
-		globalThis.localStorage?.setItem(RESUME_UPDATES_KEY, "1");
 		const bringUp = stdlibDiskStaged() ? "you apply it with the control above" : "Spotify restarts";
 		toast(
 			`${deferred.length} update${deferred.length === 1 ? "" : "s"} will install once the new stdlib runs, after ${bringUp}`,
