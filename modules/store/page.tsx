@@ -1137,9 +1137,12 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 	const updateAll = async () => {
 		setUpdatingAll(true);
-		await runUpdates(pending, setStatus);
-		setUpdatingAll(false);
-		refreshRegistry();
+		try {
+			await runUpdates(pending, setStatus);
+		} finally {
+			setUpdatingAll(false);
+			refreshRegistry();
+		}
 	};
 
 	const openDetails = (mod: VaultModule) => {
