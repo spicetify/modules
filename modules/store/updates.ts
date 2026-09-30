@@ -108,7 +108,7 @@ export function stdlibGate(
 export const RESUME_UPDATES_KEY = "spicetify:store:resumeUpdates";
 
 export function resumePending(): boolean {
-	return globalThis.localStorage?.getItem(RESUME_UPDATES_KEY) !== null;
+	return globalThis.localStorage?.getItem(RESUME_UPDATES_KEY) === "1";
 }
 
 type Install = (mod: VaultModule, status: (msg: string) => void) => Promise<InstallOutcome>;
@@ -129,21 +129,23 @@ export async function runUpdates(
 	// never part of the batch) and the deferred updates can proceed.
 	let hold: "staged" | "failed" | null = deferred.length ? "staged" : null;
 	for (const mod of first) {
+		// A disposed store (one this batch just updated) leaves the rest to the
+		// instance that replaced it.
+		if (disposed) return;
 		try {
 			const outcome = await install(mod, status);
 			if (mod.id === "stdlib" && outcome.enabled) hold = null;
 			if (mod.id === "stdlib" && !outcome.enabled && !outcome.requiresRestart) hold = "failed";
 		} catch (e) {
 			if (mod.id === "stdlib") hold = "failed";
-			toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
 			status("");
 		}
 	}
 	for (const mod of hold === null ? deferred : []) {
+		if (disposed) return;
 		try {
 			await install(mod, status);
-		} catch (e) {
-			toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
+		} catch {
 			status("");
 		}
 	}
@@ -164,13 +166,11 @@ export async function runUpdates(
 }
 
 // Boot-time nudge: check the vault once and toast when installed modules
-// have updates waiting. Purely informational; installing stays
-// user-initiated in the store page. The last announced set is remembered
-// so the same pending updates don't re-toast on every client start.
+// have updates waiting. It installs nothing, except finishing a batch held
+// back for stdlib (see RESUME_UPDATES_KEY). The last announced set is
+// remembered so the same pending updates don't re-toast on every client start.
 const ANNOUNCED_KEY = "spicetify:store:announcedUpdates";
 
-// The store loads during the loader's boot, before Spicetify.Modules is
-// published, so boot-time work waits for it. False on timeout or dispose.
 function loaderPublished(): boolean {
 	try {
 		return !!M();
@@ -179,6 +179,9 @@ function loaderPublished(): boolean {
 	}
 }
 
+// The store loads during the loader's boot, before Spicetify.Modules is
+// published, so boot-time work waits for it. False on timeout; never settles
+// once the store is disposed.
 export async function loaderReady(timeoutMs = 60_000, intervalMs = 250): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (!disposed) {
