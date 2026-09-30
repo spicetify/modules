@@ -58,7 +58,7 @@ import {
 } from "./install.ts";
 import { M, openDialogClosers, PLATFORM, setOnCountsChanged, stdlibDiskStaged, toast } from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
-import { pendingUpdates, stdlibGate, stdlibRestartPending } from "./updates.ts";
+import { pendingUpdates, runUpdates, stdlibRestartPending } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
 
@@ -1137,41 +1137,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 
 	const updateAll = async () => {
 		setUpdatingAll(true);
-		const { install, deferred } = stdlibGate(pending, stdlibRestartPending());
-		// "staged" when the new stdlib only arrives with the next boot,
-		// "failed" when it did not land at all, null when it is live (or was
-		// never part of the batch) and the deferred updates can proceed.
-		let hold: "staged" | "failed" | null = deferred.length ? "staged" : null;
-		for (const mod of install) {
-			try {
-				const outcome = await installModule(mod, setStatus);
-				if (mod.id === "stdlib" && outcome.enabled) hold = null;
-				if (mod.id === "stdlib" && !outcome.enabled && !outcome.requiresRestart) hold = "failed";
-			} catch (e) {
-				if (mod.id === "stdlib") hold = "failed";
-				toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
-				setStatus("");
-			}
-		}
-		for (const mod of hold === null ? deferred : []) {
-			try {
-				await installModule(mod, setStatus);
-			} catch (e) {
-				toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
-				setStatus("");
-			}
-		}
-		if (hold !== null) {
-			const held = `${deferred.length} update${deferred.length === 1 ? "" : "s"} held back`;
-			const bringUp = stdlibDiskStaged()
-				? "use the apply or repair control above"
-				: "restart Spotify, then update again";
-			toast(
-				hold === "staged"
-					? `${held} until the new stdlib runs: ${bringUp}`
-					: `${held}: they may need the new stdlib, and its update did not land`,
-			);
-		}
+		await runUpdates(pending, setStatus);
 		setUpdatingAll(false);
 		refreshRegistry();
 	};
@@ -1385,7 +1351,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			<div className="spicetify-store-updates" style={pending.length ? undefined : { display: "none" }}>
 				{pending.length > 0 && (
 					<>
-						<span>{`${pending.length} update${pending.length === 1 ? "" : "s"} available`}</span>
+						<span>{`${pending.length} update${pending.length === 1 ? "" : "s"} available: ${pending.map(displayName).join(", ")}`}</span>
 						<button
 							type="button"
 							className="spicetify-store-cta"

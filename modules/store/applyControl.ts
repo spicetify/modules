@@ -4,7 +4,7 @@
  */
 
 import { DAEMON, el, stdlibDiskStaged } from "./runtime.ts";
-import { clearSettledStdlibMarker } from "./updates.ts";
+import { clearSettledStdlibMarker, resumePending } from "./updates.ts";
 
 export const APPLY_URI = "spicetify:0:apply";
 const HEALTH_TIMEOUT_MS = 3000;
@@ -102,7 +102,7 @@ export function createApplyControl() {
 				message.textContent =
 					transport === "app"
 						? "The Spicetify service is unavailable. Open the installed Spicetify app to apply changes. Spotify will restart."
-						: `stdlib ${staged} is staged. Apply it to restart Spotify with the update.`;
+						: `stdlib ${staged} is staged. Apply it to restart Spotify with the update${resumePending() ? "; the other held-back updates install after the restart." : "."}`;
 				if (transport === "daemon" || supportsAppHandoff()) {
 					button(transport === "daemon" ? "Apply stdlib update" : "Repair Spicetify", () =>
 						setState({ kind: "confirm", transport }),

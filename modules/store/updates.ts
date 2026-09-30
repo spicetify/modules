@@ -4,7 +4,7 @@
  */
 
 import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
-import { installedRecords, isCustomRecord } from "./install.ts";
+import { type InstallOutcome, installedRecords, installModule, isCustomRecord } from "./install.ts";
 import { disposed, dropStdlibDiskStaged, M, retryTimers, stdlibDiskStaged, toast } from "./runtime.ts";
 
 // Installed modules (localStorage or CLI-staged) the catalog has a different
@@ -103,6 +103,66 @@ export function stdlibGate(
 	return { install: stdlib ? [stdlib] : [], deferred: pending.filter((mod) => mod.id !== "stdlib") };
 }
 
+// Set while updates are held back for a staged stdlib: the next boot that
+// runs it installs them without another click.
+export const RESUME_UPDATES_KEY = "spicetify:store:resumeUpdates";
+
+export function resumePending(): boolean {
+	return globalThis.localStorage?.getItem(RESUME_UPDATES_KEY) !== null;
+}
+
+type Install = (mod: VaultModule, status: (msg: string) => void) => Promise<InstallOutcome>;
+
+/**
+ * Installs a batch of updates through the stdlib gate. When stdlib is staged
+ * but not yet running, the rest of the batch is held and remembered, and
+ * the boot that brings the new stdlib up finishes it.
+ */
+export async function runUpdates(
+	pending: VaultModule[],
+	status: (msg: string) => void,
+	install: Install = installModule,
+): Promise<void> {
+	const { install: first, deferred } = stdlibGate(pending, stdlibRestartPending());
+	// "staged" when the new stdlib only arrives with the next boot,
+	// "failed" when it did not land at all, null when it is live (or was
+	// never part of the batch) and the deferred updates can proceed.
+	let hold: "staged" | "failed" | null = deferred.length ? "staged" : null;
+	for (const mod of first) {
+		try {
+			const outcome = await install(mod, status);
+			if (mod.id === "stdlib" && outcome.enabled) hold = null;
+			if (mod.id === "stdlib" && !outcome.enabled && !outcome.requiresRestart) hold = "failed";
+		} catch (e) {
+			if (mod.id === "stdlib") hold = "failed";
+			toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
+			status("");
+		}
+	}
+	for (const mod of hold === null ? deferred : []) {
+		try {
+			await install(mod, status);
+		} catch (e) {
+			toast(`update failed for ${mod.id}: ${(e as Error).message}`, "error");
+			status("");
+		}
+	}
+	if (hold === "staged") {
+		globalThis.localStorage?.setItem(RESUME_UPDATES_KEY, "1");
+		const bringUp = stdlibDiskStaged() ? "you apply it with the control above" : "Spotify restarts";
+		toast(
+			`${deferred.length} update${deferred.length === 1 ? "" : "s"} will install once the new stdlib runs, after ${bringUp}`,
+		);
+		return;
+	}
+	globalThis.localStorage?.removeItem(RESUME_UPDATES_KEY);
+	if (hold === "failed") {
+		toast(
+			`${deferred.length} update${deferred.length === 1 ? "" : "s"} held back: they may need the new stdlib, and its update did not land`,
+		);
+	}
+}
+
 // Boot-time nudge: check the vault once and toast when installed modules
 // have updates waiting. Purely informational; installing stays
 // user-initiated in the store page. The last announced set is remembered
@@ -127,7 +187,7 @@ export async function loaderReady(timeoutMs = 60_000, intervalMs = 250): Promise
 	return false;
 }
 
-export async function announceUpdates(): Promise<void> {
+export async function announceUpdates(install: Install = installModule): Promise<void> {
 	try {
 		if (!(await loaderReady())) return;
 		clearSettledStdlibMarker();
@@ -136,9 +196,19 @@ export async function announceUpdates(): Promise<void> {
 		const marker = stdlibDiskStaged();
 		if (marker && stdlibMarkerWithdrawn(catalog, marker)) {
 			dropStdlibDiskStaged();
+			globalThis.localStorage?.removeItem(RESUME_UPDATES_KEY);
 			toast(`the staged stdlib ${marker} was withdrawn by the vault and will not be applied automatically`);
 		}
 		const pending = pendingUpdates(catalog);
+		if (resumePending() && !stdlibRestartPending()) {
+			if (!pending.length) {
+				globalThis.localStorage?.removeItem(RESUME_UPDATES_KEY);
+				return;
+			}
+			toast(`finishing ${pending.length} module update${pending.length === 1 ? "" : "s"} held back for stdlib…`);
+			await runUpdates(pending, () => {}, install);
+			return;
+		}
 		if (!pending.length) {
 			globalThis.localStorage?.removeItem(ANNOUNCED_KEY);
 			return;

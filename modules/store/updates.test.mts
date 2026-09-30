@@ -10,11 +10,15 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
+import type { InstallOutcome } from "./install.ts";
 import { markStdlibDiskStaged, stdlibDiskStaged } from "./runtime.ts";
 import {
 	announceUpdates,
 	clearSettledStdlibMarker,
 	loaderReady,
+	RESUME_UPDATES_KEY,
+	resumePending,
+	runUpdates,
 	pendingUpdates,
 	stdlibGate,
 	stdlibMarkerWithdrawn,
@@ -322,5 +326,142 @@ describe("a maintainer rollback", () => {
 			[],
 			"an unpinned older vault entry stays a no-op, as before",
 		);
+	});
+});
+
+describe("runUpdates", () => {
+	const installer = (outcomes: Record<string, InstallOutcome | Error> = {}) => {
+		const installed: string[] = [];
+		const install = async (mod: VaultModule) => {
+			installed.push(mod.id);
+			const outcome = outcomes[mod.id] ?? { requiresRestart: false, enabled: true };
+			if (outcome instanceof Error) throw outcome;
+			return outcome;
+		};
+		return { installed, install };
+	};
+	const staged = { requiresRestart: true, enabled: false };
+
+	it("installs a batch without stdlib in one go and leaves nothing to resume", async () => {
+		const { installed, install } = installer();
+		await runUpdates([entry("a", "1.1.0"), entry("b", "2.1.0")], () => {}, install);
+		assert.deepEqual(installed, ["a", "b"]);
+		assert.equal(resumePending(), false);
+	});
+
+	it("stages stdlib alone and remembers the rest for the restart", async () => {
+		const { installed, install } = installer({ stdlib: staged });
+		await runUpdates([entry("stdlib", "1.14.0"), entry("a", "1.1.0")], () => {}, install);
+		assert.deepEqual(installed, ["stdlib"]);
+		assert.equal(resumePending(), true);
+		assert.deepEqual(toasts, ["1 update will install once the new stdlib runs, after Spotify restarts"]);
+	});
+
+	it("points at the apply control when the daemon staged stdlib on disk", async () => {
+		const { install } = installer({ stdlib: staged });
+		markStdlibDiskStaged("1.14.0");
+		await runUpdates([entry("stdlib", "1.14.0"), entry("a", "1.1.0")], () => {}, install);
+		assert.match(toasts[0] ?? "", /after you apply it with the control above$/);
+	});
+
+	it("carries on with the batch when the new stdlib came up live", async () => {
+		const { installed, install } = installer();
+		await runUpdates([entry("stdlib", "1.14.0"), entry("a", "1.1.0")], () => {}, install);
+		assert.deepEqual(installed, ["stdlib", "a"]);
+		assert.equal(resumePending(), false);
+	});
+
+	it("holds the rest without resuming when the stdlib update failed", async () => {
+		const { installed, install } = installer({ stdlib: new Error("checksum mismatch") });
+		storage.set(RESUME_UPDATES_KEY, "1");
+		await runUpdates([entry("stdlib", "1.14.0"), entry("a", "1.1.0")], () => {}, install);
+		assert.deepEqual(installed, ["stdlib"]);
+		assert.equal(resumePending(), false);
+		assert.deepEqual(toasts, [
+			"update failed for stdlib: checksum mismatch",
+			"1 update held back: they may need the new stdlib, and its update did not land",
+		]);
+	});
+
+	it("keeps going past one module's failure", async () => {
+		const { installed, install } = installer({ a: new Error("offline") });
+		await runUpdates([entry("a", "1.1.0"), entry("b", "2.1.0")], () => {}, install);
+		assert.deepEqual(installed, ["a", "b"]);
+		assert.deepEqual(toasts, ["update failed for a: offline"]);
+	});
+});
+
+describe("finishing held-back updates at boot", () => {
+	const install =
+		(installed: string[], outcome = { requiresRestart: false, enabled: true }) =>
+		async (mod: VaultModule) => {
+			installed.push(mod.id);
+			return outcome;
+		};
+
+	it("installs them once the new stdlib is running", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		stagedStates = [{ identifier: "stdlib", version: "1.14.0", local: false }];
+		manifestModules = [{ identifier: "stdlib", version: "1.14.0" }];
+		locals = [{ metadata: { identifier: "a" }, sidecar: { installed_version: "1.0.0" } }];
+		serveVault({ stdlib: "1.14.0", a: "1.1.0" });
+		const installed: string[] = [];
+		await announceUpdates(install(installed));
+		assert.deepEqual(installed, ["a"]);
+		assert.equal(resumePending(), false);
+		assert.deepEqual(toasts, ["finishing 1 module update held back for stdlib…"]);
+	});
+
+	it("waits for another boot while the staged stdlib still isn't running", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		markStdlibDiskStaged("1.14.0");
+		stagedStates = [{ identifier: "stdlib", version: "1.13.1", local: false }];
+		locals = [{ metadata: { identifier: "a" }, sidecar: { installed_version: "1.0.0" } }];
+		serveVault({ stdlib: "1.14.0", a: "1.1.0" });
+		const installed: string[] = [];
+		await announceUpdates(install(installed));
+		assert.deepEqual(installed, []);
+		assert.equal(resumePending(), true);
+		assert.deepEqual(toasts, ["2 module updates available in the Module Store"]);
+	});
+
+	it("stages a stdlib published since and keeps the rest waiting", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		stagedStates = [{ identifier: "stdlib", version: "1.14.0", local: false }];
+		manifestModules = [{ identifier: "stdlib", version: "1.14.0" }];
+		locals = [{ metadata: { identifier: "a" }, sidecar: { installed_version: "1.0.0" } }];
+		serveVault({ stdlib: "1.15.0", a: "1.1.0" });
+		const installed: string[] = [];
+		await announceUpdates(install(installed, { requiresRestart: true, enabled: false }));
+		assert.deepEqual(installed, ["stdlib"]);
+		assert.equal(resumePending(), true);
+	});
+
+	it("forgets the hold when nothing is left to update", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		stagedStates = [{ identifier: "stdlib", version: "1.14.0", local: false }];
+		serveVault({ stdlib: "1.14.0" });
+		await announceUpdates(install([]));
+		assert.equal(resumePending(), false);
+		assert.deepEqual(toasts, []);
+	});
+
+	it("forgets the hold when the vault withdraws the staged stdlib", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		markStdlibDiskStaged("1.14.0");
+		stagedStates = [{ identifier: "stdlib", version: "1.13.1", local: false }];
+		serveVault({ stdlib: "1.13.1" });
+		await announceUpdates(install([]));
+		assert.equal(resumePending(), false);
+		assert.equal(stdlibDiskStaged(), null);
+	});
+
+	it("keeps the hold when the vault can't be reached", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		storage.set("spicetify:defaultVaultUrl", "data:application/json,not-json");
+		const installed: string[] = [];
+		await announceUpdates(install(installed));
+		assert.deepEqual(installed, []);
+		assert.equal(resumePending(), true);
 	});
 });
