@@ -408,6 +408,20 @@ describe("finishing held-back updates at boot", () => {
 		assert.deepEqual(toasts, ["finishing 1 module update held back for stdlib…"]);
 	});
 
+	it("sees a record carrying build metadata as running once its version runs", async () => {
+		storage.set(RESUME_UPDATES_KEY, "1");
+		stagedStates = [{ identifier: "stdlib", version: "1.14.0", local: true }];
+		locals = [
+			{ metadata: { identifier: "stdlib" }, sidecar: { installed_version: "1.14.0+cm-1020094" } },
+			{ metadata: { identifier: "a" }, sidecar: { installed_version: "1.0.0" } },
+		];
+		serveVault({ stdlib: "1.14.0+cm-1020094", a: "1.1.0" });
+		const installed: string[] = [];
+		await announceUpdates(install(installed));
+		assert.deepEqual(installed, ["a"]);
+		assert.equal(resumePending(), false);
+	});
+
 	it("waits for another boot while the staged stdlib still isn't running", async () => {
 		storage.set(RESUME_UPDATES_KEY, "1");
 		markStdlibDiskStaged("1.14.0");
