@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
+import { type Catalog, compareVersions, displayVersion, loadCatalog, type VaultModule } from "./catalog.ts";
 import { type InstallOutcome, installedRecords, installModule, isCustomRecord } from "./install.ts";
 import { disposed, dropStdlibDiskStaged, M, retryTimers, stdlibDiskStaged, toast } from "./runtime.ts";
 
@@ -81,7 +81,9 @@ export function stdlibRestartPending(): boolean {
 			r.metadata.identifier === "stdlib",
 	);
 	const staged = record?.sidecar?.installed_version ?? record?.metadata?.version;
-	if (staged && compareVersions(staged, state.version) > 0) return true;
+	// The record carries the vault key, which can have +cm build metadata the
+	// running copy's own metadata.json version lacks.
+	if (staged && compareVersions(displayVersion(staged), displayVersion(state.version)) > 0) return true;
 	const disk = stdlibDiskStaged();
 	return !!disk && compareVersions(disk, state.version) > 0;
 }
