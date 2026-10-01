@@ -56,9 +56,11 @@ test("keeps the splash until the interface and module loading are both ready", (
 	t.mock.timers.tick(500);
 	assert.equal(dialog()!.dataset.stage, "loading");
 	modulesLoaded = true;
-	t.mock.timers.tick(100);
+	t.mock.timers.tick(25);
 	assert.equal(dialog()!.dataset.stage, "leaving");
-	t.mock.timers.tick(450);
+	t.mock.timers.tick(249);
+	assert.ok(dialog());
+	t.mock.timers.tick(1);
 	assert.equal(dialog(), null);
 	assert.equal(document.querySelector("style[data-spicetify-splash]"), null);
 });
