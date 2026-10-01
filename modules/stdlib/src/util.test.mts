@@ -4,9 +4,9 @@
  */
 
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it, test } from "node:test";
 
-import { findBy, matchLast, toPascalCase } from "./util.ts";
+import { findBy, matchLast, sourceOf, toPascalCase } from "./util.ts";
 
 describe("toPascalCase", () => {
 	// Golden values computed against the original hooks-era data-URL
@@ -94,4 +94,28 @@ describe("matchLast", () => {
 		const m = matchLast("a.useRef b.useRef c.useRef", /([a-zA-Z_$][\w$]*)\.useRef/g);
 		assert.equal(m[1], "c");
 	});
+});
+
+test("findBy stops at the first failing test and stringifies each candidate once", () => {
+	let stringified = 0;
+	let laterTests = 0;
+	const candidate = { toString: () => (stringified++, "alpha beta") };
+	const other = { toString: () => (stringified++, "gamma") };
+	const find = findBy("gamma", (x) => (laterTests++, x === other), /gamma/);
+	assert.equal(find([candidate, other]), other);
+	assert.equal(laterTests, 1);
+	assert.equal(stringified, 2);
+	assert.equal(find([candidate, other]), other);
+	assert.equal(stringified, 2);
+});
+
+test("sourceOf caches function source and maps nullish values to an empty string", () => {
+	let calls = 0;
+	const fn = Object.assign(() => {}, { toString: () => (calls++, "source") });
+	assert.equal(sourceOf(fn), "source");
+	assert.equal(sourceOf(fn), "source");
+	assert.equal(calls, 1);
+	assert.equal(sourceOf(null), "");
+	assert.equal(sourceOf(undefined), "");
+	assert.equal(sourceOf(42), "42");
 });

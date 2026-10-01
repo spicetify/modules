@@ -4,6 +4,7 @@
  */
 
 import { warn } from "../logger.ts";
+import { sourceOf } from "../util.ts";
 import { postWebpackRequireHooks, WebpackModule, WebpackRequire, webpackRequire } from "../wpunpk.mix.ts";
 import { createCaptureReadiness } from "./capture-readiness.ts";
 
@@ -18,19 +19,7 @@ export let exportedContexts: Array<React.Context<any>>;
 export let exportedForwardRefs: Array<any>;
 export let exportedMemos: React.NamedExoticComponent[];
 
-// Some client exports are functions whose own toString is not callable; they
-// can never match a needle, so they stringify to "".
-export const src = (f: unknown): string => {
-	try {
-		return String(f);
-	} catch {
-		try {
-			return Function.prototype.toString.call(f);
-		} catch {
-			return "";
-		}
-	}
-};
+export const src = sourceOf;
 
 export const analyzeWebpackRequire = (webpackRequire: WebpackRequire) => {
 	const modules = Object.entries(webpackRequire.m) as Array<[keyof any, WebpackModule]>;

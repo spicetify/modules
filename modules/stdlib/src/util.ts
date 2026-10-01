@@ -14,9 +14,10 @@ type Predicate<A> = (value: A) => boolean;
 
 // Some client exports are functions whose own toString is not callable;
 // they can never match a needle, so they stringify to "".
-const safeString = (x: any): string => {
+const stringify = (x: any): string => {
+	if (x == null) return "";
 	try {
-		return x.toString();
+		return String(x);
 	} catch {
 		try {
 			return Function.prototype.toString.call(x);
@@ -26,18 +27,32 @@ const safeString = (x: any): string => {
 	}
 };
 
+const sources = new WeakMap<object, string>();
+
+// sourceOf is the source text needles match against, computed once per
+// function or object for the whole session.
+export const sourceOf = (x: unknown): string => {
+	if ((typeof x !== "object" && typeof x !== "function") || x === null) return stringify(x);
+	let source = sources.get(x);
+	if (source === undefined) {
+		source = stringify(x);
+		sources.set(x, source);
+	}
+	return source;
+};
+
 export function findBy(...tests: Array<string | RegExp | Predicate<any>>) {
 	const testFns = tests.map((test): Predicate<any> => {
 		switch (typeof test) {
 			case "string":
-				return (x) => safeString(x).includes(test);
+				return (x) => sourceOf(x).includes(test);
 			case "function":
 				return (x) => test(x);
 			default: // assume regex
-				return (x) => test.test(safeString(x));
+				return (x) => test.test(sourceOf(x));
 		}
 	});
-	const testFn = (x: any) => testFns.map((t) => t(x)).every(Boolean);
+	const testFn = (x: any) => testFns.every((t) => t(x));
 	return <A>(xs: A[]) => xs.find(testFn)!;
 }
 
