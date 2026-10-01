@@ -47,6 +47,9 @@ import {
 	resolveScheme,
 	schemeVars,
 	readSettingsControls,
+	probeSelectors,
+	lostSelectors,
+	SELECTORS_FILE,
 } from "./theme-report.ts";
 
 describe("screenshot region", () => {
@@ -70,6 +73,79 @@ describe("screenshot region", () => {
 			{ x: NaN, y: 0, width: 2, height: 2, dpr: 1 },
 		])
 			assert.throws(() => cropScreenshot(png(20, 20, [0, 0, 0]), clip), /visible box/);
+	});
+});
+
+describe("selector binding", () => {
+	it("reports which selector parts match, ignoring interaction states and pseudo-elements", () => {
+		const window = new Window();
+		try {
+			window.document.body.innerHTML = `<aside data-testid="now-playing-bar"><button data-testid="cover-art-button"><div class="cover-art"></div></button></aside>`;
+			const css = `
+				.gone .cover-art, [data-testid="cover-art-button"] .cover-art { width: 1px }
+				[data-testid="cover-art-button"]:hover { color: red }
+				.cover-art::after { content: "" }
+				@media (min-width: 1px) { .also-gone { color: red } }`;
+			const result = structuredClone(window.eval(`(${probeSelectors.toString()})(${JSON.stringify(css)})`));
+			assert.deepEqual(result.all, [
+				".gone .cover-art",
+				'[data-testid="cover-art-button"] .cover-art',
+				'[data-testid="cover-art-button"]:hover',
+				".cover-art::after",
+				".also-gone",
+			]);
+			assert.deepEqual(result.matched, [
+				'[data-testid="cover-art-button"] .cover-art',
+				'[data-testid="cover-art-button"]:hover',
+				".cover-art::after",
+			]);
+		} finally {
+			window.close();
+		}
+	});
+
+	it("names parts after the source stylesheet when the served one only differs in class names", () => {
+		const window = new Window();
+		try {
+			window.document.body.innerHTML = `<div class="hashed123"></div>`;
+			const result = structuredClone(
+				window.eval(
+					`(${probeSelectors.toString()})(".hashed123 { color: red }", ".main-stable { color: red }")`,
+				),
+			);
+			assert.deepEqual(result, { all: [".main-stable"], matched: [".main-stable"] });
+		} finally {
+			window.close();
+		}
+	});
+
+	it("flags only selectors that matched before, still exist, and match nothing now", () => {
+		const baseline = {
+			starry: { all: [".a", ".b", ".c", ".d"], matched: [".a", ".b", ".c"] },
+			gone: { all: [".x"], matched: [".x"] },
+		};
+		const current = {
+			starry: { all: [".a", ".b", ".d"], matched: [".a"] },
+			fresh: { all: [".y"], matched: [] },
+		};
+		assert.deepEqual(lostSelectors(baseline, current), [{ theme: "starry", selector: ".b" }]);
+	});
+
+	it("accepting a run keeps its selector results as the next baseline", () => {
+		const current = mkdtempSync(path.join(tmpdir(), "theme-report-current-"));
+		const baseline = path.join(mkdtempSync(path.join(tmpdir(), "theme-report-baseline-")), "baseline");
+		writeFileSync(path.join(current, SELECTORS_FILE), "{}");
+		writeFileSync(path.join(current, "frame.png"), "");
+		writeFileSync(path.join(current, "shots.json"), "{}");
+		try {
+			accept(current, baseline);
+			assert.ok(existsSync(path.join(baseline, SELECTORS_FILE)));
+			assert.ok(existsSync(path.join(baseline, "frame.png")));
+			assert.ok(!existsSync(path.join(baseline, "shots.json")));
+		} finally {
+			rmSync(current, { recursive: true, force: true });
+			rmSync(path.dirname(baseline), { recursive: true, force: true });
+		}
 	});
 });
 
