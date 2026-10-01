@@ -106,14 +106,14 @@ postWebpackRequireHooks.push((wpr: any) => {
 	// analysis needles such as GenericModal live there). The analysis below
 	// snapshots wpr.m once, so hold the xpui promises until the registry has
 	// been quiet, with no chunk in flight, for 300ms.
-	watchRegistryQuiet({
-		count: () => Object.keys(wpr?.m ?? {}).length,
-		pending: () => loading,
-		onQuiet: () => {
+	watchRegistryQuiet(
+		() => Object.keys(wpr?.m ?? {}).length,
+		() => loading,
+		() => {
 			resolveChunk("/vendor~xpui.js");
 			resolveChunk("/xpui.js");
 		},
-	});
+	);
 });
 
 // Capture subscribers run synchronously right after the analysis lands, so
