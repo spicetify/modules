@@ -3,43 +3,28 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-export interface RegistryQuietOptions {
-	/** Number of modules currently registered. */
-	count: () => number;
-	/** Chunk script loads that have started but not finished. */
-	pending: () => number;
-	onQuiet: () => void;
-	quietMs?: number;
-	/** How long an in-flight chunk can hold back an otherwise unchanged registry. */
-	pendingMs?: number;
-	tickMs?: number;
-	capMs?: number;
-	now?: () => number;
-}
+const QUIET_MS = 300;
+const TICK_MS = 25;
+const CAP_MS = 10_000;
 
 // watchRegistryQuiet calls onQuiet once the module registry has not changed,
-// and no chunk load has been in flight, for quietMs. A chunk that never
-// finishes holds it back for at most pendingMs past the last registry change,
-// and capMs bounds the whole wait so a pathological boot still resolves.
-export function watchRegistryQuiet(options: RegistryQuietOptions): void {
-	const { quietMs = 300, pendingMs = 2000, tickMs = 25, capMs = 10_000, now = Date.now } = options;
-	const started = now();
+// and no chunk load has been in flight, for 300ms. A 10s cap bounds the wait
+// so a chunk that never finishes, or a registry that never settles, still
+// resolves.
+export function watchRegistryQuiet(count: () => number, pending: () => number, onQuiet: () => void): void {
+	const started = Date.now();
 	let last = -1;
-	let changedAt = started;
 	let quietSince = started;
 	const timer = setInterval(() => {
-		const count = options.count();
-		const at = now();
-		if (count !== last) {
-			last = count;
-			changedAt = at;
-			quietSince = at;
-		} else if (options.pending() > 0) {
+		const current = count();
+		const at = Date.now();
+		if (current !== last || pending() > 0) {
+			last = current;
 			quietSince = at;
 		}
-		if (at - quietSince >= quietMs || at - changedAt >= pendingMs || at - started >= capMs) {
+		if (at - quietSince >= QUIET_MS || at - started >= CAP_MS) {
 			clearInterval(timer);
-			options.onQuiet();
+			onQuiet();
 		}
-	}, tickMs);
+	}, TICK_MS);
 }
