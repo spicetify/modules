@@ -15,11 +15,13 @@ export const ManagedSpotifyUpdates = ({
 	daemonAvailable,
 	channel,
 	installed,
+	children,
 }: {
 	api: ManagedSpotifyCapability | undefined;
 	daemonAvailable: boolean;
 	channel: "stable" | "testing";
 	installed: string | undefined;
+	children?: React.ReactNode;
 }) => {
 	const [snapshot, setSnapshot] = React.useState<ManagedSpotifySnapshot | null>(null);
 	const [connection, setConnection] = React.useState<string | null>(null);
@@ -190,6 +192,7 @@ export const ManagedSpotifyUpdates = ({
 						: "Start the Spicetify daemon to update here."}
 				</p>
 			)}
+			{children}
 		</section>
 	);
 };
