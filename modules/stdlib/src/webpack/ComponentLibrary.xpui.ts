@@ -10,7 +10,9 @@ await CHUNKS.xpui.promise;
 const componentNames = Object.keys(
 	exported.find((e) => e.BrowserDefaultFocusStyleProvider && Object.hasOwn(e, "BrowserDefaultFocusStyleProvider")),
 );
-const componentRegexes = componentNames.map((n) => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
+const componentRegexes = componentNames.map(
+	(n) => new RegExp(String.raw`"data-encore-id":(?:[a-zA-Z_$][\w$]*\.){2}${n}\b`),
+);
 const componentPairs = [exportedFunctions.map((f) => [f, f]), exportedForwardRefs.map((f) => [(f as any).render, f])]
 	.flat()
 	.map(([s, f]) => {
