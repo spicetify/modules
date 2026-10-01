@@ -23,6 +23,9 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.7(@types/react@18.3.31)
+      '@types/react-test-renderer':
+        specifier: ^18
+        version: 18.3.1
       happy-dom:
         specifier: ^20.11.1
         version: 20.11.1
@@ -45,6 +48,9 @@ importers:
         specifier: 18.3.1
         version: 18.3.1
       react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+      react-test-renderer:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
       rolldown:
@@ -499,6 +505,9 @@ packages:
     peerDependencies:
       '@types/react': ^18.0.0
 
+  '@types/react-test-renderer@18.3.1':
+    resolution: {integrity: sha512-vAhnk0tG2eGa37lkU9+s5SoroCsRI08xnsWFiAXOuPH2jqzMbcXvKExXViPi1P5fIklDeCvXqyrdmipFaSkZrA==}
+
   '@types/react@18.3.31':
     resolution: {integrity: sha512-vfEqpXTvwT91yhmwdfouStN2hSKwTvyRs8qpLfADyrq/kxDw0hZM7Wk9Ug1FELj8hIby+S/+kQCSRFF32nv2Qw==}
 
@@ -697,6 +706,10 @@ packages:
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
 
+  object-assign@4.1.1:
+    resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
+    engines: {node: '>=0.10.0'}
+
   oxfmt@0.60.0:
     resolution: {integrity: sha512-fViX6i+gJuZWY+jI/fnR6WRbRj70GZ9RlCd30MygJrHTUNc4DxvKHWw8vBjMjffv3PgU5qWDR0AzmojQByqaZA==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -743,6 +756,19 @@ packages:
 
   react-dom@18.3.1:
     resolution: {integrity: sha512-5m4nQKp+rZRb09LNH59GM4BxTh9251/ylbKIbpe7TpGxfJ+9kv6BLkLBXIjjspbgbnIBNqlI23tRnTWT0snUIw==}
+    peerDependencies:
+      react: ^18.3.1
+
+  react-is@18.3.1:
+    resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
+
+  react-shallow-renderer@16.15.0:
+    resolution: {integrity: sha512-oScf2FqQ9LFVQgA73vr86xl2NaOIX73rh+YFqcOp68CWj56tSfgtGKrEbyhCj0rSijyG9M1CYprTh39fBi5hzA==}
+    peerDependencies:
+      react: ^16.0.0 || ^17.0.0 || ^18.0.0
+
+  react-test-renderer@18.3.1:
+    resolution: {integrity: sha512-KkAgygexHUkQqtvvx/otwxtuFu5cVjfzTCtjXLH9boS19/Nbtg84zS7wIQn39G8IlrhThBpQsMKkq5ZHZIYFXA==}
     peerDependencies:
       react: ^18.3.1
 
@@ -1216,6 +1242,10 @@ snapshots:
     dependencies:
       '@types/react': 18.3.31
 
+  '@types/react-test-renderer@18.3.1':
+    dependencies:
+      '@types/react': 18.3.31
+
   '@types/react@18.3.31':
     dependencies:
       '@types/prop-types': 15.7.15
@@ -1358,6 +1388,8 @@ snapshots:
   node-addon-api@7.1.1:
     optional: true
 
+  object-assign@4.1.1: {}
+
   oxfmt@0.60.0:
     dependencies:
       tinypool: 2.1.0
@@ -1421,6 +1453,21 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
       react: 18.3.1
+      scheduler: 0.23.2
+
+  react-is@18.3.1: {}
+
+  react-shallow-renderer@16.15.0(react@18.3.1):
+    dependencies:
+      object-assign: 4.1.1
+      react: 18.3.1
+      react-is: 18.3.1
+
+  react-test-renderer@18.3.1(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-is: 18.3.1
+      react-shallow-renderer: 16.15.0(react@18.3.1)
       scheduler: 0.23.2
 
   react@18.3.1:
