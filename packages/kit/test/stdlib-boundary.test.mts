@@ -130,4 +130,12 @@ describe("external stdlib boundary", () => {
 		assert.ok(!findings.includes("warn:stdlib-boundary.ambient-client"));
 		assert.ok(!findings.includes("warn:stdlib-boundary.client-dom"));
 	});
+
+	it("reads the kind the way kindOfMeta does", () => {
+		const files = { "index.ts": "export function load() {}" };
+		const legacyTheme = moduleFixture(files, { kind: undefined, tags: ["theme"], dependencies: {} });
+		assert.ok(!rules(legacyTheme).includes("error:stdlib-boundary.dependency"), "tags is the fallback");
+		const declared = moduleFixture(files, { kind: "extension", tags: ["theme"], dependencies: {} });
+		assert.ok(rules(declared).includes("error:stdlib-boundary.dependency"), "kind wins over tags");
+	});
 });

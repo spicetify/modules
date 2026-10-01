@@ -15,6 +15,8 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
+import { KIND_OF_META_SOURCE } from "./vault-metadata.ts";
+
 export interface LocalModuleRecord {
 	metadata: Record<string, unknown>;
 	files: Record<string, string>;
@@ -299,8 +301,8 @@ export function pushExpression(rec: LocalModuleRecord, id: string, nonce: string
 		if (reenabled) await (M.reload ?? M.enable)(id);
 		// Re-enabling a theme the loader just unloaded would fight the
 		// single-active-theme invariant and knock the pushed theme back off.
-		// metadata.json says "kind"; modules published before it carry "tags".
-		const themed = (meta) => meta?.kind === "theme" || (meta?.tags ?? []).includes("theme");
+		const kindOf = ${KIND_OF_META_SOURCE};
+		const themed = (meta) => kindOf(meta) === "theme";
 		const pushedIsTheme = themed(rec.metadata);
 		const isTheme = (mid) => themed(M.manifest?.modules?.find((m) => m.identifier === mid));
 		for (const other of before) {
