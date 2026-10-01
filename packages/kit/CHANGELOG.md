@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.3](https://github.com/spicetify/modules/compare/kit@0.4.2...kit@0.4.3) (2026-10-01)
+
+
+### Bug Fixes
+
+* **kit:** keep other themes off when pushing a kind theme ([9887dcf](https://github.com/spicetify/modules/commit/9887dcfca3272f1b8ff3f90cf5c7e6048d832f8a))
+* **kit:** scaffold metadata.json with kind ([f5791ff](https://github.com/spicetify/modules/commit/f5791ff5d5f445d0e7644e7f884d4c6c178b6340))
+
 ## [0.4.2](https://github.com/spicetify/modules/compare/kit@0.4.1...kit@0.4.2) (2026-09-29)
 
 
