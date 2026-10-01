@@ -849,7 +849,8 @@ form .main-topBar-searchBar:placeholder-shown {
 }
 
 /* cover art */
-.main-nowPlayingWidget-coverArt .cover-art {
+.main-nowPlayingWidget-coverArt .cover-art,
+[data-testid="cover-art-button"] .cover-art {
 	height: 32px !important;
 	width: 32px !important;
 }
