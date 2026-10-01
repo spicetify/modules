@@ -40,7 +40,7 @@
 		"access": "public"
 	},
 	"spicetify": {
-		"stdlibVersion": "1.13.1"
+		"stdlibVersion": "1.13.2"
 	},
 	"scripts": {
 		"build": "tsc -p tsconfig.build.json",
