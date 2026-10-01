@@ -20,6 +20,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { kindOfMeta } from "../packages/kit/src/vault-metadata.ts";
+
 const REPO_RAW = "https://raw.githubusercontent.com/spicetify/modules/main/previews";
 
 // 24x24 path markup, drawn in currentColor.
@@ -55,8 +57,6 @@ const prettify = (id: string) =>
 		.split("-")
 		.map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
 		.join(" ");
-
-const KINDS = ["extension", "theme", "snippet", "app", "lib"];
 
 function render(id: string, title: string, category: string, icon: string, accent: string): string {
 	const paths = ICONS[icon] ?? ICONS.bolt;
@@ -97,8 +97,7 @@ function main(): void {
 			accent: FALLBACK_ACCENTS[[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % FALLBACK_ACCENTS.length],
 		};
 		const title = style.title ?? prettify(meta.name ?? id);
-		const category =
-			(KINDS.includes(meta.kind) ? meta.kind : KINDS.find((k) => (meta.tags ?? []).includes(k))) ?? "module";
+		const category = kindOfMeta(meta) ?? "module";
 		const out = path.join("previews", `${id}.svg`);
 		writeFileSync(out, render(id, title, category, style.icon, style.accent));
 		meta.preview = `${REPO_RAW}/${id}.svg`;

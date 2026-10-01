@@ -7,6 +7,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 
+import { kindOfMeta } from "../packages/kit/src/vault-metadata.ts";
+
 const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 
 const settingsPageModules = [
@@ -48,8 +50,8 @@ describe("first-party settings ownership", () => {
 		const discovered = readdirSync(new URL("../modules/", import.meta.url))
 			.filter((id) => {
 				try {
-					const metadata = JSON.parse(read(`modules/${id}/metadata.json`)) as { kind?: string };
-					return metadata.kind === "app" || metadata.kind === "extension";
+					const kind = kindOfMeta(JSON.parse(read(`modules/${id}/metadata.json`)));
+					return kind === "app" || kind === "extension";
 				} catch {
 					return false;
 				}
