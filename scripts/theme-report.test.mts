@@ -49,6 +49,7 @@ import {
 	schemeVars,
 	readSettingsControls,
 	probeSelectors,
+	swapPlayback,
 	lostSelectors,
 	SELECTORS_FILE,
 } from "./theme-report.ts";
@@ -74,6 +75,58 @@ describe("screenshot region", () => {
 			{ x: NaN, y: 0, width: 2, height: 2, dpr: 1 },
 		])
 			assert.throws(() => cropScreenshot(png(20, 20, [0, 0, 0]), clip), /visible box/);
+	});
+});
+
+describe("pinned playback", () => {
+	const fakeClient = (failPlay = false) => {
+		const log: string[] = [];
+		const state = {
+			item: { uri: "spotify:track:mine" },
+			context: { uri: "spotify:album:mine" },
+			positionAsOfTimestamp: 1234,
+			isPaused: false,
+		};
+		let muted = false;
+		(globalThis as any).window = {
+			Spicetify: {
+				Player: { getMute: () => muted, setMute: (m: boolean) => (log.push(`mute:${m}`), (muted = m)) },
+				Platform: {
+					PlayerAPI: {
+						getState: () => state,
+						play: async (ctx: { uri: string }, _: object, opts: { skipTo?: { uri: string } }) => {
+							if (failPlay) throw new Error("offline");
+							log.push(`play:${opts.skipTo?.uri ?? ctx.uri}`);
+							state.item = { uri: opts.skipTo?.uri ?? ctx.uri };
+							state.isPaused = false;
+						},
+						pause: async () => (log.push("pause"), (state.isPaused = true)),
+						seekTo: async (ms: number) => (log.push(`seek:${ms}`), (state.positionAsOfTimestamp = ms)),
+					},
+				},
+			},
+		};
+		return { log, state, isMuted: () => muted };
+	};
+	after(() => delete (globalThis as any).window);
+
+	it("loads the track muted and paused, and reports what was playing", async () => {
+		const client = fakeClient();
+		const previous = await swapPlayback({ uri: "spotify:track:fixed" }, 0, true);
+		assert.deepEqual(previous, {
+			uri: "spotify:track:mine",
+			context: "spotify:album:mine",
+			position: 1234,
+			paused: false,
+		});
+		assert.deepEqual(client.log, ["mute:true", "play:spotify:track:fixed", "pause", "seek:0", "mute:false"]);
+		assert.equal(client.state.isPaused, true);
+	});
+
+	it("puts the mute state back when the track cannot be loaded", async () => {
+		const client = fakeClient(true);
+		await assert.rejects(swapPlayback({ uri: "spotify:track:fixed" }, 0, true), /offline/);
+		assert.equal(client.isMuted(), false);
 	});
 });
 
