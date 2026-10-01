@@ -25,7 +25,7 @@
  * Spotify must be running with --remote-debugging-port=9229. Output defaults
  * to ../scratchpad/theme-shots, which is outside every repo.
  *
- * Four checks, and they cover different things on purpose:
+ * Five checks, and they cover different things on purpose:
  *
  *   what moved     each frame against the last accepted run, so an intended
  *                  change is reviewed once and everything else stays quiet
@@ -35,6 +35,10 @@
  *                  ever shows, which is the only place they are checked at all
  *   animation      a surface that never settles cannot be tracked, and saying
  *                  so beats reporting it as changed every run
+ *   selectors      each theme selector that matched an element on some route in
+ *                  the accepted run and matches nothing now; it names the rule
+ *                  that broke, and works for animated themes too, which a
+ *                  whole-theme repaint share cannot do
  */
 
 import {
@@ -445,6 +449,78 @@ export function readSettingsControls() {
 	};
 }
 
+/**
+ * Runs in the real client. Splits a theme stylesheet into selector parts and
+ * reports which of them match an element in the current document. Interaction
+ * states and pseudo-elements are stripped first, so a :hover rule counts as
+ * bound when its element exists; parts the engine cannot query are left out.
+ * `keyCss` names the parts: the theme's source, whose stable class names do
+ * not change between Spotify builds the way the served (css-mapped) ones do.
+ * It is only used when it splits into the same parts in the same order.
+ */
+export function probeSelectors(servedCss: string, keyCss: string = servedCss) {
+	const parts = (css: string) => {
+		const sheet = new CSSStyleSheet();
+		sheet.replaceSync(css);
+		const out: string[] = [];
+		const visit = (rules: CSSRuleList) => {
+			for (const rule of Array.from(rules)) {
+				const selectorText = (rule as CSSStyleRule).selectorText;
+				if (selectorText) for (const part of selectorText.split(/,(?![^(]*\))/)) out.push(part.trim());
+				const nested = (rule as CSSGroupingRule).cssRules;
+				if (nested) visit(nested);
+			}
+		};
+		visit(sheet.cssRules);
+		return out;
+	};
+	const served = parts(servedCss);
+	const keyed = parts(keyCss);
+	const names = keyed.length === served.length ? keyed : served;
+	const all: string[] = [];
+	const matched: string[] = [];
+	served.forEach((part, i) => {
+		const query =
+			part
+				.replace(/::?(?:before|after|placeholder|selection|backdrop|marker|-webkit-[\w-]+)\b/g, "")
+				.replace(/:(?:hover|focus|focus-visible|focus-within|active|visited)\b/g, "")
+				.trim() || "*";
+		let hit: boolean;
+		try {
+			hit = document.querySelector(query) !== null;
+		} catch {
+			return;
+		}
+		all.push(names[i]);
+		if (hit) matched.push(names[i]);
+	});
+	return { all, matched };
+}
+
+export type SelectorProbe = ReturnType<typeof probeSelectors>;
+
+/**
+ * Selector parts that matched an element somewhere in the baseline run and
+ * match nothing on any route now. A part the theme no longer has is a change
+ * to the theme, not a lost binding, so only parts present in both count.
+ */
+export function lostSelectors(
+	baseline: Record<string, SelectorProbe>,
+	current: Record<string, SelectorProbe>,
+): { theme: string; selector: string }[] {
+	const lost: { theme: string; selector: string }[] = [];
+	for (const [theme, now] of Object.entries(current)) {
+		const before = baseline[theme];
+		if (!before) continue;
+		const present = new Set(now.all);
+		const matched = new Set(now.matched);
+		for (const selector of new Set(before.matched)) {
+			if (present.has(selector) && !matched.has(selector)) lost.push({ theme, selector });
+		}
+	}
+	return lost;
+}
+
 export interface LiveShot {
 	theme: string;
 	themeVersion?: string;
@@ -474,6 +550,8 @@ export interface LiveResult {
 	viewport?: { width: number; height: number; dpr: number };
 	selector?: string;
 	suite?: "classmaps";
+	/** Per theme, the selector parts its stylesheet has and those that matched on any captured route. */
+	selectors?: Record<string, SelectorProbe>;
 	cleanupVerified?: boolean;
 	navigation?: string;
 }
@@ -742,6 +820,24 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 	const routes = opts.routes?.length ? opts.routes : Object.keys(ROUTES);
 	const shots: LiveShot[] = [];
 	const failures: LiveFailure[] = [];
+	const selectors: Record<string, SelectorProbe> = {};
+
+	/** Which of the active theme's selector parts match something on this route. */
+	const probeTheme = async (theme: string) => {
+		const sourceFile = path.join(REPO, "themes", theme, "index.css");
+		const source = existsSync(sourceFile) ? readFileSync(sourceFile, "utf8") : null;
+		const probe = await cdp.eval<SelectorProbe | null>(`
+      const registry = window.Spicetify.Modules.registry;
+      const entry = registry?.modules?.get?.(${JSON.stringify(theme)})?.entries?.css;
+      if (!entry) return null;
+      const served = registry.localFiles?.get?.(${JSON.stringify(theme)})?.[entry]
+        ?? (await (await fetch(${JSON.stringify(`/modules/${theme}/`)} + entry)).text());
+      return (${probeSelectors.toString()})(served, ${JSON.stringify(source)} ?? served);`);
+		if (!probe) return;
+		const into = (selectors[theme] ??= { all: [], matched: [] });
+		into.all = [...new Set([...into.all, ...probe.all])];
+		into.matched = [...new Set([...into.matched, ...probe.matched])];
+	};
 
 	const clientVersion = await cdp.eval<string | null>(
 		`return navigator.userAgent.match(/Spotify\\/(\\S+)/)?.[1] ?? null;`,
@@ -772,6 +868,7 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 			await cdp.eval(STABILISE);
 			const file = path.join(opts.outDir, `${label}--${surface}.png`);
 			const stable = await cdp.shootStable(file, { selector: opts.selector });
+			if (label !== UNTHEMED) await probeTheme(label);
 			const settingsControls =
 				route === "/preferences"
 					? await cdp.eval<ReturnType<typeof readSettingsControls>>(
@@ -848,7 +945,7 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 		cdp.close();
 	}
 
-	return { shots, failures, restored: restoreTo, clientVersion, viewport, selector: opts.selector };
+	return { shots, failures, restored: restoreTo, clientVersion, viewport, selector: opts.selector, selectors };
 }
 
 export const CLASSMAP_STATES = [
@@ -1557,12 +1654,14 @@ export function checkBinding(currentDir: string, shots: LiveShot[], floor = BIND
 	return rows;
 }
 
+export const SELECTORS_FILE = "selectors.json";
+
 /** Promote the run just taken to be what the next one is measured against. */
 export function accept(currentDir: string, baselineDir: string): number {
 	requireOutsideGit(baselineDir);
 	rmSync(baselineDir, { recursive: true, force: true });
 	mkdirSync(baselineDir, { recursive: true });
-	const files = readdirSync(currentDir).filter((f) => f.endsWith(".png"));
+	const files = readdirSync(currentDir).filter((f) => f.endsWith(".png") || f === SELECTORS_FILE);
 	for (const f of files) copyFileSync(path.join(currentDir, f), path.join(baselineDir, f));
 	return files.length;
 }
@@ -1574,11 +1673,14 @@ function page(opts: {
 	changes: ShotChange[];
 	findings: Finding[];
 	bindings: Binding[];
+	lost: { theme: string; selector: string }[];
 	live: LiveResult;
 	capturedAt: string;
 	hasBaseline: boolean;
 }): string {
-	const { changes, findings, bindings, live, capturedAt, hasBaseline } = opts;
+	const { changes, findings, bindings, lost, live, capturedAt, hasBaseline } = opts;
+	const lostByTheme = new Map<string, string[]>();
+	for (const l of lost) lostByTheme.set(l.theme, [...(lostByTheme.get(l.theme) ?? []), l.selector]);
 	const bindingByTheme = new Map<string, number>();
 	for (const b of bindings) bindingByTheme.set(b.theme, Math.max(bindingByTheme.get(b.theme) ?? 0, b.ratio));
 	const unbound = [...bindingByTheme].filter(([, r]) => r < BINDING_FLOOR).map(([t]) => t);
@@ -1623,8 +1725,18 @@ function page(opts: {
     <span class="dim"><span class="sw" style="background:${esc(first?.main ?? "#000")}"></span>${esc(first?.scheme ?? "no scheme")} · ${esc(first?.main ?? "")}</span>
     ${bindingByTheme.has(theme) ? `<span class="dim${bindingByTheme.get(theme)! < BINDING_FLOOR ? " hit" : ""}">repaints ${(bindingByTheme.get(theme)! * 100).toFixed(0)}% of the bare client${bindingByTheme.get(theme)! < BINDING_FLOOR ? " — not binding" : ""}</span>` : ""}
     ${worst !== null ? `<span class="dim warn">${issues.length} contrast issue${issues.length === 1 ? "" : "s"}, worst ${worst.toFixed(2)}:1</span>` : ""}
+    ${lostByTheme.has(theme) ? `<span class="dim hit">${lostByTheme.get(theme)!.length} selector${lostByTheme.get(theme)!.length === 1 ? "" : "s"} stopped matching</span>` : ""}
   </header>
   <div class="shots">${shots.map(shotFigure).join("")}</div>
+  ${
+		lostByTheme.has(theme)
+			? `<details class="issues" open><summary>Matched an element in the baseline run, match nothing on any route now</summary>
+    <ul>${lostByTheme
+		.get(theme)!
+		.map((selector) => `<li><code>${esc(selector)}</code></li>`)
+		.join("")}</ul></details>`
+			: ""
+  }
   ${
 		issues.length
 			? `<details class="issues"><summary>${issues.length} pair${issues.length === 1 ? "" : "s"} under ${MIN_RATIO}:1</summary>
@@ -1703,6 +1815,7 @@ footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--rule);color:v
   <div class="stat ${findings.length ? "warn" : ""}"><span class="n">${findings.length}</span><span class="k">contrast issues</span></div>
   ${animated.length ? `<div class="stat"><span class="n">${animated.length}</span><span class="k">animated, not tracked</span></div>` : ""}
   <div class="stat ${unbound.length ? "hit" : ""}"><span class="n">${unbound.length}</span><span class="k">themes not binding</span></div>
+  <div class="stat ${lost.length ? "hit" : ""}"><span class="n">${lost.length}</span><span class="k">selectors stopped matching</span></div>
 </div>
 
 ${
@@ -1812,15 +1925,23 @@ async function main(): Promise<void> {
 	const findings = auditAll(path.join(REPO, "themes")).findings;
 	const bindings = live.selector ? [] : checkBinding(currentDir, live.shots);
 	const unbound = bindings.filter((b) => !b.bound);
+	if (live.selectors) {
+		writeFileSync(path.join(currentDir, SELECTORS_FILE), JSON.stringify(live.selectors, null, "\t") + "\n");
+	}
+	const baselineSelectors = path.join(baselineDir, SELECTORS_FILE);
+	const lost =
+		live.selectors && existsSync(baselineSelectors)
+			? lostSelectors(JSON.parse(readFileSync(baselineSelectors, "utf8")), live.selectors)
+			: [];
 
 	writeFileSync(
 		path.join(outDir, "index.html"),
-		page({ changes, findings, bindings, live, capturedAt: dateStamp(), hasBaseline }),
+		page({ changes, findings, bindings, lost, live, capturedAt: dateStamp(), hasBaseline }),
 	);
 	writeFileSync(
 		path.join(outDir, "report.json"),
 		JSON.stringify(
-			{ changes, findings, bindings, failures: live.failures, incomplete, baselineSource },
+			{ changes, findings, bindings, lostSelectors: lost, failures: live.failures, incomplete, baselineSource },
 			null,
 			"\t",
 		) + "\n",
@@ -1842,6 +1963,8 @@ async function main(): Promise<void> {
 		}
 	}
 	if (unbound.length) console.log(`not binding: ${[...new Set(unbound.map((u) => u.theme))].join(", ")}`);
+	console.log(`selectors that matched in the baseline and match nothing now: ${lost.length}`);
+	for (const l of lost) console.log(`  ${l.theme}: ${l.selector}`);
 	console.log(hasBaseline ? `changed since baseline: ${moved.length}` : "no baseline yet, nothing compared");
 	for (const c of moved) console.log(`  ${c.shot.theme}/${c.shot.surface}: ${(c.changedRatio * 100).toFixed(2)}%`);
 
