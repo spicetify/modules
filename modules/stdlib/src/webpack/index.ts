@@ -79,16 +79,25 @@ postWebpackRequireHooks.push((wpr: any) => {
 		const load = wpr.l.bind(wpr);
 		wpr.l = (url: string, done: (event: unknown) => unknown, key?: string, chunkId?: unknown) => {
 			loading++;
-			return load(
-				url,
-				(event: unknown) => {
-					loading--;
-					resolveChunk(new URL(url, location.href).pathname);
-					return done(event);
-				},
-				key,
-				chunkId,
-			);
+			try {
+				return load(
+					url,
+					(event: unknown) => {
+						loading--;
+						try {
+							resolveChunk(new URL(url, location.href).pathname);
+						} catch (error) {
+							console.error(`[stdlib] could not resolve chunk ${url}:`, error);
+						}
+						return done(event);
+					},
+					key,
+					chunkId,
+				);
+			} catch (error) {
+				loading--;
+				throw error;
+			}
 		};
 	}
 	// Chunk scripts that finished loading before capture. The xpui entry
