@@ -35,6 +35,7 @@ import {
 	snapshotBaseline,
 	requireOutsideGit,
 	type LiveResult,
+	type SelectorRun,
 	contrastRatio,
 	DERIVED_COLORS,
 	fillCanonical,
@@ -77,57 +78,73 @@ describe("screenshot region", () => {
 });
 
 describe("selector binding", () => {
-	it("reports which selector parts match, ignoring interaction states and pseudo-elements", () => {
+	const probe = (html: string, css: string, key?: string) => {
 		const window = new Window();
 		try {
-			window.document.body.innerHTML = `<aside data-testid="now-playing-bar"><button data-testid="cover-art-button"><div class="cover-art"></div></button></aside>`;
-			const css = `
-				.gone .cover-art, [data-testid="cover-art-button"] .cover-art { width: 1px }
-				[data-testid="cover-art-button"]:hover { color: red }
-				.cover-art::after { content: "" }
-				@media (min-width: 1px) { .also-gone { color: red } }`;
-			const result = structuredClone(window.eval(`(${probeSelectors.toString()})(${JSON.stringify(css)})`));
-			assert.deepEqual(result.all, [
-				".gone .cover-art",
-				'[data-testid="cover-art-button"] .cover-art',
-				'[data-testid="cover-art-button"]:hover',
-				".cover-art::after",
-				".also-gone",
-			]);
-			assert.deepEqual(result.matched, [
-				'[data-testid="cover-art-button"] .cover-art',
-				'[data-testid="cover-art-button"]:hover',
-				".cover-art::after",
-			]);
+			window.document.body.innerHTML = html;
+			const args = [css, key].filter((x) => x !== undefined).map((x) => JSON.stringify(x));
+			return structuredClone(window.eval(`(${probeSelectors.toString()})(${args.join(",")})`));
 		} finally {
 			window.close();
 		}
+	};
+
+	it("reports which selector parts match, ignoring interaction states and pseudo-elements", () => {
+		const result = probe(
+			`<aside><button data-testid="cover-art-button"><div class="cover-art"></div></button><form><input class="search"></form></aside>`,
+			`
+				.gone .cover-art, [data-testid="cover-art-button"] .cover-art { width: 1px }
+				[data-testid="cover-art-button"]:hover, .cover-art:focus-within { color: red }
+				.cover-art::after, form .search:not(:placeholder-shown) { content: "" }
+				@media (min-width: 1px) { .also-gone { color: red } }`,
+		);
+		assert.deepEqual(result.matched, [
+			'[data-testid="cover-art-button"] .cover-art',
+			'[data-testid="cover-art-button"]:hover',
+			".cover-art:focus-within",
+			".cover-art::after",
+			"form .search:not(:placeholder-shown)",
+		]);
+		assert.deepEqual(
+			result.all.filter((s: string) => !result.matched.includes(s)),
+			[".gone .cover-art", ".also-gone"],
+		);
+	});
+
+	it("splits selector lists only on top-level commas", () => {
+		const result = probe(
+			`<div class="a"><span class="c"></span></div><b aria-label="Play, pause" class="x"></b>`,
+			`:is(.a, :not(.b)) .c, [aria-label="Play, pause"].x { color: red }`,
+		);
+		assert.deepEqual(result, {
+			all: [":is(.a, :not(.b)) .c", '[aria-label="Play, pause"].x'],
+			matched: [":is(.a, :not(.b)) .c", '[aria-label="Play, pause"].x'],
+			skipped: 0,
+		});
 	});
 
 	it("names parts after the source stylesheet when the served one only differs in class names", () => {
-		const window = new Window();
-		try {
-			window.document.body.innerHTML = `<div class="hashed123"></div>`;
-			const result = structuredClone(
-				window.eval(
-					`(${probeSelectors.toString()})(".hashed123 { color: red }", ".main-stable { color: red }")`,
-				),
-			);
-			assert.deepEqual(result, { all: [".main-stable"], matched: [".main-stable"] });
-		} finally {
-			window.close();
-		}
+		const result = probe(
+			`<div class="hashed123"></div>`,
+			".hashed123 { color: red }",
+			".main-stable { color: red }",
+		);
+		assert.deepEqual(result, { all: [".main-stable"], matched: [".main-stable"], skipped: 0 });
 	});
 
-	it("flags only selectors that matched before, still exist, and match nothing now", () => {
-		const baseline = {
-			starry: { all: [".a", ".b", ".c", ".d"], matched: [".a", ".b", ".c"] },
-			gone: { all: [".x"], matched: [".x"] },
-		};
-		const current = {
-			starry: { all: [".a", ".b", ".d"], matched: [".a"] },
-			fresh: { all: [".y"], matched: [] },
-		};
+	it("flags only selectors that matched before, still exist, and match nothing now on the same routes", () => {
+		const run = (themes: SelectorRun["themes"]): SelectorRun => ({ playing: true, themes });
+		const baseline = run({
+			starry: {
+				"/": { all: [".a", ".b", ".c", ".d"], matched: [".a", ".b", ".c"], skipped: 0 },
+				"/search": { all: [".s"], matched: [".s"], skipped: 0 },
+			},
+			gone: { "/": { all: [".x"], matched: [".x"], skipped: 0 } },
+		});
+		const current = run({
+			starry: { "/": { all: [".a", ".b", ".d", ".s"], matched: [".a"], skipped: 0 } },
+			fresh: { "/": { all: [".y"], matched: [], skipped: 0 } },
+		});
 		assert.deepEqual(lostSelectors(baseline, current), [{ theme: "starry", selector: ".b" }]);
 	});
 

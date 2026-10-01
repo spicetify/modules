@@ -453,12 +453,34 @@ export function readSettingsControls() {
  * Runs in the real client. Splits a theme stylesheet into selector parts and
  * reports which of them match an element in the current document. Interaction
  * states and pseudo-elements are stripped first, so a :hover rule counts as
- * bound when its element exists; parts the engine cannot query are left out.
- * `keyCss` names the parts: the theme's source, whose stable class names do
- * not change between Spotify builds the way the served (css-mapped) ones do.
- * It is only used when it splits into the same parts in the same order.
+ * bound when its element exists. Parts the engine cannot query are counted in
+ * `skipped` rather than checked. `keyCss` names the parts: the theme's source,
+ * whose stable class names do not change between Spotify builds the way the
+ * served (css-mapped) ones do. It is only used when it splits into the same
+ * number of parts.
  */
 export function probeSelectors(servedCss: string, keyCss: string = servedCss) {
+	const split = (list: string) => {
+		const out: string[] = [];
+		let depth = 0;
+		let quote = "";
+		let start = 0;
+		for (let i = 0; i < list.length; i++) {
+			const c = list[i];
+			if (quote) {
+				if (c === "\\") i++;
+				else if (c === quote) quote = "";
+			} else if (c === "'" || c === '"') quote = c;
+			else if (c === "(" || c === "[") depth++;
+			else if (c === ")" || c === "]") depth--;
+			else if (c === "," && depth === 0) {
+				out.push(list.slice(start, i).trim());
+				start = i + 1;
+			}
+		}
+		out.push(list.slice(start).trim());
+		return out;
+	};
 	const parts = (css: string) => {
 		const sheet = new CSSStyleSheet();
 		sheet.replaceSync(css);
@@ -466,7 +488,7 @@ export function probeSelectors(servedCss: string, keyCss: string = servedCss) {
 		const visit = (rules: CSSRuleList) => {
 			for (const rule of Array.from(rules)) {
 				const selectorText = (rule as CSSStyleRule).selectorText;
-				if (selectorText) for (const part of selectorText.split(/,(?![^(]*\))/)) out.push(part.trim());
+				if (selectorText) out.push(...split(selectorText));
 				const nested = (rule as CSSGroupingRule).cssRules;
 				if (nested) visit(nested);
 			}
@@ -479,42 +501,52 @@ export function probeSelectors(servedCss: string, keyCss: string = servedCss) {
 	const names = keyed.length === served.length ? keyed : served;
 	const all: string[] = [];
 	const matched: string[] = [];
+	let skipped = 0;
 	served.forEach((part, i) => {
 		const query =
 			part
-				.replace(/::?(?:before|after|placeholder|selection|backdrop|marker|-webkit-[\w-]+)\b/g, "")
-				.replace(/:(?:hover|focus|focus-visible|focus-within|active|visited)\b/g, "")
+				.replace(/::?(?:before|after|placeholder|selection|backdrop|marker|-webkit-[\w-]+)(?![\w-])/g, "")
+				.replace(/:(?:focus-visible|focus-within|hover|focus|active|visited)(?![\w-])/g, "")
 				.trim() || "*";
 		let hit: boolean;
 		try {
 			hit = document.querySelector(query) !== null;
 		} catch {
+			skipped++;
 			return;
 		}
 		all.push(names[i]);
 		if (hit) matched.push(names[i]);
 	});
-	return { all, matched };
+	return { all, matched, skipped };
 }
 
 export type SelectorProbe = ReturnType<typeof probeSelectors>;
 
+/** Per theme, per route: what the theme's stylesheet selected there. */
+export interface SelectorRun {
+	/** Whether music was playing; selectors that depend on playback state flip with it. */
+	playing: boolean | null;
+	themes: Record<string, Record<string, SelectorProbe>>;
+}
+
 /**
- * Selector parts that matched an element somewhere in the baseline run and
- * match nothing on any route now. A part the theme no longer has is a change
- * to the theme, not a lost binding, so only parts present in both count.
+ * Selector parts that matched an element on a route in the baseline run and
+ * match nothing on that run's routes now. Only routes captured by both runs
+ * count, so a partial run is not reported against routes it never visited,
+ * and a part the theme no longer has is a change to the theme, not a loss.
  */
-export function lostSelectors(
-	baseline: Record<string, SelectorProbe>,
-	current: Record<string, SelectorProbe>,
-): { theme: string; selector: string }[] {
+export function lostSelectors(baseline: SelectorRun, current: SelectorRun): { theme: string; selector: string }[] {
 	const lost: { theme: string; selector: string }[] = [];
-	for (const [theme, now] of Object.entries(current)) {
-		const before = baseline[theme];
-		if (!before) continue;
-		const present = new Set(now.all);
-		const matched = new Set(now.matched);
-		for (const selector of new Set(before.matched)) {
+	for (const [theme, nowRoutes] of Object.entries(current.themes)) {
+		const beforeRoutes = baseline.themes[theme];
+		if (!beforeRoutes) continue;
+		const routes = Object.keys(nowRoutes).filter((route) => route in beforeRoutes);
+		const union = (runs: Record<string, SelectorProbe>, key: "all" | "matched") =>
+			new Set(routes.flatMap((route) => runs[route][key]));
+		const present = union(nowRoutes, "all");
+		const matched = union(nowRoutes, "matched");
+		for (const selector of union(beforeRoutes, "matched")) {
 			if (present.has(selector) && !matched.has(selector)) lost.push({ theme, selector });
 		}
 	}
@@ -550,8 +582,8 @@ export interface LiveResult {
 	viewport?: { width: number; height: number; dpr: number };
 	selector?: string;
 	suite?: "classmaps";
-	/** Per theme, the selector parts its stylesheet has and those that matched on any captured route. */
-	selectors?: Record<string, SelectorProbe>;
+	/** What each theme's stylesheet selected on each captured route. */
+	selectors?: SelectorRun;
 	cleanupVerified?: boolean;
 	navigation?: string;
 }
@@ -820,23 +852,38 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 	const routes = opts.routes?.length ? opts.routes : Object.keys(ROUTES);
 	const shots: LiveShot[] = [];
 	const failures: LiveFailure[] = [];
-	const selectors: Record<string, SelectorProbe> = {};
+	const selectors: SelectorRun = {
+		playing: await cdp.eval<boolean | null>(`return window.Spicetify?.Player?.isPlaying?.() ?? null;`),
+		themes: {},
+	};
 
-	/** Which of the active theme's selector parts match something on this route. */
-	const probeTheme = async (theme: string) => {
-		const sourceFile = path.join(REPO, "themes", theme, "index.css");
-		const source = existsSync(sourceFile) ? readFileSync(sourceFile, "utf8") : null;
-		const probe = await cdp.eval<SelectorProbe | null>(`
-      const registry = window.Spicetify.Modules.registry;
-      const entry = registry?.modules?.get?.(${JSON.stringify(theme)})?.entries?.css;
-      if (!entry) return null;
-      const served = registry.localFiles?.get?.(${JSON.stringify(theme)})?.[entry]
-        ?? (await (await fetch(${JSON.stringify(`/modules/${theme}/`)} + entry)).text());
-      return (${probeSelectors.toString()})(served, ${JSON.stringify(source)} ?? served);`);
-		if (!probe) return;
-		const into = (selectors[theme] ??= { all: [], matched: [] });
-		into.all = [...new Set([...into.all, ...probe.all])];
-		into.matched = [...new Set([...into.matched, ...probe.matched])];
+	/** Records which of the active theme's selector parts match something on this route. */
+	const probeTheme = async (theme: string, route: string) => {
+		// Source names only line up when the client runs the repo's version of the theme.
+		const dir = path.join(REPO, "themes", theme);
+		const sourceVersion = existsSync(path.join(dir, "metadata.json"))
+			? JSON.parse(readFileSync(path.join(dir, "metadata.json"), "utf8")).version
+			: null;
+		const source =
+			sourceVersion && sourceVersion === installed.get(theme) && existsSync(path.join(dir, "index.css"))
+				? readFileSync(path.join(dir, "index.css"), "utf8")
+				: null;
+		try {
+			const probe = await cdp.eval<SelectorProbe | null>(`
+        const registry = window.Spicetify.Modules.registry;
+        const entry = registry?.modules?.get?.(${JSON.stringify(theme)})?.entries?.css;
+        if (!entry) return null;
+        let served = registry.localFiles?.get?.(${JSON.stringify(theme)})?.[entry];
+        if (served === undefined) {
+          const res = await fetch(${JSON.stringify(`/modules/${theme}/`)} + entry);
+          if (!res.ok) throw new Error("stylesheet fetch returned " + res.status);
+          served = await res.text();
+        }
+        return (${probeSelectors.toString()})(served, ${JSON.stringify(source)} ?? served);`);
+			if (probe) (selectors.themes[theme] ??= {})[route] = probe;
+		} catch (e) {
+			failures.push({ theme, error: `selector probe on ${route}: ${(e as Error).message.slice(0, 80)}` });
+		}
 	};
 
 	const clientVersion = await cdp.eval<string | null>(
@@ -868,7 +915,7 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 			await cdp.eval(STABILISE);
 			const file = path.join(opts.outDir, `${label}--${surface}.png`);
 			const stable = await cdp.shootStable(file, { selector: opts.selector });
-			if (label !== UNTHEMED) await probeTheme(label);
+			if (label !== UNTHEMED) await probeTheme(label, route);
 			const settingsControls =
 				route === "/preferences"
 					? await cdp.eval<ReturnType<typeof readSettingsControls>>(
@@ -1674,11 +1721,14 @@ function page(opts: {
 	findings: Finding[];
 	bindings: Binding[];
 	lost: { theme: string; selector: string }[];
+	selectorBaseline: boolean;
+	playbackDiffers: boolean;
 	live: LiveResult;
 	capturedAt: string;
 	hasBaseline: boolean;
 }): string {
-	const { changes, findings, bindings, lost, live, capturedAt, hasBaseline } = opts;
+	const { changes, findings, bindings, lost, selectorBaseline, playbackDiffers, live, capturedAt, hasBaseline } =
+		opts;
 	const lostByTheme = new Map<string, string[]>();
 	for (const l of lost) lostByTheme.set(l.theme, [...(lostByTheme.get(l.theme) ?? []), l.selector]);
 	const bindingByTheme = new Map<string, number>();
@@ -1730,7 +1780,7 @@ function page(opts: {
   <div class="shots">${shots.map(shotFigure).join("")}</div>
   ${
 		lostByTheme.has(theme)
-			? `<details class="issues" open><summary>Matched an element in the baseline run, match nothing on any route now</summary>
+			? `<details class="issues" open><summary>Matched an element in the baseline run, match nothing on the same routes now${playbackDiffers ? " (playback state differs from the baseline, so playback-dependent rules may appear)" : ""}</summary>
     <ul>${lostByTheme
 		.get(theme)!
 		.map((selector) => `<li><code>${esc(selector)}</code></li>`)
@@ -1815,7 +1865,7 @@ footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--rule);color:v
   <div class="stat ${findings.length ? "warn" : ""}"><span class="n">${findings.length}</span><span class="k">contrast issues</span></div>
   ${animated.length ? `<div class="stat"><span class="n">${animated.length}</span><span class="k">animated, not tracked</span></div>` : ""}
   <div class="stat ${unbound.length ? "hit" : ""}"><span class="n">${unbound.length}</span><span class="k">themes not binding</span></div>
-  <div class="stat ${lost.length ? "hit" : ""}"><span class="n">${lost.length}</span><span class="k">selectors stopped matching</span></div>
+  <div class="stat ${lost.length ? "hit" : ""}"><span class="n">${selectorBaseline ? lost.length : "–"}</span><span class="k">${selectorBaseline ? "selectors stopped matching" : "selectors, no baseline yet"}</span></div>
 </div>
 
 ${
@@ -1925,18 +1975,37 @@ async function main(): Promise<void> {
 	const findings = auditAll(path.join(REPO, "themes")).findings;
 	const bindings = live.selector ? [] : checkBinding(currentDir, live.shots);
 	const unbound = bindings.filter((b) => !b.bound);
+	// A run without selector results must not leave an older run's file for --accept to promote.
 	if (live.selectors) {
 		writeFileSync(path.join(currentDir, SELECTORS_FILE), JSON.stringify(live.selectors, null, "\t") + "\n");
+	} else {
+		rmSync(path.join(currentDir, SELECTORS_FILE), { force: true });
 	}
-	const baselineSelectors = path.join(baselineDir, SELECTORS_FILE);
-	const lost =
-		live.selectors && existsSync(baselineSelectors)
-			? lostSelectors(JSON.parse(readFileSync(baselineSelectors, "utf8")), live.selectors)
-			: [];
+	const baselineSelectorsFile = path.join(baselineDir, SELECTORS_FILE);
+	const selectorBaseline: SelectorRun | null =
+		live.selectors && existsSync(baselineSelectorsFile)
+			? JSON.parse(readFileSync(baselineSelectorsFile, "utf8"))
+			: null;
+	const lost = selectorBaseline && live.selectors ? lostSelectors(selectorBaseline, live.selectors) : [];
+	const playbackDiffers =
+		!!selectorBaseline &&
+		selectorBaseline.playing !== null &&
+		live.selectors?.playing != null &&
+		selectorBaseline.playing !== live.selectors.playing;
 
 	writeFileSync(
 		path.join(outDir, "index.html"),
-		page({ changes, findings, bindings, lost, live, capturedAt: dateStamp(), hasBaseline }),
+		page({
+			changes,
+			findings,
+			bindings,
+			lost,
+			selectorBaseline: !!selectorBaseline,
+			playbackDiffers,
+			live,
+			capturedAt: dateStamp(),
+			hasBaseline,
+		}),
 	);
 	writeFileSync(
 		path.join(outDir, "report.json"),
@@ -1963,8 +2032,13 @@ async function main(): Promise<void> {
 		}
 	}
 	if (unbound.length) console.log(`not binding: ${[...new Set(unbound.map((u) => u.theme))].join(", ")}`);
-	console.log(`selectors that matched in the baseline and match nothing now: ${lost.length}`);
-	for (const l of lost) console.log(`  ${l.theme}: ${l.selector}`);
+	if (!selectorBaseline) console.log("selectors: no baseline yet, nothing compared");
+	else {
+		console.log(`selectors that matched in the baseline and match nothing now: ${lost.length}`);
+		if (playbackDiffers)
+			console.log("  playback state differs from the baseline; playback-dependent rules may be listed");
+		for (const l of lost) console.log(`  ${l.theme}: ${l.selector}`);
+	}
 	console.log(hasBaseline ? `changed since baseline: ${moved.length}` : "no baseline yet, nothing compared");
 	for (const c of moved) console.log(`  ${c.shot.theme}/${c.shot.surface}: ${(c.changedRatio * 100).toFixed(2)}%`);
 
