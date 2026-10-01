@@ -13,6 +13,14 @@ const componentNames = Object.keys(
 const componentRegexes = componentNames.map((n) => new RegExp(`"data-encore-id":(?:[a-zA-Z_\$][\w\$]*\\.){2}${n}\\b`));
 const componentPairs = [exportedFunctions.map((f) => [f, f]), exportedForwardRefs.map((f) => [(f as any).render, f])]
 	.flat()
-	.map(([s, f]) => [componentNames.find((n, i) => src(s).match(componentRegexes[i])), f]);
+	.map(([s, f]) => {
+		const code = src(s);
+		return [
+			code.includes('"data-encore-id"')
+				? componentNames.find((_, i) => componentRegexes[i].test(code))
+				: undefined,
+			f,
+		];
+	});
 
 export const UI: any = Object.fromEntries(componentPairs);
