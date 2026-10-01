@@ -84,7 +84,8 @@
 	box-shadow: 0 0 5px rgba(200, 200, 200, 0.4);
 }
 
-.main-nowPlayingWidget-coverArt .cover-art {
+.main-nowPlayingWidget-coverArt .cover-art,
+[data-testid="cover-art-button"] .cover-art {
 	width: 62px !important;
 	height: 62px !important;
 	box-shadow: unset;
@@ -320,11 +321,13 @@
    module toggles the root class, so the client is free to re-render the
    cover art without losing the state. */
 .main-nowPlayingWidget-coverArt > .cover-art,
+[data-testid="cover-art-button"] .cover-art,
 #fad-art {
 	animation: rotate-cover_img 24s linear infinite paused;
 }
 
 .turntable-spinning .main-nowPlayingWidget-coverArt > .cover-art,
+.turntable-spinning [data-testid="cover-art-button"] .cover-art,
 .turntable-spinning #fad-art {
 	animation-play-state: running;
 }
