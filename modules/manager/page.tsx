@@ -19,9 +19,10 @@ import {
 	type ManagerModuleRow,
 	type SpotifyAvailabilityStatus,
 } from "./state.ts";
-import { type AutoUpdateApi, type DaemonInfo, pendingCliUpdate } from "./autoUpdate.ts";
+import type { AutoUpdateApi, DaemonInfo } from "./autoUpdate.ts";
 import { retryNotice } from "./notice.ts";
 import { ManagedSpotifyUpdates } from "./managedSpotify.tsx";
+import { SpicetifySelfUpdate } from "./selfUpdate.tsx";
 
 const M = () => client.modules;
 
@@ -250,6 +251,16 @@ export const ManagerPage = () => {
 			}
 		})();
 	};
+	const selfUpdate = (
+		<SpicetifySelfUpdate
+			daemon={daemon}
+			daemonInfo={daemonInfo}
+			setDaemonInfo={setDaemonInfo}
+			cliVersion={state.cliVersion}
+			busy={busy}
+			onAction={onAction}
+		/>
+	);
 
 	const copyToClipboard = async (text: string, done: string) => {
 		if (!navigator.clipboard) {
@@ -363,7 +374,9 @@ export const ManagerPage = () => {
 					daemonAvailable={daemon !== null}
 					channel={state.managedSpotify}
 					installed={state.spotifyVersion}
-				/>
+				>
+					{selfUpdate}
+				</ManagedSpotifyUpdates>
 			) : (
 				(() => {
 					const sup = effectiveSupport(state, support);
@@ -411,7 +424,6 @@ export const ManagerPage = () => {
 										: "One-step Update & Apply needs a current Spicetify daemon and wrapper.";
 						}
 					})();
-					const pendingCli = pendingCliUpdate(daemonInfo, state.cliVersion);
 					const updateMessage = (() => {
 						switch (updateStatus.kind) {
 							case "idle":
@@ -456,34 +468,7 @@ export const ManagerPage = () => {
 								</p>
 							)}
 							<p className="spicetify-manager-note">{daemonMessage}</p>
-							{pendingCli && (
-								<p className="spicetify-manager-update spicetify-manager-update--ready">
-									{`Spicetify ${pendingCli} is installed. Apply to use it in Spotify.`}
-								</p>
-							)}
-							{daemon?.setAutoUpdate && typeof daemonInfo?.autoUpdate === "boolean" && (
-								<label className="spicetify-manager-toggle">
-									<input
-										type="checkbox"
-										checked={daemonInfo.autoUpdate}
-										disabled={busy}
-										onChange={(e) => {
-											const on = e.currentTarget.checked;
-											onAction(`automatic updates ${on ? "on" : "off"}`, async () => {
-												await daemon.setAutoUpdate!(on);
-												setDaemonInfo((prev) => (prev ? { ...prev, autoUpdate: on } : prev));
-											});
-										}}
-									/>
-									Install Spicetify updates automatically
-								</label>
-							)}
-							{daemonInfo?.autoUpdate && daemonInfo.autoUpdateActive === false && (
-								<p className="spicetify-manager-note">
-									This copy of Spicetify isn't in the installer's folder, so it doesn't update itself.
-									Update it the way you installed it.
-								</p>
-							)}
+							{selfUpdate}
 							{advice.kind === "ready" && updateAndApplySupported === null && (
 								<p className="spicetify-manager-note">{SPICETIFY_UPGRADE.instructions}</p>
 							)}
@@ -495,7 +480,6 @@ export const ManagerPage = () => {
 								</p>
 							)}
 							<div className="spicetify-manager-update-actions">
-								{pendingCli && daemon && run("apply", () => daemon.apply())}
 								{action("block", "blockUpdates", "spicetify spotify-updates block")}
 								{action("allow", "unblockUpdates", "spicetify spotify-updates unblock")}
 								{advice.kind === "ready" &&
