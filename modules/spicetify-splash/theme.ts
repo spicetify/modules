@@ -102,6 +102,6 @@ function pickFrom(rules: CSSRuleList, keyframes: Map<string, CSSKeyframesRule>, 
 function absolutize(css: string, base: string | null): string {
 	if (!base) return css;
 	return css.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g, (match, _quote, url: string) =>
-		/^(?:[a-z][\w+.-]*:|\/|#)/i.test(url) ? match : `url("${new URL(url, base).href}")`,
+		/^(?:[a-z][\w+.-]*:|\/|#)/i.test(url) || !URL.canParse(url, base) ? match : `url("${new URL(url, base).href}")`,
 	);
 }
