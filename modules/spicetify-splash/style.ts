@@ -17,7 +17,7 @@ export const CSS = `
 	--_logo-size: var(--splash-logo-size, 96px);
 	--_image-size: var(--splash-image-size, 160px);
 	--_motion: var(--splash-motion-duration, 3.2s);
-	--_exit: var(--splash-exit-duration, 450ms);
+	--_exit: var(--splash-exit-duration, 250ms);
 	position: fixed !important;
 	inset: 0 !important;
 	width: 100vw !important;

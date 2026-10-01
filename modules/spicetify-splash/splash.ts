@@ -8,7 +8,7 @@ import { getSplashImage } from "./image.ts";
 import { CSS } from "./style.ts";
 import { getCustomCss, getThemeSnapshot, saveThemeSnapshot } from "./theme.ts";
 
-const DEFAULT_EXIT = 450;
+const DEFAULT_EXIT = 250;
 
 export interface SplashOptions {
 	/** Show the splash on demand: it stays until clicked or Escape, and never records theme styles. */
@@ -121,7 +121,7 @@ export function showSplash(options: SplashOptions = {}) {
 				recordTheme = true;
 				finish();
 			};
-			poll = setInterval(check, 100);
+			poll = setInterval(check, 25);
 			check();
 		},
 	};

@@ -33,7 +33,7 @@ Set these on `.spicetify-splash`. Setting them on `:root` also works, unless you
 | `--splash-caption`         | `""`                             | Caption text, as a CSS string                       |
 | `--splash-font`            | inherited                        | Caption font                                        |
 | `--splash-motion-duration` | `3.2s`                           | Flame sway period; the glow drift scales from it    |
-| `--splash-exit-duration`   | `450ms`                          | Fade-out length                                     |
+| `--splash-exit-duration`   | `250ms`                          | Fade-out length                                     |
 
 ### Structure
 
