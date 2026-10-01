@@ -19,6 +19,7 @@ const settingsPageModules = [
 	"lyrics-plus",
 	"popup-lyrics",
 	"shuffle-plus",
+	"spicetify-splash",
 	"trashbin",
 ] as const;
 

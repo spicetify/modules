@@ -1,0 +1,11 @@
+{
+	"name": "spicetify-splash",
+	"kind": "extension",
+	"version": "0.1.0",
+	"authors": ["spicetify"],
+	"description": "A splash screen while Spotify, your modules, and your theme start up.",
+	"entries": { "js": "index.js" },
+	"hasMixins": true,
+	"tree": true,
+	"dependencies": { "stdlib": "^1.13.0" }
+}
