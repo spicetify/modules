@@ -3,16 +3,14 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { LOGO } from "./logo.ts";
-
 const KEY = "spicetify:splash:image";
 const MAX_BYTES = 512 * 1024;
 const IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml"]);
 const IMAGE_DATA = /^data:image\/(?:png|jpeg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/;
 
-export function getSplashImage(): string {
+export function getSplashImage(): string | null {
 	const image = localStorage.getItem(KEY);
-	return image && image.length < MAX_BYTES * 1.4 && IMAGE_DATA.test(image) ? image : LOGO;
+	return image && image.length < MAX_BYTES * 1.4 && IMAGE_DATA.test(image) ? image : null;
 }
 
 export function saveSplashImage(image: string): void {
