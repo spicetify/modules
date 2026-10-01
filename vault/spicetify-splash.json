@@ -7,6 +7,14 @@
 			"providers": [],
 			"checksum": "sha256:bb0340cced3ac6939b6e612622ab928c5150bd9cda80ca2c43671a3f589bf1d5",
 			"updatedAt": "2026-10-01"
+		},
+		"0.1.1": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/spicetify-splash@0.1.1/spicetify-splash@0.1.1.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:583375abfef2ac26e0c7f9ea02fee850a645bc673e5e12e711f259b9a9517d66",
+			"updatedAt": "2026-10-01"
 		}
 	},
 	"metadata": {
