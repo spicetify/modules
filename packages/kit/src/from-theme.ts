@@ -67,7 +67,7 @@ export async function runFromTheme(argv: string[], cwd = process.cwd()): Promise
 		`${JSON.stringify(
 			{
 				name,
-				tags: ["theme"],
+				kind: "theme",
 				version: "0.1.0",
 				authors: [author],
 				description: `${path.basename(themeDir)} theme, migrated from the classic format`,
