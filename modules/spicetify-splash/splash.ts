@@ -86,7 +86,7 @@ export function showSplash(options: SplashOptions = {}) {
 		custom.remove();
 		if (recordTheme) {
 			recordTheme = false;
-			saveThemeSnapshot(CSS, customCss);
+			whenIdle(() => saveThemeSnapshot(CSS, customCss));
 		}
 	}
 
@@ -125,6 +125,13 @@ export function showSplash(options: SplashOptions = {}) {
 			check();
 		},
 	};
+}
+
+// Reading computed styles right after the splash leaves forces a full style
+// recalculation while the client is still settling.
+function whenIdle(fn: () => void) {
+	if ("requestIdleCallback" in window) window.requestIdleCallback(fn, { timeout: 5000 });
+	else setTimeout(fn, 0);
 }
 
 // Theme sheets are adopted, and adopted sheets cascade after every <style>,
