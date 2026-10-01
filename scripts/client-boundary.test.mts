@@ -4,6 +4,7 @@ import path from "node:path";
 import { test } from "node:test";
 
 import { checkSource } from "../packages/kit/src/check.ts";
+import { kindOfMeta } from "../packages/kit/src/vault-metadata.ts";
 
 const modulesRoot = path.resolve("modules");
 
@@ -28,7 +29,7 @@ test("hosted extensions use the stdlib client capability boundary", () => {
 		const directory = path.join(modulesRoot, entry);
 		if (!statSync(directory).isDirectory()) continue;
 		const metadata = JSON.parse(readFileSync(path.join(directory, "metadata.json"), "utf8"));
-		if (metadata.kind !== "extension") continue;
+		if (kindOfMeta(metadata) !== "extension") continue;
 
 		for (const file of sourceFiles(directory)) {
 			const relative = path.relative(directory, file);
