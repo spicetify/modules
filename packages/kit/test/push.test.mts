@@ -14,6 +14,8 @@ import {
 	type LocalModuleRecord,
 	pushExpression,
 } from "../src/push.ts";
+import { KIND_OF_META_SOURCE, kindOfMeta } from "../src/vault-metadata.ts";
+import { KIND_CASES } from "./kind-cases.ts";
 
 // Build a record whose serialized size (code units) is ~bytes via a filler.
 function recOfSize(bytes: number): LocalModuleRecord {
@@ -104,5 +106,52 @@ for (const declared of [{ kind: "theme" }, { tags: ["theme"] }]) {
 		});
 		assert.equal(JSON.parse(raw).loaded, true);
 		assert.deepEqual(enabled, [], "the old theme stays unloaded");
+	});
+}
+
+test("the in-page kind rule matches kindOfMeta", () => {
+	const inPage = runInNewContext(KIND_OF_META_SOURCE) as (meta: unknown) => unknown;
+	for (const meta of KIND_CASES) assert.equal(inPage(meta), kindOfMeta(meta), JSON.stringify(meta));
+	assert.equal(inPage(undefined), undefined);
+});
+
+// Installing unloads every other module, so what push re-enables shows which
+// modules it judged to be themes.
+async function reenabledAfterPush(pushed: Record<string, unknown>, other: Record<string, unknown>) {
+	const modules = [
+		{ identifier: "other", ...other },
+		{ identifier: "pushed", ...pushed },
+	];
+	const state = new Set(["other"]);
+	const enabled: string[] = [];
+	const Modules = {
+		manifest: { modules },
+		report: { failed: {} },
+		list: () => modules.map((m) => ({ identifier: m.identifier, loaded: state.has(m.identifier) })),
+		installLocal: async (id: string) => {
+			state.clear();
+			state.add(id);
+			return {};
+		},
+		enable: async (id: string) => {
+			enabled.push(id);
+			state.add(id);
+		},
+	};
+	const rec = { metadata: { identifier: "pushed", version: "0.1.0", ...pushed }, files: {} } as never;
+	await runInNewContext(pushExpression(rec, "pushed", "n", false), {
+		Spicetify: { Modules },
+		setTimeout,
+		JSON,
+		globalThis: { Spicetify: { Modules } },
+	});
+	return enabled.includes("other");
+}
+
+for (const meta of KIND_CASES) {
+	test(`push judges ${JSON.stringify(meta)} a theme exactly when kindOfMeta does`, async () => {
+		const theme = kindOfMeta(meta) === "theme";
+		assert.equal(await reenabledAfterPush(meta, { kind: "theme" }), !theme, "as the pushed module");
+		assert.equal(await reenabledAfterPush({ kind: "theme" }, meta), !theme, "as an installed module");
 	});
 }

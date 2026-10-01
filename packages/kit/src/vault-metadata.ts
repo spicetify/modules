@@ -44,6 +44,15 @@ export const kindOfMeta = (meta: Record<string, unknown>): VaultKind | undefined
 	return KINDS.find((kind) => tags.includes(kind));
 };
 
+// kindOfMeta as JavaScript source, for expressions evaluated inside the
+// client where kit code cannot be imported. It also accepts a missing meta.
+export const KIND_OF_META_SOURCE = `((meta) => {
+	const kinds = ${JSON.stringify(KINDS)};
+	if (typeof meta?.kind === "string" && kinds.includes(meta.kind)) return meta.kind;
+	const tags = Array.isArray(meta?.tags) ? meta.tags : [];
+	return kinds.find((kind) => tags.includes(kind));
+})`;
+
 // metadata.json authors are plain names; author objects (with a github)
 // pass through, so an artifact may declare either.
 const normalizeAuthors = (authors: unknown[]): VaultAuthor[] =>
