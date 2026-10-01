@@ -104,12 +104,13 @@ test("theme template: check-only scripts, no TypeScript or React devDeps, no tes
 	assert.equal(existsSync(path.join(project, "test")), false);
 });
 
-test("theme template: css-only shape converges with from-theme (tags, entries, dependencies)", async () => {
+test("theme template: css-only shape converges with from-theme (kind, entries, dependencies)", async () => {
 	const root = freshRoot();
 	await runCreate(["demo-theme", "--template", "theme"], root);
 	const project = path.join(root, "demo-theme");
 	const meta = JSON.parse(readFileSync(path.join(project, "metadata.json"), "utf8"));
-	assert.deepEqual(meta.tags, ["theme"]);
+	assert.equal(meta.kind, "theme");
+	assert.equal(meta.tags, undefined);
 	assert.deepEqual(meta.entries, { css: "index.css" });
 	assert.deepEqual(meta.dependencies, {});
 	assert.equal(existsSync(path.join(project, "index.ts")), false);

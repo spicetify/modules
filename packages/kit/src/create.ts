@@ -229,7 +229,7 @@ function writeThemeModule(
 		`${JSON.stringify(
 			{
 				name,
-				tags: ["theme"],
+				kind: "theme",
 				version: "0.1.0",
 				authors: [author],
 				description,
@@ -365,7 +365,7 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 		return;
 	}
 
-	const tag = template === "app" ? "app" : "extension";
+	const kind = template === "app" ? "app" : "extension";
 	// Extensions are behavior-only; templates that render a page ship css.
 	const hasCss = template !== "extension";
 	const entries = hasCss ? { js: "index.js", css: "index.css" } : { js: "index.js" };
@@ -375,7 +375,7 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 		`${JSON.stringify(
 			{
 				name,
-				tags: [tag],
+				kind,
 				version: "0.1.0",
 				authors: [author],
 				description,
