@@ -7,6 +7,7 @@ import { warn } from "../logger.ts";
 import { sourceOf } from "../util.ts";
 import { postWebpackRequireHooks, WebpackModule, WebpackRequire, webpackRequire } from "../wpunpk.mix.ts";
 import { createCaptureReadiness } from "./capture-readiness.ts";
+import { watchRegistryQuiet } from "./registry-quiet.ts";
 
 export let modules: Array<[PropertyKey, WebpackModule]>;
 export let exports: Array<Record<string, any>>;
@@ -73,18 +74,22 @@ Object.assign(CHUNKS, {
 // executed by capture time. Lazy route chunks go through the runtime's own
 // script loader (wpr.l) from then on.
 postWebpackRequireHooks.push((wpr: any) => {
+	let loading = 0;
 	if (typeof wpr?.l === "function") {
 		const load = wpr.l.bind(wpr);
-		wpr.l = (url: string, done: (event: unknown) => unknown, key?: string, chunkId?: unknown) =>
-			load(
+		wpr.l = (url: string, done: (event: unknown) => unknown, key?: string, chunkId?: unknown) => {
+			loading++;
+			return load(
 				url,
 				(event: unknown) => {
+					loading--;
 					resolveChunk(new URL(url, location.href).pathname);
 					return done(event);
 				},
 				key,
 				chunkId,
 			);
+		};
 	}
 	// Chunk scripts that finished loading before capture. The xpui entry
 	// chunks are deliberately excluded: they are gated below on registry
@@ -97,23 +102,18 @@ postWebpackRequireHooks.push((wpr: any) => {
 		}
 	}
 	// Capture can fire while boot is still registering modules (xpui-modules
-	// and friends land after the runtime is up, and the analysis needles live
-	// there). The analysis below snapshots wpr.m once, so hold the xpui
-	// promises until the registry has been quiet for a few ticks — with a
-	// hard cap so a pathological boot still resolves.
-	let last = -1;
-	let stable = 0;
-	let ticks = 0;
-	const settle = setInterval(() => {
-		const count = Object.keys(wpr?.m ?? {}).length;
-		stable = count === last ? stable + 1 : 0;
-		last = count;
-		if (stable >= 3 || ++ticks > 100) {
-			clearInterval(settle);
+	// and the lazy chunks the client requests right after it land later, and
+	// analysis needles such as GenericModal live there). The analysis below
+	// snapshots wpr.m once, so hold the xpui promises until the registry has
+	// been quiet, with no chunk in flight, for 300ms.
+	watchRegistryQuiet({
+		count: () => Object.keys(wpr?.m ?? {}).length,
+		pending: () => loading,
+		onQuiet: () => {
 			resolveChunk("/vendor~xpui.js");
 			resolveChunk("/xpui.js");
-		}
-	}, 100);
+		},
+	});
 });
 
 // Capture subscribers run synchronously right after the analysis lands, so
@@ -124,7 +124,7 @@ postWebpackRequireHooks.push((wpr: any) => {
 let captured = false;
 const captureSubscribers: Array<() => void> = [];
 const webpackCaptureReadiness = createCaptureReadiness({
-	// Registry quiescence caps at about 10.1s. Leave room for its last tick,
+	// Registry quiescence caps at about 10s. Leave room for its last tick,
 	// then release degraded so a changed runtime cannot deadlock all modules.
 	timeoutMs: 12000,
 	onTimeout: () => warn("[stdlib] capture health: webpack capture timed out; module surfaces will be degraded"),
