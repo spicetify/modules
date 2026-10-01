@@ -786,6 +786,9 @@ const STABILISE = `
          Removed rather than paused: pausing freezes each one wherever it had
          got to, which differs every run and diffs against itself. */
       *, *::before, *::after { animation: none !important; transition: none !important; }
+      /* Canvas loops and music videos keep playing while the track is paused,
+         and a paused video stops on a different frame every run. */
+      video { visibility: hidden !important; }
     \`;
     document.head.appendChild(s);
   }
@@ -2009,6 +2012,9 @@ async function main(): Promise<void> {
 		live = JSON.parse(readFileSync(path.join(outDir, "shots.json"), "utf8"));
 		console.log(`reusing ${live.shots.length} frames already on disk`);
 	} else {
+		// Frames left by an earlier run, say of a theme no longer installed,
+		// would otherwise be compared and promoted by --accept with this run.
+		for (const f of readdirSync(currentDir)) if (f.endsWith(".png")) rmSync(path.join(currentDir, f));
 		console.log("capturing from the live client…");
 		live = suite
 			? await captureClassmaps({ outDir: currentDir, port: flag("port") ? Number(flag("port")) : undefined })
