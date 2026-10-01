@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/spicetify/modules/compare/kit@0.4.3...kit@0.4.4) (2026-10-01)
+
+
+### Bug Fixes
+
+* **kit:** read module kind through kindOfMeta in push and the stdlib boundary ([a2e012d](https://github.com/spicetify/modules/commit/a2e012d12efe1499d554d3555bb49bc58a6be42d))
+
 ## [0.4.3](https://github.com/spicetify/modules/compare/kit@0.4.2...kit@0.4.3) (2026-10-01)
 
 
