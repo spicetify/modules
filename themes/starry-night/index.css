@@ -168,7 +168,8 @@
 	width: 100%;
 }
 
-.main-nowPlayingWidget-coverArt .cover-art {
+.main-nowPlayingWidget-coverArt .cover-art,
+[data-testid="cover-art-button"] .cover-art {
 	height: 220px !important;
 	width: 220px !important;
 	margin: auto;
@@ -176,7 +177,8 @@
 	box-shadow: 0 0 0px var(--spice-rgb-shadow);
 }
 
-.main-nowPlayingWidget-coverArt .cover-art img {
+.main-nowPlayingWidget-coverArt .cover-art img,
+[data-testid="cover-art-button"] .cover-art img {
 	border-radius: 50%;
 	animation: spin 25s linear infinite;
 	animation-play-state: paused;
@@ -186,6 +188,10 @@
 
 [data-testid="now-playing-bar"]:has([data-testid="control-button-playpause"][aria-label="Pause"])
 	.main-nowPlayingWidget-coverArt
+	.cover-art
+	img,
+[data-testid="now-playing-bar"]:has([data-testid="control-button-playpause"][aria-label="Pause"])
+	[data-testid="cover-art-button"]
 	.cover-art
 	img {
 	animation-play-state: running !important;
@@ -207,7 +213,8 @@
 	background-color: #00000000;
 }
 
-.main-nowPlayingWidget-coverArt {
+.main-nowPlayingWidget-coverArt,
+[data-testid="cover-art-button"] > div {
 	width: 100%;
 	height: 100%;
 	padding-top: 5px;
