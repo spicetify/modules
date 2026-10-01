@@ -481,7 +481,8 @@ html.spicetify-themed .Root__top-container {
 }
 
 /* customise player cover art */
-.main-nowPlayingWidget-coverArt .cover-art {
+.main-nowPlayingWidget-coverArt .cover-art,
+[data-testid="cover-art-button"] .cover-art {
 	width: var(--bar-cover-art-size) !important;
 	height: var(--bar-cover-art-size) !important;
 	background-color: transparent;
