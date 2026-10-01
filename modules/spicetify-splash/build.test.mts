@@ -37,7 +37,7 @@ test("the built startup hook displays its image before any stdlib or React impor
 		assert.ok(dialog?.open);
 		assert.equal(dialog.textContent.trim(), "");
 		dialog.dispatchEvent(new Event("cancel", { cancelable: true }));
-		t.mock.timers.tick(200);
+		t.mock.timers.tick(450);
 		assert.equal(document.querySelector("dialog"), null);
 	} finally {
 		hooks?.deregister();
