@@ -282,7 +282,8 @@ const KINDS: ModuleKind[] = ["extension", "theme", "snippet", "app", "lib"];
 // is inert: it never joins the single-theme contest.
 export const kindOf = (meta: { kind?: string; tags?: string[] } | undefined): ModuleKind => {
 	if (meta?.kind && (KINDS as string[]).includes(meta.kind)) return meta.kind as ModuleKind;
-	return KINDS.find((kind) => meta?.tags?.includes(kind)) ?? "extension";
+	const tags = Array.isArray(meta?.tags) ? meta.tags : [];
+	return KINDS.find((kind) => tags.includes(kind)) ?? "extension";
 };
 
 // Vault version keys carry a "+cm-<classmap>-<hash>" build-metadata suffix
