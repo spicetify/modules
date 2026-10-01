@@ -14,6 +14,7 @@
  *
  *   node scripts/theme-report.ts                  capture, compare, write
  *   node scripts/theme-report.ts --accept         make this run the baseline
+ *   node scripts/theme-report.ts --track spotify:track:…  show this track paused instead of the default
  *   node scripts/theme-report.ts --no-capture     rebuild the page from disk
  *   node scripts/theme-report.ts --no-open        write without opening a browser
  *   node scripts/theme-report.ts --themes flow    just one
@@ -812,8 +813,53 @@ async function settle(cdp: Cdp, before: string): Promise<string> {
 	return main;
 }
 
+/** Loaded paused into the player for every capture, so the playbar shows the same thing each run. */
+export const REPORT_TRACK = "spotify:track:0DiWol3AO6WpXZgp0goxAV";
+
+/**
+ * Runs in the real client. Loads `target` (from its context when given) with
+ * the client muted, pauses it the moment it becomes the current item when
+ * `paused`, seeks to `position`, and puts the mute state back. Returns what
+ * was playing before, for a later call to restore.
+ */
+export async function swapPlayback(target: { uri: string; context?: string }, position: number, paused: boolean) {
+	const api = window.Spicetify.Platform.PlayerAPI;
+	const player = window.Spicetify.Player;
+	const until = async (test: () => boolean) => {
+		const end = Date.now() + 5000;
+		while (Date.now() < end && !test()) await new Promise((r) => setTimeout(r, 10));
+	};
+	const state = api.getState();
+	const previous = {
+		uri: state.item?.uri as string | undefined,
+		context: state.context?.uri as string | undefined,
+		position: state.positionAsOfTimestamp as number,
+		paused: state.isPaused as boolean,
+	};
+	const muted = player.getMute();
+	player.setMute(true);
+	try {
+		await api.play(
+			{ uri: target.context ?? target.uri },
+			{},
+			target.context ? { skipTo: { uri: target.uri } } : {},
+		);
+		await until(() => api.getState().item?.uri === target.uri);
+		if (paused) {
+			await api.pause();
+			await until(() => api.getState().isPaused);
+		}
+		await api.seekTo(position);
+	} finally {
+		player.setMute(muted);
+	}
+	return previous;
+}
+
 export interface LiveOptions {
 	outDir: string;
+	/** Track to show paused in the playbar; the previous playback is restored afterwards. */
+	track?: string;
 	selector?: string;
 	port?: number;
 	themes?: string[];
@@ -936,7 +982,20 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 		}
 	};
 
+	let previousPlayback: Awaited<ReturnType<typeof swapPlayback>> | null = null;
 	try {
+		if (opts.track) {
+			try {
+				previousPlayback = await cdp.eval<Awaited<ReturnType<typeof swapPlayback>>>(
+					`return await (${swapPlayback.toString()})(${JSON.stringify({ uri: opts.track })}, 0, true);`,
+				);
+			} catch (e) {
+				failures.push({
+					theme: "(playback)",
+					error: `could not load ${opts.track}: ${(e as Error).message.slice(0, 80)}`,
+				});
+			}
+		}
 		if (opts.includeUnthemed && known.active) {
 			const before = await mainColour(cdp);
 			// Transient unload, not disable: disable now writes the persisted
@@ -977,6 +1036,14 @@ export async function captureLive(opts: LiveOptions): Promise<LiveResult> {
 			await tour(theme, scheme, main);
 		}
 	} finally {
+		if (previousPlayback?.uri) {
+			const { uri, context, position, paused } = previousPlayback;
+			await cdp
+				.eval(
+					`return await (${swapPlayback.toString()})(${JSON.stringify({ uri, context })}, ${position}, ${paused});`,
+				)
+				.catch((e: Error) => console.error(`could not restore playback: ${e.message}`));
+		}
 		if (restoreTo) {
 			await cdp
 				.eval(
@@ -1953,6 +2020,7 @@ async function main(): Promise<void> {
 					routes: list("routes"),
 					candidates: themeIds(),
 					includeUnthemed: true,
+					track: flag("track") ?? REPORT_TRACK,
 				});
 		writeFileSync(path.join(outDir, "shots.json"), JSON.stringify(live, null, "\t") + "\n");
 		for (const f of live.failures) console.error(`  FAILED ${f.theme}: ${f.error}`);
