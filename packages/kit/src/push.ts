@@ -275,9 +275,16 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 	// Refuse an oversized install before opening the socket (U7), so the failure
 	// is a named cause here rather than an opaque client-side quota error.
 	checkQuota(rec);
-	// The whole exchange runs in the client: disable the old instance, install
-	// the fresh content, and re-enable anything the unload cascade took down.
-	const expr = `(async () => {
+	return evaluate(port, pushExpression(rec, id, nonce, stamped));
+}
+
+/**
+ * The expression push evaluates in the client: it installs the record, then
+ * re-enables anything the unload cascade took down, except other themes when
+ * the pushed module is one.
+ */
+export function pushExpression(rec: LocalModuleRecord, id: string, nonce: string, stamped: boolean): string {
+	return `(async () => {
 		${AWAIT_LOADER}
 		if (!M) return JSON.stringify({ error: "loader not ready" });
 		const rec = ${JSON.stringify(rec)};
@@ -292,8 +299,10 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 		if (reenabled) await (M.reload ?? M.enable)(id);
 		// Re-enabling a theme the loader just unloaded would fight the
 		// single-active-theme invariant and knock the pushed theme back off.
-		const pushedIsTheme = (rec.metadata.tags ?? []).includes("theme");
-		const isTheme = (mid) => ((M.manifest?.modules?.find((m) => m.identifier === mid)?.tags) ?? []).includes("theme");
+		// metadata.json says "kind"; modules published before it carry "tags".
+		const themed = (meta) => meta?.kind === "theme" || (meta?.tags ?? []).includes("theme");
+		const pushedIsTheme = themed(rec.metadata);
+		const isTheme = (mid) => themed(M.manifest?.modules?.find((m) => m.identifier === mid));
 		for (const other of before) {
 			if (pushedIsTheme && isTheme(other)) continue;
 			const s = M.list().find((m) => m.identifier === other);
@@ -309,8 +318,6 @@ export function push(rec: LocalModuleRecord, id: string, port: string): Promise<
 			reenabled,
 		});
 	})()`;
-
-	return evaluate(port, expr);
 }
 
 export type RemoveOutcome =

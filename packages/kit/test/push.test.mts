@@ -5,8 +5,15 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { runInNewContext } from "node:vm";
 
-import { checkQuota, estimateRecordSize, interpretResult, type LocalModuleRecord } from "../src/push.ts";
+import {
+	checkQuota,
+	estimateRecordSize,
+	interpretResult,
+	type LocalModuleRecord,
+	pushExpression,
+} from "../src/push.ts";
 
 // Build a record whose serialized size (code units) is ~bytes via a filler.
 function recOfSize(bytes: number): LocalModuleRecord {
@@ -52,3 +59,50 @@ test("interpretResult: a normal value passes through unchanged", () => {
 	const out = interpretResult({ result: { result: { value: '{"loaded":true}' } } });
 	assert.deepEqual(out, { value: '{"loaded":true}' });
 });
+
+// A loader stand-in: installing a theme unloads the other loaded themes, as
+// the real registry does.
+function fakeLoader(modules: { identifier: string; kind?: string; tags?: string[] }[], loaded: string[]) {
+	const state = new Set(loaded);
+	const enabled: string[] = [];
+	const isTheme = (m?: { kind?: string; tags?: string[] }) =>
+		m?.kind === "theme" || (m?.tags ?? []).includes("theme");
+	const Modules = {
+		manifest: { modules },
+		report: { failed: {} },
+		list: () => modules.map((m) => ({ identifier: m.identifier, loaded: state.has(m.identifier) })),
+		installLocal: async (id: string, rec: { metadata: { kind?: string; tags?: string[] } }) => {
+			if (isTheme(rec.metadata))
+				for (const m of modules) if (m.identifier !== id && isTheme(m)) state.delete(m.identifier);
+			state.add(id);
+			return {};
+		},
+		enable: async (id: string) => {
+			enabled.push(id);
+			state.add(id);
+		},
+	};
+	return { Modules, enabled };
+}
+
+for (const declared of [{ kind: "theme" }, { tags: ["theme"] }]) {
+	test(`pushing a theme leaves the other theme off (${Object.keys(declared)[0]})`, async () => {
+		const { Modules, enabled } = fakeLoader(
+			[
+				{ identifier: "old-theme", ...declared },
+				{ identifier: "new-theme", ...declared },
+				{ identifier: "bookmark", kind: "extension" },
+			],
+			["old-theme", "bookmark"],
+		);
+		const rec = { metadata: { identifier: "new-theme", version: "0.1.0", ...declared }, files: {} } as never;
+		const raw = await runInNewContext(pushExpression(rec, "new-theme", "n", false), {
+			Spicetify: { Modules },
+			setTimeout,
+			JSON,
+			globalThis: { Spicetify: { Modules } },
+		});
+		assert.equal(JSON.parse(raw).loaded, true);
+		assert.deepEqual(enabled, [], "the old theme stays unloaded");
+	});
+}
