@@ -15,6 +15,8 @@ import {
 	searchHaystack,
 	type VaultModule,
 } from "./catalog.ts";
+import { kindOfMeta } from "../../packages/kit/src/vault-metadata.ts";
+import { KIND_CASES } from "../../packages/kit/test/kind-cases.ts";
 
 const mod = (over: Partial<VaultModule> = {}): VaultModule => ({
 	id: "sample",
@@ -104,6 +106,12 @@ describe("card derivations", () => {
 		assert.equal(kindOf({}), "extension");
 		assert.equal(kindOf({ kind: "nonsense" }), "extension");
 		assert.equal(kindOf({ tags: ["retro", "dark"] }), "extension");
+	});
+
+	it("kindOf follows the kit's kindOfMeta, defaulting to extension", () => {
+		for (const meta of KIND_CASES) {
+			assert.equal(kindOf(meta as never), kindOfMeta(meta) ?? "extension", JSON.stringify(meta));
+		}
 	});
 
 	it("displayVersion strips the classmap build-metadata suffix", () => {
