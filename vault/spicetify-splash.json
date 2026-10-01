@@ -1,0 +1,24 @@
+{
+	"v": {
+		"0.1.0": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/spicetify-splash@0.1.0/spicetify-splash@0.1.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:bb0340cced3ac6939b6e612622ab928c5150bd9cda80ca2c43671a3f589bf1d5",
+			"updatedAt": "2026-10-01"
+		}
+	},
+	"metadata": {
+		"name": "spicetify-splash",
+		"description": "A splash screen while Spotify, your modules, and your theme start up.",
+		"authors": [
+			{
+				"name": "spicetify"
+			}
+		],
+		"kind": "extension",
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/spicetify-splash.png",
+		"license": "GPL-3.0-or-later"
+	}
+}
