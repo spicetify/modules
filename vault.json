@@ -4610,6 +4610,14 @@
 					"providers": [],
 					"checksum": "sha256:5186cc1d38a71d24d499e4d5dd5a597992b5a66f6b52dc8180441ecfdf7b33d1",
 					"updatedAt": "2026-08-04"
+				},
+				"0.1.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/turntable@0.1.1/turntable@0.1.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:1fe2e539381943841208d2468c32cd8efc164da489baedeeefdad21cfe8881a1",
+					"updatedAt": "2026-10-02"
 				}
 			},
 			"metadata": {
@@ -4621,7 +4629,8 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/turntable.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"webnowplaying": {
