@@ -457,8 +457,8 @@ export function readSettingsControls() {
  * bound when its element exists. Parts the engine cannot query are counted in
  * `skipped` rather than checked. `keyCss` names the parts: the theme's source,
  * whose stable class names do not change between Spotify builds the way the
- * served (css-mapped) ones do. It is only used when it splits into the same
- * number of parts.
+ * served (css-mapped) ones do. It is only used when every part has the same
+ * shape as its served counterpart once class names are blanked out.
  */
 export function probeSelectors(servedCss: string, keyCss: string = servedCss) {
 	const split = (list: string) => {
@@ -499,7 +499,10 @@ export function probeSelectors(servedCss: string, keyCss: string = servedCss) {
 	};
 	const served = parts(servedCss);
 	const keyed = parts(keyCss);
-	const names = keyed.length === served.length ? keyed : served;
+	// The css-map only renames classes, so matching parts have the same shape once classes are blanked.
+	const shape = (part: string) => part.replace(/\.[\w-]+/g, ".c");
+	const aligned = keyed.length === served.length && keyed.every((part, i) => shape(part) === shape(served[i]));
+	const names = aligned ? keyed : served;
 	const all: string[] = [];
 	const matched: string[] = [];
 	let skipped = 0;
