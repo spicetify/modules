@@ -185,6 +185,15 @@ describe("selector binding", () => {
 		assert.deepEqual(result, { all: [".main-stable"], matched: [".main-stable"], skipped: 0 });
 	});
 
+	it("keeps the served names when the source does not line up rule for rule", () => {
+		const result = probe(
+			`<div class="hashed123"><span></span></div>`,
+			".hashed123 span { color: red }",
+			"[data-testid=x] { color: red }",
+		);
+		assert.deepEqual(result.all, [".hashed123 span"]);
+	});
+
 	it("flags only selectors that matched before, still exist, and match nothing now on the same routes", () => {
 		const run = (themes: SelectorRun["themes"]): SelectorRun => ({ playing: true, themes });
 		const baseline = run({
