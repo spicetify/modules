@@ -14,7 +14,8 @@
 	"v": {
 		"0.1.0": {
 			"artifacts": [
-				"https://github.com/Heyian/track-playlist-preview/releases/download/v0.1.0/track-playlist-preview@0.1.0.zip"
+				"https://github.com/Heyian/track-playlist-preview/releases/download/v0.1.0/track-playlist-preview@0.1.0.zip",
+				"https://github.com/spicetify/modules/releases/download/mirror/track-playlist-preview/track-playlist-preview@0.1.0.zip"
 			],
 			"checksum": "sha256:9ff5fee854dbf76534337330f53c75adc709a2d26cc0291b8474d1727010bc39",
 			"updatedAt": "2026-09-29"
