@@ -107,7 +107,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		const trackName = item.name || item.metadata?.title || "Unknown Track";
 		const artistName = item.metadata?.artist_name || "";
-		const displayName = artistName ? `${trackName} - ${artistName}` : trackName;
+		const displayName = artistName ? `${artistName} - ${trackName}` : trackName;
 
 		const { next, added } = toggleEntry(trashSongList, item.uri, displayName);
 		trashSongList = next;
@@ -152,7 +152,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const uri = uris[0];
 		const type = client.uri.fromString(uri).type;
 		const isTrack = type === client.uri.Type.TRACK;
-		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri);
+
+		const curItem = client.player.data?.item;
+		let displayName = isTrack ? "Track" : "Artist";
+
+		if (curItem && curItem.uri === uri) {
+			const trackName = curItem.name || curItem.metadata?.title || "Unknown Track";
+			const artistName = curItem.metadata?.artist_name || "";
+			displayName = isTrack ? (artistName ? `${artistName} - ${trackName}` : trackName) : artistName;
+		} else {
+			displayName = `${isTrack ? "Track" : "Artist"} (${uri.split(":").pop()})`;
+		}
+
+		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri, displayName);
 		if (isTrack) trashSongList = next;
 		else trashArtistList = next;
 		if (added) {
@@ -297,7 +309,15 @@ export default async function (ctx: ModuleRuntimeContext) {
 						}}
 					/>
 
-					<div style={{ maxHeight: "220px", overflowY: "auto" }}>
+					<div
+						style={{
+							maxHeight: "205px",
+							overflowY: filteredSongs.length > 5 ? "auto" : "hidden",
+							overflowX: "hidden",
+							scrollbarGutter: "stable",
+							paddingRight: "6px",
+						}}
+					>
 						{filteredSongs.length === 0 ? (
 							<div style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
 								{searchQuery ? "No matching songs found" : "Trashbin is empty"}
