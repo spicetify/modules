@@ -41,7 +41,7 @@ export function targetMatchesCurrent(
 export function toggleEntry(
 	list: Record<string, any>,
 	uri: string,
-	displayName: string = "Unknown",
+	displayName: any = true,
 ): { next: Record<string, any>; added: boolean } {
 	if (!list[uri]) {
 		return { next: { ...list, [uri]: displayName }, added: true };
