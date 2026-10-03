@@ -293,47 +293,57 @@ export default async function (ctx: ModuleRuntimeContext) {
 				</SettingsRow>
 
 				<div style={{ marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px" }}>
-					<input
-						type="text"
-						placeholder="Search trashed songs..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						style={{
-							width: "100%",
-							padding: "8px 12px",
-							marginBottom: "10px",
-							borderRadius: "4px",
-							border: "1px solid rgba(255,255,255,0.2)",
-							background: "rgba(255,255,255,0.05)",
-							color: "var(--spice-text, #fff)",
-							boxSizing: "border-box",
-							outline: "none",
-						}}
-					/>
+					{Object.keys(songs).length === 0 ? (
+						<div style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
+							Trashbin is empty
+						</div>
+					) : (
+						<>
+							<input
+								type="text"
+								placeholder="Search trashed songs..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								style={{
+									width: "100%",
+									padding: "8px 12px",
+									marginBottom: "10px",
+									borderRadius: "4px",
+									border: "1px solid rgba(255,255,255,0.2)",
+									background: "rgba(255,255,255,0.05)",
+									color: "var(--spice-text, #fff)",
+									boxSizing: "border-box",
+									outline: "none",
+								}}
+							/>
 
-					<div
-						style={{
-							maxHeight: "205px",
-							overflowY: filteredSongs.length > 5 ? "auto" : "hidden",
-							overflowX: "hidden",
-							scrollbarGutter: "stable",
-							paddingRight: "6px",
-						}}
-					>
-						{filteredSongs.length === 0 ? (
-							<div style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
-								{searchQuery ? "No matching songs found" : "Trashbin is empty"}
+							<div
+								style={{
+									maxHeight: "205px",
+									overflowY: filteredSongs.length > 5 ? "auto" : "hidden",
+									overflowX: "hidden",
+									scrollbarGutter: "stable",
+									paddingRight: "6px",
+								}}
+							>
+								{filteredSongs.length === 0 ? (
+									<div
+										style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}
+									>
+										No matching songs found
+									</div>
+								) : (
+									filteredSongs.map(([uri, name]) => (
+										<SettingsRow key={uri} label={typeof name === "string" ? name : uri}>
+											<Button variant="secondary" onClick={() => removeSong(uri)}>
+												Remove
+											</Button>
+										</SettingsRow>
+									))
+								)}
 							</div>
-						) : (
-							filteredSongs.map(([uri, name]) => (
-								<SettingsRow key={uri} label={typeof name === "string" ? name : uri}>
-									<Button variant="secondary" onClick={() => removeSong(uri)}>
-										Remove
-									</Button>
-								</SettingsRow>
-							))
-						)}
-					</div>
+						</>
+					)}
 				</div>
 			</SettingsSection>
 		);
