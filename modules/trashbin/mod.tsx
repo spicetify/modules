@@ -211,10 +211,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 			};
 		}, []);
 
-		const filteredSongs = Object.entries(songs).filter(([uri, name]) => {
-			const displayName = typeof name === "string" ? name : uri;
-			return displayName.toLowerCase().includes(searchQuery.toLowerCase());
-		});
+		const filteredSongs = Object.entries(songs)
+			.reverse()
+			.filter(([uri, name]) => {
+				const displayName = typeof name === "string" ? name : uri;
+				return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+			});
 
 		const removeSong = (uri: string) => {
 			const next = { ...trashSongList };
