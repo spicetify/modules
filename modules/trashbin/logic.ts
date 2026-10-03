@@ -39,11 +39,12 @@ export function targetMatchesCurrent(
 }
 
 export function toggleEntry(
-	list: Record<string, boolean>,
+	list: Record<string, any>,
 	uri: string,
-): { next: Record<string, boolean>; added: boolean } {
+	displayName: any = true,
+): { next: Record<string, any>; added: boolean } {
 	if (!list[uri]) {
-		return { next: { ...list, [uri]: true }, added: true };
+		return { next: { ...list, [uri]: displayName }, added: true };
 	}
 	const next = { ...list };
 	delete next[uri];

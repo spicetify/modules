@@ -37,11 +37,11 @@ const findSkipBackButton = (): HTMLElement | null =>
 	document.querySelector(".player-controls__left > button[data-encore-id='buttonTertiary']");
 
 export default async function (ctx: ModuleRuntimeContext) {
-	const { useState } = React;
+	const { useState, useEffect } = React;
 	const registrar = createRegistrar(ctx);
 
-	let trashSongList: Record<string, boolean> = initValue("TrashSongList", {});
-	let trashArtistList: Record<string, boolean> = initValue("TrashArtistList", {});
+	let trashSongList: Record<string, any> = initValue("TrashSongList", {});
+	let trashArtistList: Record<string, any> = initValue("TrashArtistList", {});
 	let trashbinStatus: boolean = initValue("trashbin-enabled", true);
 	let enableWidget: boolean = initValue("TrashbinWidgetIcon", true);
 	let userHitBack = false;
@@ -102,9 +102,14 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 
 	const toggleCurrent = () => {
-		const uri = client.player.data?.item?.uri;
-		if (!uri) return;
-		const { next, added } = toggleEntry(trashSongList, uri);
+		const item = client.player.data?.item;
+		if (!item?.uri) return;
+
+		const trackName = item.name || item.metadata?.title || "Unknown Track";
+		const artistName = item.metadata?.artist_name || "";
+		const displayName = artistName ? `${artistName} - ${trackName}` : trackName;
+
+		const { next, added } = toggleEntry(trashSongList, item.uri, displayName);
 		trashSongList = next;
 		if (added) {
 			client.player.next();
@@ -119,7 +124,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 	// ----- playbar button (v3 register) -----
 	const TrashButton = () => {
 		const [, force] = React.useReducer((n: number) => n + 1, 0);
-		React.useEffect(() => {
+		useEffect(() => {
 			const on = () => force();
 			refreshers.add(force);
 			client.player.addEventListener("songchange", on);
@@ -147,7 +152,19 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const uri = uris[0];
 		const type = client.uri.fromString(uri).type;
 		const isTrack = type === client.uri.Type.TRACK;
-		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri);
+
+		const curItem = client.player.data?.item;
+		let displayName = isTrack ? "Track" : "Artist";
+
+		if (curItem && curItem.uri === uri) {
+			const trackName = curItem.name || curItem.metadata?.title || "Unknown Track";
+			const artistName = curItem.metadata?.artist_name || "";
+			displayName = isTrack ? (artistName ? `${artistName} - ${trackName}` : trackName) : artistName;
+		} else {
+			displayName = `${isTrack ? "Track" : "Artist"} (${uri.split(":").pop()})`;
+		}
+
+		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri, displayName);
 		if (isTrack) trashSongList = next;
 		else trashArtistList = next;
 		if (added) {
@@ -183,6 +200,33 @@ export default async function (ctx: ModuleRuntimeContext) {
 	function Settings() {
 		const [enabled, setEnabled] = useState(trashbinStatus);
 		const [widget, setWidget] = useState(enableWidget);
+		const [songs, setSongs] = useState(trashSongList);
+		const [searchQuery, setSearchQuery] = useState("");
+
+		useEffect(() => {
+			const sync = () => setSongs(trashSongList);
+			refreshers.add(sync);
+			return () => {
+				refreshers.delete(sync);
+			};
+		}, []);
+
+		const filteredSongs = Object.entries(songs)
+			.reverse()
+			.filter(([uri, name]) => {
+				const displayName = typeof name === "string" ? name : uri;
+				return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+			});
+
+		const removeSong = (uri: string) => {
+			const next = { ...trashSongList };
+			delete next[uri];
+			trashSongList = next;
+			setSongs(next);
+			putDataLocal();
+			refreshButtons();
+			client.notify("Song removed from trashbin");
+		};
 
 		return (
 			<SettingsSection title="Trashbin">
@@ -238,6 +282,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 						onClick={() => {
 							trashSongList = {};
 							trashArtistList = {};
+							setSongs({});
 							putDataLocal();
 							refreshButtons();
 							client.notify("Trashbin cleared!");
@@ -246,6 +291,60 @@ export default async function (ctx: ModuleRuntimeContext) {
 						Clear
 					</Button>
 				</SettingsRow>
+
+				<div style={{ marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px" }}>
+					{Object.keys(songs).length === 0 ? (
+						<div style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
+							Trashbin is empty
+						</div>
+					) : (
+						<>
+							<input
+								type="text"
+								placeholder="Search trashed songs..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								style={{
+									width: "100%",
+									padding: "8px 12px",
+									marginBottom: "10px",
+									borderRadius: "4px",
+									border: "1px solid rgba(255,255,255,0.2)",
+									background: "rgba(255,255,255,0.05)",
+									color: "var(--spice-text, #fff)",
+									boxSizing: "border-box",
+									outline: "none",
+								}}
+							/>
+
+							<div
+								style={{
+									maxHeight: "205px",
+									overflowY: filteredSongs.length > 5 ? "auto" : "hidden",
+									overflowX: "hidden",
+									scrollbarGutter: "stable",
+									paddingRight: "6px",
+								}}
+							>
+								{filteredSongs.length === 0 ? (
+									<div
+										style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}
+									>
+										No matching songs found
+									</div>
+								) : (
+									filteredSongs.map(([uri, name]) => (
+										<SettingsRow key={uri} label={typeof name === "string" ? name : uri}>
+											<Button variant="secondary" onClick={() => removeSong(uri)}>
+												Remove
+											</Button>
+										</SettingsRow>
+									))
+								)}
+							</div>
+						</>
+					)}
+				</div>
 			</SettingsSection>
 		);
 	}
