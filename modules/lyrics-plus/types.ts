@@ -47,6 +47,11 @@ export type TranslationMode =
 	| "tw";
 export type LyricsLanguage = "ja" | "ko" | "zh-hans" | "zh-hant";
 
+export interface RomanizedLine {
+	startTime?: number;
+	text: string;
+}
+
 export function isTranslationMode(value: unknown): value is TranslationMode {
 	return ["romaji", "furigana", "hiragana", "katakana", "hangul", "romaja", "cn", "hk", "tw"].some(
 		(mode) => mode === value,

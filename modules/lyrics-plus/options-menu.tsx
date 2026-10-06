@@ -143,6 +143,8 @@ export const TranslationMenu = react.memo(
 				none: "None",
 			};
 
+			let romanizationOptions: Record<string, string> = {};
+
 			const musixmatchDisplay = new Intl.DisplayNames(["en"], { type: "language" });
 			const availableMusixmatchLanguages = Array.isArray(musixmatchLanguages)
 				? [...new Set(musixmatchLanguages.filter(Boolean))]
@@ -212,6 +214,10 @@ export const TranslationMenu = react.memo(
 						hk: "Traditional Chinese (Hong Kong)",
 						tw: "Traditional Chinese (Taiwan)",
 					};
+					romanizationOptions = {
+						none: "None",
+						pinyin: "Pinyin (拼音)",
+					};
 					break;
 				}
 			}
@@ -249,6 +255,14 @@ export const TranslationMenu = react.memo(
 					options: modeOptions,
 					// for songs in languages that support translation but not Convert (e.g., English), the option is disabled.
 					when: () => friendlyLanguage,
+				},
+				{
+					desc: "Romanization",
+					key: "romanization",
+					kind: "select",
+					options: romanizationOptions,
+					// only Chinese has a romanization option (Pinyin) for now.
+					when: () => friendlyLanguage === "chinese",
 				},
 				{
 					desc: "Convert",
@@ -321,6 +335,14 @@ export const AdjustmentsMenu = react.memo(({ mode, hasPerformer }: { mode: numbe
 		{
 			desc: "Font size",
 			key: "font-size",
+			kind: "adjust",
+			min: fontSizeLimit.min,
+			max: fontSizeLimit.max,
+			step: fontSizeLimit.step,
+		},
+		{
+			desc: "Romanization font size",
+			key: "romanization-font-size",
 			kind: "adjust",
 			min: fontSizeLimit.min,
 			max: fontSizeLimit.max,

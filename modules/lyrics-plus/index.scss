@@ -308,6 +308,12 @@
 	line-height: var(--lyrics-line-height);
 }
 
+.lyrics-lyricsContainer-LyricsLine .lyrics-lyricsContainer-RomanizedLine {
+	opacity: 0.5;
+	font-size: var(--lyrics-romanization-font-size);
+	line-height: calc(4px + var(--lyrics-romanization-font-size));
+}
+
 @media (min-width: 1280px) {
 	.lyrics-lyricsContainer-SyncedLyrics .lyrics-lyricsContainer-LyricsLine {
 		font-weight: 900;

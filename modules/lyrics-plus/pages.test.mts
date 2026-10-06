@@ -48,8 +48,9 @@ const hooks = registerHooks({
 		return nextLoad(url, context);
 	},
 });
-const { LyricsBackground, SearchBar, SyncedLyricsPage, SyncedExpandedLyricsPage, VersionSelector } =
+const { LyricsBackground, SearchBar, SyncedLyricsPage, SyncedExpandedLyricsPage, UnsyncedLyricsPage, VersionSelector } =
 	await import("./pages.tsx");
+const { CONFIG } = await import("./config.ts");
 hooks.deregister();
 
 const roots: Root[] = [];
@@ -107,6 +108,40 @@ it("keeps active scrolling lyrics sharp and caps blur on distant lines", async (
 		(line) => line.textContent === "Line 7",
 	);
 	assert.equal(distant?.style.getPropertyValue("--blur-index"), "4");
+});
+
+const chineseLyrics = [
+	{ text: "你好", startTime: 0 },
+	{ text: "OK", startTime: 1000 },
+];
+const pinyin = [
+	{ startTime: 0, text: "nǐ hǎo" },
+	{ startTime: 1000, text: "O K" },
+];
+const romanizedViews = [
+	() => React.createElement(SyncedLyricsPage, { lyrics: chineseLyrics, romanization: pinyin }),
+	() => React.createElement(SyncedExpandedLyricsPage, { lyrics: chineseLyrics, romanization: pinyin }),
+	() => React.createElement(UnsyncedLyricsPage, { lyrics: chineseLyrics, romanization: pinyin }),
+];
+const romanizedLines = (container: Element) =>
+	[...container.querySelectorAll(".lyrics-lyricsContainer-RomanizedLine")].map((line) => line.textContent);
+
+it("shows pinyin under its line in every lyrics view unless it repeats the line", async (t) => {
+	t.mock.property(CONFIG.visual, "romanization", "pinyin");
+	for (const view of romanizedViews) {
+		const container = await render(view());
+		assert.deepEqual(romanizedLines(container), ["nǐ hǎo"]);
+		const line = container.querySelector(".lyrics-lyricsContainer-RomanizedLine")?.parentElement;
+		assert.match(line?.textContent ?? "", /^你好/);
+	}
+});
+
+it("hides pinyin when romanization is turned off", async (t) => {
+	t.mock.property(CONFIG.visual, "romanization", "none");
+	for (const view of romanizedViews) {
+		const container = await render(view());
+		assert.deepEqual(romanizedLines(container), []);
+	}
 });
 
 it("selects Genius versions with a numeric index", async () => {
