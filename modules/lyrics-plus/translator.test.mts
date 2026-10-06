@@ -1,6 +1,7 @@
 import "../stdlib/lib/test-setup.mts";
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
+import { CONFIG } from "./config.ts";
 import { Translator } from "./translator.ts";
 
 Object.defineProperty(globalThis, "XMLHttpRequest", { value: window.XMLHttpRequest, configurable: true });
@@ -17,7 +18,7 @@ function setupLoading(t: TestContext) {
 		return node;
 	});
 	t.after(() => {
-		for (const key of ["Kuroshiro", "KuromojiAnalyzer", "Aromanize", "OpenCC"]) {
+		for (const key of ["Kuroshiro", "KuromojiAnalyzer", "Aromanize", "OpenCC", "pinyinPro"]) {
 			Reflect.deleteProperty(globalThis, key);
 		}
 	});
@@ -173,6 +174,29 @@ test("a stalled Japanese conversion times out and disposal cancels another conve
 	assert.equal(started, 2);
 	translator.dispose();
 	await disposed;
+	assertNoTimers();
+});
+
+test("pinyin loads while conversion is disabled and stops after dispose", async (t) => {
+	const { scripts, assertNoTimers } = setupLoading(t);
+	t.mock.property(CONFIG.visual, "translate", false);
+	const translator = new Translator("zh", false, { timeoutMs: 25 });
+	const converted = translator.convertToPinyin("你好");
+	assert.equal(scripts.length, 1);
+	assert.match(scripts[0].src, /pinyin-pro@3\.28\.1/);
+	Object.defineProperty(globalThis, "pinyinPro", {
+		value: {
+			pinyin: (text: string, { toneType, nonZh }: { toneType: string; nonZh: string }) =>
+				`${toneType}:${nonZh}:${text}`,
+		},
+		configurable: true,
+	});
+	scripts[0].dispatchEvent(new Event("load"));
+	assert.equal(await converted, "symbol:consecutive:你好");
+	assert.equal(await translator.convertToPinyin("字"), "symbol:consecutive:字");
+	assert.equal(scripts.length, 1);
+	translator.dispose();
+	await assert.rejects(translator.convertToPinyin("字"), { name: "AbortError" });
 	assertNoTimers();
 });
 

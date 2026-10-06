@@ -48,6 +48,7 @@ import {
 	type TrackInfo,
 	type ProviderResult,
 	type GeniusVersion,
+	type RomanizedLine,
 } from "./types.ts";
 import { ProviderGenius } from "./providers/genius.ts";
 import { createProviders, parseCachedLyrics } from "./providers/index.ts";
@@ -95,6 +96,7 @@ interface LyricsState extends CachedLyrics {
 	isFADMode: boolean;
 	isCached: boolean;
 	language: LyricsLanguage | null;
+	pinyin: { uri: string; mode: number; lines: RomanizedLine[] | null } | null;
 }
 interface Track {
 	uri: string;
@@ -323,6 +325,8 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 	displayMode: TranslationMode | null | undefined;
 	currentMusixmatchLanguage: string;
 	_musixmatchTranslationRequestId: symbol | null;
+	// `${uri}:${mode}` of the in-flight romanization, so repeated renders do not start it again.
+	romanizing: string | null = null;
 	viewPort: Element | null = null;
 	onQueueChange: QueueListener = () => {};
 	onFontSizeChange: (event: WheelEvent) => void = () => {};
@@ -368,6 +372,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 			isFADMode: false,
 			isCached: false,
 			language: null,
+			pinyin: null,
 		};
 		this.currentTrackUri = "";
 		this.nextTrackUri = "";
@@ -771,6 +776,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 					cn: null,
 					hk: null,
 					tw: null,
+					pinyin: null,
 					neteaseTranslation: null,
 					...tempState,
 					...translationOverrides,
@@ -889,6 +895,53 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 				};
 				this.updateCache(lyricsState.uri, resetCache);
 			}
+		}
+
+		this.syncRomanization(lyricsState.uri, mode, lang, lyrics);
+	}
+
+	syncRomanization(uri: string, mode: number, lang: string | undefined, lyrics: DisplayLyricLine[] | null) {
+		if (
+			CONFIG.visual.romanization === "none" ||
+			(lang !== "zh-hans" && lang !== "zh-hant") ||
+			(mode !== SYNCED && mode !== UNSYNCED) ||
+			!lyrics?.length
+		)
+			return;
+		const key = `${uri}:${mode}`;
+		if ((this.state.pinyin?.uri === uri && this.state.pinyin.mode === mode) || this.romanizing === key) return;
+
+		this.romanizing = key;
+		const generation = this.requestGeneration;
+		this.romanizeLyrics(lyrics).then((lines) => {
+			if (this.romanizing === key) this.romanizing = null;
+			if (!this.active || this.currentTrackUri !== uri || generation !== this.requestGeneration) return;
+			// A failed conversion is stored too, so it is not retried on every render.
+			this.setState({ pinyin: { uri, mode, lines: lines ?? null } });
+		});
+	}
+
+	async romanizeLyrics(displayLyrics: DisplayLyricLine[]): Promise<RomanizedLine[] | undefined> {
+		const lyrics = plainLines(displayLyrics);
+
+		client.notify("Converting...", false, 1000);
+		if (!this.translator) {
+			this.translator = new Translator("zh");
+		}
+		const translator = this.translator;
+		try {
+			const result = await Promise.all(
+				lyrics.map(async (lyric) => ({
+					startTime: lyric.startTime,
+					text: await translator.convertToPinyin(lyric.text),
+				})),
+			);
+			client.notify("Converting...", false, 0);
+			return result;
+		} catch (error) {
+			if (!this.active) return;
+			client.notify("Conversion failed. Try again.", true);
+			console.error(error);
 		}
 	}
 
@@ -1236,6 +1289,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 		this.mounted = false;
 		++this.requestGeneration;
 		this._musixmatchTranslationRequestId = null;
+		this.romanizing = null;
 		this.translator?.dispose();
 		void this.props.queries.client.cancelQueries();
 		sharedCallbacks.setReloadLyrics(undefined);
@@ -1264,6 +1318,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
 			"--lyrics-font-size": `${CONFIG.visual["font-size"]}px`,
+			"--lyrics-romanization-font-size": `${CONFIG.visual["romanization-font-size"]}px`,
 			"--animation-tempo": this.state.tempo,
 		};
 
@@ -1301,6 +1356,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 			...this.styleVariables,
 			"--lyrics-align-text": CONFIG.visual.alignment,
 			"--lyrics-font-size": `${CONFIG.visual["font-size"]}px`,
+			"--lyrics-romanization-font-size": `${CONFIG.visual["romanization-font-size"]}px`,
 			"--animation-tempo": this.state.tempo,
 		};
 
@@ -1328,6 +1384,11 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 			this.state.musixmatchTranslation !== null ||
 			hasMusixmatchLanguages;
 		const hasPerformer = !!this.state.currentLyrics?.some((line) => line.performer);
+		const { pinyin } = this.state;
+		const romanizationLines =
+			CONFIG.visual.romanization !== "none" && pinyin?.uri === this.state.uri && pinyin.mode === mode
+				? pinyin.lines
+				: null;
 
 		if (mode !== -1) {
 			showTranslationButton = (friendlyLanguage || hasTranslation) && (mode === SYNCED || mode === UNSYNCED);
@@ -1353,6 +1414,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 						provider: this.state.provider,
 						copyright: this.state.copyright,
 						reRenderLyricsPage: this.reRenderLyricsPage,
+						romanization: romanizationLines,
 					},
 				);
 			} else if (mode === UNSYNCED && this.state.unsynced) {
@@ -1362,6 +1424,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 					provider: this.state.provider,
 					copyright: this.state.copyright,
 					reRenderLyricsPage: this.reRenderLyricsPage,
+					romanization: romanizationLines,
 				});
 			} else if (mode === GENIUS && this.state.genius) {
 				activeItem = react.createElement(GeniusPage, {

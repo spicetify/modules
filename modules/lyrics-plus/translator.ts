@@ -14,6 +14,7 @@ declare const Kuroshiro: { default: new () => JapaneseTranslator };
 declare const KuromojiAnalyzer: new (options: { dictPath: string }) => unknown;
 declare const Aromanize: { hangulToLatin(text: string, mode: string): string };
 declare const OpenCC: { Converter(options: { from: string; to: string }): (text: string) => string };
+declare const pinyinPro: { pinyin(text: string, options: { toneType: string; nonZh: string }): string };
 
 declare global {
 	interface XMLHttpRequest {
@@ -26,6 +27,7 @@ const kuromojiPath =
 	"https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js";
 const aromanize = "https://cdn.jsdelivr.net/npm/aromanize@0.1.5/aromanize.min.js";
 const openCCPath = "https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.min.js";
+const pinyinProPath = "https://cdn.jsdelivr.net/npm/pinyin-pro@3.28.1/dist/index.min.js";
 
 const dictPath = "https:/cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict";
 
@@ -36,13 +38,14 @@ export interface TranslatorOptions {
 }
 
 export class Translator {
-	private readonly loading = new Map<Language, Promise<void>>();
+	private readonly loading = new Map<Language | "pinyin", Promise<void>>();
 	private readonly lifecycle = new AbortController();
 	private readonly timeoutMs: number;
 	private readonly isUsingNetease: boolean;
 	private kuroshiro?: JapaneseTranslator;
 	private Aromanize?: typeof Aromanize;
 	private OpenCC?: typeof OpenCC;
+	private pinyinPro?: typeof pinyinPro;
 
 	constructor(lang: string, isUsingNetease = false, options: TranslatorOptions = {}) {
 		this.isUsingNetease = isUsingNetease;
@@ -57,6 +60,7 @@ export class Translator {
 		this.kuroshiro = undefined;
 		this.Aromanize = undefined;
 		this.OpenCC = undefined;
+		this.pinyinPro = undefined;
 	}
 
 	private bounded<T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
@@ -170,6 +174,23 @@ export class Translator {
 		}
 	}
 
+	// Romanization works without the Convert toggle, so pinyin loads outside awaitFinished's gate.
+	private awaitPinyin(): Promise<void> {
+		if (this.lifecycle.signal.aborted) return Promise.reject(this.lifecycle.signal.reason);
+		if (this.pinyinPro) return Promise.resolve();
+		const pending = this.loading.get("pinyin");
+		if (pending) return pending;
+		const loading = this.bounded(async (signal) => {
+			if (typeof pinyinPro === "undefined")
+				await this.loadScript(pinyinProPath, signal, () => typeof pinyinPro !== "undefined");
+			signal.throwIfAborted();
+			if (typeof pinyinPro === "undefined") throw new Error("Pinyin converter did not load");
+			this.pinyinPro = pinyinPro;
+		}).finally(() => this.loading.delete("pinyin"));
+		this.loading.set("pinyin", loading);
+		return loading;
+	}
+
 	/**
 	 * Fix an issue with kuromoji when loading dict from external urls
 	 * Adapted from: https://github.com/mobilusoss/textlint-browser-runner/pull/7
@@ -211,5 +232,11 @@ export class Translator {
 		await this.awaitFinished("zh");
 		if (!this.OpenCC) throw this.lifecycle.signal.reason;
 		return this.OpenCC.Converter({ from, to: target })(text);
+	}
+
+	async convertToPinyin(text: string): Promise<string> {
+		await this.awaitPinyin();
+		if (!this.pinyinPro) throw this.lifecycle.signal.reason;
+		return this.pinyinPro.pinyin(text, { toneType: "symbol", nonZh: "consecutive" });
 	}
 }

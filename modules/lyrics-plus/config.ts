@@ -102,6 +102,9 @@ export const CONFIG = {
 		"lines-before": Number.parseInt(localStorage.getItem("lyrics-plus:visual:lines-before") || "0"),
 		"lines-after": Number.parseInt(localStorage.getItem("lyrics-plus:visual:lines-after") || "2"),
 		"font-size": Number.parseInt(localStorage.getItem("lyrics-plus:visual:font-size") || "32"),
+		"romanization-font-size": Number.parseInt(
+			localStorage.getItem("lyrics-plus:visual:romanization-font-size") || "16",
+		),
 		"translate:translated-lyrics-source":
 			localStorage.getItem("lyrics-plus:visual:translate:translated-lyrics-source") || "none",
 		"translate:display-mode": localStorage.getItem("lyrics-plus:visual:translate:display-mode") || "replace",
@@ -110,6 +113,7 @@ export const CONFIG = {
 		"translation-mode:japanese": localStorage.getItem("lyrics-plus:visual:translation-mode:japanese") || "furigana",
 		"translation-mode:korean": localStorage.getItem("lyrics-plus:visual:translation-mode:korean") || "romaja",
 		"translation-mode:chinese": localStorage.getItem("lyrics-plus:visual:translation-mode:chinese") || "cn",
+		romanization: localStorage.getItem("lyrics-plus:visual:romanization") || "none",
 		translate: getConfig("lyrics-plus:visual:translate", false),
 		"ja-detect-threshold": Number.parseInt(localStorage.getItem("lyrics-plus:visual:ja-detect-threshold") || "40"),
 		"hans-detect-threshold": Number.parseInt(
