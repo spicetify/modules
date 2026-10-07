@@ -10,7 +10,9 @@ import {
 	type LyricLine,
 	type TranslationMode,
 	type ProviderResult,
+	type LyricMode,
 } from "./types.ts";
+import { CONFIG, GENIUS, KARAOKE, SYNCED, UNSYNCED } from "./config.ts";
 import { lyricText, isKaraokeWords } from "./utils.ts";
 
 export function translationMode(
@@ -76,4 +78,21 @@ export function mergeProviderResult(target: ProviderResult, source: ProviderResu
 		if (Object.hasOwn(source, key) && !target[key]) target[key] = source[key];
 	};
 	keys.forEach(copy);
+}
+
+const AUTO_MODE_ORDER = [KARAOKE, SYNCED, UNSYNCED, GENIUS];
+
+/**
+ * Pick a mode based on user preference and availability.
+ *
+ * Karaoke is only a last resort once another mode is preferred,
+ * so a Synced/Unsynced or other user chosen mode will never switch to Karaoke on its own
+ * but Karaoke will still fall back to other modes if lyrics doesn't support Karaoke mode.
+ */
+export function pickMode(lyrics: Pick<ProviderResult, LyricMode>, preferred: number): number {
+	const order =
+		preferred === KARAOKE || !AUTO_MODE_ORDER.includes(preferred)
+			? AUTO_MODE_ORDER
+			: [preferred, ...AUTO_MODE_ORDER.filter((mode) => mode !== preferred && mode !== KARAOKE), KARAOKE];
+	return order.find((mode) => lyrics[CONFIG.modes[mode]]) ?? -1;
 }

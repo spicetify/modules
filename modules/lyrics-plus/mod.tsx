@@ -36,7 +36,7 @@ import {
 	UNSYNCED,
 } from "./config.ts";
 import * as UtilsPure from "./utils.ts";
-import { translationMode, renderedLines, plainLines, mergeProviderResult } from "./container-state.ts";
+import { translationMode, renderedLines, plainLines, mergeProviderResult, pickMode } from "./container-state.ts";
 import type { CSSProperties, ReactNode, ReactElement, ChangeEvent } from "react";
 import {
 	type DisplayLyricLine,
@@ -724,16 +724,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 			} else if (this.state.lockMode !== -1) {
 				finalMode = this.state.lockMode;
 			} else {
-				// Auto switch
-				if (tempState.karaoke) {
-					finalMode = KARAOKE;
-				} else if (tempState.synced) {
-					finalMode = SYNCED;
-				} else if (tempState.unsynced) {
-					finalMode = UNSYNCED;
-				} else if (tempState.genius) {
-					finalMode = GENIUS;
-				}
+				finalMode = pickMode(tempState, CONFIG.preferredMode);
 			}
 		}
 
@@ -1319,16 +1310,7 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 		} else if (this.state.lockMode !== -1) {
 			mode = this.state.lockMode;
 		} else {
-			// Auto switch
-			if (this.state.karaoke) {
-				mode = KARAOKE;
-			} else if (this.state.synced) {
-				mode = SYNCED;
-			} else if (this.state.unsynced) {
-				mode = UNSYNCED;
-			} else if (this.state.genius) {
-				mode = GENIUS;
-			}
+			mode = pickMode(this.state, CONFIG.preferredMode);
 		}
 
 		let activeItem;
@@ -1552,6 +1534,8 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 						const info = this.infoFromTrack(client.player.data.item);
 						if (info?.uri) this.props.queries.rememberMode(info.uri, mode);
 
+						CONFIG.preferredMode = mode;
+						localStorage.setItem("lyrics-plus:preferred-mode", String(mode));
 						this.setState({ explicitMode: mode });
 						if (this.state.provider !== "local") this.fetchLyrics(client.player.data.item, mode);
 					}

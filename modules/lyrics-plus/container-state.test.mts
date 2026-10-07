@@ -7,7 +7,8 @@ import "../stdlib/lib/test-setup.mts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createElement } from "react";
-import { translationMode, renderedLines, plainLines, mergeProviderResult } from "./container-state.ts";
+import { translationMode, renderedLines, plainLines, mergeProviderResult, pickMode } from "./container-state.ts";
+import { GENIUS, KARAOKE, SYNCED, UNSYNCED } from "./config.ts";
 import type { DisplayLyricLine, ProviderResult } from "./types.ts";
 
 test("translation modes follow the source language and reject invalid persisted values", () => {
@@ -74,4 +75,18 @@ test("provider fallback does not overwrite null fields omitted by the next provi
 	assert.equal(first.synced, null);
 	assert.equal(first.neteaseTranslation, null);
 	assert.equal(Object.hasOwn(first, "mode"), false);
+});
+
+test("mode auto-pick prefers the chosen mode and only falls back to karaoke last", () => {
+	const lines = [{ text: "words", startTime: 0 }];
+	const all = { karaoke: [{ text: [], startTime: 0 }], synced: lines, unsynced: lines };
+	assert.equal(pickMode(all, -1), KARAOKE);
+	assert.equal(pickMode(all, SYNCED), SYNCED);
+	assert.equal(pickMode(all, UNSYNCED), UNSYNCED);
+	assert.equal(pickMode({ karaoke: all.karaoke, unsynced: lines }, SYNCED), UNSYNCED);
+	assert.equal(pickMode({ synced: lines, unsynced: lines }, KARAOKE), SYNCED);
+	assert.equal(pickMode({ karaoke: all.karaoke }, SYNCED), KARAOKE);
+	assert.equal(pickMode({ genius: "text" }, SYNCED), GENIUS);
+	assert.equal(pickMode({ synced: lines }, Number.NaN), SYNCED);
+	assert.equal(pickMode({}, SYNCED), -1);
 });
