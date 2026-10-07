@@ -1,0 +1,28 @@
+{
+	"v": {
+		"2.0.0": {
+			"artifacts": [
+				"https://github.com/Golevka2001/section-marker-rev/releases/download/section-marker-rev@2.0.0/section-marker-rev@2.0.0.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:742fd9b8ff6778db3da237055a7e0f381c13f8405c972b13723346a880126c4d",
+			"updatedAt": "2026-10-07"
+		}
+	},
+	"metadata": {
+		"name": "section-marker-rev",
+		"description": "See a song's highlighted sections straight from your playbar.",
+		"authors": [
+			{
+				"name": "Aimarekin"
+			},
+			{
+				"name": "Golevka2001"
+			}
+		],
+		"kind": "extension",
+		"preview": "https://raw.githubusercontent.com/Golevka2001/section-marker-rev/main/README.assets/default.png",
+		"repository": "https://github.com/Golevka2001/section-marker-rev",
+		"license": "CC-BY-NC-4.0"
+	}
+}
