@@ -129,6 +129,7 @@ export const CONFIG = {
 	providersOrder,
 	modes: ["karaoke", "synced", "unsynced", "genius"] satisfies LyricMode[],
 	locked: Number.parseInt(localStorage.getItem("lyrics-plus:lock-mode") || "-1"),
+	preferredMode: Number.parseInt(localStorage.getItem("lyrics-plus:preferred-mode") || "-1"),
 };
 
 export function isProviderKey(value: unknown): value is ProviderKey {
