@@ -123,19 +123,10 @@ export const TopBarContent = ({ links, activeLink, lockLink, switchCallback, loc
 	);
 };
 
-export const TabBarContext = ({ children }: { children?: ReactTypes.ReactNode }) => {
-	const content = react.createElement(
-		"div",
-		{
-			className: "main-topBar-topbarContent lyrics-plus-topbar-content",
-		},
-		children,
-	);
-	// The classic app portaled the mode switcher into the client top bar. v3 has
-	// no such wrapper, so fall back to rendering it inline within the route.
-	const target = document.querySelector(".main-topBar-topbarContentWrapper");
-	return target ? client.reactDOM.createPortal(content, target) : content;
-};
+// The classic app portaled the mode switcher into the client top bar, but the
+// lyrics container paints over that bar, so it always renders inline instead.
+export const TabBarContext = ({ children }: { children?: ReactTypes.ReactNode }) =>
+	react.createElement("div", { className: "lyrics-plus-topbar-content" }, children);
 
 export const TabBar = react.memo(
 	({

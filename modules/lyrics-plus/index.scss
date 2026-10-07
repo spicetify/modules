@@ -315,7 +315,6 @@
 }
 
 .lyrics-tabBar-headerItem {
-	-webkit-app-region: no-drag;
 	display: inline-block;
 	pointer-events: auto;
 }
@@ -348,8 +347,20 @@
 	content: "• ";
 }
 
+.lyrics-plus-topbar-content {
+	align-self: start;
+	grid-area: 1 / 1 / -1 / -1;
+	padding: 16px 24px 0;
+	pointer-events: none;
+	z-index: 2;
+}
+
+#lyrics-fullscreen-container .lyrics-plus-topbar-content,
+.lyrics-lyricsContainer-LyricsContainer.fad-enabled .lyrics-plus-topbar-content {
+	display: none;
+}
+
 .lyrics-tabBar-nav {
-	-webkit-app-region: drag;
 	pointer-events: none;
 	width: 100%;
 }
