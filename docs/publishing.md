@@ -153,6 +153,15 @@ The same report is attached to the validation run as a `provenance` artifact.
 A module without an attestation still validates; its report says why it is
 unverified, and its first admission is reviewed from the artifact instead.
 
+### Security review
+
+Every submission also gets an AI security review, posted on the pull request.
+The review workflow recomputes the provenance from the base branch, then the
+reviewer reads your source at the attested commit, or the unpacked artifact when
+there is no attestation. It looks for network access, remote or dynamic code,
+access to Spotify credentials and Spicetify internals, and concealed code. The
+review never approves a submission; a maintainer still decides.
+
 ---
 
 ## Updating
