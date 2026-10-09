@@ -933,23 +933,22 @@ export class LyricsContainer extends react.Component<LyricsProps, LyricsState> {
 	async romanizeLyrics(displayLyrics: DisplayLyricLine[]): Promise<RomanizedLine[] | undefined> {
 		const lyrics = plainLines(displayLyrics);
 
-		client.notify("Converting...", false, 1000);
+		// Runs on its own for every Chinese track, so only a failure is announced;
+		// the pinyin lines appear in place once they are ready.
 		if (!this.translator) {
 			this.translator = new Translator("zh");
 		}
 		const translator = this.translator;
 		try {
-			const result = await Promise.all(
+			return await Promise.all(
 				lyrics.map(async (lyric) => ({
 					startTime: lyric.startTime,
 					text: await translator.convertToPinyin(lyric.text),
 				})),
 			);
-			client.notify("Converting...", false, 0);
-			return result;
 		} catch (error) {
 			if (!this.active) return;
-			client.notify("Conversion failed. Try again.", true);
+			client.notify("Couldn't load pinyin for these lyrics", true);
 			console.error(error);
 		}
 	}
