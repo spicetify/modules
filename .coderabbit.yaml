@@ -1,0 +1,6 @@
+# CodeRabbit reviews only when mentioned with @coderabbitai.
+reviews:
+  auto_review:
+    enabled: false
+  review_status: false
+  high_level_summary: false
