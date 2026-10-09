@@ -82,6 +82,20 @@ describe("provenanceFrom", () => {
 	);
 	const fixtureZip = "sha256:545ecd7c800fcbca7d89ad7ca1246e90ee86812faaf9adc82c5ddd8a220d43db";
 
+	// The same fixture module built by build-module on main.
+	const released = JSON.parse(
+		readFileSync(new URL("./fixtures/attestation-build-module-main.json", import.meta.url), "utf8"),
+	);
+	const releasedZip = "sha256:6889aebe4ba68878bc029484448cb826a8e931ea158c71cc3bdeb2bc4068aa21";
+
+	it("accepts the builder at main and reports the commit the zip was built from", () => {
+		const result = provenanceFrom(released, releasedZip, "spicetify/actions");
+		assert.ok("provenance" in result, reason(result));
+		assert.equal(result.provenance.commit, "91b890c761e773236bed6cb3ab78da223b83e523");
+		assert.equal(result.provenance.ref, "refs/heads/main");
+		assert.match(result.provenance.run, /\/actions\/runs\/37997562109\//);
+	});
+
 	it("refuses the builder at a ref that is neither a release nor main", () => {
 		assert.match(reason(provenanceFrom(unreleased, fixtureZip, "spicetify/actions")), /refs\/pull\/4\/merge/);
 	});
