@@ -101,6 +101,58 @@ it, and checks the entry against what is actually inside:
 Everything is checked before the merge, so a red check is a fix on your side,
 not a conversation.
 
+### Attested builds
+
+An attested build lets the registry prove which commit of your repository
+your zip came from, so a reviewer reads your source at that commit instead of
+the bundled output. Build with the
+[`build-module`](https://github.com/spicetify/actions#build-module) reusable
+workflow and submit the zip it produces:
+
+```yaml
+on:
+    release:
+        types: [published]
+
+jobs:
+    build:
+        uses: spicetify/actions/.github/workflows/build-module.yml@v1
+        permissions:
+            contents: write
+            id-token: write
+            attestations: write
+        with:
+            release-tag: ${{ github.event.release.tag_name }}
+
+    submit:
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/download-artifact@v8
+              with:
+                  name: ${{ needs.build.outputs.zip }}
+            - uses: spicetify/actions/publish@v1
+              with:
+                  zip: ${{ needs.build.outputs.zip }}
+                  artifact: ${{ needs.build.outputs.artifact }}
+                  token: ${{ secrets.SPICETIFY_SUBMIT_TOKEN }}
+```
+
+The workflow builds on a GitHub-hosted runner from your committed lockfile,
+with install scripts skipped and none of your package scripts run. A separate
+job that never checks out your code signs an attestation naming the workflow,
+your repository, and the commit. The validator
+verifies that attestation with `gh attestation verify`, against the repository
+your `metadata.repository` names, and reports the commit:
+
+```text
+my-module@1.0.0: built by build-module from https://github.com/you/my-module/tree/<commit> (<run>)
+```
+
+The same report is attached to the validation run as a `provenance` artifact.
+A module without an attestation still validates; its report says why it is
+unverified, and its first admission is reviewed from the artifact instead.
+
 ---
 
 ## Updating
