@@ -1,0 +1,43 @@
+[
+	{
+		"verificationResult": {
+			"statement": {
+				"subject": [
+					{
+						"name": "build-fixture@0.1.0.zip",
+						"digest": {
+							"sha256": "545ecd7c800fcbca7d89ad7ca1246e90ee86812faaf9adc82c5ddd8a220d43db"
+						}
+					}
+				],
+				"predicateType": "https://slsa.dev/provenance/v1"
+			},
+			"signature": {
+				"certificate": {
+					"certificateIssuer": "CN=sigstore-intermediate,O=sigstore.dev",
+					"subjectAlternativeName": "https://github.com/spicetify/actions/.github/workflows/build-module.yml@refs/pull/4/merge",
+					"issuer": "https://token.actions.githubusercontent.com",
+					"githubWorkflowTrigger": "pull_request",
+					"githubWorkflowSHA": "463e3867098393d7a4e183b201c0731f9611bb31",
+					"githubWorkflowName": "Test build-module",
+					"githubWorkflowRepository": "spicetify/actions",
+					"githubWorkflowRef": "refs/pull/4/merge",
+					"buildSignerURI": "https://github.com/spicetify/actions/.github/workflows/build-module.yml@refs/pull/4/merge",
+					"buildSignerDigest": "463e3867098393d7a4e183b201c0731f9611bb31",
+					"runnerEnvironment": "github-hosted",
+					"sourceRepositoryURI": "https://github.com/spicetify/actions",
+					"sourceRepositoryDigest": "463e3867098393d7a4e183b201c0731f9611bb31",
+					"sourceRepositoryRef": "refs/pull/4/merge",
+					"sourceRepositoryIdentifier": "1330299426",
+					"sourceRepositoryOwnerURI": "https://github.com/spicetify",
+					"sourceRepositoryOwnerIdentifier": "100136310",
+					"buildConfigURI": "https://github.com/spicetify/actions/.github/workflows/test-build-module.yml@refs/pull/4/merge",
+					"buildConfigDigest": "463e3867098393d7a4e183b201c0731f9611bb31",
+					"buildTrigger": "pull_request",
+					"runInvocationURI": "https://github.com/spicetify/actions/actions/runs/37997115612/attempts/1",
+					"sourceRepositoryVisibilityAtSigning": "public"
+				}
+			}
+		}
+	}
+]

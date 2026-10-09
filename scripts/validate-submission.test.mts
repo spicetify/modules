@@ -75,6 +75,17 @@ describe("provenanceFrom", () => {
 		);
 	});
 
+	// A real attestation from build-module itself, but signed by the workflow
+	// as it stood on an unmerged pull request rather than a release.
+	const unreleased = JSON.parse(
+		readFileSync(new URL("./fixtures/attestation-build-module-pr.json", import.meta.url), "utf8"),
+	);
+	const fixtureZip = "sha256:545ecd7c800fcbca7d89ad7ca1246e90ee86812faaf9adc82c5ddd8a220d43db";
+
+	it("refuses the builder at a ref that is neither a release nor main", () => {
+		assert.match(reason(provenanceFrom(unreleased, fixtureZip, "spicetify/actions")), /refs\/pull\/4\/merge/);
+	});
+
 	it("refuses an attestation that covers other bytes", () => {
 		assert.match(reason(provenanceFrom(cliRelease, `sha256:${"0".repeat(64)}`, "spicetify/cli")), /covers/);
 	});
