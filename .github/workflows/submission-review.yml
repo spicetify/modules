@@ -1,0 +1,155 @@
+name: Submission review
+
+# An AI security review of every store submission, run by Pullfrog.
+#
+# pull_request_target, so fork submissions get the model keys: this file and
+# the validator always come from the base branch, and the pull request is only
+# ever read as data, never installed, built, or executed. The provenance the
+# reviewer is pointed at is recomputed here for that reason; the Submission
+# run's own report comes from a workflow file the pull request can edit.
+on:
+   pull_request_target:  # zizmor: ignore[dangerous-triggers]
+      types: [opened, synchronize, reopened, ready_for_review]
+      paths:
+         - "vault/**"
+   workflow_dispatch:
+      inputs:
+         pr:
+            description: Pull request number to review
+            required: true
+            type: number
+
+concurrency:
+   group: submission-review-${{ github.event.pull_request.number || inputs.pr }}
+   cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+   provenance:
+      name: Verify provenance
+      if: github.event.pull_request.draft != true
+      runs-on: ubuntu-latest
+      permissions:
+         contents: read
+         pull-requests: read
+      outputs:
+         context: ${{ steps.context.outputs.context }}
+      steps:
+         -  name: Clone the validator
+            uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            with:
+               path: validator
+               persist-credentials: false
+
+         # Data only: nothing below runs code from this checkout.
+         -  name: Clone the submission
+            uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            with:
+               path: submission
+               fetch-depth: 0
+               persist-credentials: false
+
+         -  name: Check out the pull request head
+            id: pr
+            working-directory: submission
+            env:
+               GH_TOKEN: ${{ github.token }}
+               PR: ${{ github.event.pull_request.number || inputs.pr }}
+            run: |
+               set -euo pipefail
+               gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" > "$RUNNER_TEMP/pr.json"
+               head=$(jq -r .head.sha "$RUNNER_TEMP/pr.json")
+               base=$(jq -r .base.sha "$RUNNER_TEMP/pr.json")
+               git fetch --no-tags origin "refs/pull/$PR/head"
+               [ "$(git rev-parse FETCH_HEAD)" = "$head" ] || {
+                  echo "::error::#$PR moved while this run started; the next run reviews it" >&2
+                  exit 1
+               }
+               git checkout --quiet --detach "$head"
+               {
+                  echo "number=$PR"
+                  echo "base=$base"
+               } >> "$GITHUB_OUTPUT"
+
+         -  name: Setup Node
+            uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+            with:
+               node-version: "24"
+
+         # A submission that fails validation is still reviewed: the reviewer
+         # reports on the code, the Submission check reports on the entry.
+         -  name: Verify each new artifact
+            working-directory: submission
+            env:
+               GH_TOKEN: ${{ github.token }}
+               BASE: ${{ steps.pr.outputs.base }}
+            run: |
+               node "$GITHUB_WORKSPACE/validator/scripts/validate-submission.ts" --base "$BASE" \
+                  --provenance "$RUNNER_TEMP/provenance.json" || true
+               test -f "$RUNNER_TEMP/provenance.json"
+
+         -  name: Describe the submission for the reviewer
+            id: context
+            working-directory: submission
+            env:
+               PR: ${{ steps.pr.outputs.number }}
+            run: |
+               # shellcheck disable=SC2016
+               node -e '
+                  const { existsSync, readFileSync } = require("node:fs");
+                  const records = JSON.parse(readFileSync(process.env.RUNNER_TEMP + "/provenance.json", "utf8"));
+                  const entries = Object.fromEntries(
+                     [...new Set(records.map((r) => r.id))].map((id) => {
+                        const file = `vault/${id}.json`;
+                        return [id, existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : null];
+                     }),
+                  );
+                  const context = { pullRequest: Number(process.env.PR), provenance: records, entries };
+                  require("node:fs").appendFileSync(
+                     process.env.GITHUB_OUTPUT,
+                     `context<<CONTEXT_EOF\n${JSON.stringify(context)}\nCONTEXT_EOF\n`,
+                  );
+               '
+
+   review:
+      name: Review with Pullfrog
+      needs: provenance
+      if: needs.provenance.outputs.context != ''
+      runs-on: ubuntu-latest
+      permissions:
+         id-token: write
+         contents: read
+      steps:
+         -  name: Check out the base branch
+            uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+            with:
+               persist-credentials: false
+
+         -  name: Write the prompt
+            env:
+               CONTEXT: ${{ needs.provenance.outputs.context }}
+            run: |
+               set -euo pipefail
+               {
+                  cat .github/submission-review.md
+                  printf '\n## Context\n\n```json\n'
+                  printf '%s' "$CONTEXT" | jq .
+                  printf '```\n'
+               } > submission-review-prompt.md
+
+         -  name: Review
+            uses: pullfrog/pullfrog@ad4283a862b8377cb525a0f5bf30f17c023b18ea # v0.1.98
+            with:
+               prompt_file: submission-review-prompt.md
+               push: disabled
+               shell: restricted
+            env:
+               ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+               CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+               OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+               GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+               GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+               XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+               OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+               OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
