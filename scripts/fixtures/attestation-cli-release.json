@@ -1,0 +1,49 @@
+[
+	{
+		"verificationResult": {
+			"statement": {
+				"subject": [
+					{
+						"name": "spicetify",
+						"digest": {
+							"sha256": "3bab5f24e18244811189bd3b90bfb823c82fd2539b6b0755a12bac6802c8bc5b"
+						}
+					},
+					{
+						"name": "spicetify-daemon",
+						"digest": {
+							"sha256": "99163398925764c2d00f2ed6cb29a4d0dca2d89854f631738c4fbe09884de6b3"
+						}
+					}
+				],
+				"predicateType": "https://slsa.dev/provenance/v1"
+			},
+			"signature": {
+				"certificate": {
+					"certificateIssuer": "CN=sigstore-intermediate,O=sigstore.dev",
+					"subjectAlternativeName": "https://github.com/spicetify/cli/.github/workflows/rust-release.yml@refs/tags/v3.0.0-rc.3",
+					"issuer": "https://token.actions.githubusercontent.com",
+					"githubWorkflowTrigger": "push",
+					"githubWorkflowSHA": "3cde524eb792da382697a216c68981a6b1f82e77",
+					"githubWorkflowName": "Rust Release",
+					"githubWorkflowRepository": "spicetify/cli",
+					"githubWorkflowRef": "refs/tags/v3.0.0-rc.3",
+					"buildSignerURI": "https://github.com/spicetify/cli/.github/workflows/rust-release.yml@refs/tags/v3.0.0-rc.3",
+					"buildSignerDigest": "3cde524eb792da382697a216c68981a6b1f82e77",
+					"runnerEnvironment": "github-hosted",
+					"sourceRepositoryURI": "https://github.com/spicetify/cli",
+					"sourceRepositoryDigest": "3cde524eb792da382697a216c68981a6b1f82e77",
+					"sourceRepositoryRef": "refs/tags/v3.0.0-rc.3",
+					"sourceRepositoryIdentifier": "159981830",
+					"sourceRepositoryOwnerURI": "https://github.com/spicetify",
+					"sourceRepositoryOwnerIdentifier": "100136310",
+					"buildConfigURI": "https://github.com/spicetify/cli/.github/workflows/rust-release.yml@refs/tags/v3.0.0-rc.3",
+					"buildConfigDigest": "3cde524eb792da382697a216c68981a6b1f82e77",
+					"buildTrigger": "push",
+					"runInvocationURI": "https://github.com/spicetify/cli/actions/runs/37010245833/attempts/1",
+					"sourceRepositoryVisibilityAtSigning": "public"
+				}
+			}
+		}
+	}
+]

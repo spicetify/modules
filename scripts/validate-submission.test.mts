@@ -11,7 +11,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -19,11 +19,15 @@ import { after, before, describe, it } from "node:test";
 
 import {
 	compareVersions,
+	githubRepository,
 	inspectZip,
 	metadataMismatches,
 	ownerOf,
+	provenanceFrom,
 	unsafeZipEntries,
 	validate,
+	validateSubmission,
+	type ProvenanceVerifier,
 } from "./validate-submission.ts";
 import { metadataSubset } from "../packages/kit/src/vault-metadata.ts";
 import { runVault } from "../packages/kit/src/vault.ts";
@@ -37,6 +41,55 @@ describe("ownerOf", () => {
 	it("pins anything else to its host", () => {
 		assert.equal(ownerOf("https://mods.example.com/a.zip"), "mods.example.com");
 		assert.equal(ownerOf("not a url"), null);
+	});
+});
+
+describe("githubRepository", () => {
+	it("reads owner/repo from the forms a repository link takes", () => {
+		assert.equal(githubRepository("https://github.com/someone/mod"), "someone/mod");
+		assert.equal(githubRepository("https://github.com/someone/mod.git"), "someone/mod");
+		assert.equal(githubRepository("https://github.com/someone/mod/tree/main/sub"), "someone/mod");
+	});
+
+	it("has nothing to say about other hosts", () => {
+		assert.equal(githubRepository("https://codeberg.org/someone/mod"), null);
+		assert.equal(githubRepository("https://github.com/someone"), null);
+		assert.equal(githubRepository("not a url"), null);
+	});
+});
+
+describe("provenanceFrom", () => {
+	// A real `gh attestation verify --format json` result: the CLI's own
+	// release binary, attested by the CLI's release workflow rather than by
+	// the registry's builder.
+	const cliRelease = JSON.parse(
+		readFileSync(new URL("./fixtures/attestation-cli-release.json", import.meta.url), "utf8"),
+	);
+	const cliBinary = "sha256:3bab5f24e18244811189bd3b90bfb823c82fd2539b6b0755a12bac6802c8bc5b";
+	const reason = (result: ReturnType<typeof provenanceFrom>) => ("unverified" in result ? result.unverified : "");
+
+	it("refuses an attestation signed by a workflow other than the registry's builder", () => {
+		assert.match(
+			reason(provenanceFrom(cliRelease, cliBinary, "spicetify/cli")),
+			/signed by https:\/\/github\.com\/spicetify\/cli\/\.github\/workflows\/rust-release\.yml/,
+		);
+	});
+
+	it("refuses an attestation that covers other bytes", () => {
+		assert.match(reason(provenanceFrom(cliRelease, `sha256:${"0".repeat(64)}`, "spicetify/cli")), /covers/);
+	});
+
+	it("refuses an attestation built from another repository", () => {
+		assert.match(
+			reason(provenanceFrom(cliRelease, cliBinary, "author/mod")),
+			/built from https:\/\/github\.com\/spicetify\/cli/,
+		);
+	});
+
+	it("treats an unreadable result as unverified", () => {
+		for (const value of [null, "text", [], [{}], [{ verificationResult: {} }]]) {
+			assert.notEqual(reason(provenanceFrom(value, cliBinary, "spicetify/cli")), "");
+		}
 	});
 });
 
@@ -129,7 +182,8 @@ describe("validate against a fixture repo", () => {
 	// In-process, not a subprocess: the fixture artifacts are served by this
 	// same process, and execFileSync would block the event loop that has to
 	// answer the validator's download.
-	const report = async () => (await validate("base")).map((p) => `${p.id}: ${p.message}`).join("\n");
+	const noAttestation: ProvenanceVerifier = () => ({ unverified: "not looked up in this fixture" });
+	const report = async () => (await validate("base", noAttestation)).map((p) => `${p.id}: ${p.message}`).join("\n");
 
 	const sha256 = (b: Buffer) => `sha256:${createHash("sha256").update(b).digest("hex")}`;
 
@@ -358,6 +412,46 @@ describe("validate against a fixture repo", () => {
 		git("add", "-A");
 		git("commit", "-m", "bad pin");
 		assert.match(await report(), /enabled pins 9\.9\.9/);
+	});
+
+	it("checks each new artifact's provenance against the repository it names", async () => {
+		reset();
+		const mod = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		const entry = entryFor("mod", "1.4.0");
+		mod.v["1.4.0"] = entry;
+		writeSource("mod", mod);
+		git("add", "-A");
+		git("commit", "-m", "publish 1.4.0");
+		const calls: Array<{ zip: boolean; repository: string; digest: string }> = [];
+		const { provenance } = await validateSubmission("base", (zip, repository, digest) => {
+			calls.push({ zip: existsSync(zip), repository, digest });
+			return { unverified: "no attestation in this fixture" };
+		});
+		assert.deepEqual(calls, [{ zip: true, repository: "author/mod", digest: entry.checksum }]);
+		assert.deepEqual(
+			provenance.map((p) => `${p.id}@${p.version}`),
+			["mod@1.4.0"],
+		);
+	});
+
+	it("does not look up provenance for a repository outside GitHub", async () => {
+		reset();
+		const elsewhere = { repository: "https://codeberg.org/author/mod" };
+		const mod = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		mod.v["1.5.0"] = entryFor("mod", "1.5.0", elsewhere);
+		mod.metadata = cardFor(elsewhere);
+		writeSource("mod", mod);
+		git("add", "-A");
+		git("commit", "-m", "publish 1.5.0");
+		let looked = false;
+		const { provenance } = await validateSubmission("base", () => {
+			looked = true;
+			return { unverified: "unreachable" };
+		});
+		assert.equal(looked, false);
+		const [only] = provenance;
+		assert.ok(only && "unverified" in only.result);
+		assert.match(only.result.unverified, /not a GitHub repository/);
 	});
 
 	it("passes when nothing in the vault changed", async () => {
