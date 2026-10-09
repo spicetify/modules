@@ -166,8 +166,15 @@ export function provenanceFrom(verified: unknown, digest: string, repository: st
 		return { unverified: `built from ${source || "an unknown repository"}, not ${repository}` };
 	}
 	const signer = String(cert.buildSignerURI ?? "");
-	if (!signer.startsWith(`https://github.com/${BUILDER_WORKFLOW}@`)) {
+	const builder = `https://github.com/${BUILDER_WORKFLOW}@`;
+	if (!signer.startsWith(builder)) {
 		return { unverified: `signed by ${signer || "an unknown workflow"}, not ${BUILDER_WORKFLOW}` };
+	}
+	// Only reviewed builder code counts: a release tag, which is what authors
+	// pin, or main. A branch or pull request of the actions repository is not.
+	const builderRef = signer.slice(builder.length);
+	if (!/^refs\/tags\/v\d/.test(builderRef) && builderRef !== "refs/heads/main") {
+		return { unverified: `signed by ${BUILDER_WORKFLOW} at ${builderRef}, which is not a release or main` };
 	}
 	if (cert.runnerEnvironment !== "github-hosted") {
 		return { unverified: `built on a ${cert.runnerEnvironment ?? "unknown"} runner` };
