@@ -13,8 +13,12 @@
  * artifact rather than believing the submission. Nothing in the vault diff
  * is trusted as an assertion; it is only a claim to be checked.
  *
+ * When the artifact was built by the registry's build-module workflow, its
+ * attestation proves which repository and commit it came from; that commit is
+ * reported so a reviewer can read the source rather than the bundled output.
+ *
  * usage:
- *   node scripts/validate-submission.ts [--base <ref>]
+ *   node scripts/validate-submission.ts [--base <ref>] [--provenance <file>]
  */
 
 import { execFileSync } from "node:child_process";
@@ -36,8 +40,16 @@ const MAX_INLINE_BYTES = 256 * 1024;
 // Mirrors live in this repo's releases, so they are legitimately outside
 // the author's own origin.
 const MIRROR_ORIGIN = "github.com/spicetify";
+// The reusable workflow whose attestations the registry trusts. A zip it
+// signed was built by these steps, on a GitHub-hosted runner, from one commit.
+const BUILDER_WORKFLOW = "spicetify/actions/.github/workflows/build-module.yml";
 
 export type Problem = { id: string; message: string };
+
+export type Provenance = { repository: string; commit: string; ref: string; builder: string; run: string };
+export type ProvenanceResult = { provenance: Provenance } | { unverified: string };
+export type ProvenanceVerifier = (zipPath: string, repository: string, digest: string) => ProvenanceResult;
+export type ProvenanceRecord = { id: string; version: string; result: ProvenanceResult };
 
 // stderr is piped rather than inherited: `git show` on a path that does not
 // exist in the base ref is an ordinary answer here, not something to print.
@@ -120,6 +132,97 @@ export function ownerOf(url: string): string | null {
 		return null;
 	}
 }
+
+/** `owner/repo` for a GitHub repository link, the form attestations are looked up by. */
+export function githubRepository(url: string): string | null {
+	try {
+		const parsed = new URL(url);
+		if (parsed.hostname !== "github.com") return null;
+		const [owner, repo] = parsed.pathname.split("/").filter(Boolean);
+		return owner && repo ? `${owner}/${repo.replace(/\.git$/, "")}` : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Reads a `gh attestation verify --format json` result. gh has already checked
+ * the signature, and the signer and runner it was asked to require; the same
+ * claims are checked again here against this artifact and this entry, so the
+ * commit that comes out is one the attestation actually binds to these bytes.
+ */
+export function provenanceFrom(verified: unknown, digest: string, repository: string): ProvenanceResult {
+	const hex = digest.replace(/^sha256:/, "").toLowerCase();
+	const results = Array.isArray(verified) ? verified : [];
+	const covering = results.find((r) =>
+		r?.verificationResult?.statement?.subject?.some(
+			(s: { digest?: { sha256?: string } }) => s?.digest?.sha256?.toLowerCase() === hex,
+		),
+	);
+	if (!covering) return { unverified: `no attestation covers ${digest}` };
+	const cert = covering.verificationResult.signature?.certificate ?? {};
+	const source = String(cert.sourceRepositoryURI ?? "");
+	if (source.toLowerCase() !== `https://github.com/${repository}`.toLowerCase()) {
+		return { unverified: `built from ${source || "an unknown repository"}, not ${repository}` };
+	}
+	const signer = String(cert.buildSignerURI ?? "");
+	if (!signer.startsWith(`https://github.com/${BUILDER_WORKFLOW}@`)) {
+		return { unverified: `signed by ${signer || "an unknown workflow"}, not ${BUILDER_WORKFLOW}` };
+	}
+	if (cert.runnerEnvironment !== "github-hosted") {
+		return { unverified: `built on a ${cert.runnerEnvironment ?? "unknown"} runner` };
+	}
+	const commit = String(cert.sourceRepositoryDigest ?? "");
+	if (!/^[0-9a-f]{40}$/.test(commit)) return { unverified: "attestation names no source commit" };
+	return {
+		provenance: {
+			repository,
+			commit,
+			ref: String(cert.sourceRepositoryRef ?? ""),
+			builder: signer,
+			run: String(cert.runInvocationURI ?? ""),
+		},
+	};
+}
+
+type GhVerification = { json: unknown } | { missing: true } | { failed: string };
+
+function ghVerify(zipPath: string, repository: string, requirements: string[]): GhVerification {
+	let output: string;
+	try {
+		output = execFileSync(
+			"gh",
+			["attestation", "verify", zipPath, "--repo", repository, ...requirements, "--format", "json"],
+			{ encoding: "utf8", maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "pipe"] },
+		);
+	} catch (e) {
+		const error = e as NodeJS.ErrnoException & { stderr?: string };
+		if (error.code === "ENOENT") return { failed: "the GitHub CLI (gh) is not installed" };
+		const stderr = String(error.stderr ?? "");
+		if (/HTTP 404/.test(stderr)) return { missing: true };
+		return { failed: stderr.trim().split("\n").filter(Boolean).at(-1) ?? "gh attestation verify failed" };
+	}
+	try {
+		return { json: JSON.parse(output) };
+	} catch {
+		return { failed: "gh returned output that is not JSON" };
+	}
+}
+
+/**
+ * Verifies with the GitHub CLI, which does the cryptographic half. When the
+ * builder's signature is absent, a second lookup without that requirement
+ * names whichever workflow did sign, which is the usual answer: an author
+ * attested from a workflow of their own.
+ */
+export const verifyWithGh: ProvenanceVerifier = (zipPath, repository, digest) => {
+	const strict = ghVerify(zipPath, repository, ["--signer-workflow", BUILDER_WORKFLOW, "--deny-self-hosted-runners"]);
+	if ("json" in strict) return provenanceFrom(strict.json, digest, repository);
+	if ("missing" in strict) return { unverified: `${repository} has no attestation for this artifact` };
+	const any = ghVerify(zipPath, repository, []);
+	if ("json" in any) return provenanceFrom(any.json, digest, repository);
+	return { unverified: `no attestation from ${BUILDER_WORKFLOW} (${strict.failed})` };
+};
 
 /** The ids whose source file this change touches. */
 export function changedIds(base: string): string[] {
@@ -227,6 +330,8 @@ async function validateArtifact(
 	knownIds: Set<string>,
 	establishedOwner: string | null,
 	problems: Problem[],
+	verify: ProvenanceVerifier,
+	provenance: ProvenanceRecord[],
 ): Promise<void> {
 	const push = (message: string) => problems.push({ id, message });
 	const artifacts = entry.artifacts ?? [];
@@ -324,17 +429,36 @@ async function validateArtifact(
 		if (newest === version) {
 			for (const mismatch of metadataMismatches(head.metadata, subset)) push(`${version}: ${mismatch}`);
 		}
+
+		// Read from the artifact rather than the entry: the attestation has to
+		// tie these bytes to the repository the code itself names.
+		const repository = typeof subset.repository === "string" ? githubRepository(subset.repository) : null;
+		provenance.push({
+			id,
+			version,
+			result: repository
+				? verify(zipPath, repository, actual)
+				: { unverified: "metadata.repository is not a GitHub repository" },
+		});
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}
 }
 
-export async function validate(base: string): Promise<Problem[]> {
+export async function validate(base: string, verify: ProvenanceVerifier = verifyWithGh): Promise<Problem[]> {
+	return (await validateSubmission(base, verify)).problems;
+}
+
+export async function validateSubmission(
+	base: string,
+	verify: ProvenanceVerifier = verifyWithGh,
+): Promise<{ problems: Problem[]; provenance: ProvenanceRecord[] }> {
 	const problems: Problem[] = [];
+	const provenance: ProvenanceRecord[] = [];
 	const ids = changedIds(base);
 	if (!ids.length) {
 		console.log("validate-submission: no vault sources changed");
-		return problems;
+		return { problems, provenance };
 	}
 	const knownIds = new Set(sourceIds());
 
@@ -402,7 +526,19 @@ export async function validate(base: string): Promise<Problem[]> {
 		for (const version of added) {
 			const entry = head.v[version]!;
 			if (entry.files) validateInline(id, version, entry, problems);
-			else await validateArtifact(id, version, entry, head, knownIds, establishedOwner, problems);
+			else {
+				await validateArtifact(
+					id,
+					version,
+					entry,
+					head,
+					knownIds,
+					establishedOwner,
+					problems,
+					verify,
+					provenance,
+				);
+			}
 		}
 
 		// A change with no new version still changes what users see and what
@@ -419,7 +555,17 @@ export async function validate(base: string): Promise<Problem[]> {
 				if (entry.files) {
 					console.log(`${id}: metadata-only change on an inline entry`);
 				} else {
-					await validateArtifact(id, newest, entry, head, knownIds, establishedOwner, problems);
+					await validateArtifact(
+						id,
+						newest,
+						entry,
+						head,
+						knownIds,
+						establishedOwner,
+						problems,
+						verify,
+						provenance,
+					);
 				}
 			}
 			if (head.enabled !== before?.enabled) {
@@ -431,13 +577,29 @@ export async function validate(base: string): Promise<Problem[]> {
 			}
 		}
 	}
-	return problems;
+	return { problems, provenance };
+}
+
+function describeProvenance({ id, version, result }: ProvenanceRecord): string {
+	if ("unverified" in result) return `${id}@${version}: provenance not verified: ${result.unverified}`;
+	const { repository, commit, run } = result.provenance;
+	return `${id}@${version}: built by build-module from https://github.com/${repository}/tree/${commit} (${run})`;
 }
 
 async function main(): Promise<void> {
-	const i = process.argv.indexOf("--base");
-	const base = i >= 0 ? process.argv[i + 1]! : "origin/main";
-	const problems = await validate(base);
+	const arg = (name: string) => {
+		const i = process.argv.indexOf(name);
+		return i >= 0 ? process.argv[i + 1] : undefined;
+	};
+	const base = arg("--base") ?? "origin/main";
+	const { problems, provenance } = await validateSubmission(base);
+	for (const record of provenance) console.log(describeProvenance(record));
+	const out = arg("--provenance");
+	if (out) writeFileSync(out, `${JSON.stringify(provenance, null, "\t")}\n`);
+	if (process.env.GITHUB_STEP_SUMMARY && provenance.length) {
+		const lines = provenance.map((record) => `- ${describeProvenance(record)}`);
+		writeFileSync(process.env.GITHUB_STEP_SUMMARY, `### Provenance\n\n${lines.join("\n")}\n`, { flag: "a" });
+	}
 	if (!problems.length) {
 		console.log("validate-submission: ok");
 		return;
