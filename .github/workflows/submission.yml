@@ -67,12 +67,24 @@ jobs:
          # The validator resolves sources and runs git against the working
          # directory, so cwd is the submission while the code is the base
          # branch's. It imports only node builtins and its own siblings, so
-         # no dependency install is needed here.
+         # no dependency install is needed here. The token is read-only and
+         # only looks up attestations, which are public for public repos.
          -  name: Validate
             working-directory: submission
             env:
                BASE_SHA: ${{ github.event.pull_request.base.sha }}
+               GH_TOKEN: ${{ github.token }}
             run: |
                set -e
                BASE=${BASE_SHA:-$(git rev-parse HEAD~1)}
-               node "$GITHUB_WORKSPACE/validator/scripts/validate-submission.ts" --base "$BASE"
+               node "$GITHUB_WORKSPACE/validator/scripts/validate-submission.ts" --base "$BASE" \
+                  --provenance "$GITHUB_WORKSPACE/provenance.json"
+
+         # Which commit each new artifact was built from, for whoever reviews
+         # the source behind it.
+         -  name: Keep the provenance report
+            if: ${{ !cancelled() && hashFiles('provenance.json') != '' }}
+            uses: actions/upload-artifact@v7
+            with:
+               name: provenance
+               path: provenance.json
