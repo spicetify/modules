@@ -126,6 +126,8 @@ jobs:
             with:
                persist-credentials: false
 
+         # Excluded from git so the checkout stays clean: Pullfrog's
+         # checkout_pr refuses to switch branches over untracked files.
          -  name: Write the prompt
             env:
                CONTEXT: ${{ needs.provenance.outputs.context }}
@@ -137,6 +139,8 @@ jobs:
                   printf '%s' "$CONTEXT" | jq .
                   printf '```\n'
                } > submission-review-prompt.md
+               echo submission-review-prompt.md >> .git/info/exclude
+               test -z "$(git status --porcelain)"
 
          -  name: Review
             uses: pullfrog/pullfrog@ad4283a862b8377cb525a0f5bf30f17c023b18ea # v0.1.98
