@@ -8,14 +8,15 @@ import { createRoot, type Root } from "react-dom/client";
 import { createModuleQueryClient } from "../stdlib/query.ts";
 import { LyricsQueries } from "./queries.ts";
 import { ProviderGenius } from "./providers/genius.ts";
-import { GENIUS, CONFIG, UNSYNCED } from "./config.ts";
+import { GENIUS, CONFIG, SYNCED, UNSYNCED } from "./config.ts";
 import type { GeniusVersion, ProviderResult } from "./types.ts";
+import type { Translator } from "./translator.ts";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const noop = "const Component = () => null;";
 const exposure = `
 export * as React from ${JSON.stringify(import.meta.resolve("react"))};
-export const client = { player: { data: { item: null }, origin: { _events: { addListener() {}, removeListener() {} } } }, notify() {} };
+export const client = { player: { data: { item: null }, origin: { _events: { addListener() {}, removeListener() {} } } }, notify(...args) { (globalThis.__notifications ??= []).push(args); } };
 export const createRegistrar = () => ({});
 ${noop}
 export { Component as NavLink, Component as PlaybarButton };
@@ -77,7 +78,9 @@ async function mount() {
 	assert.ok(ref.current);
 	return { container: ref.current, queries };
 }
+const notifications = () => ((globalThis as { __notifications?: unknown[][] }).__notifications ??= []);
 afterEach(async () => {
+	notifications().length = 0;
 	await React.act(async () => roots.splice(0).forEach((root) => root.unmount()));
 	await Promise.all(cleanups.splice(0).map((fn) => fn()));
 	ProviderGenius.fetchLyricsVersion = originalFetch;
@@ -104,6 +107,40 @@ test("Genius columns complete independently and reject superseded versions in th
 	});
 	assert.equal(container.state.genius, "latest primary");
 	assert.equal(container.state.genius2, "secondary");
+});
+
+test("pinyin appears without a toast on every track, and a failure says what failed", async () => {
+	const { container } = await mount();
+	CONFIG.visual.romanization = "pinyin";
+	const lyrics = [{ text: "你好", startTime: 0 }];
+	let fail = false;
+	container.translator = {
+		convertToPinyin: async (text: string) => {
+			if (fail) throw new Error("pinyin-pro did not load");
+			return `pinyin:${text}`;
+		},
+		dispose() {},
+	} as unknown as Translator;
+	const romanize = async (uri: string) => {
+		container.currentTrackUri = uri;
+		await React.act(async () => {
+			container.syncRomanization(uri, SYNCED, "zh-hans", lyrics);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		});
+	};
+
+	await romanize("spotify:track:first");
+	await romanize("spotify:track:second");
+	assert.deepEqual(container.state.pinyin?.lines, [{ startTime: 0, text: "pinyin:你好" }]);
+	assert.deepEqual(notifications(), []);
+
+	fail = true;
+	await romanize("spotify:track:third");
+	assert.equal(container.state.pinyin?.lines, null);
+	assert.equal(notifications().length, 1);
+	const [message, isError] = notifications()[0]!;
+	assert.match(String(message), /pinyin/i);
+	assert.equal(isError, true);
 });
 
 test("same-track mode races cannot overwrite the latest result and automatic selection restores a remembered mode", async () => {
