@@ -38,13 +38,49 @@ export function targetMatchesCurrent(
 	return current.artistUris.includes(targetUri);
 }
 
-export function toggleEntry(
-	list: Record<string, any>,
-	uri: string,
-	displayName: any = true,
-): { next: Record<string, any>; added: boolean } {
+export type TrashList = Record<string, boolean>;
+export type TrashedEntry = { uri: string; kind: "song" | "artist" };
+
+// A stored list is uri -> true. Anything else truthy (an older build stored
+// display names here) still means trashed; malformed storage means empty.
+export function normalizeList(value: unknown): TrashList {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+	return Object.fromEntries(
+		Object.entries(value)
+			.filter(([, trashed]) => !!trashed)
+			.map(([uri]) => [uri, true]),
+	);
+}
+
+export function trackLabel(title: string, artists: string[]): string {
+	return artists.length ? `${artists.join(", ")} - ${title}` : title;
+}
+
+// Insertion order is trash order, so reversing a list puts the newest first.
+export function trashedEntries(songs: TrashList, artists: TrashList): TrashedEntry[] {
+	return [
+		...Object.keys(songs)
+			.reverse()
+			.map((uri) => ({ uri, kind: "song" as const })),
+		...Object.keys(artists)
+			.reverse()
+			.map((uri) => ({ uri, kind: "artist" as const })),
+	];
+}
+
+export function matchingEntries(
+	entries: TrashedEntry[],
+	labelOf: (uri: string) => string | undefined,
+	query: string,
+): TrashedEntry[] {
+	const needle = query.trim().toLowerCase();
+	if (!needle) return entries;
+	return entries.filter(({ uri }) => (labelOf(uri) ?? uri).toLowerCase().includes(needle));
+}
+
+export function toggleEntry(list: TrashList, uri: string): { next: TrashList; added: boolean } {
 	if (!list[uri]) {
-		return { next: { ...list, [uri]: displayName }, added: true };
+		return { next: { ...list, [uri]: true }, added: true };
 	}
 	const next = { ...list };
 	delete next[uri];

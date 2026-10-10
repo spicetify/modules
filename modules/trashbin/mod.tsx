@@ -10,8 +10,27 @@
  */
 
 import { client, createRegistrar, PlaybarButton, React, type ModuleRuntimeContext } from "/modules/stdlib/mod.ts";
-import { Button, SettingsRow, SettingsSection, Toggle } from "/modules/stdlib/lib/primitives.tsx";
-import { collectArtistUris, shouldSkipTrack, targetMatchesCurrent, toggleEntry } from "./logic.ts";
+import {
+	Button,
+	SettingsButtonRow,
+	SettingsLabel,
+	SettingsRow,
+	SettingsSection,
+	SettingsTextInputRow,
+	Toggle,
+} from "/modules/stdlib/lib/primitives.tsx";
+import {
+	collectArtistUris,
+	matchingEntries,
+	normalizeList,
+	shouldSkipTrack,
+	targetMatchesCurrent,
+	toggleEntry,
+	trackLabel,
+	trashedEntries,
+	type TrashedEntry,
+	type TrashList,
+} from "./logic.ts";
 
 const ICON_PATH =
 	'<path d="M9.083.583a2.08 2.08 0 0 1 1.474.61 2.08 2.08 0 0 1 .61 1.473v.583h2.583a.75.75 0 0 1 0 1.5h-.583v8.582a2.09 2.09 0 0 1-1.286 1.927 2.1 2.1 0 0 1-.798.158H4.417v-.001a2.1 2.1 0 0 1-1.474-.61 2.08 2.08 0 0 1-.61-1.474V4.75H1.75a.75.75 0 1 1 0-1.5h2.583v-.583A2.085 2.085 0 0 1 5.619.741c.253-.104.524-.157.798-.157V.583zm-5.25 12.751a.583.583 0 0 0 .583.583h6.668a.58.58 0 0 0 .583-.583V4.75H3.833zm1.834-2.001v-4a.75.75 0 0 1 1.5 0v4a.75.75 0 0 1-1.5 0m2.666 0v-4a.75.75 0 1 1 1.5 0v4a.75.75 0 0 1-1.5 0m-1.917-9.25a.583.583 0 0 0-.583.583v.584h3.834v-.584a.583.583 0 0 0-.583-.583z"/>';
@@ -40,8 +59,15 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const { useState, useEffect } = React;
 	const registrar = createRegistrar(ctx);
 
-	let trashSongList: Record<string, any> = initValue("TrashSongList", {});
-	let trashArtistList: Record<string, any> = initValue("TrashArtistList", {});
+	let trashSongList: TrashList = normalizeList(initValue("TrashSongList", {}));
+	let trashArtistList: TrashList = normalizeList(initValue("TrashArtistList", {}));
+	// Display names by uri, kept apart from the lists so the lists stay the
+	// uri -> true shape the skip logic and older trashbin data use.
+	const trashNames = new Map<string, string>(
+		Object.entries(initValue<Record<string, unknown>>("TrashbinNames", {})).filter(
+			(entry): entry is [string, string] => typeof entry[1] === "string",
+		),
+	);
 	let trashbinStatus: boolean = initValue("trashbin-enabled", true);
 	let enableWidget: boolean = initValue("TrashbinWidgetIcon", true);
 	let userHitBack = false;
@@ -52,8 +78,65 @@ export default async function (ctx: ModuleRuntimeContext) {
 	const refreshButtons = () => refreshers.forEach((f) => f());
 
 	const putDataLocal = () => {
+		for (const uri of trashNames.keys()) {
+			if (!trashSongList[uri] && !trashArtistList[uri]) trashNames.delete(uri);
+		}
 		client.storage.set("TrashSongList", JSON.stringify(trashSongList));
 		client.storage.set("TrashArtistList", JSON.stringify(trashArtistList));
+		client.storage.set("TrashbinNames", JSON.stringify(Object.fromEntries(trashNames)));
+	};
+
+	const lookUpName = async ({ uri, kind }: TrashedEntry): Promise<string | null> => {
+		const { Request, Definitions } = client.graphQL;
+		if (kind === "artist") {
+			const { data } = await Request(Definitions.queryArtistOverview, {
+				uri,
+				locale: client.locale.getLocale(),
+				includePrerelease: false,
+			});
+			return data?.artistUnion?.profile?.name ?? null;
+		}
+		const [name, credits] = await Promise.all([
+			Request(Definitions.getTrackName, { uri }),
+			Request(Definitions.queryTrackArtists, { trackUri: uri }),
+		]);
+		const title: string | undefined = name.data?.trackUnion?.name;
+		if (!title) return null;
+		const artists: string[] = (credits.data?.trackUnion?.artists?.items ?? [])
+			.map((artist: { profile?: { name?: string } }) => artist.profile?.name)
+			.filter((artistName: string | undefined): artistName is string => !!artistName);
+		return trackLabel(title, artists);
+	};
+
+	// Resolves names the cache does not have yet, a few requests at a time.
+	const resolveNames = async (entries: TrashedEntry[], onName?: () => void) => {
+		const queue = entries.filter(({ uri }) => !trashNames.has(uri));
+		const worker = async () => {
+			for (let entry = queue.shift(); entry; entry = queue.shift()) {
+				try {
+					const name = await lookUpName(entry);
+					if (!name || (!trashSongList[entry.uri] && !trashArtistList[entry.uri])) continue;
+					trashNames.set(entry.uri, name);
+					onName?.();
+				} catch (error) {
+					console.warn("[trashbin] could not look up", entry.uri, error);
+				}
+			}
+		};
+		await Promise.all(Array.from({ length: 4 }, worker));
+		putDataLocal();
+	};
+
+	// The playing track's name is already known, so it costs no request.
+	const rememberName = (uri: string) => {
+		const item = client.player.data?.item;
+		if (item?.uri === uri && item.metadata?.title) {
+			const artists = item.metadata.artist_name ? [item.metadata.artist_name] : [];
+			trashNames.set(uri, trackLabel(item.metadata.title, artists));
+			return;
+		}
+		const kind = isTrackUri(uri) ? "song" : "artist";
+		void resolveNames([{ uri, kind }], refreshButtons);
 	};
 
 	const isTrackUri = (uri: string) => client.uri.fromString(uri).type === client.uri.Type.TRACK;
@@ -102,16 +185,12 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 
 	const toggleCurrent = () => {
-		const item = client.player.data?.item;
-		if (!item?.uri) return;
-
-		const trackName = item.name || item.metadata?.title || "Unknown Track";
-		const artistName = item.metadata?.artist_name || "";
-		const displayName = artistName ? `${artistName} - ${trackName}` : trackName;
-
-		const { next, added } = toggleEntry(trashSongList, item.uri, displayName);
+		const uri = client.player.data?.item?.uri;
+		if (!uri) return;
+		const { next, added } = toggleEntry(trashSongList, uri);
 		trashSongList = next;
 		if (added) {
+			rememberName(uri);
 			client.player.next();
 			client.notify("Song added to trashbin");
 		} else {
@@ -152,22 +231,11 @@ export default async function (ctx: ModuleRuntimeContext) {
 		const uri = uris[0];
 		const type = client.uri.fromString(uri).type;
 		const isTrack = type === client.uri.Type.TRACK;
-
-		const curItem = client.player.data?.item;
-		let displayName = isTrack ? "Track" : "Artist";
-
-		if (curItem && curItem.uri === uri) {
-			const trackName = curItem.name || curItem.metadata?.title || "Unknown Track";
-			const artistName = curItem.metadata?.artist_name || "";
-			displayName = isTrack ? (artistName ? `${artistName} - ${trackName}` : trackName) : artistName;
-		} else {
-			displayName = `${isTrack ? "Track" : "Artist"} (${uri.split(":").pop()})`;
-		}
-
-		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri, displayName);
+		const { next, added } = toggleEntry(isTrack ? trashSongList : trashArtistList, uri);
 		if (isTrack) trashSongList = next;
 		else trashArtistList = next;
 		if (added) {
+			rememberName(uri);
 			if (shouldSkipCurrentTrack(uri, type)) client.player.next();
 			client.notify(isTrack ? "Song added to trashbin" : "Artist added to trashbin");
 		} else {
@@ -200,32 +268,33 @@ export default async function (ctx: ModuleRuntimeContext) {
 	function Settings() {
 		const [enabled, setEnabled] = useState(trashbinStatus);
 		const [widget, setWidget] = useState(enableWidget);
-		const [songs, setSongs] = useState(trashSongList);
-		const [searchQuery, setSearchQuery] = useState("");
+		const [entries, setEntries] = useState(() => trashedEntries(trashSongList, trashArtistList));
+		const [, rerender] = React.useReducer((n: number) => n + 1, 0);
+		const [query, setQuery] = useState("");
 
 		useEffect(() => {
-			const sync = () => setSongs(trashSongList);
+			const sync = () => {
+				setEntries(trashedEntries(trashSongList, trashArtistList));
+				rerender();
+			};
 			refreshers.add(sync);
 			return () => {
 				refreshers.delete(sync);
 			};
 		}, []);
 
-		const filteredSongs = Object.entries(songs)
-			.reverse()
-			.filter(([uri, name]) => {
-				const displayName = typeof name === "string" ? name : uri;
-				return displayName.toLowerCase().includes(searchQuery.toLowerCase());
-			});
+		useEffect(() => {
+			void resolveNames(entries, rerender);
+		}, [entries]);
 
-		const removeSong = (uri: string) => {
-			const next = { ...trashSongList };
-			delete next[uri];
-			trashSongList = next;
-			setSongs(next);
+		const visible = matchingEntries(entries, (uri) => trashNames.get(uri), query);
+
+		const remove = ({ uri, kind }: TrashedEntry) => {
+			if (kind === "song") trashSongList = toggleEntry(trashSongList, uri).next;
+			else trashArtistList = toggleEntry(trashArtistList, uri).next;
 			putDataLocal();
 			refreshButtons();
-			client.notify("Song removed from trashbin");
+			client.notify(kind === "song" ? "Song removed from trashbin" : "Artist removed from trashbin");
 		};
 
 		return (
@@ -282,7 +351,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 						onClick={() => {
 							trashSongList = {};
 							trashArtistList = {};
-							setSongs({});
 							putDataLocal();
 							refreshButtons();
 							client.notify("Trashbin cleared!");
@@ -292,59 +360,37 @@ export default async function (ctx: ModuleRuntimeContext) {
 					</Button>
 				</SettingsRow>
 
-				<div style={{ marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px" }}>
-					{Object.keys(songs).length === 0 ? (
-						<div style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}>
-							Trashbin is empty
+				{entries.length === 0 ? (
+					<SettingsRow label={<SettingsLabel label="The trashbin is empty" />}>{null}</SettingsRow>
+				) : (
+					<>
+						<SettingsTextInputRow
+							label="Search the trashbin"
+							description={`${entries.length} trashed ${entries.length === 1 ? "item" : "items"}`}
+							value={query}
+							placeholder="Song or artist"
+							ariaLabel="Search the trashbin"
+							onInput={setQuery}
+						/>
+						<div className="trashbin-list">
+							{visible.length === 0 ? (
+								<SettingsRow label={<SettingsLabel label="Nothing in the trashbin matches" />}>
+									{null}
+								</SettingsRow>
+							) : (
+								visible.map((entry) => (
+									<SettingsButtonRow
+										key={entry.uri}
+										label={trashNames.get(entry.uri) ?? entry.uri}
+										description={entry.kind === "song" ? "Song" : "Artist"}
+										buttonLabel="Remove"
+										onClick={() => remove(entry)}
+									/>
+								))
+							)}
 						</div>
-					) : (
-						<>
-							<input
-								type="text"
-								placeholder="Search trashed songs..."
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								style={{
-									width: "100%",
-									padding: "8px 12px",
-									marginBottom: "10px",
-									borderRadius: "4px",
-									border: "1px solid rgba(255,255,255,0.2)",
-									background: "rgba(255,255,255,0.05)",
-									color: "var(--spice-text, #fff)",
-									boxSizing: "border-box",
-									outline: "none",
-								}}
-							/>
-
-							<div
-								style={{
-									maxHeight: "205px",
-									overflowY: filteredSongs.length > 5 ? "auto" : "hidden",
-									overflowX: "hidden",
-									scrollbarGutter: "stable",
-									paddingRight: "6px",
-								}}
-							>
-								{filteredSongs.length === 0 ? (
-									<div
-										style={{ padding: "10px", color: "rgba(255,255,255,0.5)", textAlign: "center" }}
-									>
-										No matching songs found
-									</div>
-								) : (
-									filteredSongs.map(([uri, name]) => (
-										<SettingsRow key={uri} label={typeof name === "string" ? name : uri}>
-											<Button variant="secondary" onClick={() => removeSong(uri)}>
-												Remove
-											</Button>
-										</SettingsRow>
-									))
-								)}
-							</div>
-						</>
-					)}
-				</div>
+					</>
+				)}
 			</SettingsSection>
 		);
 	}
@@ -376,8 +422,8 @@ export default async function (ctx: ModuleRuntimeContext) {
 			reader.onload = (ev) => {
 				try {
 					const data = JSON.parse(ev.target?.result as string);
-					trashSongList = data.songs;
-					trashArtistList = data.artists;
+					trashSongList = normalizeList(data?.songs);
+					trashArtistList = normalizeList(data?.artists);
 					putDataLocal();
 					refreshButtons();
 					client.notify("File Import Successful!");
