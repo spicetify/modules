@@ -1577,6 +1577,14 @@
 					"providers": [],
 					"checksum": "sha256:742fd9b8ff6778db3da237055a7e0f381c13f8405c972b13723346a880126c4d",
 					"updatedAt": "2026-10-07"
+				},
+				"2.0.1": {
+					"artifacts": [
+						"https://github.com/Golevka2001/section-marker-rev/releases/download/section-marker-rev@2.0.1/section-marker-rev@2.0.1.zip",
+						"https://github.com/spicetify/modules/releases/download/mirror/section-marker-rev/section-marker-rev@2.0.1.zip"
+					],
+					"checksum": "sha256:d24fe465a0a0c83e5821e43c6f9d7d2166673298d6c2c802a3181422a9a7a87b",
+					"updatedAt": "2026-10-10"
 				}
 			},
 			"metadata": {
