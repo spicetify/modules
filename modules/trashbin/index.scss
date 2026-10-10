@@ -61,3 +61,10 @@
 		}
 	}
 }
+
+/* The trashed items list on the Spicetify Settings page: the rows are stdlib
+   primitives, so only the scroll bound lives here. */
+.trashbin-list {
+	max-height: 360px;
+	overflow-y: auto;
+}
