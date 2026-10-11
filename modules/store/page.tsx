@@ -772,7 +772,10 @@ function InstalledCard(props: {
 	loaded: boolean;
 	revokedReason: string | undefined;
 	daemonReady: boolean;
+	update: VaultModule | undefined;
+	updateBlocked: boolean;
 	refresh: () => void;
+	onUpdate: () => Promise<void>;
 	onEdit: (existing: { id: string; name: string; css: string }) => void;
 }): ReactElement {
 	const { record } = props;
@@ -807,6 +810,7 @@ function InstalledCard(props: {
 	// is armed first rather than fired from a single click. Same two-step
 	// shape as the page's Reset.
 	const [uninstallArmed, setUninstallArmed] = React.useState(false);
+	const [updating, setUpdating] = React.useState(false);
 	React.useEffect(() => {
 		if (!uninstallArmed) return;
 		const timer = setTimeout(() => setUninstallArmed(false), 4000);
@@ -848,9 +852,23 @@ function InstalledCard(props: {
 				</p>
 			)}
 			<div className="spicetify-store-card-actions">
+				{props.update && (
+					<button
+						type="button"
+						className="spicetify-store-cta"
+						title={`Update to ${props.update.version}`}
+						disabled={updating || props.updateBlocked}
+						onClick={() => {
+							setUpdating(true);
+							void props.onUpdate().finally(() => setUpdating(false));
+						}}
+					>
+						Update
+					</button>
+				)}
 				{/* Protected modules can be re-enabled if somehow down, but never
 				    disabled (that would unload the UI) or removed. */}
-				{(!isProtected || !props.loaded) && (
+				{!props.update && (!isProtected || !props.loaded) && (
 					<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
 						{props.loaded ? "Disable" : "Enable"}
 					</button>
@@ -1060,6 +1078,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			.map((s: any) => [s.identifier, s]),
 	);
 	const pending = pendingUpdates(catalog);
+	const pendingById = new Map(pending.map((mod) => [mod.id, mod]));
 	const activeTheme = installed.find(
 		(r) =>
 			kindOf(r.metadata) === "theme" &&
@@ -1413,7 +1432,10 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						loaded={!!(states.get(record.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded}
 						revokedReason={catalog.revoked[record.metadata.identifier]}
 						daemonReady={daemonReady}
+						update={pendingById.get(record.metadata.identifier)}
+						updateBlocked={updatingAll}
 						refresh={refreshRegistry}
+						onUpdate={() => runInstall(pendingById.get(record.metadata.identifier)!)}
 						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
 					/>
 				))}
