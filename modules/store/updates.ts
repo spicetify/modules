@@ -47,6 +47,17 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
 
+// The action wording for a pending update. A pinned vault entry can be older
+// than what is installed (a maintainer withdrawing a bad release), so the move
+// is not always forward; the per-card button shows only a glyph, so this is the
+// tooltip and accessible name that tell the user which way it goes.
+export function updateActionLabel(installedVersion: string, targetVersion: string): string {
+	const target = displayVersion(targetVersion);
+	return compareVersions(targetVersion, installedVersion) < 0
+		? `Roll back to ${target}`
+		: `Update available to ${target}`;
+}
+
 // Once a boot runs a stdlib at least as new as the marker, the apply
 // happened and the hold can lift.
 export function clearSettledStdlibMarker(): void {

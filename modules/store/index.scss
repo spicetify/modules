@@ -346,6 +346,12 @@
 			}
 		}
 
+		// Keep the name clear of the corner update badge on installed cards;
+		// catalog cards have no badge, so they keep the full width.
+		&:not(.spicetify-store-card--catalog) .spicetify-store-card-name {
+			padding-right: 30px;
+		}
+
 		.spicetify-store-card-desc {
 			margin: 0;
 			color: var(--spice-subtext, #a7a7a7);
@@ -573,6 +579,52 @@
 		width: 12px;
 		height: 12px;
 		fill: currentColor;
+	}
+}
+
+// The per-card update affordance, pinned to the card's top-right corner: a
+// bare icon (the starburst carries its own "NEW" wording and colors), so a
+// click installs and the tooltip states the direction. A button rather than a
+// badge, because clicking installs.
+.spicetify-store-update-badge {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	background: none;
+	cursor: pointer;
+	z-index: 1;
+
+	svg {
+		display: block;
+		width: 24px;
+		height: 24px;
+	}
+
+	&:hover:not(:disabled) {
+		opacity: 0.85;
+	}
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.5;
+	}
+
+	// Mid-update: pulse, since a static glyph cannot show progress.
+	&--busy {
+		animation: spicetify-store-update-pulse 1s ease-in-out infinite;
+	}
+}
+
+@keyframes spicetify-store-update-pulse {
+	50% {
+		opacity: 0.3;
 	}
 }
 

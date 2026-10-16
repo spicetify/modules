@@ -23,6 +23,7 @@ import {
 	stdlibGate,
 	stdlibMarkerWithdrawn,
 	stdlibRestartPending,
+	updateActionLabel,
 } from "./updates.ts";
 
 type LocalRecord = {
@@ -193,6 +194,21 @@ describe("pendingUpdates", () => {
 			out.map((m) => m.id),
 			["lib", "app"],
 		);
+	});
+});
+
+describe("updateActionLabel", () => {
+	it("calls a newer vault version an update", () => {
+		assert.equal(updateActionLabel("1.0.0", "1.1.0"), "Update available to 1.1.0");
+	});
+
+	it("calls an older vault version a rollback", () => {
+		// A pin withdraws a bad release, so the pending move is backwards.
+		assert.equal(updateActionLabel("1.1.0", "1.0.0"), "Roll back to 1.0.0");
+	});
+
+	it("strips build metadata from the shown version", () => {
+		assert.equal(updateActionLabel("1.0.0", "1.1.0+cm-1020094"), "Update available to 1.1.0");
 	});
 });
 

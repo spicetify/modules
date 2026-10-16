@@ -66,7 +66,7 @@ import {
 	toast,
 } from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
-import { pendingUpdates, runUpdates, stdlibRestartPending } from "./updates.ts";
+import { pendingUpdates, runUpdates, stdlibRestartPending, updateActionLabel } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
 
@@ -382,6 +382,8 @@ function ModuleDetails(props: {
 	installLabel: string;
 	installDisabled: boolean;
 	canActivate: boolean;
+	// True while any install or update is in flight elsewhere on the page.
+	locked: boolean;
 	onActivate: () => Promise<void>;
 	onInstall: () => Promise<void>;
 	onClose: () => void;
@@ -465,7 +467,7 @@ function ModuleDetails(props: {
 					</Button>
 				)}
 				<Button
-					disabled={busy || props.installDisabled}
+					disabled={busy || props.installDisabled || props.locked}
 					onClick={() => {
 						setBusy(true);
 						void props.onInstall().finally(() => setBusy(false));
@@ -615,6 +617,9 @@ function CatalogCard(props: {
 	enabled: boolean;
 	// Only true when the grid is showing more than one kind at once.
 	showKind: boolean;
+	// True while any install or update (this card's or another's) is in
+	// flight, so the page runs one at a time.
+	locked: boolean;
 	onOpenDetails: () => void;
 	onInstall: () => Promise<void>;
 	onRemove: () => Promise<void>;
@@ -676,7 +681,7 @@ function CatalogCard(props: {
 				title={cliCurrent ? "Installed via the CLI (spicetify pkg)" : cta}
 				aria-label={cliCurrent ? `${displayName(mod)} installed via the CLI` : `${cta} ${displayName(mod)}`}
 				aria-disabled={cliCurrent || undefined}
-				disabled={busy}
+				disabled={busy || props.locked}
 				onClick={(event) => {
 					// The inert installed tell has no action of its own; letting
 					// the click bubble keeps the corner opening details instead
@@ -767,12 +772,70 @@ function ActiveThemeBar(props: { record: InstalledRecord; refresh: () => void })
 	);
 }
 
+// The one wording for a staged stdlib, shared by the per-card update guard
+// (runInstall) and the badge's disabled tooltip, so both say the same thing.
+function stdlibHoldMessage(): string {
+	return stdlibDiskStaged()
+		? "a stdlib update is staged: use the apply or repair control above before updating modules"
+		: "a stdlib update is staged: restart Spotify before updating modules";
+}
+
+// The badge glyph: a red starburst carrying "NEW". Its own two fills, so it
+// is not a currentColor GlyphIcon; still decorative, the button names it.
+function UpdateBadgeIcon(): ReactElement {
+	return (
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path
+				fill="#e96262"
+				d="M12 0c1.267 0 2.28 1.96 3.294 2.204s3.04-.735 4.054 0 .507 2.939 1.267 3.674 2.787 1.224 3.294 2.449S22.642 11.02 22.642 12s1.52 2.449 1.267 3.674c-.253 1.224-2.534 1.469-3.294 2.448-.76.98-.253 2.94-1.267 3.674-1.014.735-3.04-.245-4.054 0S13.267 24 12 24s-2.28-1.96-3.294-2.204c-1.013-.245-3.04.735-4.054 0s-.507-2.939-1.267-3.674S.598 16.898.091 15.674C-.416 14.449 1.358 12.98 1.358 12S-.162 9.551.091 8.327s2.534-1.47 3.294-2.45c.76-.979.253-2.938 1.267-3.673s3.04.245 4.054 0S10.733 0 12 0"
+			/>
+			<path
+				fill="#fff"
+				d="m6.225 19.242-3.491-5.4 1.074-.649 4.217 2.363-2.283-3.53 1.074-.65 3.491 5.4-1.074.65-4.216-2.363 2.282 3.53zm1.45-8.385L10.9 8.911l.672 1.038-2.15 1.298.806 1.246 1.934-1.168.672 1.039-1.934 1.167.671 1.039 2.149-1.298.671 1.039-3.223 1.946zm3.869-2.336 1.074-.648 3.062 3.349-1.558-4.258 1.075-.649 3.276 3.22-1.772-4.128 1.074-.65 2.417 6.05-1.075.649-3.142-3.012 1.423 4.05-1.074.649z"
+			/>
+		</svg>
+	);
+}
+
+// Icon-only affordance in an installed card's meta row: a click installs the
+// one pending update, and it carries the direction (upgrade or pinned
+// rollback) as its tooltip, since the glyph alone cannot say which way the
+// move goes.
+function UpdateBadge(props: {
+	installedVersion: string;
+	targetVersion: string;
+	busy: boolean;
+	disabled: boolean;
+	reason: string | undefined;
+	onUpdate: () => void;
+}): ReactElement {
+	const label = updateActionLabel(props.installedVersion, props.targetVersion);
+	const title = props.busy ? "Updating…" : props.disabled && props.reason ? props.reason : label;
+	return (
+		<button
+			type="button"
+			className={`spicetify-store-update-badge${props.busy ? " spicetify-store-update-badge--busy" : ""}`}
+			title={title}
+			aria-label={label}
+			disabled={props.disabled}
+			onClick={props.onUpdate}
+		>
+			<UpdateBadgeIcon />
+		</button>
+	);
+}
+
 function InstalledCard(props: {
 	record: InstalledRecord;
 	loaded: boolean;
 	revokedReason: string | undefined;
 	daemonReady: boolean;
+	update: VaultModule | undefined;
+	updateBusy: boolean;
+	updateDisabled: boolean;
+	updateReason: string | undefined;
 	refresh: () => void;
+	onUpdate: () => void;
 	onEdit: (existing: { id: string; name: string; css: string }) => void;
 }): ReactElement {
 	const { record } = props;
@@ -830,6 +893,16 @@ function InstalledCard(props: {
 
 	return (
 		<article className={`spicetify-store-card${props.revokedReason ? " spicetify-store-card--revoked" : ""}`}>
+			{props.update && (
+				<UpdateBadge
+					installedVersion={version}
+					targetVersion={props.update.version}
+					busy={props.updateBusy}
+					disabled={props.updateDisabled}
+					reason={props.updateReason}
+					onUpdate={props.onUpdate}
+				/>
+			)}
 			<h3 className="spicetify-store-card-name">{record.metadata.name ?? id}</h3>
 			<div className="spicetify-store-card-meta">
 				{version && <Badge>{version}</Badge>}
@@ -930,7 +1003,11 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	});
 	const [status, setStatus] = React.useState("");
 	const [overlay, setOverlay] = React.useState<Overlay | null>(null);
-	const [updatingAll, setUpdatingAll] = React.useState(false);
+	// One install/update at a time. The value names what is running ("all" or
+	// a module id) for the UI; the ref is the guard, so a second click that
+	// lands before the re-render cannot start a competing install.
+	const [updating, setUpdating] = React.useState<false | "all" | string>(false);
+	const updateLock = React.useRef(false);
 	const [resetArmed, setResetArmed] = React.useState(false);
 	// Module state changes outside this page (dev pushes, manager
 	// actions); bumping the epoch re-reads live registry state, the React
@@ -1060,6 +1137,10 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			.map((s: any) => [s.identifier, s]),
 	);
 	const pending = pendingUpdates(catalog);
+	const pendingById = new Map(pending.map((mod) => [mod.id, mod]));
+	// A staged stdlib holds every other module's hot-swap back (see runInstall).
+	const stdlibHold = stdlibRestartPending();
+	const anyUpdating = updating !== false;
 	const activeTheme = installed.find(
 		(r) =>
 			kindOf(r.metadata) === "theme" &&
@@ -1100,23 +1181,26 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	}, [catalog, registryEpoch]);
 
 	const runInstall = async (mod: VaultModule) => {
+		// One install at a time: the ref guard is what keeps the gallery FABs,
+		// the details dialog, the per-card badges and Update all from racing.
+		if (updateLock.current) return;
 		// Updating a running module hot-swaps it, and a staged stdlib update
 		// means the swap would run against the old stdlib; fresh installs are
 		// fine (a missing dependency restart-gates them instead).
 		if (mod.id !== "stdlib" && installedVersions.get(mod.id) !== undefined && stdlibRestartPending()) {
-			toast(
-				stdlibDiskStaged()
-					? "a stdlib update is staged: use the apply or repair control above before updating modules"
-					: "a stdlib update is staged: restart Spotify before updating modules",
-			);
+			toast(stdlibHoldMessage());
 			return;
 		}
+		updateLock.current = true;
+		setUpdating(mod.id);
 		try {
 			await installModule(mod, setStatus);
 		} catch {
 			// installModule already toasted the failure; just clear the progress line.
 			setStatus("");
 		} finally {
+			updateLock.current = false;
+			setUpdating(false);
 			refreshRegistry();
 		}
 	};
@@ -1149,11 +1233,14 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	};
 
 	const updateAll = async () => {
-		setUpdatingAll(true);
+		if (updateLock.current) return;
+		updateLock.current = true;
+		setUpdating("all");
 		try {
 			await runUpdates(pending, setStatus);
 		} finally {
-			setUpdatingAll(false);
+			updateLock.current = false;
+			setUpdating(false);
 			refreshRegistry();
 		}
 	};
@@ -1371,7 +1458,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						<button
 							type="button"
 							className="spicetify-store-cta"
-							disabled={updatingAll}
+							disabled={anyUpdating}
 							onClick={() => void updateAll()}
 						>
 							Update all
@@ -1390,6 +1477,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						localInstall={localIds.has(mod.id)}
 						enabled={!!(states.get(mod.id) as { loaded?: boolean } | undefined)?.loaded}
 						showKind={activeTab === "all"}
+						locked={anyUpdating}
 						onOpenDetails={() => openDetails(mod)}
 						onInstall={() => runInstall(mod)}
 						onRemove={() => runRemove(mod)}
@@ -1406,17 +1494,32 @@ function StorePage(props: { api: PageApi }): ReactElement {
 				Installed
 			</h2>
 			<div className="spicetify-store-grid">
-				{installed.map((record) => (
-					<InstalledCard
-						key={record.metadata.identifier}
-						record={record}
-						loaded={!!(states.get(record.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded}
-						revokedReason={catalog.revoked[record.metadata.identifier]}
-						daemonReady={daemonReady}
-						refresh={refreshRegistry}
-						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
-					/>
-				))}
+				{installed.map((record) => {
+					const id = record.metadata.identifier;
+					const update = pendingById.get(id);
+					const thisUpdating = updating === id;
+					// A staged stdlib blocks every module but stdlib itself; an
+					// in-flight install blocks every card but the one running.
+					const holdBlocked = stdlibHold && id !== "stdlib";
+					return (
+						<InstalledCard
+							key={id}
+							record={record}
+							loaded={!!(states.get(id) as { loaded?: boolean } | undefined)?.loaded}
+							revokedReason={catalog.revoked[id]}
+							daemonReady={daemonReady}
+							update={update}
+							updateBusy={thisUpdating}
+							updateDisabled={holdBlocked || anyUpdating}
+							updateReason={holdBlocked ? stdlibHoldMessage() : undefined}
+							refresh={refreshRegistry}
+							onUpdate={() => {
+								if (update) void runInstall(update);
+							}}
+							onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
+						/>
+					);
+				})}
 			</div>
 			<div className="spicetify-store-data-row">
 				<span className="spicetify-store-data-label">Store data:</span>
@@ -1448,6 +1551,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 					installLabel={overlay.installLabel}
 					installDisabled={overlay.installDisabled}
 					canActivate={overlay.canActivate}
+					locked={anyUpdating}
 					onActivate={() => runActivate(overlay.mod)}
 					onInstall={() => runInstall(overlay.mod)}
 					onClose={() => setOverlay(null)}
