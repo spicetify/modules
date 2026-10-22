@@ -1,0 +1,24 @@
+{
+	"v": {
+		"0.3.1": {
+			"artifacts": [
+				"https://github.com/Golevka2001/genius-lyrics/releases/download/0.3.1/genius-lyrics@0.3.1.zip"
+			],
+			"checksum": "sha256:121f17781fc6c1bd7871eab9f12a8af97a3224f4b93f5f9bd7dcc5b0053f6996",
+			"updatedAt": "2026-10-22"
+		}
+	},
+	"metadata": {
+		"name": "genius-lyrics",
+		"description": "Show Genius lyrics, annotations, song bio, and Q&A.",
+		"authors": [
+			{
+				"name": "Golevka2001"
+			}
+		],
+		"kind": "app",
+		"preview": "https://raw.githubusercontent.com/Golevka2001/genius-lyrics/main/README.assets/showcase.gif",
+		"repository": "https://github.com/Golevka2001/genius-lyrics",
+		"license": "GPL-3.0-or-later"
+	}
+}
