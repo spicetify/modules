@@ -367,14 +367,59 @@
 			font-size: 12px;
 		}
 
-		// A card can carry three actions (toggle, discard a shadowed record,
-		// uninstall from disk). Without wrapping they compress until their
-		// labels break mid-word and the pills render as circles.
+		// A card can carry several actions (update, toggle, edit, discard a
+		// shadowed record, removal). Without wrapping they compress until
+		// their labels break mid-word and the pills render as circles.
 		.spicetify-store-card-actions {
 			display: flex;
 			flex-wrap: wrap;
 			gap: 8px;
 			margin-top: auto;
+		}
+
+		// The non-destructive actions wrap among themselves, so removal stays
+		// an icon at the bottom-right corner however many of them a card has.
+		// The group never shrinks below its widest button, which lets a wide
+		// armed uninstall wrap to its own row instead of overlapping it.
+		.spicetify-store-card-actions {
+			align-items: flex-end;
+		}
+
+		.spicetify-store-card-actions-main {
+			display: flex;
+			flex: 1 1 0;
+			flex-wrap: wrap;
+			gap: 8px;
+			min-width: min-content;
+		}
+
+		.spicetify-store-card-trash,
+		.spicetify-store-card-trash-armed {
+			margin-left: auto;
+		}
+
+		.spicetify-store-card-trash {
+			width: 32px;
+			height: 32px;
+			padding: 0;
+			border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
+			border-radius: 50%;
+			display: grid;
+			place-items: center;
+			background: transparent;
+			color: var(--spice-text, #fff);
+			cursor: pointer;
+
+			svg {
+				width: 16px;
+				height: 16px;
+				fill: currentColor;
+			}
+
+			&:hover {
+				border-color: #ff4151;
+				color: #ff4151;
+			}
 		}
 	}
 

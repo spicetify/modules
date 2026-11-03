@@ -782,6 +782,7 @@ function InstalledCard(props: {
 	const id = record.metadata.identifier;
 	const isProtected = PROTECTED.has(id);
 	const version = record.sidecar?.installed_version ?? "";
+	const name = record.metadata.name ?? id;
 
 	const toggle = async () => {
 		try {
@@ -852,55 +853,80 @@ function InstalledCard(props: {
 				</p>
 			)}
 			<div className="spicetify-store-card-actions">
-				{props.update && (
+				<div className="spicetify-store-card-actions-main">
+					{props.update && (
+						<button
+							type="button"
+							className="spicetify-store-cta"
+							title={`Update to ${props.update.version}`}
+							disabled={updating || props.updateBlocked}
+							onClick={() => {
+								setUpdating(true);
+								void props.onUpdate().finally(() => setUpdating(false));
+							}}
+						>
+							Update
+						</button>
+					)}
+					{/* Protected modules can be re-enabled if somehow down, but never
+					    disabled (that would unload the UI) or removed. A pending
+					    update takes the primary style, so the toggle steps down. */}
+					{(!isProtected || !props.loaded) &&
+						(props.update ? (
+							<Button variant="secondary" onClick={() => void toggle()}>
+								{props.loaded ? "Disable" : "Enable"}
+							</Button>
+						) : (
+							<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
+								{props.loaded ? "Disable" : "Enable"}
+							</button>
+						))}
+					{isCustomRecord(record.metadata) && record.files?.["index.css"] !== undefined && (
+						<Button
+							variant="secondary"
+							onClick={() =>
+								props.onEdit({ id, name: record.metadata.name ?? id, css: record.files!["index.css"] })
+							}
+						>
+							Edit
+						</Button>
+					)}
+					{/* An inert record removeLocal can delete without touching what
+					    is running, so it is not the danger action Remove is. */}
+					{record.shadowedLocal && (
+						<Button variant="secondary" onClick={() => void remove()}>
+							Discard copy
+						</Button>
+					)}
+				</div>
+				{!isProtected && record.local && (
 					<button
 						type="button"
-						className="spicetify-store-cta"
-						title={`Update to ${props.update.version}`}
-						disabled={updating || props.updateBlocked}
-						onClick={() => {
-							setUpdating(true);
-							void props.onUpdate().finally(() => setUpdating(false));
-						}}
+						className="spicetify-store-card-trash"
+						title={`Remove ${name}`}
+						aria-label={`Remove ${name}`}
+						onClick={() => void remove()}
 					>
-						Update
+						<GlyphIcon paths={TRASH_PATHS} />
 					</button>
-				)}
-				{/* Protected modules can be re-enabled if somehow down, but never
-				    disabled (that would unload the UI) or removed. */}
-				{!props.update && (!isProtected || !props.loaded) && (
-					<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
-						{props.loaded ? "Disable" : "Enable"}
-					</button>
-				)}
-				{isCustomRecord(record.metadata) && record.files?.["index.css"] !== undefined && (
-					<Button
-						variant="secondary"
-						onClick={() =>
-							props.onEdit({ id, name: record.metadata.name ?? id, css: record.files!["index.css"] })
-						}
-					>
-						Edit
-					</Button>
-				)}
-				{!isProtected && record.local && (
-					<button type="button" className="spicetify-store-danger" onClick={() => void remove()}>
-						Remove
-					</button>
-				)}
-				{/* An inert record removeLocal can delete without touching what
-				    is running, so it is not the danger action Remove is. */}
-				{record.shadowedLocal && (
-					<Button variant="secondary" onClick={() => void remove()}>
-						Discard copy
-					</Button>
 				)}
 				{/* CLI-staged installs live on disk, out of removeLocal's reach.
 				    The daemon can do the real uninstall; without it this stays a
-				    terminal act (spicetify pkg delete) and no button is offered. */}
+				    terminal act (spicetify pkg delete) and no button is offered.
+				    Arming swaps the content of one button, so focus stays on it. */}
 				{!isProtected && !record.local && props.daemonReady && (
-					<button type="button" className="spicetify-store-danger" onClick={() => void uninstallFromDisk()}>
-						{uninstallArmed ? "Confirm — restarts Spotify" : "Uninstall"}
+					<button
+						type="button"
+						className={
+							uninstallArmed
+								? "spicetify-store-danger spicetify-store-card-trash-armed"
+								: "spicetify-store-card-trash"
+						}
+						title={uninstallArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}
+						aria-label={uninstallArmed ? undefined : `Uninstall ${name}`}
+						onClick={() => void uninstallFromDisk()}
+					>
+						{uninstallArmed ? "Confirm — restarts Spotify" : <GlyphIcon paths={TRASH_PATHS} />}
 					</button>
 				)}
 			</div>
