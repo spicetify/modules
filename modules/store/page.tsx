@@ -813,11 +813,15 @@ function InstalledCard(props: {
 	// offers either Remove or Uninstall, never both, so one state covers them.
 	const [removeArmed, setRemoveArmed] = React.useState(false);
 	const [updating, setUpdating] = React.useState(false);
+	const [uninstalling, setUninstalling] = React.useState(false);
 	React.useEffect(() => {
 		if (!removeArmed) return;
 		const timer = setTimeout(() => setRemoveArmed(false), 4000);
 		return () => clearTimeout(timer);
 	}, [removeArmed]);
+	// An arm belongs to the action that set it: a card whose record switches
+	// between a store and a CLI install must not carry it to the other one.
+	React.useEffect(() => setRemoveArmed(false), [record.local]);
 
 	const confirmRemove = () => {
 		if (!removeArmed) {
@@ -834,12 +838,15 @@ function InstalledCard(props: {
 			return;
 		}
 		setRemoveArmed(false);
+		setUninstalling(true);
 		try {
 			toast(`uninstalling ${id} and re-applying; Spotify will restart…`);
 			await uninstallStaged(id, version);
 		} catch (e) {
 			toast(`failed: ${(e as Error).message}`, "error");
 			props.refresh();
+		} finally {
+			setUninstalling(false);
 		}
 	};
 
@@ -901,7 +908,11 @@ function InstalledCard(props: {
 					{/* An inert record removeLocal can delete without touching what
 					    is running, so it is not the danger action Remove is. */}
 					{record.shadowedLocal && (
-						<Button variant="secondary" onClick={() => void remove()}>
+						<Button
+							variant="secondary"
+							disabled={updating || props.updateBlocked}
+							onClick={() => void remove()}
+						>
 							Discard copy
 						</Button>
 					)}
@@ -918,7 +929,7 @@ function InstalledCard(props: {
 						}
 						disabled={updating || props.updateBlocked}
 						title={removeArmed ? undefined : `Remove ${name}`}
-						aria-label={removeArmed ? undefined : `Remove ${name}`}
+						aria-label={removeArmed ? `Really remove ${name}?` : `Remove ${name}`}
 						onClick={confirmRemove}
 					>
 						{removeArmed ? "Really remove?" : <GlyphIcon paths={TRASH_PATHS} />}
@@ -937,9 +948,11 @@ function InstalledCard(props: {
 								? "spicetify-store-danger spicetify-store-card-trash-armed"
 								: "spicetify-store-card-icon spicetify-store-card-trash"
 						}
-						disabled={updating || props.updateBlocked}
+						disabled={updating || uninstalling || props.updateBlocked}
 						title={removeArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}
-						aria-label={removeArmed ? undefined : `Uninstall ${name}`}
+						aria-label={
+							removeArmed ? `Confirm uninstalling ${name} — restarts Spotify` : `Uninstall ${name}`
+						}
 						onClick={() => void uninstallFromDisk()}
 					>
 						{removeArmed ? "Confirm — restarts Spotify" : <GlyphIcon paths={TRASH_PATHS} />}
