@@ -625,6 +625,30 @@
 				"license": "GPL-3.0-or-later"
 			}
 		},
+		"genius-lyrics": {
+			"v": {
+				"0.3.1": {
+					"artifacts": [
+						"https://github.com/Golevka2001/genius-lyrics/releases/download/0.3.1/genius-lyrics@0.3.1.zip"
+					],
+					"checksum": "sha256:121f17781fc6c1bd7871eab9f12a8af97a3224f4b93f5f9bd7dcc5b0053f6996",
+					"updatedAt": "2026-10-22"
+				}
+			},
+			"metadata": {
+				"name": "genius-lyrics",
+				"description": "Show Genius lyrics, annotations, song bio, and Q&A.",
+				"authors": [
+					{
+						"name": "Golevka2001"
+					}
+				],
+				"kind": "app",
+				"preview": "https://raw.githubusercontent.com/Golevka2001/genius-lyrics/main/README.assets/showcase.gif",
+				"repository": "https://github.com/Golevka2001/genius-lyrics",
+				"license": "GPL-3.0-or-later"
+			}
+		},
 		"hide-window-controls": {
 			"v": {
 				"0.1.0": {
@@ -1585,6 +1609,14 @@
 					],
 					"checksum": "sha256:d24fe465a0a0c83e5821e43c6f9d7d2166673298d6c2c802a3181422a9a7a87b",
 					"updatedAt": "2026-10-10"
+				},
+				"2.0.2": {
+					"artifacts": [
+						"https://github.com/Golevka2001/section-marker-rev/releases/download/2.0.2/section-marker-rev@2.0.2.zip",
+						"https://github.com/spicetify/modules/releases/download/mirror/section-marker-rev/section-marker-rev@2.0.2.zip"
+					],
+					"checksum": "sha256:c475d244250f9a6d022ea3319c23455f2af5082b1ab02cb888195966c1504d06",
+					"updatedAt": "2026-10-14"
 				}
 			},
 			"metadata": {

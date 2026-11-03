@@ -19,7 +19,8 @@
 		},
 		"2.0.2": {
 			"artifacts": [
-				"https://github.com/Golevka2001/section-marker-rev/releases/download/2.0.2/section-marker-rev@2.0.2.zip"
+				"https://github.com/Golevka2001/section-marker-rev/releases/download/2.0.2/section-marker-rev@2.0.2.zip",
+				"https://github.com/spicetify/modules/releases/download/mirror/section-marker-rev/section-marker-rev@2.0.2.zip"
 			],
 			"checksum": "sha256:c475d244250f9a6d022ea3319c23455f2af5082b1ab02cb888195966c1504d06",
 			"updatedAt": "2026-10-14"
