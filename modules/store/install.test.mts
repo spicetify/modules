@@ -32,6 +32,7 @@ let manifestModules: Array<Record<string, unknown>> = [];
 let removeResult: unknown;
 let removed: string[] = [];
 let installed: string[] = [];
+let installOptions: unknown[] = [];
 let installLocalImpl: (id: string) => unknown = () => true;
 let enableImpl: (id: string) => boolean = () => true;
 let enabled: string[] = [];
@@ -60,8 +61,9 @@ const store = new Map<string, string>();
 			removed.push(id);
 			return Promise.resolve(removeResult);
 		},
-		installLocal: (id: string) => {
+		installLocal: (id: string, _record: unknown, options?: unknown) => {
 			installed.push(id);
+			installOptions.push(options);
 			return Promise.resolve(installLocalImpl(id));
 		},
 		enable: (id: string) => {
@@ -91,6 +93,7 @@ beforeEach(() => {
 	removeResult = undefined;
 	removed = [];
 	installed = [];
+	installOptions = [];
 	installLocalImpl = () => true;
 	enableImpl = () => true;
 	enabled = [];
@@ -444,6 +447,15 @@ describe("updating a theme that is not active", () => {
 		assert.equal(store.get(ACTIVE), undefined);
 	});
 
+	it("asks the loader to keep the theme unloaded, and trusts a loader that does", async () => {
+		installLocalImpl = () => ({ inactive: true });
+		assert.deepEqual(await update("starry-night"), { requiresRestart: false, enabled: false });
+		assert.deepEqual(installOptions, [{ keepInactive: true }]);
+		assert.deepEqual(enabled, [], "nothing was switched, so nothing is reloaded");
+		assert.deepEqual(loaded(), ["text"]);
+		assert.deepEqual(toasts, ["starry-night updated; text is still the active theme"]);
+	});
+
 	it("leaves the client unthemed when no theme was on", async () => {
 		states[0].loaded = false;
 		await update("starry-night");
@@ -472,6 +484,7 @@ describe("updating a theme that is not active", () => {
 	it("loads an update to the running theme as before", async () => {
 		assert.deepEqual(await update("text"), { requiresRestart: false, enabled: true });
 		assert.deepEqual(enabled, []);
+		assert.deepEqual(installOptions, [undefined]);
 	});
 
 	it("loads an update to the preferred theme, which may fix why it did not come up", async () => {

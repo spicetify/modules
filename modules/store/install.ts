@@ -573,16 +573,22 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		// installLocal unloads any prior live instance itself, transiently, so
 		// no pre-disable here: a persisted disable before the install would
 		// outlive a failure and silently skip the module on every later boot.
-		const swap = M().installLocal(mod.id, {
-			metadata,
-			files,
-			sidecar: {
-				installed_version: mod.version,
-				classmap_base: "",
-				allow_stale: false,
-				checksum: mod.checksum ?? "",
+		// keepInactive asks it not to load an inactive theme; loaders that
+		// predate it ignore it, and restoreThemeChoice undoes the switch.
+		const swap = M().installLocal(
+			mod.id,
+			{
+				metadata,
+				files,
+				sidecar: {
+					installed_version: mod.version,
+					classmap_base: "",
+					allow_stale: false,
+					checksum: mod.checksum ?? "",
+				},
 			},
-		}) as Promise<{ requiresRestart?: boolean; disabled?: boolean } | boolean | null>;
+			...(themeChoice ? [{ keepInactive: true }] : []),
+		) as Promise<{ requiresRestart?: boolean; disabled?: boolean; inactive?: boolean } | boolean | null>;
 		// The loader persists the new record before it unloads the old
 		// instance, so if that instance's dispose hangs (an unbounded await in
 		// module teardown), the update is already durable and a restart
@@ -617,7 +623,8 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	}
 	if (result && themeChoice) {
 		status("");
-		await restoreThemeChoice(mod.id, themeChoice);
+		// A loader that honoured keepInactive never loaded the theme.
+		if (!(typeof result === "object" && result.inactive)) await restoreThemeChoice(mod.id, themeChoice);
 		toast(
 			themeChoice.active ? `${name} updated; ${themeChoice.active} is still the active theme` : `${name} updated`,
 			"success",
