@@ -21,18 +21,22 @@ import {
 } from "./install.ts";
 
 type LocalRecord = {
-	metadata: { identifier: string; version?: string; tags?: string[] };
+	metadata: { identifier: string; version?: string; tags?: string[]; kind?: string };
 	sidecar?: { installed_version?: string };
 	remapKey?: string;
 };
 
 let locals: LocalRecord[] = [];
-let states: Array<{ identifier: string; version: string; local: boolean }> = [];
+let states: Array<{ identifier: string; version: string; local: boolean; loaded?: boolean }> = [];
 let manifestModules: Array<Record<string, unknown>> = [];
 let removeResult: unknown;
 let removed: string[] = [];
 let installed: string[] = [];
 let installLocalImpl: (id: string) => unknown = () => true;
+let enableImpl: (id: string) => boolean = () => true;
+let enabled: string[] = [];
+let unloaded: string[] = [];
+let toasts: string[] = [];
 let reportShape: unknown;
 const store = new Map<string, string>();
 
@@ -42,6 +46,7 @@ const store = new Map<string, string>();
 	removeItem: (k: string) => store.delete(k),
 };
 (globalThis as never as Record<string, unknown>).Spicetify = {
+	showNotification: (message: string) => void toasts.push(message),
 	Modules: {
 		listLocal: () => locals,
 		list: () => states,
@@ -58,6 +63,14 @@ const store = new Map<string, string>();
 		installLocal: (id: string) => {
 			installed.push(id);
 			return Promise.resolve(installLocalImpl(id));
+		},
+		enable: (id: string) => {
+			enabled.push(id);
+			return Promise.resolve(enableImpl(id));
+		},
+		unload: (id: string) => {
+			unloaded.push(id);
+			return Promise.resolve(true);
 		},
 		get report() {
 			return reportShape;
@@ -79,6 +92,10 @@ beforeEach(() => {
 	removed = [];
 	installed = [];
 	installLocalImpl = () => true;
+	enableImpl = () => true;
+	enabled = [];
+	unloaded = [];
+	toasts = [];
 	reportShape = undefined;
 	store.clear();
 });
@@ -377,5 +394,95 @@ describe("a hung live swap", () => {
 		for (let i = 0; i < 25; i++) await Promise.resolve();
 		t.mock.timers.tick(15_001);
 		assert.deepEqual(await outcome, { requiresRestart: true, enabled: false });
+	});
+});
+
+describe("updating a theme that is not active", () => {
+	const ACTIVE = "spicetify:modules:activeTheme";
+	const theme = (id: string, version: string): LocalRecord => ({
+		metadata: { identifier: id, version, kind: "theme" },
+		sidecar: { installed_version: version },
+	});
+	const update = (id: string) =>
+		installModule(
+			{ id, version: "0.2.0", artifacts: [], vault: "default", files: { "index.css": "/* x */" } },
+			() => {},
+		);
+	const loaded = () => states.filter((s) => s.loaded).map((s) => s.identifier);
+	// The loader's enable(): load the theme, unload any other, and remember
+	// it as the active one.
+	const loadTheme = (id: string) => {
+		for (const s of states) s.loaded = s.identifier === id;
+		store.set(ACTIVE, id);
+		return true;
+	};
+
+	beforeEach(() => {
+		locals = [theme("text", "1.0.0"), theme("starry-night", "0.1.4")];
+		states = [
+			{ identifier: "text", version: "1.0.0", local: true, loaded: true },
+			{ identifier: "starry-night", version: "0.1.4", local: true, loaded: false },
+		];
+		store.set(ACTIVE, "text");
+		installLocalImpl = loadTheme;
+		enableImpl = loadTheme;
+	});
+
+	it("keeps the active theme running and preferred", async () => {
+		assert.deepEqual(await update("starry-night"), { requiresRestart: false, enabled: false });
+		assert.deepEqual(loaded(), ["text"]);
+		assert.equal(store.get(ACTIVE), "text");
+		assert.deepEqual(toasts, ["starry-night updated; text is still the active theme"]);
+	});
+
+	it("keeps a boot fallback's missing preference missing", async () => {
+		// text booted as the last eligible theme, with nothing saved; saving it
+		// now would change what a later boot picks.
+		store.delete(ACTIVE);
+		await update("starry-night");
+		assert.deepEqual(loaded(), ["text"]);
+		assert.equal(store.get(ACTIVE), undefined);
+	});
+
+	it("leaves the client unthemed when no theme was on", async () => {
+		states[0].loaded = false;
+		await update("starry-night");
+		assert.deepEqual(unloaded, ["starry-night"]);
+		assert.equal(store.get(ACTIVE), "text", "the boot preference is the one from before the update");
+		assert.deepEqual(enabled, []);
+	});
+
+	it("puts the active theme back when the update fails to load", async () => {
+		installLocalImpl = () => {
+			for (const s of states) s.loaded = false;
+			return false;
+		};
+		await update("starry-night");
+		assert.deepEqual(enabled, ["text"]);
+		assert.deepEqual(loaded(), ["text"]);
+	});
+
+	it("does not reload an active theme the failed load never unloaded", async () => {
+		installLocalImpl = () => false;
+		await update("starry-night");
+		assert.deepEqual(enabled, [], "enable() refuses a loaded module, which would read as a failure");
+		assert.ok(!toasts.some((t) => t.includes("did not reload")));
+	});
+
+	it("loads an update to the running theme as before", async () => {
+		assert.deepEqual(await update("text"), { requiresRestart: false, enabled: true });
+		assert.deepEqual(enabled, []);
+	});
+
+	it("loads an update to the preferred theme, which may fix why it did not come up", async () => {
+		states[0].loaded = false;
+		store.set(ACTIVE, "starry-night");
+		assert.deepEqual(await update("starry-night"), { requiresRestart: false, enabled: true });
+		assert.deepEqual(loaded(), ["starry-night"]);
+	});
+
+	it("activates a theme installed for the first time", async () => {
+		assert.deepEqual(await update("nord"), { requiresRestart: false, enabled: true });
+		assert.deepEqual(enabled, []);
 	});
 });

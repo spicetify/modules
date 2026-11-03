@@ -167,6 +167,52 @@ export async function enforceSingleTheme(id: string): Promise<void> {
 	}
 }
 
+type ThemeChoice = { active: string | undefined; pref: string | null };
+
+// installLocal loads what it installs, and loading a theme unloads the
+// active one, so updating a theme the user has not activated would switch
+// themes. Returns the choice to put back afterwards, or undefined when the
+// install may load the theme: a fresh install, an update to the running
+// theme, or one to the theme the preference names (it failed to come up,
+// and the update may fix that).
+function inactiveThemeChoice(id: string): ThemeChoice | undefined {
+	if (kindOfInstalled(id) !== "theme") return undefined;
+	const states = M().list() as Array<{ identifier: string; loaded: boolean }>;
+	const self = states.find((state) => state.identifier === id);
+	const pref = localStorage.getItem(ACTIVE_THEME_KEY);
+	if (!self || self.loaded || pref === id) return undefined;
+	const active = states.find(
+		(state) => state.loaded && state.identifier !== id && kindOfInstalled(state.identifier) === "theme",
+	);
+	return { active: active?.identifier, pref };
+}
+
+// Undoes the switch. enable() saves the theme it loads as the preference, so
+// the saved value goes back last: the next boot then chooses exactly as it
+// would have without the update, and restarting recovers the active theme
+// if reloading it fails here.
+async function restoreThemeChoice(id: string, choice: ThemeChoice): Promise<void> {
+	if (!choice.active) {
+		await (M().unload ?? M().disable)(id);
+	} else {
+		// A load that failed its dependency check never unloaded the active
+		// theme, and enable() refuses a module that is already loaded.
+		const stillLoaded = (M().list() as Array<{ identifier: string; loaded: boolean }>).some(
+			(state) => state.identifier === choice.active && state.loaded,
+		);
+		if (stillLoaded || (await M().enable(choice.active))) {
+			await enforceSingleTheme(choice.active);
+		} else {
+			toast(
+				`${choice.active} did not reload: ${enableFailureReason(choice.active)}; restart Spotify to bring it back`,
+				"error",
+			);
+		}
+	}
+	if (choice.pref === null) localStorage.removeItem(ACTIVE_THEME_KEY);
+	else localStorage.setItem(ACTIVE_THEME_KEY, choice.pref);
+}
+
 // What an install actually did, so callers stop inferring it from whether
 // the promise threw: `requiresRestart` means the new files persisted but
 // only take over on the next boot (a tree module, or a dependency that is
@@ -460,6 +506,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	const deps = await ensureDependencies(metadata.dependencies ?? {}, status);
 
 	status("installing…");
+	const themeChoice = inactiveThemeChoice(mod.id);
 	// installLocal unloads any prior live instance itself, transiently, so no
 	// pre-disable here: a persisted disable before the install would outlive a
 	// failure and silently skip the module on every later boot.
@@ -504,6 +551,16 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		reportInstall(mod);
 		return { requiresRestart: false, enabled: false };
 	}
+	if (result && themeChoice) {
+		status("");
+		await restoreThemeChoice(mod.id, themeChoice);
+		toast(
+			themeChoice.active ? `${name} updated; ${themeChoice.active} is still the active theme` : `${name} updated`,
+			"success",
+		);
+		reportInstall(mod);
+		return { requiresRestart: false, enabled: false };
+	}
 	if (result) {
 		status("");
 		toast(`${name} installed and enabled`, "success");
@@ -512,6 +569,9 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		return { requiresRestart: false, enabled: true };
 	} else {
 		const reason = enableFailureReason(mod.id);
+		// The loader unloads the active theme before it tries to load this one,
+		// so a failed load of an inactive theme's update leaves no theme on.
+		if (themeChoice) await restoreThemeChoice(mod.id, themeChoice);
 		// A dependency-gated failure (" needs " is the loader's dependency
 		// message; "unknown reason" is an older loader recording nothing) with
 		// a restart-pending dependency is not a failure: the new files
