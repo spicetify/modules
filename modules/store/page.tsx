@@ -975,6 +975,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const [status, setStatus] = React.useState("");
 	const [overlay, setOverlay] = React.useState<Overlay | null>(null);
 	const [updatingAll, setUpdatingAll] = React.useState(false);
+	const [cardUpdates, setCardUpdates] = React.useState(0);
 	const [resetArmed, setResetArmed] = React.useState(false);
 	// Module state changes outside this page (dev pushes, manager
 	// actions); bumping the epoch re-reads live registry state, the React
@@ -1163,6 +1164,17 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			setStatus("");
 		} finally {
 			refreshRegistry();
+		}
+	};
+
+	// A card's own Update and Update all would otherwise install the same
+	// module twice at once, so each blocks the other while it runs.
+	const runCardUpdate = async (mod: VaultModule) => {
+		setCardUpdates((n) => n + 1);
+		try {
+			await runInstall(mod);
+		} finally {
+			setCardUpdates((n) => n - 1);
 		}
 	};
 
@@ -1416,7 +1428,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						<button
 							type="button"
 							className="spicetify-store-cta"
-							disabled={updatingAll}
+							disabled={updatingAll || cardUpdates > 0}
 							onClick={() => void updateAll()}
 						>
 							Update all
@@ -1461,7 +1473,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						update={pendingById.get(record.metadata.identifier)}
 						updateBlocked={updatingAll}
 						refresh={refreshRegistry}
-						onUpdate={() => runInstall(pendingById.get(record.metadata.identifier)!)}
+						onUpdate={() => runCardUpdate(pendingById.get(record.metadata.identifier)!)}
 						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
 					/>
 				))}
