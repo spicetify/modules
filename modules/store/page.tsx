@@ -772,13 +772,17 @@ function InstalledCard(props: {
 	loaded: boolean;
 	revokedReason: string | undefined;
 	daemonReady: boolean;
+	update: VaultModule | undefined;
+	updateBlocked: boolean;
 	refresh: () => void;
+	onUpdate: () => Promise<void>;
 	onEdit: (existing: { id: string; name: string; css: string }) => void;
 }): ReactElement {
 	const { record } = props;
 	const id = record.metadata.identifier;
 	const isProtected = PROTECTED.has(id);
 	const version = record.sidecar?.installed_version ?? "";
+	const name = record.metadata.name ?? id;
 
 	const toggle = async () => {
 		try {
@@ -803,28 +807,46 @@ function InstalledCard(props: {
 		props.refresh();
 	};
 
-	// Uninstalling a disk install runs an apply, which restarts Spotify, so it
-	// is armed first rather than fired from a single click. Same two-step
-	// shape as the page's Reset.
-	const [uninstallArmed, setUninstallArmed] = React.useState(false);
+	// Removal is armed first rather than fired from a single click: its icon
+	// sits beside Update, and uninstalling a disk install also runs an apply,
+	// which restarts Spotify. Same two-step shape as the page's Reset. A card
+	// offers either Remove or Uninstall, never both, so one state covers them.
+	const [removeArmed, setRemoveArmed] = React.useState(false);
+	const [updating, setUpdating] = React.useState(false);
+	const [uninstalling, setUninstalling] = React.useState(false);
 	React.useEffect(() => {
-		if (!uninstallArmed) return;
-		const timer = setTimeout(() => setUninstallArmed(false), 4000);
+		if (!removeArmed) return;
+		const timer = setTimeout(() => setRemoveArmed(false), 4000);
 		return () => clearTimeout(timer);
-	}, [uninstallArmed]);
+	}, [removeArmed]);
+	// An arm belongs to the action that set it: a card whose record switches
+	// between a store and a CLI install must not carry it to the other one.
+	React.useEffect(() => setRemoveArmed(false), [record.local]);
 
-	const uninstallFromDisk = async () => {
-		if (!uninstallArmed) {
-			setUninstallArmed(true);
+	const confirmRemove = () => {
+		if (!removeArmed) {
+			setRemoveArmed(true);
 			return;
 		}
-		setUninstallArmed(false);
+		setRemoveArmed(false);
+		void remove();
+	};
+
+	const uninstallFromDisk = async () => {
+		if (!removeArmed) {
+			setRemoveArmed(true);
+			return;
+		}
+		setRemoveArmed(false);
+		setUninstalling(true);
 		try {
 			toast(`uninstalling ${id} and re-applying; Spotify will restart…`);
 			await uninstallStaged(id, version);
 		} catch (e) {
 			toast(`failed: ${(e as Error).message}`, "error");
 			props.refresh();
+		} finally {
+			setUninstalling(false);
 		}
 	};
 
@@ -832,7 +854,7 @@ function InstalledCard(props: {
 		<article className={`spicetify-store-card${props.revokedReason ? " spicetify-store-card--revoked" : ""}`}>
 			<h3 className="spicetify-store-card-name">{record.metadata.name ?? id}</h3>
 			<div className="spicetify-store-card-meta">
-				{version && <Badge>{version}</Badge>}
+				{version && <Badge>{props.update ? `${version} → ${props.update.version}` : version}</Badge>}
 				<Badge tone={props.loaded ? "ok" : "neutral"}>{props.loaded ? "enabled" : "disabled"}</Badge>
 				{isProtected && <Badge>core</Badge>}
 				{!record.local && <Badge>cli</Badge>}
@@ -848,41 +870,92 @@ function InstalledCard(props: {
 				</p>
 			)}
 			<div className="spicetify-store-card-actions">
-				{/* Protected modules can be re-enabled if somehow down, but never
-				    disabled (that would unload the UI) or removed. */}
-				{(!isProtected || !props.loaded) && (
-					<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
-						{props.loaded ? "Disable" : "Enable"}
-					</button>
-				)}
-				{isCustomRecord(record.metadata) && record.files?.["index.css"] !== undefined && (
-					<Button
-						variant="secondary"
-						onClick={() =>
-							props.onEdit({ id, name: record.metadata.name ?? id, css: record.files!["index.css"] })
-						}
-					>
-						Edit
-					</Button>
-				)}
+				<div className="spicetify-store-card-actions-main">
+					{/* Protected modules can be re-enabled if somehow down, but never
+					    disabled (that would unload the UI) or removed. */}
+					{(!isProtected || !props.loaded) && (
+						<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
+							{props.loaded ? "Disable" : "Enable"}
+						</button>
+					)}
+					{/* The gallery's download glyph; the version badge names the
+					    target, so the pending update reads without hovering. */}
+					{props.update && (
+						<button
+							type="button"
+							className="spicetify-store-card-icon spicetify-store-card-update"
+							title={`Update to ${props.update.version}`}
+							aria-label={`Update ${name} to ${props.update.version}`}
+							disabled={updating || props.updateBlocked}
+							onClick={() => {
+								setUpdating(true);
+								void props.onUpdate().finally(() => setUpdating(false));
+							}}
+						>
+							<GlyphIcon paths={DOWNLOAD_PATHS} />
+						</button>
+					)}
+					{isCustomRecord(record.metadata) && record.files?.["index.css"] !== undefined && (
+						<Button
+							variant="secondary"
+							onClick={() =>
+								props.onEdit({ id, name: record.metadata.name ?? id, css: record.files!["index.css"] })
+							}
+						>
+							Edit
+						</Button>
+					)}
+					{/* An inert record removeLocal can delete without touching what
+					    is running, so it is not the danger action Remove is. */}
+					{record.shadowedLocal && (
+						<Button
+							variant="secondary"
+							disabled={updating || props.updateBlocked}
+							onClick={() => void remove()}
+						>
+							Discard copy
+						</Button>
+					)}
+				</div>
+				{/* Removal waits for an update in flight, whose install would
+				    otherwise land after it and bring the module back. */}
 				{!isProtected && record.local && (
-					<button type="button" className="spicetify-store-danger" onClick={() => void remove()}>
-						Remove
+					<button
+						type="button"
+						className={
+							removeArmed
+								? "spicetify-store-danger spicetify-store-card-trash-armed"
+								: "spicetify-store-card-icon spicetify-store-card-trash"
+						}
+						disabled={updating || props.updateBlocked}
+						title={removeArmed ? undefined : `Remove ${name}`}
+						aria-label={removeArmed ? `Really remove ${name}?` : `Remove ${name}`}
+						onClick={confirmRemove}
+					>
+						{removeArmed ? "Really remove?" : <GlyphIcon paths={TRASH_PATHS} />}
 					</button>
-				)}
-				{/* An inert record removeLocal can delete without touching what
-				    is running, so it is not the danger action Remove is. */}
-				{record.shadowedLocal && (
-					<Button variant="secondary" onClick={() => void remove()}>
-						Discard copy
-					</Button>
 				)}
 				{/* CLI-staged installs live on disk, out of removeLocal's reach.
 				    The daemon can do the real uninstall; without it this stays a
-				    terminal act (spicetify pkg delete) and no button is offered. */}
+				    terminal act (spicetify pkg delete) and no button is offered.
+				    Arming swaps the content of one button, as Remove does, so focus
+				    stays on it. */}
 				{!isProtected && !record.local && props.daemonReady && (
-					<button type="button" className="spicetify-store-danger" onClick={() => void uninstallFromDisk()}>
-						{uninstallArmed ? "Confirm — restarts Spotify" : "Uninstall"}
+					<button
+						type="button"
+						className={
+							removeArmed
+								? "spicetify-store-danger spicetify-store-card-trash-armed"
+								: "spicetify-store-card-icon spicetify-store-card-trash"
+						}
+						disabled={updating || uninstalling || props.updateBlocked}
+						title={removeArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}
+						aria-label={
+							removeArmed ? `Confirm uninstalling ${name} — restarts Spotify` : `Uninstall ${name}`
+						}
+						onClick={() => void uninstallFromDisk()}
+					>
+						{removeArmed ? "Confirm — restarts Spotify" : <GlyphIcon paths={TRASH_PATHS} />}
 					</button>
 				)}
 			</div>
@@ -931,6 +1004,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 	const [status, setStatus] = React.useState("");
 	const [overlay, setOverlay] = React.useState<Overlay | null>(null);
 	const [updatingAll, setUpdatingAll] = React.useState(false);
+	const [cardUpdates, setCardUpdates] = React.useState(0);
 	const [resetArmed, setResetArmed] = React.useState(false);
 	// Module state changes outside this page (dev pushes, manager
 	// actions); bumping the epoch re-reads live registry state, the React
@@ -1060,6 +1134,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			.map((s: any) => [s.identifier, s]),
 	);
 	const pending = pendingUpdates(catalog);
+	const pendingById = new Map(pending.map((mod) => [mod.id, mod]));
 	const activeTheme = installed.find(
 		(r) =>
 			kindOf(r.metadata) === "theme" &&
@@ -1118,6 +1193,18 @@ function StorePage(props: { api: PageApi }): ReactElement {
 			setStatus("");
 		} finally {
 			refreshRegistry();
+		}
+	};
+
+	// Card updates run one at a time and exclude Update all. Two at once
+	// could install the same module twice, or hot-swap a module while a
+	// stdlib update is still being staged, past runInstall's restart guard.
+	const runCardUpdate = async (mod: VaultModule) => {
+		setCardUpdates((n) => n + 1);
+		try {
+			await runInstall(mod);
+		} finally {
+			setCardUpdates((n) => n - 1);
 		}
 	};
 
@@ -1371,7 +1458,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						<button
 							type="button"
 							className="spicetify-store-cta"
-							disabled={updatingAll}
+							disabled={updatingAll || cardUpdates > 0}
 							onClick={() => void updateAll()}
 						>
 							Update all
@@ -1413,7 +1500,10 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						loaded={!!(states.get(record.metadata.identifier) as { loaded?: boolean } | undefined)?.loaded}
 						revokedReason={catalog.revoked[record.metadata.identifier]}
 						daemonReady={daemonReady}
+						update={pendingById.get(record.metadata.identifier)}
+						updateBlocked={updatingAll || cardUpdates > 0}
 						refresh={refreshRegistry}
+						onUpdate={() => runCardUpdate(pendingById.get(record.metadata.identifier)!)}
 						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
 					/>
 				))}
