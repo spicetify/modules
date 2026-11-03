@@ -588,6 +588,33 @@ describe("swaps and stdlib commits", () => {
 		assert.equal(store.get(MARKER), "1.1.0");
 	});
 
+	it("unloads a hung swap that finishes after a stdlib stage commits", async (t) => {
+		t.mock.timers.enable({ apis: ["setTimeout"] });
+		const swapping = gate();
+		installLocalImpl = () => swapping.opened.then(() => true);
+		const outcome = installModule(inline("lyrics-plus", "0.4.0"), () => {});
+		await settle();
+		t.mock.timers.tick(15_001);
+		assert.deepEqual(await outcome, { requiresRestart: true, enabled: false });
+		store.set(MARKER, "1.1.0");
+		swapping.open();
+		await settle();
+		assert.deepEqual(unloaded, ["lyrics-plus"]);
+	});
+
+	it("leaves a hung swap that finishes with no stdlib stage loaded", async (t) => {
+		t.mock.timers.enable({ apis: ["setTimeout"] });
+		const swapping = gate();
+		installLocalImpl = () => swapping.opened.then(() => true);
+		const outcome = installModule(inline("lyrics-plus", "0.4.0"), () => {});
+		await settle();
+		t.mock.timers.tick(15_001);
+		await outcome;
+		swapping.open();
+		await settle();
+		assert.deepEqual(unloaded, []);
+	});
+
 	it("holds a swap that queued behind a stdlib commit", async () => {
 		const swapping = gate();
 		installLocalImpl = () => swapping.opened.then(() => true);

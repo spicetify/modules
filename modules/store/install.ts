@@ -597,7 +597,18 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			swap,
 			new Promise<"hung-swap">((resolve) => setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS)),
 		]);
-		if (themeChoice && (typeof result === "boolean" || result === null)) {
+		if (result === "hung-swap") {
+			// The timeout ends the wait, not the swap: the loader still loads the
+			// update once the old copy shuts down. A stdlib stage committed by
+			// then would leave it running against the old stdlib, so unload it;
+			// the restart this outcome asks for brings both up.
+			if (mod.id !== "stdlib") {
+				void swap.then(
+					() => (stdlibRestartPending() ? M().unload?.(mod.id) : undefined),
+					() => undefined,
+				);
+			}
+		} else if (themeChoice && (typeof result === "boolean" || result === null)) {
 			// The loader tried to load the theme (one that predates keepInactive
 			// ignores it). Put the previous choice back before the queue moves
 			// on, so a queued theme update never snapshots this switch.
