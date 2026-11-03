@@ -259,6 +259,23 @@ export type InstallOutcome = { requiresRestart: boolean; enabled: boolean };
 // unloading and re-enabling a module is normally sub-second work.
 export const INSTALL_SWAP_TIMEOUT_MS = 15_000;
 
+// Waits for loader work that runs a module's teardown, but no longer than
+// INSTALL_SWAP_TIMEOUT_MS: a dispose that never settles must not pin the
+// caller, or the swap queue it runs in, for the rest of the session.
+async function withinSwapTimeout<T>(work: Promise<T>): Promise<T | "hung-swap"> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return await Promise.race([
+			work,
+			new Promise<"hung-swap">((resolve) => {
+				timer = setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS);
+			}),
+		]);
+	} finally {
+		clearTimeout(timer);
+	}
+}
+
 // One in-flight promise per id: a second caller (a dependent resolving a
 // dependency two cards are racing on) joins the running install instead of
 // returning early as if it had completed.
@@ -593,10 +610,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		// instance, so if that instance's dispose hangs (an unbounded await in
 		// module teardown), the update is already durable and a restart
 		// finishes it. Waiting forever here just pins "installing…" on screen.
-		const result = await Promise.race([
-			swap,
-			new Promise<"hung-swap">((resolve) => setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS)),
-		]);
+		const result = await withinSwapTimeout(swap);
 		if (result === "hung-swap") {
 			// The timeout ends the wait, not the swap: the loader still loads the
 			// update once the old copy shuts down. A stdlib stage committed by
@@ -611,8 +625,9 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		} else if (themeChoice && (typeof result === "boolean" || result === null)) {
 			// The loader tried to load the theme (one that predates keepInactive
 			// ignores it). Put the previous choice back before the queue moves
-			// on, so a queued theme update never snapshots this switch.
-			await restoreThemeChoice(mod.id, themeChoice);
+			// on, so a queued theme update never snapshots this switch. Restoring
+			// unloads the theme the loader switched to, which runs its teardown.
+			await withinSwapTimeout(restoreThemeChoice(mod.id, themeChoice));
 		}
 		return { result, themeChoice };
 	});

@@ -466,6 +466,25 @@ describe("updating a theme that is not active", () => {
 		assert.equal(store.get(ACTIVE), "text");
 	});
 
+	it("does not let a restore that never settles hold later installs", { timeout: 5_000 }, async (t) => {
+		t.mock.timers.enable({ apis: ["setTimeout"] });
+		// The temporary theme's teardown never finishes, so neither does the
+		// reload of the previous one.
+		enableImpl = () => new Promise(() => {});
+		const first = update("starry-night");
+		const second = installModule(
+			{ id: "adblock", version: "0.1.0", artifacts: [], vault: "default", files: { "index.css": "/* x */" } },
+			() => {},
+		);
+		for (let i = 0; i < 50; i++) await Promise.resolve();
+		assert.deepEqual(installed, ["starry-night"]);
+		t.mock.timers.tick(15_001);
+		await first;
+		for (let i = 0; i < 50; i++) await Promise.resolve();
+		assert.deepEqual(installed, ["starry-night", "adblock"]);
+		await second;
+	});
+
 	it("leaves the client unthemed when no theme was on", async () => {
 		states[0].loaded = false;
 		await update("starry-night");
