@@ -34,7 +34,7 @@ let removed: string[] = [];
 let installed: string[] = [];
 let installOptions: unknown[] = [];
 let installLocalImpl: (id: string) => unknown = () => true;
-let enableImpl: (id: string) => boolean = () => true;
+let enableImpl: (id: string) => boolean | Promise<boolean> = () => true;
 let enabled: string[] = [];
 let unloaded: string[] = [];
 let toasts: string[] = [];
@@ -454,6 +454,16 @@ describe("updating a theme that is not active", () => {
 		assert.deepEqual(enabled, [], "nothing was switched, so nothing is reloaded");
 		assert.deepEqual(loaded(), ["text"]);
 		assert.deepEqual(toasts, ["starry-night updated; text is still the active theme"]);
+	});
+
+	it("keeps the active theme across queued updates on a loader that switches", async () => {
+		locals.push(theme("nord", "0.1.0"));
+		states.push({ identifier: "nord", version: "0.1.0", local: true, loaded: false });
+		// Reloading the previous theme takes real time, as it does in the client.
+		enableImpl = (id) => new Promise((resolve) => setTimeout(() => resolve(loadTheme(id)), 0));
+		await Promise.all([update("starry-night"), update("nord")]);
+		assert.deepEqual(loaded(), ["text"]);
+		assert.equal(store.get(ACTIVE), "text");
 	});
 
 	it("leaves the client unthemed when no theme was on", async () => {

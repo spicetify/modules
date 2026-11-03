@@ -597,6 +597,12 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			swap,
 			new Promise<"hung-swap">((resolve) => setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS)),
 		]);
+		if (themeChoice && (typeof result === "boolean" || result === null)) {
+			// The loader tried to load the theme (one that predates keepInactive
+			// ignores it). Put the previous choice back before the queue moves
+			// on, so a queued theme update never snapshots this switch.
+			await restoreThemeChoice(mod.id, themeChoice);
+		}
 		return { result, themeChoice };
 	});
 	if (result === "hung-swap") {
@@ -623,8 +629,6 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	}
 	if (result && themeChoice) {
 		status("");
-		// A loader that honoured keepInactive never loaded the theme.
-		if (!(typeof result === "object" && result.inactive)) await restoreThemeChoice(mod.id, themeChoice);
 		toast(
 			themeChoice.active ? `${name} updated; ${themeChoice.active} is still the active theme` : `${name} updated`,
 			"success",
@@ -640,9 +644,6 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		return { requiresRestart: false, enabled: true };
 	} else {
 		const reason = enableFailureReason(mod.id);
-		// The loader unloads the active theme before it tries to load this one,
-		// so a failed load of an inactive theme's update leaves no theme on.
-		if (themeChoice) await restoreThemeChoice(mod.id, themeChoice);
 		// A dependency-gated failure (" needs " is the loader's dependency
 		// message; "unknown reason" is an older loader recording nothing) with
 		// a restart-pending dependency is not a failure: the new files
