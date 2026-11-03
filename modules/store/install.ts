@@ -621,10 +621,9 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			// then would leave it running against the old stdlib, so unload it;
 			// the restart this outcome asks for brings both up.
 			if (mod.id !== "stdlib") {
-				void swap.then(
-					() => (stdlibRestartPending() ? M().unload?.(mod.id) : undefined),
-					() => undefined,
-				);
+				void swap
+					.then(() => (stdlibRestartPending() ? M().unload?.(mod.id) : undefined))
+					.catch(() => undefined);
 			}
 		} else if (themeChoice && (typeof result === "boolean" || result === null)) {
 			// The loader tried to load the theme (one that predates keepInactive
