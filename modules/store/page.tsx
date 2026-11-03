@@ -807,23 +807,33 @@ function InstalledCard(props: {
 		props.refresh();
 	};
 
-	// Uninstalling a disk install runs an apply, which restarts Spotify, so it
-	// is armed first rather than fired from a single click. Same two-step
-	// shape as the page's Reset.
-	const [uninstallArmed, setUninstallArmed] = React.useState(false);
+	// Removal is armed first rather than fired from a single click: its icon
+	// sits beside Update, and uninstalling a disk install also runs an apply,
+	// which restarts Spotify. Same two-step shape as the page's Reset. A card
+	// offers either Remove or Uninstall, never both, so one state covers them.
+	const [removeArmed, setRemoveArmed] = React.useState(false);
 	const [updating, setUpdating] = React.useState(false);
 	React.useEffect(() => {
-		if (!uninstallArmed) return;
-		const timer = setTimeout(() => setUninstallArmed(false), 4000);
+		if (!removeArmed) return;
+		const timer = setTimeout(() => setRemoveArmed(false), 4000);
 		return () => clearTimeout(timer);
-	}, [uninstallArmed]);
+	}, [removeArmed]);
 
-	const uninstallFromDisk = async () => {
-		if (!uninstallArmed) {
-			setUninstallArmed(true);
+	const confirmRemove = () => {
+		if (!removeArmed) {
+			setRemoveArmed(true);
 			return;
 		}
-		setUninstallArmed(false);
+		setRemoveArmed(false);
+		void remove();
+	};
+
+	const uninstallFromDisk = async () => {
+		if (!removeArmed) {
+			setRemoveArmed(true);
+			return;
+		}
+		setRemoveArmed(false);
 		try {
 			toast(`uninstalling ${id} and re-applying; Spotify will restart…`);
 			await uninstallStaged(id, version);
@@ -901,33 +911,38 @@ function InstalledCard(props: {
 				{!isProtected && record.local && (
 					<button
 						type="button"
-						className="spicetify-store-card-icon spicetify-store-card-trash"
+						className={
+							removeArmed
+								? "spicetify-store-danger spicetify-store-card-trash-armed"
+								: "spicetify-store-card-icon spicetify-store-card-trash"
+						}
 						disabled={updating || props.updateBlocked}
-						title={`Remove ${name}`}
-						aria-label={`Remove ${name}`}
-						onClick={() => void remove()}
+						title={removeArmed ? undefined : `Remove ${name}`}
+						aria-label={removeArmed ? undefined : `Remove ${name}`}
+						onClick={confirmRemove}
 					>
-						<GlyphIcon paths={TRASH_PATHS} />
+						{removeArmed ? "Really remove?" : <GlyphIcon paths={TRASH_PATHS} />}
 					</button>
 				)}
 				{/* CLI-staged installs live on disk, out of removeLocal's reach.
 				    The daemon can do the real uninstall; without it this stays a
 				    terminal act (spicetify pkg delete) and no button is offered.
-				    Arming swaps the content of one button, so focus stays on it. */}
+				    Arming swaps the content of one button, as Remove does, so focus
+				    stays on it. */}
 				{!isProtected && !record.local && props.daemonReady && (
 					<button
 						type="button"
 						className={
-							uninstallArmed
+							removeArmed
 								? "spicetify-store-danger spicetify-store-card-trash-armed"
 								: "spicetify-store-card-icon spicetify-store-card-trash"
 						}
 						disabled={updating || props.updateBlocked}
-						title={uninstallArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}
-						aria-label={uninstallArmed ? undefined : `Uninstall ${name}`}
+						title={removeArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}
+						aria-label={removeArmed ? undefined : `Uninstall ${name}`}
 						onClick={() => void uninstallFromDisk()}
 					>
-						{uninstallArmed ? "Confirm — restarts Spotify" : <GlyphIcon paths={TRASH_PATHS} />}
+						{removeArmed ? "Confirm — restarts Spotify" : <GlyphIcon paths={TRASH_PATHS} />}
 					</button>
 				)}
 			</div>
