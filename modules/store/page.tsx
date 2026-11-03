@@ -1196,8 +1196,9 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		}
 	};
 
-	// A card's own Update and Update all would otherwise install the same
-	// module twice at once, so each blocks the other while it runs.
+	// Card updates run one at a time and exclude Update all. Two at once
+	// could install the same module twice, or hot-swap a module while a
+	// stdlib update is still being staged, past runInstall's restart guard.
 	const runCardUpdate = async (mod: VaultModule) => {
 		setCardUpdates((n) => n + 1);
 		try {
@@ -1500,7 +1501,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 						revokedReason={catalog.revoked[record.metadata.identifier]}
 						daemonReady={daemonReady}
 						update={pendingById.get(record.metadata.identifier)}
-						updateBlocked={updatingAll}
+						updateBlocked={updatingAll || cardUpdates > 0}
 						refresh={refreshRegistry}
 						onUpdate={() => runCardUpdate(pendingById.get(record.metadata.identifier)!)}
 						onEdit={(existing) => setOverlay({ kind: "snippet", existing })}
