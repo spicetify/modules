@@ -486,3 +486,28 @@ describe("updating a theme that is not active", () => {
 		assert.deepEqual(enabled, []);
 	});
 });
+
+describe("a stdlib update staged during a module update", () => {
+	beforeEach(() => {
+		states = [
+			{ identifier: "stdlib", version: "1.0.0", local: false, loaded: true },
+			{ identifier: "lyrics-plus", version: "0.3.0", local: true, loaded: true },
+		];
+		locals = [local("lyrics-plus", "0.3.0"), local("stdlib", "1.1.0")];
+	});
+	const update = (id: string) =>
+		installModule(
+			{ id, version: "0.4.0", artifacts: [], vault: "default", files: { "index.css": "/* x */" } },
+			() => {},
+		);
+
+	it("holds the swap of an installed module", async () => {
+		await assert.rejects(update("lyrics-plus"), /a stdlib update is staged/);
+		assert.deepEqual(installed, []);
+	});
+
+	it("does not hold a fresh install", async () => {
+		await update("adblock");
+		assert.deepEqual(installed, ["adblock"]);
+	});
+});

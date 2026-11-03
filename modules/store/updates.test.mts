@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
-import type { InstallOutcome } from "./install.ts";
+import { type InstallOutcome, stdlibRestartPending } from "./install.ts";
 import { markStdlibDiskStaged, setOnRegistryChanged, stdlibDiskStaged } from "./runtime.ts";
 import {
 	announceUpdates,
@@ -22,7 +22,6 @@ import {
 	pendingUpdates,
 	stdlibGate,
 	stdlibMarkerWithdrawn,
-	stdlibRestartPending,
 } from "./updates.ts";
 
 type LocalRecord = {

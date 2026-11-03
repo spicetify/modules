@@ -54,19 +54,13 @@ import {
 	isCustomRecord,
 	localRecords,
 	removeLocalRecord,
+	stdlibHoldReason,
+	stdlibRestartPending,
 	uninstallStaged,
 } from "./install.ts";
-import {
-	M,
-	openDialogClosers,
-	PLATFORM,
-	setOnCountsChanged,
-	setOnRegistryChanged,
-	stdlibDiskStaged,
-	toast,
-} from "./runtime.ts";
+import { M, openDialogClosers, PLATFORM, setOnCountsChanged, setOnRegistryChanged, toast } from "./runtime.ts";
 import { loadPreviewBlob, previewRevision, prunePreviewCache } from "./previewCache.ts";
-import { pendingUpdates, runUpdates, stdlibRestartPending } from "./updates.ts";
+import { pendingUpdates, runUpdates } from "./updates.ts";
 
 // ---------- lazily acquired stdlib bindings ----------
 
@@ -1179,11 +1173,7 @@ function StorePage(props: { api: PageApi }): ReactElement {
 		// means the swap would run against the old stdlib; fresh installs are
 		// fine (a missing dependency restart-gates them instead).
 		if (mod.id !== "stdlib" && installedVersions.get(mod.id) !== undefined && stdlibRestartPending()) {
-			toast(
-				stdlibDiskStaged()
-					? "a stdlib update is staged: use the apply or repair control above before updating modules"
-					: "a stdlib update is staged: restart Spotify before updating modules",
-			);
+			toast(stdlibHoldReason());
 			return;
 		}
 		try {

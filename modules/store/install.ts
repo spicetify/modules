@@ -5,6 +5,7 @@
 
 import {
 	type Catalog,
+	compareVersions,
 	displayVersion,
 	kindOf,
 	loadCatalog,
@@ -165,6 +166,41 @@ export async function enforceSingleTheme(id: string): Promise<void> {
 			toast(`disabled ${state.identifier} (one theme at a time)`);
 		}
 	}
+}
+
+export function runningStdlib(): { identifier: string; version: string } | undefined {
+	return ((M().list?.() ?? []) as Array<{ identifier: string; version: string }>).find(
+		(s) => s.identifier === "stdlib",
+	);
+}
+
+// A stdlib update installed this session is only staged: the registry keeps
+// running the old version until the next boot (record path) or the next
+// apply (disk path), and once the record or marker is written,
+// pendingUpdates may stop listing stdlib at all. While either staged copy
+// is newer than the running one, hot-applying anything else carries the
+// same hazard the batch gate exists for, so the gate has to keep holding
+// even though the batch itself no longer contains stdlib.
+export function stdlibRestartPending(): boolean {
+	const state = runningStdlib();
+	if (!state) return false;
+	const record = (M().listLocal?.() ?? []).find(
+		(r: { metadata: { identifier: string; version?: string }; sidecar?: { installed_version?: string } }) =>
+			r.metadata.identifier === "stdlib",
+	);
+	const staged = record?.sidecar?.installed_version ?? record?.metadata?.version;
+	// The record carries the vault key, which can have +cm build metadata the
+	// running copy's own metadata.json version lacks.
+	if (staged && compareVersions(displayVersion(staged), displayVersion(state.version)) > 0) return true;
+	const disk = stdlibDiskStaged();
+	return !!disk && compareVersions(disk, state.version) > 0;
+}
+
+// Why an update to an installed module waits while stdlibRestartPending().
+export function stdlibHoldReason(): string {
+	return stdlibDiskStaged()
+		? "a stdlib update is staged: use the apply or repair control above before updating modules"
+		: "a stdlib update is staged: restart Spotify before updating modules";
 }
 
 type ThemeChoice = { active: string | undefined; pref: string | null };
@@ -504,6 +540,19 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	metadata.identifier = mod.id;
 
 	const deps = await ensureDependencies(metadata.dependencies ?? {}, status);
+
+	// runInstall checks this before the download, but a stdlib update staged
+	// since then (another card, or the gallery) would leave this update
+	// running against the old stdlib. A restart-gated dependency is the
+	// exception: the loader's range check already holds this module back.
+	if (
+		mod.id !== "stdlib" &&
+		!deps.requiresRestart &&
+		installedRecords().some((r) => r.metadata.identifier === mod.id) &&
+		stdlibRestartPending()
+	) {
+		throw new Error(stdlibHoldReason());
+	}
 
 	status("installing…");
 	const themeChoice = inactiveThemeChoice(mod.id);
