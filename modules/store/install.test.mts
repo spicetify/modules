@@ -471,6 +471,7 @@ describe("updating a theme that is not active", () => {
 		// The temporary theme's teardown never finishes, so neither does the
 		// reload of the previous one.
 		enableImpl = () => new Promise(() => {});
+		installLocalImpl = (id) => (id === "adblock" ? true : loadTheme(id));
 		const first = update("starry-night");
 		const second = installModule(
 			{ id: "adblock", version: "0.1.0", artifacts: [], vault: "default", files: { "index.css": "/* x */" } },
@@ -479,7 +480,9 @@ describe("updating a theme that is not active", () => {
 		for (let i = 0; i < 50; i++) await Promise.resolve();
 		assert.deepEqual(installed, ["starry-night"]);
 		t.mock.timers.tick(15_001);
-		await first;
+		assert.deepEqual(await first, { requiresRestart: true, enabled: false });
+		assert.equal(store.get(ACTIVE), "text", "a restart brings the active theme back");
+		assert.match(toasts.at(-1) ?? "", /switching back to text did not finish/);
 		for (let i = 0; i < 50; i++) await Promise.resolve();
 		assert.deepEqual(installed, ["starry-night", "adblock"]);
 		await second;

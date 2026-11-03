@@ -223,11 +223,16 @@ function inactiveThemeChoice(id: string): ThemeChoice | undefined {
 	return { active: active?.identifier, pref };
 }
 
-// Undoes the switch. enable() saves the theme it loads as the preference, so
-// the saved value goes back last: the next boot then chooses exactly as it
-// would have without the update, and restarting recovers the active theme
-// if reloading it fails here.
+// Undoes the switch, so the next boot chooses exactly as it would have
+// without the update. The saved preference is written before the reload, so
+// a restart recovers the active theme if the reload fails or never finishes,
+// and again after it, because enable() saves the theme it loads.
 async function restoreThemeChoice(id: string, choice: ThemeChoice): Promise<void> {
+	const restorePref = () => {
+		if (choice.pref === null) localStorage.removeItem(ACTIVE_THEME_KEY);
+		else localStorage.setItem(ACTIVE_THEME_KEY, choice.pref);
+	};
+	restorePref();
 	if (!choice.active) {
 		await (M().unload ?? M().disable)(id);
 	} else {
@@ -245,8 +250,7 @@ async function restoreThemeChoice(id: string, choice: ThemeChoice): Promise<void
 			);
 		}
 	}
-	if (choice.pref === null) localStorage.removeItem(ACTIVE_THEME_KEY);
-	else localStorage.setItem(ACTIVE_THEME_KEY, choice.pref);
+	restorePref();
 }
 
 // What an install actually did, so callers stop inferring it from whether
@@ -573,7 +577,7 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 
 	status("installing…");
 	const name = metadata?.name ?? mod.id;
-	const { result, themeChoice } = await exclusively(async () => {
+	const { result, themeChoice, restoreHung } = await exclusively(async () => {
 		// runInstall checks this before the download, but a stdlib update
 		// staged since then (another card, or the gallery) would leave this
 		// update running against the old stdlib. A restart-gated dependency is
@@ -627,9 +631,10 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 			// ignores it). Put the previous choice back before the queue moves
 			// on, so a queued theme update never snapshots this switch. Restoring
 			// unloads the theme the loader switched to, which runs its teardown.
-			await withinSwapTimeout(restoreThemeChoice(mod.id, themeChoice));
+			const restored = await withinSwapTimeout(restoreThemeChoice(mod.id, themeChoice));
+			return { result, themeChoice, restoreHung: restored === "hung-swap" };
 		}
-		return { result, themeChoice };
+		return { result, themeChoice, restoreHung: false };
 	});
 	if (result === "hung-swap") {
 		status("");
@@ -652,6 +657,15 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 		toast(`${name} updated; still disabled`, "success");
 		reportInstall(mod);
 		return { requiresRestart: false, enabled: false };
+	}
+	if (restoreHung) {
+		status("");
+		toast(
+			`${name} updated, but switching back to ${themeChoice?.active ?? "no theme"} did not finish; restart Spotify to restore it`,
+			"error",
+		);
+		reportInstall(mod);
+		return { requiresRestart: true, enabled: false };
 	}
 	if (result && themeChoice) {
 		status("");
