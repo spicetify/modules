@@ -416,9 +416,14 @@
 				fill: currentColor;
 			}
 
-			&:hover {
+			&:hover:not(:disabled) {
 				border-color: #ff4151;
 				color: #ff4151;
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: default;
 			}
 		}
 	}

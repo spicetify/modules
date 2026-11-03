@@ -899,10 +899,13 @@ function InstalledCard(props: {
 						</Button>
 					)}
 				</div>
+				{/* Removal waits for an update in flight, whose install would
+				    otherwise land after it and bring the module back. */}
 				{!isProtected && record.local && (
 					<button
 						type="button"
 						className="spicetify-store-card-trash"
+						disabled={updating || props.updateBlocked}
 						title={`Remove ${name}`}
 						aria-label={`Remove ${name}`}
 						onClick={() => void remove()}
@@ -922,6 +925,7 @@ function InstalledCard(props: {
 								? "spicetify-store-danger spicetify-store-card-trash-armed"
 								: "spicetify-store-card-trash"
 						}
+						disabled={updating || props.updateBlocked}
 						title={uninstallArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}
 						aria-label={uninstallArmed ? undefined : `Uninstall ${name}`}
 						onClick={() => void uninstallFromDisk()}
