@@ -327,6 +327,18 @@ describe("a maintainer rollback", () => {
 			"an unpinned older vault entry stays a no-op, as before",
 		);
 	});
+
+	it("is not offered for a CLI-staged install, which the CLI rolls back itself", () => {
+		stagedStates = [{ identifier: "lyrics-plus", version: "2.1.0", local: false }];
+
+		const pinned = { ...entry("lyrics-plus", "2.0.0"), pinned: true };
+		assert.deepEqual(pendingUpdates(catalog([pinned])), []);
+		assert.deepEqual(
+			pendingUpdates(catalog([entry("lyrics-plus", "2.2.0")])).map((m) => m.version),
+			["2.2.0"],
+			"a newer version is still an update",
+		);
+	});
 });
 
 describe("runUpdates", () => {

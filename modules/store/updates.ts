@@ -41,8 +41,11 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 			// The exception: a pinned version is a maintainer rolling a bad
 			// release back, and `validate-submission` forbids deleting the bad
 			// version, so the pin is the only signal users get. Without this,
-			// everyone who installed the broken build keeps running it.
-			return !!mod.pinned && compareVersions(mod.version, version) !== 0;
+			// everyone who installed the broken build keeps running it. Only a
+			// Store install can take it: against a CLI-staged install the older
+			// record is one localWins refuses, and the CLI applies the pin to
+			// its own copies.
+			return !!mod.pinned && !!record?.local && compareVersions(mod.version, version) !== 0;
 		})
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
