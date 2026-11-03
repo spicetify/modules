@@ -7,7 +7,7 @@
 // call-time M(), so a plain global stub is enough - no DOM harness needed.
 
 import assert from "node:assert/strict";
-import { beforeEach, describe, it } from "node:test";
+import { afterEach, beforeEach, describe, it } from "node:test";
 
 import type { VaultModule } from "./catalog.ts";
 import {
@@ -509,5 +509,78 @@ describe("a stdlib update staged during a module update", () => {
 	it("does not hold a fresh install", async () => {
 		await update("adblock");
 		assert.deepEqual(installed, ["adblock"]);
+	});
+});
+
+describe("swaps and stdlib commits", () => {
+	const spicetify = (globalThis as never as Record<string, any>).Spicetify;
+	const MARKER = "spicetify:store:stdlibDiskStaged";
+	const inline = (id: string, version: string): VaultModule => ({
+		id,
+		version,
+		artifacts: [],
+		vault: "default",
+		files: { "index.css": "/* x */" },
+	});
+	const gate = () => {
+		let open!: () => void;
+		const opened = new Promise<void>((resolve) => (open = resolve));
+		return { opened, open };
+	};
+	const settle = async () => {
+		for (let i = 0; i < 50; i++) await Promise.resolve();
+	};
+
+	beforeEach(() => {
+		states = [
+			{ identifier: "stdlib", version: "1.0.0", local: false, loaded: true },
+			{ identifier: "lyrics-plus", version: "0.3.0", local: true, loaded: true },
+			{ identifier: "adblock", version: "0.1.0", local: true, loaded: true },
+		];
+		locals = [local("lyrics-plus", "0.3.0"), local("adblock", "0.1.0")];
+		spicetify.Daemon = {
+			available: () => Promise.resolve(true),
+			send: () => Promise.resolve("ok"),
+			apply: () => Promise.resolve(),
+		};
+	});
+	afterEach(() => {
+		spicetify.Daemon = undefined;
+	});
+
+	it("commits a stdlib stage only after a running swap finishes", async () => {
+		const swapping = gate();
+		installLocalImpl = () => swapping.opened.then(() => true);
+		const swap = installModule(inline("lyrics-plus", "0.4.0"), () => {});
+		await settle();
+		const stage = stageStdlibViaDaemon(
+			{ id: "stdlib", version: "1.1.0", artifacts: ["https://example.com/stdlib.zip"], vault: "default" },
+			() => {},
+		);
+		await settle();
+		assert.equal(store.get(MARKER), undefined, "the swap passed its recheck against the running stdlib");
+		swapping.open();
+		assert.deepEqual(await swap, { requiresRestart: false, enabled: true });
+		assert.equal(await stage, "staged");
+		assert.equal(store.get(MARKER), "1.1.0");
+	});
+
+	it("holds a swap that queued behind a stdlib commit", async () => {
+		const swapping = gate();
+		installLocalImpl = () => swapping.opened.then(() => true);
+		const first = installModule(inline("lyrics-plus", "0.4.0"), () => {});
+		await settle();
+		const stage = stageStdlibViaDaemon(
+			{ id: "stdlib", version: "1.1.0", artifacts: ["https://example.com/stdlib.zip"], vault: "default" },
+			() => {},
+		);
+		await settle();
+		const second = installModule(inline("adblock", "0.2.0"), () => {});
+		await settle();
+		swapping.open();
+		await first;
+		await stage;
+		await assert.rejects(second, /a stdlib update is staged/);
+		assert.deepEqual(installed, ["lyrics-plus"]);
 	});
 });
