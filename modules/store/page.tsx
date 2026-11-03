@@ -837,7 +837,7 @@ function InstalledCard(props: {
 		<article className={`spicetify-store-card${props.revokedReason ? " spicetify-store-card--revoked" : ""}`}>
 			<h3 className="spicetify-store-card-name">{record.metadata.name ?? id}</h3>
 			<div className="spicetify-store-card-meta">
-				{version && <Badge>{version}</Badge>}
+				{version && <Badge>{props.update ? `${version} → ${props.update.version}` : version}</Badge>}
 				<Badge tone={props.loaded ? "ok" : "neutral"}>{props.loaded ? "enabled" : "disabled"}</Badge>
 				{isProtected && <Badge>core</Badge>}
 				{!record.local && <Badge>cli</Badge>}
@@ -854,33 +854,30 @@ function InstalledCard(props: {
 			)}
 			<div className="spicetify-store-card-actions">
 				<div className="spicetify-store-card-actions-main">
+					{/* Protected modules can be re-enabled if somehow down, but never
+					    disabled (that would unload the UI) or removed. */}
+					{(!isProtected || !props.loaded) && (
+						<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
+							{props.loaded ? "Disable" : "Enable"}
+						</button>
+					)}
+					{/* The gallery's download glyph; the version badge names the
+					    target, so the pending update reads without hovering. */}
 					{props.update && (
 						<button
 							type="button"
-							className="spicetify-store-cta"
+							className="spicetify-store-card-icon spicetify-store-card-update"
 							title={`Update to ${props.update.version}`}
+							aria-label={`Update ${name} to ${props.update.version}`}
 							disabled={updating || props.updateBlocked}
 							onClick={() => {
 								setUpdating(true);
 								void props.onUpdate().finally(() => setUpdating(false));
 							}}
 						>
-							Update
+							<GlyphIcon paths={DOWNLOAD_PATHS} />
 						</button>
 					)}
-					{/* Protected modules can be re-enabled if somehow down, but never
-					    disabled (that would unload the UI) or removed. A pending
-					    update takes the primary style, so the toggle steps down. */}
-					{(!isProtected || !props.loaded) &&
-						(props.update ? (
-							<Button variant="secondary" onClick={() => void toggle()}>
-								{props.loaded ? "Disable" : "Enable"}
-							</Button>
-						) : (
-							<button type="button" className="spicetify-store-cta" onClick={() => void toggle()}>
-								{props.loaded ? "Disable" : "Enable"}
-							</button>
-						))}
 					{isCustomRecord(record.metadata) && record.files?.["index.css"] !== undefined && (
 						<Button
 							variant="secondary"
@@ -904,7 +901,7 @@ function InstalledCard(props: {
 				{!isProtected && record.local && (
 					<button
 						type="button"
-						className="spicetify-store-card-trash"
+						className="spicetify-store-card-icon spicetify-store-card-trash"
 						disabled={updating || props.updateBlocked}
 						title={`Remove ${name}`}
 						aria-label={`Remove ${name}`}
@@ -923,7 +920,7 @@ function InstalledCard(props: {
 						className={
 							uninstallArmed
 								? "spicetify-store-danger spicetify-store-card-trash-armed"
-								: "spicetify-store-card-trash"
+								: "spicetify-store-card-icon spicetify-store-card-trash"
 						}
 						disabled={updating || props.updateBlocked}
 						title={uninstallArmed ? undefined : `Uninstall ${name} (restarts Spotify)`}

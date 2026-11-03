@@ -398,16 +398,14 @@
 			margin-left: auto;
 		}
 
-		.spicetify-store-card-trash {
-			width: 32px;
-			height: 32px;
+		.spicetify-store-card-icon {
+			flex: none;
+			width: 28px;
+			height: 28px;
 			padding: 0;
-			border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
 			border-radius: 50%;
 			display: grid;
 			place-items: center;
-			background: transparent;
-			color: var(--spice-text, #fff);
 			cursor: pointer;
 
 			svg {
@@ -416,14 +414,28 @@
 				fill: currentColor;
 			}
 
-			&:hover:not(:disabled) {
-				border-color: #ff4151;
-				color: #ff4151;
-			}
-
 			&:disabled {
 				opacity: 0.5;
 				cursor: default;
+			}
+		}
+
+		// Filled like the primary pills, so a pending update is the most
+		// prominent thing on the card.
+		.spicetify-store-card-update {
+			border: none;
+			background: var(--spice-button, #1ed760);
+			color: var(--spice-main, #000);
+		}
+
+		.spicetify-store-card-trash {
+			border: 1px solid rgba(var(--spice-rgb-text, 255, 255, 255), 0.25);
+			background: transparent;
+			color: var(--spice-text, #fff);
+
+			&:hover:not(:disabled) {
+				border-color: #ff4151;
+				color: #ff4151;
 			}
 		}
 	}
