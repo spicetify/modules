@@ -2,7 +2,7 @@
 	"name": "Shark Blue",
 	"id": "shark-blue",
 	"kind": "theme",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"authors": ["MrBiscuit921"],
 	"description": "Deep blue accents on a clean dark layout",
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/shark-blue.png",

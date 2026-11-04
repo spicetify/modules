@@ -2,7 +2,7 @@
 	"name": "Text",
 	"id": "text",
 	"kind": "theme",
-	"version": "0.1.8",
+	"version": "0.1.9",
 	"authors": ["darkthemer"],
 	"description": "Mimics the terminal look of spotify-tui, with 21 schemes",
 	"entries": {

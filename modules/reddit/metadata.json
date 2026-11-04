@@ -2,7 +2,7 @@
 	"name": "Reddit",
 	"id": "reddit",
 	"kind": "app",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"authors": ["spicetify"],
 	"description": "Discover Spotify playlists, albums, and songs shared by Reddit music communities.",
 	"entries": {

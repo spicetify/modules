@@ -2,7 +2,7 @@
 	"name": "Onepunch",
 	"id": "onepunch",
 	"kind": "theme",
-	"version": "0.1.3",
+	"version": "0.1.4",
 	"authors": ["okarin001"],
 	"description": "A simple gruvbox-flavored theme, dark and light",
 	"entries": {

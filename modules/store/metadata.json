@@ -2,7 +2,7 @@
 	"name": "Store",
 	"id": "store",
 	"kind": "app",
-	"version": "1.9.2",
+	"version": "1.9.3",
 	"authors": ["spicetify"],
 	"description": "Browse, install, and manage v3 modules from vaults",
 	"entries": {
