@@ -5008,10 +5008,18 @@
 					"providers": [],
 					"checksum": "sha256:1fe2e539381943841208d2468c32cd8efc164da489baedeeefdad21cfe8881a1",
 					"updatedAt": "2026-10-02"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/turntable@0.1.2/turntable@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:e5bf6fd568aaab86bf53e010b1c70ac0178120bb050aaa42c067b7520b58a406",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "turntable",
+				"name": "Turntable",
 				"description": "Vinyl deck look whose round cover art spins while a track plays",
 				"authors": [
 					{
