@@ -381,6 +381,17 @@ describe("validate against a fixture repo", () => {
 		assert.deepEqual(problems(await report()), []);
 	});
 
+	it("checks the display name of every added artifact, not only the newest", async () => {
+		reset();
+		const before = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		before.v["1.1.0"] = entryFor("mod", "1.1.0", { name: "Pinned", id: "mod" });
+		before.v["1.2.0"] = entryFor("mod", "1.2.0");
+		writeSource("mod", before);
+		git("add", "-A");
+		git("commit", "-m", "publish an older version under another module's name");
+		assert.match(await report(), /1\.1\.0: artifact mod \("Pinned"\) reads as another module \(pinned\)/);
+	});
+
 	it("refuses an artifact with an id but no name", async () => {
 		reset();
 		const before = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
