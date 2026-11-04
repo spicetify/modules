@@ -1,5 +1,6 @@
 {
-	"name": "starry-night",
+	"name": "Starry Night",
+	"id": "starry-night",
 	"kind": "theme",
 	"version": "0.1.5",
 	"authors": ["Brandon Chen", "Julissa Laignelet"],

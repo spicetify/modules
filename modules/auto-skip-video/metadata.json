@@ -1,5 +1,6 @@
 {
-	"name": "auto-skip-video",
+	"name": "Auto Skip Video",
+	"id": "auto-skip-video",
 	"kind": "extension",
 	"version": "0.1.4",
 	"authors": ["spicetify"],

@@ -1,5 +1,6 @@
 {
-	"name": "store",
+	"name": "Store",
+	"id": "store",
 	"kind": "app",
 	"version": "1.9.2",
 	"authors": ["spicetify"],

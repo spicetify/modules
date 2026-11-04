@@ -1,5 +1,6 @@
 {
-	"name": "nightlight",
+	"name": "Nightlight",
+	"id": "nightlight",
 	"kind": "theme",
 	"version": "0.1.1",
 	"authors": ["iTenerai"],

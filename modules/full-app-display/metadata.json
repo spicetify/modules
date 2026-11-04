@@ -1,5 +1,6 @@
 {
-	"name": "full-app-display",
+	"name": "Full App Display",
+	"id": "full-app-display",
 	"kind": "extension",
 	"version": "0.2.3",
 	"authors": ["spicetify"],

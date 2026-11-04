@@ -1,5 +1,6 @@
 {
-	"name": "dribbblish",
+	"name": "Dribbblish",
+	"id": "dribbblish",
 	"kind": "theme",
 	"version": "0.1.4",
 	"authors": ["khanhas", "harbassan"],

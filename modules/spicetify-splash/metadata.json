@@ -1,5 +1,6 @@
 {
-	"name": "spicetify-splash",
+	"name": "Spicetify Splash",
+	"id": "spicetify-splash",
 	"kind": "extension",
 	"version": "0.1.1",
 	"authors": ["spicetify"],
