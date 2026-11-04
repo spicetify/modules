@@ -53,10 +53,16 @@
 			"providers": [],
 			"checksum": "sha256:fa6889a9833eb510bd5aba2eea049eace95563f84eed3dbd96b5f026cb5f52a6",
 			"updatedAt": "2026-11-04"
+		},
+		"0.1.9": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/text@0.1.9/text@0.1.9.zip"],
+			"providers": [],
+			"checksum": "sha256:2e19b240df0ce589a66f2a6817c1faeb61dbd5336f62e538e64490f136b2d11f",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "text",
+		"name": "Text",
 		"description": "Mimics the terminal look of spotify-tui, with 21 schemes",
 		"authors": [
 			{
