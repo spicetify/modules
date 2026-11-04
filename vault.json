@@ -1384,10 +1384,18 @@
 					"providers": [],
 					"checksum": "sha256:2e48959a185f767fb46a2637d6761fad3f8a7d01247637851e75885ae4daacf1",
 					"updatedAt": "2026-09-14"
+				},
+				"0.2.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/new-releases@0.2.3/new-releases@0.2.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:d95790daa922810d28d6a0e8e0c778a286e98571963b277f9df6ee4df9ba5be9",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "new-releases",
+				"name": "New Releases",
 				"description": "New album releases, with a graceful fallback to what you have recently added.",
 				"authors": [
 					{
