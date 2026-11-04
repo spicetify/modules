@@ -55,10 +55,18 @@
 			"providers": [],
 			"checksum": "sha256:2379a3084bc3b418e09a1f7e45b65d9ac3e3aed5f8e3bdcea5064ac2352efa5d",
 			"updatedAt": "2026-09-16"
+		},
+		"0.2.6": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/shuffle-plus@0.2.6/shuffle-plus@0.2.6.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:55e8524b8d3fca77b9f16defe53773766b5ca6b4e24257a62090fc71e950e77e",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "shuffle-plus",
+		"name": "Shuffle+",
 		"description": "True Fisher-Yates shuffle of any context or queue, with context-menu entries to play playlists, albums, artists and more shuffled without bias.",
 		"authors": [
 			{
