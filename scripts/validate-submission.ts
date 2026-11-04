@@ -362,6 +362,7 @@ async function validateArtifact(
 	entry: VaultVersionEntry,
 	head: VaultModule,
 	knownIds: Set<string>,
+	others: Array<{ id: string; name?: unknown }>,
 	establishedOwner: string | null,
 	problems: Problem[],
 	verify: ProvenanceVerifier,
@@ -430,6 +431,9 @@ async function validateArtifact(
 			push(`${version}: artifact declares id ${JSON.stringify(moduleIdOf(meta))}, entry id is ${id}`);
 		// The CLI requires a name to stage a module, so an id alone is not enough.
 		if (typeof meta.name !== "string" || !meta.name.trim()) push(`${version}: artifact metadata.json has no name`);
+		// An installed module shows its artifact's own name, and only the newest
+		// version has to match the card, so every added artifact is checked.
+		else for (const problem of displayNameProblems(id, meta.name, others)) push(`${version}: artifact ${problem}`);
 		if (meta.version !== version) {
 			push(`${version}: artifact declares version ${JSON.stringify(meta.version)}`);
 		}
@@ -578,6 +582,7 @@ export async function validateSubmission(
 					entry,
 					head,
 					knownIds,
+					others,
 					establishedOwner,
 					problems,
 					verify,
@@ -606,6 +611,7 @@ export async function validateSubmission(
 						entry,
 						head,
 						knownIds,
+						others,
 						establishedOwner,
 						problems,
 						verify,
