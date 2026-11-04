@@ -1083,10 +1083,18 @@
 					"providers": [],
 					"checksum": "sha256:7c853383c8a5716a95f5df5ce8c90fc2fa8a1c3672d427b78095e679d57000a2",
 					"updatedAt": "2026-10-09"
+				},
+				"0.4.1": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/lyrics-plus@0.4.1/lyrics-plus@0.4.1.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:9a1eedfceeb1e7ed35eedc3e4517a58bb84e97ebdf90fc5713ae932d757727c6",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "lyrics-plus",
+				"name": "Lyrics Plus",
 				"description": "Full-featured lyrics: synced, karaoke, unsynced and translated, from Musixmatch, Spotify, LRCLIB and Netease.",
 				"authors": [
 					{
