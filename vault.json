@@ -1705,10 +1705,18 @@
 					"providers": [],
 					"checksum": "sha256:bf39a5520305a1a0e2fb92ae6f7dcf8e0bbe67b5764e8c832e1fc80c28579403",
 					"updatedAt": "2026-09-16"
+				},
+				"0.2.5": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/popup-lyrics@0.2.5/popup-lyrics@0.2.5.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:df69c92939370d67cb5cc129ea20628c56dc79379f962a3f7f9646530d99edaf",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "popup-lyrics",
+				"name": "Popup Lyrics",
 				"description": "Pop synced lyrics up in a picture-in-picture window, sourced from Spotify, Musixmatch, Netease or LRCLIB.",
 				"authors": [
 					{
