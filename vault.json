@@ -5130,10 +5130,16 @@
 					"providers": [],
 					"checksum": "sha256:b7d4dee16ee4b18144148a6455cc66d07fe380cad8cda9f59a1b8c1d80375f9e",
 					"updatedAt": "2026-09-29"
+				},
+				"0.1.7": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/ziro@0.1.7/ziro@0.1.7.zip"],
+					"providers": [],
+					"checksum": "sha256:94577e172f9b47fea90aad79afdadcd010083ec98e08acc5887722813a283800",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "ziro",
+				"name": "Ziro",
 				"description": "Soft rounded design inspired by the Zorin GTK themes",
 				"authors": [
 					{
