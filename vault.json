@@ -682,10 +682,18 @@
 					"providers": [],
 					"checksum": "sha256:22e048a276ffe5f21830ad5f5035ea7cdfabf6082e9783d38cf16eef58a24f37",
 					"updatedAt": "2026-09-16"
+				},
+				"0.2.4": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/full-app-display@0.2.4/full-app-display@0.2.4.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:648838f4c76ede36df7ee76231c5c1707dd4ef4012b4909b10d4e8273b95d0a4",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "full-app-display",
+				"name": "Full App Display",
 				"description": "Fullscreen now-playing overlay with big artwork, track info, progress and controls.",
 				"authors": [
 					{
