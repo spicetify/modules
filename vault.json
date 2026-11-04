@@ -931,10 +931,18 @@
 					"providers": [],
 					"checksum": "sha256:1456ae49ef5b40c36cf19258c65e4b9685555926ac0a97c0e574c8341d98cc26",
 					"updatedAt": "2026-09-14"
+				},
+				"0.1.5": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/loopy-loop@0.1.5/loopy-loop@0.1.5.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:440df3780aaf6bb0b408881d2e8a8d245cd6f1a2ec996ac380df23a0e06c7c89",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "loopy-loop",
+				"name": "Loopy Loop",
 				"description": "A-B repeat and section-skip markers on the playback bar; loops and skips persist per song.",
 				"authors": [
 					{
