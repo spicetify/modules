@@ -23,10 +23,16 @@
 			"providers": [],
 			"checksum": "sha256:0738e0e1ca8d4040979cace8ce4ee35b7ed37e912d239111a76bb8215d0482a7",
 			"updatedAt": "2026-08-19"
+		},
+		"0.1.4": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/onepunch@0.1.4/onepunch@0.1.4.zip"],
+			"providers": [],
+			"checksum": "sha256:77024b49e2e02a0ac1e44e6f0341cd710093d82adffa77556bfd78fe04b06960",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "onepunch",
+		"name": "Onepunch",
 		"description": "A simple gruvbox-flavored theme, dark and light",
 		"authors": [
 			{
