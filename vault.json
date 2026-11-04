@@ -1745,10 +1745,18 @@
 					"providers": [],
 					"checksum": "sha256:72134a91000c7f3298fae84bf0d5734ce17636950eb18b977f0a337a248e42e8",
 					"updatedAt": "2026-09-14"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/reddit@0.1.2/reddit@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2a75dd9f1e9b68c1b6cc34173d6d42df61c390f3a31c35c2588f5aeae9569f2d",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "reddit",
+				"name": "Reddit",
 				"description": "Discover Spotify playlists, albums, and songs shared by Reddit music communities.",
 				"authors": [
 					{
