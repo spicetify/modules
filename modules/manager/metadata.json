@@ -1,5 +1,6 @@
 {
-	"name": "manager",
+	"name": "Manager",
+	"id": "manager",
 	"kind": "app",
 	"version": "1.5.1",
 	"authors": ["spicetify", "Afonso Jorge Ramos"],

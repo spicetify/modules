@@ -1,5 +1,6 @@
 {
-	"name": "new-releases",
+	"name": "New Releases",
+	"id": "new-releases",
 	"kind": "app",
 	"version": "0.2.2",
 	"authors": ["spicetify"],

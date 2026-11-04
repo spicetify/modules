@@ -1,5 +1,6 @@
 {
-	"name": "reddit",
+	"name": "Reddit",
+	"id": "reddit",
 	"kind": "app",
 	"version": "0.1.1",
 	"authors": ["spicetify"],

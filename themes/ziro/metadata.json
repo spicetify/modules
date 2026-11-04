@@ -1,5 +1,6 @@
 {
-	"name": "ziro",
+	"name": "Ziro",
+	"id": "ziro",
 	"kind": "theme",
 	"version": "0.1.6",
 	"authors": ["schnensch0"],

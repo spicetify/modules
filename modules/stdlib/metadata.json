@@ -1,5 +1,6 @@
 {
-	"name": "stdlib",
+	"name": "Standard Library",
+	"id": "stdlib",
 	"kind": "lib",
 	"hidden": true,
 	"preview": "./assets/PREVIEW.png",

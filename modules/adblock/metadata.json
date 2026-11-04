@@ -1,5 +1,6 @@
 {
-	"name": "adblock",
+	"name": "Adblock",
+	"id": "adblock",
 	"kind": "extension",
 	"version": "0.1.10",
 	"authors": ["spicetify", "rxri", "veryboringhwl"],

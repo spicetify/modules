@@ -1,5 +1,6 @@
 {
-	"name": "auto-skip-explicit",
+	"name": "Auto Skip Explicit",
+	"id": "auto-skip-explicit",
 	"kind": "extension",
 	"version": "0.1.5",
 	"authors": ["spicetify"],

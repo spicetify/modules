@@ -1,5 +1,6 @@
 {
-	"name": "hide-window-controls",
+	"name": "Hide Window Controls",
+	"id": "hide-window-controls",
 	"kind": "extension",
 	"version": "0.1.9",
 	"authors": ["spicetify"],

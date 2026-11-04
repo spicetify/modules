@@ -1,5 +1,6 @@
 {
-	"name": "sleek",
+	"name": "Sleek",
+	"id": "sleek",
 	"kind": "theme",
 	"version": "0.1.4",
 	"authors": ["harbassan"],

@@ -1,5 +1,6 @@
 {
-	"name": "blossom",
+	"name": "Blossom",
+	"id": "blossom",
 	"kind": "theme",
 	"version": "0.1.2",
 	"authors": ["Robatortas"],

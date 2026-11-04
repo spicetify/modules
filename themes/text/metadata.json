@@ -1,5 +1,6 @@
 {
-	"name": "text",
+	"name": "Text",
+	"id": "text",
 	"kind": "theme",
 	"version": "0.1.8",
 	"authors": ["darkthemer"],
