@@ -2,7 +2,7 @@
 	"name": "Matte",
 	"id": "matte",
 	"kind": "theme",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"authors": ["darkthemer"],
 	"description": "Distinct top bar, quick-to-edit variables, and ten color schemes",
 	"entries": {

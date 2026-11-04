@@ -2,7 +2,7 @@
 	"name": "Auto Skip Video",
 	"id": "auto-skip-video",
 	"kind": "extension",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"authors": ["spicetify"],
 	"description": "Auto-skip music videos. Toggle in Settings.",
 	"entries": {

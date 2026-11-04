@@ -2,7 +2,7 @@
 	"name": "Nightlight",
 	"id": "nightlight",
 	"kind": "theme",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"authors": ["iTenerai"],
 	"description": "Nightlight theme, migrated from the classic format",
 	"entries": {

@@ -2,7 +2,7 @@
 	"name": "Burnt Sienna",
 	"id": "burnt-sienna",
 	"kind": "theme",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"authors": ["Paweł Jaśpiński"],
 	"description": "BurntSienna theme, migrated from the classic format",
 	"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png",
