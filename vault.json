@@ -588,10 +588,16 @@
 					"providers": [],
 					"checksum": "sha256:931ca5c9769703bd3938a2f589c8f097b58e522dd01ec3f50f2d22d4133d55bd",
 					"updatedAt": "2026-08-06"
+				},
+				"0.1.3": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/flow@0.1.3/flow@0.1.3.zip"],
+					"providers": [],
+					"checksum": "sha256:11346666089459f2627ac33247f2e0bc548926da96ffc34eed70879dd8e6492c",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "flow",
+				"name": "Flow",
 				"description": "Smooth rounded look with five pastel schemes",
 				"authors": [
 					{
@@ -599,7 +605,8 @@
 					}
 				],
 				"kind": "theme",
-				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png"
+				"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/flow.png",
+				"license": "GPL-3.0-or-later"
 			}
 		},
 		"full-app-display": {
