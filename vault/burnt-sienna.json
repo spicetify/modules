@@ -15,10 +15,18 @@
 			"providers": [],
 			"checksum": "sha256:fb04aba3f1b2926b2a7ef8476669b2ca5e09d2d66fa1da0f23e404f61077783e",
 			"updatedAt": "2026-08-04"
+		},
+		"0.1.2": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/burnt-sienna@0.1.2/burnt-sienna@0.1.2.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:8c51b1f9a1ac0cd0d453330d554856fc4a214c976efc04ec20cd3227a6f6ff39",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "burnt-sienna",
+		"name": "Burnt Sienna",
 		"description": "BurntSienna theme, migrated from the classic format",
 		"authors": [
 			{
@@ -26,6 +34,7 @@
 			}
 		],
 		"kind": "theme",
-		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png"
+		"preview": "https://raw.githubusercontent.com/spicetify/modules/main/previews/burnt-sienna.png",
+		"license": "GPL-3.0-or-later"
 	}
 }
