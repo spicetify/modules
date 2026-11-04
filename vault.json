@@ -4613,6 +4613,12 @@
 					"providers": [],
 					"checksum": "sha256:9a9ee9fc95df6894ff39ade853b9c2e3adc7d3552dd0e45c2eac09bab540134b",
 					"updatedAt": "2026-10-02"
+				},
+				"0.1.8": {
+					"artifacts": ["https://github.com/spicetify/modules/releases/download/text@0.1.8/text@0.1.8.zip"],
+					"providers": [],
+					"checksum": "sha256:fa6889a9833eb510bd5aba2eea049eace95563f84eed3dbd96b5f026cb5f52a6",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
