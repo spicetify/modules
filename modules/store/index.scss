@@ -280,7 +280,7 @@
 			display: grid;
 			place-items: center;
 			background: var(--spice-text, #fff);
-			color: #000;
+			color: var(--spice-main, #000);
 			cursor: pointer;
 			box-shadow: 0 8px 8px rgba(0, 0, 0, 0.3);
 			opacity: 0;
@@ -545,8 +545,8 @@
 	margin: 8px 0;
 	padding: 10px 14px;
 	border-radius: 8px;
-	background: rgba(var(--spice-rgb-notification, 255, 209, 102), 0.16);
-	color: #ffd166;
+	background: rgba(var(--spice-rgb-button, 30, 215, 96), 0.14);
+	color: var(--spice-text, #fff);
 	font-size: 14px;
 }
 
