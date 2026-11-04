@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { beforeEach, describe, it } from "node:test";
 
 import type { Catalog, VaultModule } from "./catalog.ts";
-import type { InstallOutcome } from "./install.ts";
+import { type InstallOutcome, stdlibRestartPending } from "./install.ts";
 import { markStdlibDiskStaged, setOnRegistryChanged, stdlibDiskStaged } from "./runtime.ts";
 import {
 	announceUpdates,
@@ -22,7 +22,6 @@ import {
 	pendingUpdates,
 	stdlibGate,
 	stdlibMarkerWithdrawn,
-	stdlibRestartPending,
 } from "./updates.ts";
 
 type LocalRecord = {
@@ -325,6 +324,18 @@ describe("a maintainer rollback", () => {
 			pendingUpdates(catalog([entry("lyrics-plus", "2.0.0")])),
 			[],
 			"an unpinned older vault entry stays a no-op, as before",
+		);
+	});
+
+	it("is not offered for a CLI-staged install, which the CLI rolls back itself", () => {
+		stagedStates = [{ identifier: "lyrics-plus", version: "2.1.0", local: false }];
+
+		const pinned = { ...entry("lyrics-plus", "2.0.0"), pinned: true };
+		assert.deepEqual(pendingUpdates(catalog([pinned])), []);
+		assert.deepEqual(
+			pendingUpdates(catalog([entry("lyrics-plus", "2.2.0")])).map((m) => m.version),
+			["2.2.0"],
+			"a newer version is still an update",
 		);
 	});
 });

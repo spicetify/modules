@@ -5,6 +5,7 @@
 
 import {
 	type Catalog,
+	compareVersions,
 	displayVersion,
 	kindOf,
 	loadCatalog,
@@ -167,6 +168,91 @@ export async function enforceSingleTheme(id: string): Promise<void> {
 	}
 }
 
+export function runningStdlib(): { identifier: string; version: string } | undefined {
+	return ((M().list?.() ?? []) as Array<{ identifier: string; version: string }>).find(
+		(s) => s.identifier === "stdlib",
+	);
+}
+
+// A stdlib update installed this session is only staged: the registry keeps
+// running the old version until the next boot (record path) or the next
+// apply (disk path), and once the record or marker is written,
+// pendingUpdates may stop listing stdlib at all. While either staged copy
+// is newer than the running one, hot-applying anything else carries the
+// same hazard the batch gate exists for, so the gate has to keep holding
+// even though the batch itself no longer contains stdlib.
+export function stdlibRestartPending(): boolean {
+	const state = runningStdlib();
+	if (!state) return false;
+	const record = (M().listLocal?.() ?? []).find(
+		(r: { metadata: { identifier: string; version?: string }; sidecar?: { installed_version?: string } }) =>
+			r.metadata.identifier === "stdlib",
+	);
+	const staged = record?.sidecar?.installed_version ?? record?.metadata?.version;
+	// The record carries the vault key, which can have +cm build metadata the
+	// running copy's own metadata.json version lacks.
+	if (staged && compareVersions(displayVersion(staged), displayVersion(state.version)) > 0) return true;
+	const disk = stdlibDiskStaged();
+	return !!disk && compareVersions(disk, state.version) > 0;
+}
+
+// Why an update to an installed module waits while stdlibRestartPending().
+export function stdlibHoldReason(): string {
+	return stdlibDiskStaged()
+		? "a stdlib update is staged: use the apply or repair control above before updating modules"
+		: "a stdlib update is staged: restart Spotify before updating modules";
+}
+
+type ThemeChoice = { active: string | undefined; pref: string | null };
+
+// installLocal loads what it installs, and loading a theme unloads the
+// active one, so updating a theme the user has not activated would switch
+// themes. Returns the choice to put back afterwards, or undefined when the
+// install may load the theme: a fresh install, an update to the running
+// theme, or one to the theme the preference names (it failed to come up,
+// and the update may fix that).
+function inactiveThemeChoice(id: string): ThemeChoice | undefined {
+	if (kindOfInstalled(id) !== "theme") return undefined;
+	const states = M().list() as Array<{ identifier: string; loaded: boolean }>;
+	const self = states.find((state) => state.identifier === id);
+	const pref = localStorage.getItem(ACTIVE_THEME_KEY);
+	if (!self || self.loaded || pref === id) return undefined;
+	const active = states.find(
+		(state) => state.loaded && state.identifier !== id && kindOfInstalled(state.identifier) === "theme",
+	);
+	return { active: active?.identifier, pref };
+}
+
+// Undoes the switch, so the next boot chooses exactly as it would have
+// without the update. The saved preference is written before the reload, so
+// a restart recovers the active theme if the reload fails or never finishes,
+// and again after it, because enable() saves the theme it loads.
+async function restoreThemeChoice(id: string, choice: ThemeChoice): Promise<void> {
+	const restorePref = () => {
+		if (choice.pref === null) localStorage.removeItem(ACTIVE_THEME_KEY);
+		else localStorage.setItem(ACTIVE_THEME_KEY, choice.pref);
+	};
+	restorePref();
+	if (!choice.active) {
+		await (M().unload ?? M().disable)(id);
+	} else {
+		// A load that failed its dependency check never unloaded the active
+		// theme, and enable() refuses a module that is already loaded.
+		const stillLoaded = (M().list() as Array<{ identifier: string; loaded: boolean }>).some(
+			(state) => state.identifier === choice.active && state.loaded,
+		);
+		if (stillLoaded || (await M().enable(choice.active))) {
+			await enforceSingleTheme(choice.active);
+		} else {
+			toast(
+				`${choice.active} did not reload: ${enableFailureReason(choice.active)}; restart Spotify to bring it back`,
+				"error",
+			);
+		}
+	}
+	restorePref();
+}
+
 // What an install actually did, so callers stop inferring it from whether
 // the promise threw: `requiresRestart` means the new files persisted but
 // only take over on the next boot (a tree module, or a dependency that is
@@ -176,6 +262,23 @@ export type InstallOutcome = { requiresRestart: boolean; enabled: boolean };
 // How long a live swap may take before the update is declared restart-gated;
 // unloading and re-enabling a module is normally sub-second work.
 export const INSTALL_SWAP_TIMEOUT_MS = 15_000;
+
+// Waits for loader work that runs a module's teardown, but no longer than
+// INSTALL_SWAP_TIMEOUT_MS: a dispose that never settles must not pin the
+// caller, or the swap queue it runs in, for the rest of the session.
+async function withinSwapTimeout<T>(work: Promise<T>): Promise<T | "hung-swap"> {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return await Promise.race([
+			work,
+			new Promise<"hung-swap">((resolve) => {
+				timer = setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS);
+			}),
+		]);
+	} finally {
+		clearTimeout(timer);
+	}
+}
 
 // One in-flight promise per id: a second caller (a dependent resolving a
 // dependency two cards are racing on) joins the running install instead of
@@ -330,6 +433,19 @@ async function downloadArtifact(mod: VaultModule, status: (msg: string) => void)
 // record path is safe to take over.
 export type DaemonStaging = "staged" | "already-staged" | "pending" | "unavailable";
 
+// Swapping a module in and committing a stdlib stage must not interleave:
+// a swap that passed the stdlib recheck would otherwise load its update
+// against the old stdlib once a stage committed mid-swap. Both run through
+// this queue, so the recheck and the load it guards see one stdlib state.
+// Only the commit queues, not the daemon request, so a swap never waits on
+// a download.
+let swapQueue: Promise<unknown> = Promise.resolve();
+function exclusively<T>(fn: () => T | Promise<T>): Promise<T> {
+	const run = swapQueue.then(fn);
+	swapQueue = run.catch(() => undefined);
+	return run;
+}
+
 /**
  * The record path for a stdlib update rides on the loader's import map and
  * mixes generations whenever a specifier escapes it; the disk path has no
@@ -370,7 +486,7 @@ export async function stageStdlibViaDaemon(mod: VaultModule, status: (msg: strin
 	// The marker stores the plain semver: the vault key can carry +cm build
 	// metadata while the running version reported after an apply is the
 	// module's own metadata.json version, and the two have to compare equal.
-	markStdlibDiskStaged(displayVersion(mod.version));
+	await exclusively(() => markStdlibDiskStaged(displayVersion(mod.version)));
 	status("");
 	return "staged";
 }
@@ -460,28 +576,65 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	const deps = await ensureDependencies(metadata.dependencies ?? {}, status);
 
 	status("installing…");
-	// installLocal unloads any prior live instance itself, transiently, so no
-	// pre-disable here: a persisted disable before the install would outlive a
-	// failure and silently skip the module on every later boot.
-	const swap = M().installLocal(mod.id, {
-		metadata,
-		files,
-		sidecar: {
-			installed_version: mod.version,
-			classmap_base: "",
-			allow_stale: false,
-			checksum: mod.checksum ?? "",
-		},
-	}) as Promise<{ requiresRestart?: boolean; disabled?: boolean } | boolean | null>;
 	const name = metadata?.name ?? mod.id;
-	// The loader persists the new record before it unloads the old instance,
-	// so if that instance's dispose hangs (an unbounded await in module
-	// teardown), the update is already durable and a restart finishes it.
-	// Waiting forever here just pins "installing…" on screen.
-	const result = await Promise.race([
-		swap,
-		new Promise<"hung-swap">((resolve) => setTimeout(() => resolve("hung-swap"), INSTALL_SWAP_TIMEOUT_MS)),
-	]);
+	const { result, themeChoice, restoreHung } = await exclusively(async () => {
+		// runInstall checks this before the download, but a stdlib update
+		// staged since then (another card, or the gallery) would leave this
+		// update running against the old stdlib. A restart-gated dependency is
+		// the exception: the loader's range check already holds this module back.
+		if (
+			mod.id !== "stdlib" &&
+			!deps.requiresRestart &&
+			installedRecords().some((r) => r.metadata.identifier === mod.id) &&
+			stdlibRestartPending()
+		) {
+			throw new Error(stdlibHoldReason());
+		}
+		const themeChoice = inactiveThemeChoice(mod.id);
+		// installLocal unloads any prior live instance itself, transiently, so
+		// no pre-disable here: a persisted disable before the install would
+		// outlive a failure and silently skip the module on every later boot.
+		// keepInactive asks it not to load an inactive theme; loaders that
+		// predate it ignore it, and restoreThemeChoice undoes the switch.
+		const swap = M().installLocal(
+			mod.id,
+			{
+				metadata,
+				files,
+				sidecar: {
+					installed_version: mod.version,
+					classmap_base: "",
+					allow_stale: false,
+					checksum: mod.checksum ?? "",
+				},
+			},
+			...(themeChoice ? [{ keepInactive: true }] : []),
+		) as Promise<{ requiresRestart?: boolean; disabled?: boolean; inactive?: boolean } | boolean | null>;
+		// The loader persists the new record before it unloads the old
+		// instance, so if that instance's dispose hangs (an unbounded await in
+		// module teardown), the update is already durable and a restart
+		// finishes it. Waiting forever here just pins "installing…" on screen.
+		const result = await withinSwapTimeout(swap);
+		if (result === "hung-swap") {
+			// The timeout ends the wait, not the swap: the loader still loads the
+			// update once the old copy shuts down. A stdlib stage committed by
+			// then would leave it running against the old stdlib, so unload it;
+			// the restart this outcome asks for brings both up.
+			if (mod.id !== "stdlib") {
+				void swap
+					.then(() => (stdlibRestartPending() ? M().unload?.(mod.id) : undefined))
+					.catch(() => undefined);
+			}
+		} else if (themeChoice && (typeof result === "boolean" || result === null)) {
+			// The loader tried to load the theme (one that predates keepInactive
+			// ignores it). Put the previous choice back before the queue moves
+			// on, so a queued theme update never snapshots this switch. Restoring
+			// unloads the theme the loader switched to, which runs its teardown.
+			const restored = await withinSwapTimeout(restoreThemeChoice(mod.id, themeChoice));
+			return { result, themeChoice, restoreHung: restored === "hung-swap" };
+		}
+		return { result, themeChoice, restoreHung: false };
+	});
 	if (result === "hung-swap") {
 		status("");
 		toast(`${name} installed, but the old copy would not shut down; restart Spotify to finish`, "success");
@@ -501,6 +654,24 @@ async function installModuleInner(mod: VaultModule, status: (msg: string) => voi
 	if (result && typeof result === "object" && result.disabled) {
 		status("");
 		toast(`${name} updated; still disabled`, "success");
+		reportInstall(mod);
+		return { requiresRestart: false, enabled: false };
+	}
+	if (restoreHung) {
+		status("");
+		toast(
+			`${name} updated, but switching back to ${themeChoice?.active ?? "no theme"} did not finish; restart Spotify to restore it`,
+			"error",
+		);
+		reportInstall(mod);
+		return { requiresRestart: true, enabled: false };
+	}
+	if (result && themeChoice) {
+		status("");
+		toast(
+			themeChoice.active ? `${name} updated; ${themeChoice.active} is still the active theme` : `${name} updated`,
+			"success",
+		);
 		reportInstall(mod);
 		return { requiresRestart: false, enabled: false };
 	}

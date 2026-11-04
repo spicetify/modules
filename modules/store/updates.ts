@@ -3,8 +3,15 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { type Catalog, compareVersions, displayVersion, loadCatalog, type VaultModule } from "./catalog.ts";
-import { type InstallOutcome, installedRecords, installModule, isCustomRecord } from "./install.ts";
+import { type Catalog, compareVersions, loadCatalog, type VaultModule } from "./catalog.ts";
+import {
+	type InstallOutcome,
+	installedRecords,
+	installModule,
+	isCustomRecord,
+	runningStdlib,
+	stdlibRestartPending,
+} from "./install.ts";
 import {
 	disposed,
 	dropStdlibDiskStaged,
@@ -41,8 +48,11 @@ export function pendingUpdates(catalog: Catalog): VaultModule[] {
 			// The exception: a pinned version is a maintainer rolling a bad
 			// release back, and `validate-submission` forbids deleting the bad
 			// version, so the pin is the only signal users get. Without this,
-			// everyone who installed the broken build keeps running it.
-			return !!mod.pinned && compareVersions(mod.version, version) !== 0;
+			// everyone who installed the broken build keeps running it. Only a
+			// Store install can take it: against a CLI-staged install the older
+			// record is one localWins refuses, and the CLI applies the pin to
+			// its own copies.
+			return !!mod.pinned && !!record?.local && compareVersions(mod.version, version) !== 0;
 		})
 		.sort((a, b) => Number(dependedUpon.has(b.id)) - Number(dependedUpon.has(a.id)));
 }
@@ -66,34 +76,6 @@ export function stdlibMarkerWithdrawn(catalog: Catalog, marker: string): boolean
 	if (catalog.revoked["stdlib"] !== undefined) return true;
 	const entry = catalog.modules.find((mod) => mod.id === "stdlib");
 	return !!entry && compareVersions(entry.version, marker) < 0;
-}
-
-function runningStdlib(): { identifier: string; version: string } | undefined {
-	return ((M().list?.() ?? []) as Array<{ identifier: string; version: string }>).find(
-		(s) => s.identifier === "stdlib",
-	);
-}
-
-// A stdlib update installed this session is only staged: the registry keeps
-// running the old version until the next boot (record path) or the next
-// apply (disk path), and once the record or marker is written,
-// pendingUpdates may stop listing stdlib at all. While either staged copy
-// is newer than the running one, hot-applying anything else carries the
-// same hazard the batch gate exists for, so the gate has to keep holding
-// even though the batch itself no longer contains stdlib.
-export function stdlibRestartPending(): boolean {
-	const state = runningStdlib();
-	if (!state) return false;
-	const record = (M().listLocal?.() ?? []).find(
-		(r: { metadata: { identifier: string; version?: string }; sidecar?: { installed_version?: string } }) =>
-			r.metadata.identifier === "stdlib",
-	);
-	const staged = record?.sidecar?.installed_version ?? record?.metadata?.version;
-	// The record carries the vault key, which can have +cm build metadata the
-	// running copy's own metadata.json version lacks.
-	if (staged && compareVersions(displayVersion(staged), displayVersion(state.version)) > 0) return true;
-	const disk = stdlibDiskStaged();
-	return !!disk && compareVersions(disk, state.version) > 0;
 }
 
 // stdlib is a tree module: installing its update stages the new code, which
