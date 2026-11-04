@@ -1505,7 +1505,7 @@
 		},
 		"palette-manager": {
 			"metadata": {
-				"name": "palette-manager",
+				"name": "Palette Manager",
 				"description": "Manager for theme color schemes",
 				"authors": [
 					{
@@ -1605,6 +1605,14 @@
 					"providers": [],
 					"checksum": "sha256:338bd3c16b6f7eb84cb433326b0e2de1a211e76174b110b23c20675a832d768c",
 					"updatedAt": "2026-09-16"
+				},
+				"0.3.11": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/palette-manager@0.3.11/palette-manager@0.3.11.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:7cdc71eca7ec7947f3c8c1fbd7c183d3079d859ca635e90bbfe8acfa3f22513e",
+					"updatedAt": "2026-11-04"
 				}
 			}
 		},
