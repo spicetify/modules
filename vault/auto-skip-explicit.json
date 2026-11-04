@@ -47,10 +47,18 @@
 			"providers": [],
 			"checksum": "sha256:4d77b41738ea456bf83763ae9ac2cac90b9c03c50ccaaa55c2bad35c4a8d2f03",
 			"updatedAt": "2026-09-16"
+		},
+		"0.1.6": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/auto-skip-explicit@0.1.6/auto-skip-explicit@0.1.6.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:e59522298329e7880c4ac8aabe5f07bddcb3c1471ee99c66f3565d15c1d9ff8b",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "auto-skip-explicit",
+		"name": "Auto Skip Explicit",
 		"description": "Auto-skip explicit tracks. Toggle in Settings.",
 		"authors": [
 			{
