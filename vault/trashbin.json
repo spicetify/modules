@@ -53,10 +53,16 @@
 			"providers": [],
 			"checksum": "sha256:2af8d79e9fc94310ae44a2cf272986e6496425185135204e9f995f998759fe18",
 			"updatedAt": "2026-10-10"
+		},
+		"0.3.1": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/trashbin@0.3.1/trashbin@0.3.1.zip"],
+			"providers": [],
+			"checksum": "sha256:16d744b58c9b502d32efd5cd9e0982e5f4db481eb1c89bee1adea34c10eae5f0",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "trashbin",
+		"name": "Trashbin",
 		"description": "Throw songs and artists in the trashbin and never hear them again.",
 		"authors": [
 			{
