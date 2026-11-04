@@ -16,6 +16,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { resolveModuleDir } from "./build.ts";
+import { displayNameIssue, MODULE_ID_PATTERN } from "./module-id.ts";
 import { checkExternalStdlibBoundary } from "./stdlib-boundary.ts";
 
 export type Severity = "error" | "warn";
@@ -45,8 +46,15 @@ export function checkMetadata(meta: unknown): Finding[] {
 		return out;
 	}
 	const m = meta as Record<string, unknown>;
-	if (typeof m.name !== "string" || !/^[a-z][a-z0-9-]*$/.test(m.name)) {
-		err("metadata.name", "name must be a kebab-case string (it is the module identifier)");
+	if ("id" in m) {
+		if (typeof m.id !== "string" || !MODULE_ID_PATTERN.test(m.id)) {
+			err("metadata.id", "id must be a kebab-case string (it is the module identifier)");
+		}
+		const issue = typeof m.name === "string" ? displayNameIssue(m.name) : "must be a string";
+		if (issue) err("metadata.name", `the display name ${issue}`);
+	} else if (typeof m.name !== "string" || !MODULE_ID_PATTERN.test(m.name)) {
+		// Without an id, name is still the identifier.
+		err("metadata.name", "name must be a kebab-case string when there is no id (add an id to use a display name)");
 	}
 	if (typeof m.version !== "string" || !SEMVER.test(m.version)) {
 		err("metadata.version", "version must be semver (e.g. 1.0.0)");

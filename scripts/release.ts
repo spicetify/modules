@@ -23,6 +23,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { moduleIdOf } from "../packages/kit/src/module-id.ts";
 
 const git = (args: string[]) => execFileSync("git", args, { encoding: "utf8" }).trim();
 
@@ -203,7 +204,7 @@ function analyze(): { states: ModuleState[]; malformed: string[] } {
 			malformed.push(`${id}: metadata.json has no version`);
 			continue;
 		}
-		const vaultId = now.name ?? id;
+		const vaultId = moduleIdOf(now) ?? id;
 		const published = !!vault.modules?.[vaultId]?.v?.[now.version];
 		const subjectsSince = (baseline: string) =>
 			git(["log", `${baseline}..HEAD`, "--format=%s", "--", ...shippedPathspec(id)])
@@ -381,7 +382,7 @@ function autobump(apply: boolean): string[] {
 	// Propagate to a fixpoint: a dependent bumped in one pass can itself be
 	// the dependency of another module.
 	const dirIds = moduleIds();
-	const dirByName = new Map(dirIds.map((dir) => [readMetadata(dir).name ?? dir, dir]));
+	const dirByName = new Map(dirIds.map((dir) => [moduleIdOf(readMetadata(dir)) ?? dir, dir]));
 	const planned = new Set(plan.map((p) => p.id));
 	for (let pass = 0; pass < dirIds.length; pass++) {
 		let added = false;
@@ -420,7 +421,7 @@ function autobump(apply: boolean): string[] {
 			// dependency's patches, so rewriting on a patch churns every
 			// dependent and leaves it "changed since its tag", which demands a
 			// bump of the whole graph on the next run.
-			if (entry.level !== "patch") bumped.set(readMetadata(id).name ?? id, next);
+			if (entry.level !== "patch") bumped.set(moduleIdOf(readMetadata(id)) ?? id, next);
 		}
 	}
 
@@ -449,11 +450,11 @@ function autobump(apply: boolean): string[] {
 }
 
 // Dependency-first order over module DIRECTORY ids (dependency maps
-// key by metadata name, which may differ), so a batch of pushed tags
+// key by metadata id, which may differ), so a batch of pushed tags
 // publishes stdlib before its dependents and the vault never lists a
 // dependent whose dependency is absent.
 function topoOrder(dirIds: string[]): string[] {
-	const dirByName = new Map(dirIds.map((dir) => [readMetadata(dir).name ?? dir, dir]));
+	const dirByName = new Map(dirIds.map((dir) => [moduleIdOf(readMetadata(dir)) ?? dir, dir]));
 	const seen = new Set<string>();
 	const out: string[] = [];
 	const visit = (dir: string) => {
@@ -476,7 +477,7 @@ function tag(push: boolean): void {
 	for (const id of moduleIds()) {
 		const meta = readMetadata(id);
 		if (!meta.version) throw new Error(`${id}: metadata.json has no version`);
-		const vaultId = meta.name ?? id;
+		const vaultId = moduleIdOf(meta) ?? id;
 		if (vault.modules?.[vaultId]?.v?.[meta.version]) continue; // published
 		const t = `${vaultId}@${meta.version}`;
 		if (git(["tag", "--list", t])) {

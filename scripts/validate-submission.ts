@@ -31,6 +31,7 @@ import { fileURLToPath } from "node:url";
 import { metadataSubset } from "../packages/kit/src/vault-metadata.ts";
 import { downloadCapped } from "./download.ts";
 import { SOURCE_DIR, sourceIds, sourcePath, type VaultModule, type VaultVersionEntry } from "./vault-build.ts";
+import { displayNameIssue, displayNameKey, moduleIdOf } from "../packages/kit/src/module-id.ts";
 
 // An artifact is a module, not a payload: the largest thing in the vault
 // today is under 2 MB, and the cap exists so a submission cannot make the
@@ -315,6 +316,32 @@ export function metadataMismatches(
 	return out;
 }
 
+// A display name is free text, so a submission could borrow another module's
+// name: "Lyrics Plus" on an id that is not lyrics-plus. A new id can collide
+// the same way ("lyricsplus" against Lyrics Plus), which would then block the
+// existing module's own updates. Both are compared folded (case, accents,
+// spacing and punctuation removed) against every other module's id and name,
+// and the characters a name may use rule out lookalike and invisible ones.
+export function displayNameProblems(
+	id: string,
+	name: unknown,
+	others: Array<{ id: string; name?: unknown }>,
+): string[] {
+	if (name !== undefined && typeof name !== "string") return ["metadata.name must be a string"];
+	const issue = typeof name === "string" ? displayNameIssue(name) : undefined;
+	if (issue) return [`metadata.name ${issue}`];
+	const ours = new Set([displayNameKey(id), typeof name === "string" ? displayNameKey(name) : ""].filter(Boolean));
+	const out: string[] = [];
+	for (const other of others) {
+		if (other.id === id) continue;
+		const theirs = [other.id, typeof other.name === "string" ? other.name : ""];
+		if (theirs.some((t) => ours.has(displayNameKey(t)))) {
+			out.push(`${id} (${JSON.stringify(name ?? id)}) reads as another module (${other.id})`);
+		}
+	}
+	return out;
+}
+
 function validateInline(id: string, version: string, entry: VaultVersionEntry, problems: Problem[]): void {
 	const push = (message: string) => problems.push({ id, message });
 	if (entry.artifacts?.length) push(`${version}: an inline entry must not also declare artifacts`);
@@ -399,8 +426,10 @@ async function validateArtifact(
 			return void push(`${version}: metadata.json in the artifact is not valid JSON`);
 		}
 
-		if (meta.name !== id)
-			push(`${version}: artifact declares name ${JSON.stringify(meta.name)}, entry id is ${id}`);
+		if (moduleIdOf(meta) !== id)
+			push(`${version}: artifact declares id ${JSON.stringify(moduleIdOf(meta))}, entry id is ${id}`);
+		// The CLI requires a name to stage a module, so an id alone is not enough.
+		if (typeof meta.name !== "string" || !meta.name.trim()) push(`${version}: artifact metadata.json has no name`);
 		if (meta.version !== version) {
 			push(`${version}: artifact declares version ${JSON.stringify(meta.version)}`);
 		}
@@ -492,6 +521,15 @@ export async function validateSubmission(
 			push('source file must be a module object with a "v" map');
 			continue;
 		}
+
+		const others = [...knownIds].map((other) => {
+			try {
+				return { id: other, name: JSON.parse(readFileSync(sourcePath(other), "utf8"))?.metadata?.name };
+			} catch {
+				return { id: other };
+			}
+		});
+		for (const problem of displayNameProblems(id, head.metadata?.name, others)) push(problem);
 
 		const before = moduleAt(base, id);
 		// A published version is immutable: the checksum a user verified

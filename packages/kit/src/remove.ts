@@ -14,6 +14,7 @@ import path from "node:path";
 
 import { flagValue } from "./args.ts";
 import { formatRemoveOutcome, removeLocal, resolvePort } from "./push.ts";
+import { moduleIdOf } from "./module-id.ts";
 
 const USAGE = "spicetify-kit remove <module-dir|id> [--port 9229]";
 
@@ -22,9 +23,9 @@ const USAGE = "spicetify-kit remove <module-dir|id> [--port 9229]";
 export function moduleId(target: string, cwd: string): string {
 	const meta = path.join(path.resolve(cwd, target), "metadata.json");
 	if (!existsSync(meta)) return target;
-	const name: unknown = JSON.parse(readFileSync(meta, "utf8")).name;
-	if (typeof name !== "string" || !name) throw new Error(`${meta} has no "name" to identify the module by`);
-	return name;
+	const id = moduleIdOf(JSON.parse(readFileSync(meta, "utf8")));
+	if (!id) throw new Error(`${meta} has no "id" or "name" to identify the module by`);
+	return id;
 }
 
 export async function runRemove(argv: string[], cwd = process.cwd()): Promise<void> {

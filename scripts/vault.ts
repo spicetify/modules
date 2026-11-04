@@ -34,6 +34,7 @@ import { fileURLToPath } from "node:url";
 
 import { metadataSubset, type VaultAuthor, type VaultMetadata } from "../packages/kit/src/vault-metadata.ts";
 import { build, compose, serialize, SOURCE_DIR, sourcePath } from "./vault-build.ts";
+import { moduleIdOf } from "../packages/kit/src/module-id.ts";
 
 const VAULT_PATH = path.join(process.cwd(), SOURCE_DIR);
 
@@ -179,9 +180,9 @@ async function add(
 	opts: { skipExisting?: boolean; force?: boolean; check?: boolean; license?: string } = {},
 ): Promise<void> {
 	const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
-	const id: string = meta.name;
+	const id = moduleIdOf(meta) as string;
 	const version: string = meta.version;
-	if (!id || !version) throw new Error(`${distDir}/metadata.json must set name and version`);
+	if (!id || !version) throw new Error(`${distDir}/metadata.json must set an id (or name) and version`);
 
 	const vault = loadVault();
 	const existing = vault.modules[id]?.v?.[version];
@@ -288,8 +289,9 @@ function addSnippet(
 
 function pack(distDir: string, outDir: string): void {
 	const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
-	if (!meta.name || !meta.version) throw new Error(`${distDir}/metadata.json must set name and version`);
-	const zipName = `${meta.name}@${meta.version}.zip`;
+	const id = moduleIdOf(meta);
+	if (!id || !meta.version) throw new Error(`${distDir}/metadata.json must set an id (or name) and version`);
+	const zipName = `${id}@${meta.version}.zip`;
 	const zipPath = path.resolve(outDir, zipName);
 	rmSync(zipPath, { force: true });
 	// Zip contents at the archive root (metadata.json at top level), the

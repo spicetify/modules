@@ -9,6 +9,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { inspectStdlibBoundaryFile, type StdlibBoundarySourceRule } from "../packages/kit/src/stdlib-boundary.ts";
+import { moduleIdOf } from "../packages/kit/src/module-id.ts";
 
 export type BoundaryRule = StdlibBoundarySourceRule | "missing-stdlib-dependency";
 
@@ -61,11 +62,12 @@ function rawViolations(root: string): BoundaryViolation[] {
 			const metaPath = path.join(dir, "metadata.json");
 			if (!existsSync(metaPath) || !statSync(dir).isDirectory()) continue;
 			const meta = JSON.parse(readFileSync(metaPath, "utf8")) as {
+				id?: string;
 				name?: string;
 				entries?: { js?: string };
 				dependencies?: Record<string, string> | string[];
 			};
-			const id = meta.name ?? dirName;
+			const id = moduleIdOf(meta) ?? dirName;
 			if (id === "stdlib") continue;
 			const dependencies = Array.isArray(meta.dependencies) ? {} : (meta.dependencies ?? {});
 			if (meta.entries?.js && typeof dependencies.stdlib !== "string") {

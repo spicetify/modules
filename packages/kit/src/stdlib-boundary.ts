@@ -7,6 +7,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { kindOfMeta } from "./vault-metadata.ts";
+import { moduleIdOf } from "./module-id.ts";
 
 export const STDLIB_BOUNDARY_WARNING_RULES = ["ambient-client", "client-dom", "direct-map"] as const;
 export type StdlibBoundaryWarningRule = (typeof STDLIB_BOUNDARY_WARNING_RULES)[number];
@@ -238,7 +239,7 @@ export function checkExternalStdlibBoundary(root: string, metadata: unknown): Ex
 	const parsed = parseExceptions(meta);
 	const out = [...parsed.findings];
 	const entries = meta.entries as { js?: unknown } | undefined;
-	if (typeof entries?.js !== "string" || meta.name === "stdlib") return out;
+	if (typeof entries?.js !== "string" || moduleIdOf(meta) === "stdlib") return out;
 	const isTheme = kindOfMeta(meta) === "theme";
 
 	const dependencies = meta.dependencies;

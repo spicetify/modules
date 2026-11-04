@@ -33,7 +33,11 @@ Inside this monorepo the same loop is `pnpm new <name>` to scaffold and
 
 What the scaffold generates:
 
-- `metadata.json` — id, version, entries, and dependencies (declares `stdlib`).
+- `metadata.json` — id, display name, version, entries, and dependencies
+  (declares `stdlib`). `id` is the kebab-case identifier the vault, the store
+  and dependency ranges use, and never changes. `name` is what the store shows
+  ("Full App Display"). Metadata without an `id` is from before the split, and
+  its `name` is still the identifier.
 - `index.ts` — the loader entry shim. Leave it.
 - `mod.tsx` — your module.
 - `logic.ts` — dependency-free logic, unit-testable in Node.

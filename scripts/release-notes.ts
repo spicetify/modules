@@ -15,6 +15,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { moduleIdOf } from "../packages/kit/src/module-id.ts";
 
 const tag = process.argv[2];
 if (!tag?.includes("@")) throw new Error("usage: release-notes.ts <name>@<version>");
@@ -32,15 +33,15 @@ const authors: string[] = (meta.authors ?? []).map((a: string | { name: string }
 const git = (...args: string[]): string =>
 	execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
 
-// The module's source dir, resolved by metadata name across the content
-// roots (directory names may differ from metadata names).
+// The module's source dir, resolved by metadata id across the content
+// roots (directory names may differ from module ids).
 function sourceDir(): string | null {
 	for (const root of ["modules", "themes", "snippets"]) {
 		if (!existsSync(root)) continue;
 		for (const entry of readdirSync(root)) {
 			const metaPath = path.join(root, entry, "metadata.json");
 			try {
-				if (JSON.parse(readFileSync(metaPath, "utf8")).name === name) return path.join(root, entry);
+				if (moduleIdOf(JSON.parse(readFileSync(metaPath, "utf8"))) === name) return path.join(root, entry);
 			} catch {
 				// not a module dir
 			}

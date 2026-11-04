@@ -21,6 +21,7 @@ import {
 	compareVersions,
 	githubRepository,
 	inspectZip,
+	displayNameProblems,
 	metadataMismatches,
 	ownerOf,
 	provenanceFrom,
@@ -31,6 +32,48 @@ import {
 } from "./validate-submission.ts";
 import { metadataSubset } from "../packages/kit/src/vault-metadata.ts";
 import { runVault } from "../packages/kit/src/vault.ts";
+
+describe("displayNameProblems", () => {
+	const others = [
+		{ id: "lyrics-plus", name: "Lyrics Plus" },
+		{ id: "adblock", name: "Adblock" },
+	];
+
+	it("accepts a module's own name and legacy names equal to the id", () => {
+		assert.deepEqual(displayNameProblems("lyrics-plus", "Lyrics Plus", others), []);
+		assert.deepEqual(displayNameProblems("new-thing", "new-thing", others), []);
+		assert.deepEqual(displayNameProblems("new-thing", undefined, others), []);
+	});
+
+	it("refuses a name that reads as another module's id or name", () => {
+		assert.match(displayNameProblems("lyrics-plus-pro", "Lyrics  plus!", others).join("\n"), /lyrics-plus/);
+		assert.match(displayNameProblems("blocker", "AdBlock", others).join("\n"), /adblock/);
+	});
+
+	it("refuses a new id that reads as another module's name", () => {
+		assert.match(
+			displayNameProblems("lyricsplus", "Unrelated Utility", others).join("\n"),
+			/reads as another module \(lyrics-plus\)/,
+		);
+	});
+
+	it("refuses an overlong name, control and invisible characters, and lookalike letters", () => {
+		const problems = (name: string) => displayNameProblems("x", name, others).join("\n");
+		assert.match(problems("a".repeat(65)), /at most 64 characters/);
+		assert.match(problems("Line\nbreak"), /printable Latin/);
+		assert.match(problems("Lyrics\u200bPlus"), /printable Latin/);
+		assert.match(problems("Lyr\u0456cs Plus"), /printable Latin/, "Cyrillic i");
+		assert.match(problems("+++"), /letter or digit/);
+	});
+
+	it("accepts accented Latin letters and compares them unaccented", () => {
+		assert.deepEqual(displayNameProblems("snippet-pok-mon-adventure", "Pokémon Adventure", others), []);
+		assert.match(
+			displayNameProblems("blocker", "Ádblock", others).join("\n"),
+			/reads as another module \(adblock\)/,
+		);
+	});
+});
 
 describe("ownerOf", () => {
 	it("collapses github URLs to the account", () => {
@@ -279,7 +322,7 @@ describe("validate against a fixture repo", () => {
 		// something to hold later submissions to. Nothing fetches it: base
 		// versions are never revalidated.
 		writeSource("pinned", {
-			metadata: cardFor({ repository: "https://github.com/author/pinned" }),
+			metadata: cardFor({ name: "pinned", repository: "https://github.com/author/pinned" }),
 			v: {
 				"1.0.0": {
 					artifacts: ["https://github.com/author/pinned/releases/download/1.0.0/pinned@1.0.0.zip"],
@@ -327,6 +370,38 @@ describe("validate against a fixture repo", () => {
 		assert.deepEqual(problems(await report()), []);
 	});
 
+	it("accepts an artifact that carries a display name and an id", async () => {
+		reset();
+		const before = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		before.metadata = { ...before.metadata, name: "Mod" };
+		before.v["1.1.0"] = entryFor("mod", "1.1.0", { name: "Mod", id: "mod" });
+		writeSource("mod", before);
+		git("add", "-A");
+		git("commit", "-m", "publish 1.1.0 with a display name");
+		assert.deepEqual(problems(await report()), []);
+	});
+
+	it("refuses an artifact with an id but no name", async () => {
+		reset();
+		const before = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		delete before.metadata.name;
+		before.v["1.1.0"] = entryFor("mod", "1.1.0", { name: undefined, id: "mod" });
+		writeSource("mod", before);
+		git("add", "-A");
+		git("commit", "-m", "publish 1.1.0 without a name");
+		assert.match(await report(), /artifact metadata.json has no name/);
+	});
+
+	it("refuses an artifact whose id is not the entry's", async () => {
+		reset();
+		const before = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
+		before.v["1.1.0"] = entryFor("mod", "1.1.0", { name: "mod", id: "other" });
+		writeSource("mod", before);
+		git("add", "-A");
+		git("commit", "-m", "publish 1.1.0 under another id");
+		assert.match(await report(), /artifact declares id "other", entry id is mod/);
+	});
+
 	it("refuses a rewritten published version", async () => {
 		reset();
 		const mod = JSON.parse(readFileSync(path.join(repo, "vault", "mod.json"), "utf8"));
@@ -355,7 +430,7 @@ describe("validate against a fixture repo", () => {
 		// is downloaded, which is the point. A hijacked entry never gets to
 		// serve bytes.
 		const pinned = JSON.parse(readFileSync(path.join(repo, "vault", "pinned.json"), "utf8"));
-		pinned.metadata = cardFor({ repository: "https://github.com/attacker/pinned" });
+		pinned.metadata = cardFor({ name: "pinned", repository: "https://github.com/attacker/pinned" });
 		pinned.v["2.0.0"] = {
 			artifacts: ["https://github.com/attacker/pinned/releases/download/2.0.0/pinned@2.0.0.zip"],
 			checksum: `sha256:${"b".repeat(64)}`,
