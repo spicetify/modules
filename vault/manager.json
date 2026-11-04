@@ -125,10 +125,17 @@
 			"checksum": "sha256:09fa2ce7d9ad166f2b56e8990285779b97d2a44b073a5422a47fa9cd23375816",
 			"updatedAt": "2026-10-01",
 			"hidden": true
+		},
+		"1.5.2": {
+			"artifacts": ["https://github.com/spicetify/modules/releases/download/manager@1.5.2/manager@1.5.2.zip"],
+			"providers": [],
+			"checksum": "sha256:4a6097b02022cd492435329c60318e5a6c61dafc87b9c4a4cbefb55e37ea5128",
+			"updatedAt": "2026-11-04",
+			"hidden": true
 		}
 	},
 	"metadata": {
-		"name": "manager",
+		"name": "Manager",
 		"description": "Manage spicetify from inside Spotify",
 		"authors": [
 			{
