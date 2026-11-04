@@ -780,10 +780,18 @@
 					"providers": [],
 					"checksum": "sha256:55cb207b614d8ae5b5bf212521759ada1ec675aa1c026bcf37db25bc4b803787",
 					"updatedAt": "2026-09-29"
+				},
+				"0.1.10": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/hide-window-controls@0.1.10/hide-window-controls@0.1.10.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:f142256cee0b07701b60a6aa387d2955dd0dd83768b57198ff473992e0798a31",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "hide-window-controls",
+				"name": "Hide Window Controls",
 				"description": "Hide Windows window buttons and macOS traffic lights, including their reserved space. Toggle in Settings.",
 				"authors": [
 					{
