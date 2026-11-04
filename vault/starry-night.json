@@ -47,10 +47,18 @@
 			"providers": [],
 			"checksum": "sha256:d010cccf81a7b979e4fc47b5e35b42825b44634fc75bf123687fdcf5c0fde9c5",
 			"updatedAt": "2026-10-02"
+		},
+		"0.1.6": {
+			"artifacts": [
+				"https://github.com/spicetify/modules/releases/download/starry-night@0.1.6/starry-night@0.1.6.zip"
+			],
+			"providers": [],
+			"checksum": "sha256:cf3bfd982a8bba9d6f5c175db47d269bb63a7cbba9f29cd0fe9a0f14f54bd1de",
+			"updatedAt": "2026-11-04"
 		}
 	},
 	"metadata": {
-		"name": "starry-night",
+		"name": "Starry Night",
 		"description": "Night sky backdrop with twinkling stars and shooting stars, in seven skies",
 		"authors": [
 			{
