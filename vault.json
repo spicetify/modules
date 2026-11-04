@@ -543,10 +543,18 @@
 					"providers": [],
 					"checksum": "sha256:3f4b05310071e88672d53e2774a55a11f0a8f6be468884a9d79adbddebe764ce",
 					"updatedAt": "2026-10-02"
+				},
+				"0.1.5": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/dribbblish@0.1.5/dribbblish@0.1.5.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:1c77a0fbb8650c17a3e66bc269ed8d0dfbaae19a38de07d7af4a75a6f4e2871c",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "dribbblish",
+				"name": "Dribbblish",
 				"description": "Compact card-based redesign with rounded art and nineteen schemes",
 				"authors": [
 					{
