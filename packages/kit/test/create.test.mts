@@ -109,6 +109,8 @@ test("theme template: css-only shape converges with from-theme (kind, entries, d
 	await runCreate(["demo-theme", "--template", "theme"], root);
 	const project = path.join(root, "demo-theme");
 	const meta = JSON.parse(readFileSync(path.join(project, "metadata.json"), "utf8"));
+	assert.equal(meta.id, "demo-theme");
+	assert.equal(meta.name, "Demo Theme");
 	assert.equal(meta.kind, "theme");
 	assert.equal(meta.tags, undefined);
 	assert.deepEqual(meta.entries, { css: "index.css" });

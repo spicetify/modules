@@ -17,6 +17,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from "node:
 import path from "node:path";
 
 import { KIT_DEPENDENCY_RANGE } from "./version.ts";
+import { displayNameFor } from "./module-id.ts";
 
 const USAGE = 'spicetify-kit from-theme <classic-theme-dir> [--name <id>] [--author "..."] [--bare]';
 
@@ -66,7 +67,8 @@ export async function runFromTheme(argv: string[], cwd = process.cwd()): Promise
 		path.join(dir, "metadata.json"),
 		`${JSON.stringify(
 			{
-				name,
+				name: displayNameFor(name),
+				id: name,
 				kind: "theme",
 				version: "0.1.0",
 				authors: [author],

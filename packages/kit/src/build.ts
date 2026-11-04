@@ -32,6 +32,7 @@ import path from "node:path";
 import { checkModule } from "./check.ts";
 import { generateClassmapDts, loadConfig, resolveClassmap, type ClassmapResolution } from "./classmap.ts";
 import type { StdlibBoundaryExceptionRule } from "./stdlib-boundary.ts";
+import { moduleIdOf } from "./module-id.ts";
 
 export type ModuleKind = "extension" | "theme" | "snippet" | "app" | "lib";
 
@@ -208,7 +209,8 @@ export async function buildModule(
 	opts: { check?: "enforce" | "warn" | "off" } = {},
 ): Promise<string> {
 	const metadata = readMetadata(inputDir);
-	const identifier = `${metadata.name}@${metadata.version}`;
+	const id = moduleIdOf(metadata);
+	const identifier = `${id}@${metadata.version}`;
 
 	// The standard's error tier is enforced at build (KTD4): error-tier
 	// findings abort before any dist output, warnings print and continue.
@@ -223,7 +225,7 @@ export async function buildModule(
 		const errors = findings.filter((f) => f.severity === "error");
 		if (check === "enforce" && errors.length) {
 			throw new Error(
-				`${metadata.name}: ${errors.length} error-tier finding(s) against the module standard; ` +
+				`${id}: ${errors.length} error-tier finding(s) against the module standard; ` +
 					"fix them, or build with --no-check.",
 			);
 		}

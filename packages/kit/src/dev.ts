@@ -24,6 +24,7 @@ import { buildModule, readMetadata, resolveModuleDir } from "./build.ts";
 import { loadConfig, resolveClassmap, type ClassmapResolution } from "./classmap.ts";
 import { launchSpotify, waitForTarget } from "./launch.ts";
 import { formatPushResult, formatRemoveOutcome, push, record, removeLocal, resolvePort } from "./push.ts";
+import { moduleIdOf } from "./module-id.ts";
 
 // Re-exported for callers that imported it from here before the push extraction.
 export { formatPushResult } from "./push.ts";
@@ -68,7 +69,7 @@ export async function runDev(argv: string[], cwd = process.cwd()): Promise<void>
 	const modulesDir = config.modulesDir ? path.resolve(cwd, config.modulesDir) : path.join(cwd, "modules");
 	const outDir = flag("out") ?? (config.outDir ? path.resolve(cwd, config.outDir) : path.join(cwd, "dist"));
 	const moduleDir = resolveModuleDir(moduleArg, modulesDir, cwd);
-	const id = readMetadata(moduleDir).name;
+	const id = moduleIdOf(readMetadata(moduleDir)) as string;
 
 	const resolved: ClassmapResolution = await resolveClassmap({
 		flag: flag("classmap") ?? null,

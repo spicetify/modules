@@ -12,6 +12,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import { moduleIdOf } from "./module-id.ts";
 
 const USAGE = "spicetify-kit pack <dist-dir> [--out <dir>]";
 
@@ -23,8 +24,9 @@ export async function runPack(argv: string[], cwd = process.cwd()): Promise<void
 
 	const abs = path.resolve(cwd, distDir);
 	const meta = JSON.parse(readFileSync(path.join(abs, "metadata.json"), "utf8"));
-	if (!meta.name || !meta.version) throw new Error(`${distDir}/metadata.json must set name and version`);
-	const zipPath = path.resolve(cwd, outDir, `${meta.name}@${meta.version}.zip`);
+	const id = moduleIdOf(meta);
+	if (!id || !meta.version) throw new Error(`${distDir}/metadata.json must set an id (or name) and version`);
+	const zipPath = path.resolve(cwd, outDir, `${id}@${meta.version}.zip`);
 	rmSync(zipPath, { force: true });
 	// Zip contents at the archive root (metadata.json at top level), the
 	// layout installLocal and the module installers expect.

@@ -18,6 +18,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { displayNameFor } from "./module-id.ts";
 import { KIT_DEPENDENCY_RANGE } from "./version.ts";
 
 // The stdlib range a fresh module declares tracks the stdlib it will compile
@@ -228,7 +229,8 @@ function writeThemeModule(
 		path.join(dir, "metadata.json"),
 		`${JSON.stringify(
 			{
-				name,
+				name: displayNameFor(name),
+				id: name,
 				kind: "theme",
 				version: "0.1.0",
 				authors: [author],
@@ -347,7 +349,9 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 	}
 
 	if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
-		throw new Error(`${USAGE}\nname must be kebab-case (it doubles as the module identifier)`);
+		throw new Error(
+			`${USAGE}\nname must be kebab-case (it becomes the module id; edit the display name in metadata.json)`,
+		);
 	}
 
 	const dir = bare ? path.join(cwd, "modules", name) : path.join(cwd, name);
@@ -374,7 +378,8 @@ export async function runCreate(argv: string[], cwd = process.cwd()): Promise<vo
 		path.join(dir, "metadata.json"),
 		`${JSON.stringify(
 			{
-				name,
+				name: displayNameFor(name),
+				id: name,
 				kind,
 				version: "0.1.0",
 				authors: [author],

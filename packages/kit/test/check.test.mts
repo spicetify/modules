@@ -24,6 +24,22 @@ describe("checkMetadata", () => {
 		assert.deepEqual(rules, ["metadata.dependencies", "metadata.name", "metadata.version"]);
 		assert.ok(findings.every((f) => f.severity === "error"));
 	});
+
+	it("accepts a display name alongside a kebab-case id", () => {
+		assert.deepEqual(checkMetadata({ ...goodMeta, name: "My Module", id: "my-module" }), []);
+	});
+
+	it("flags an overlong display name", () => {
+		const rules = checkMetadata({ ...goodMeta, name: "a".repeat(65), id: "my-module" }).map((f) => f.rule);
+		assert.deepEqual(rules, ["metadata.name"]);
+	});
+
+	it("flags a non-kebab id and an empty display name", () => {
+		const rules = checkMetadata({ ...goodMeta, name: " ", id: "My Module" })
+			.map((f) => f.rule)
+			.sort();
+		assert.deepEqual(rules, ["metadata.id", "metadata.name"]);
+	});
 });
 
 describe("checkSource", () => {

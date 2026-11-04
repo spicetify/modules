@@ -2,14 +2,14 @@ name: Publish
 description: Build one module, create its GitHub release, and record the artifact in vault.json
 inputs:
    tag:
-      description: The <name>@<version> to publish. Defaults to the triggering tag ref (publish.yml); release.yml passes each pending module explicitly.
+      description: The <id>@<version> to publish. Defaults to the triggering tag ref (publish.yml); release.yml passes each pending module explicitly.
       required: false
       default: ${{ github.ref_name }}
 runs:
    using: 'composite'
    steps:
       # The tag is the contract: it must name a module directory whose
-      # metadata.json agrees on name and version. A tag for an already
+      # metadata.json agrees on id and version. A tag for an already
       # vault-recorded version makes the whole run a no-op (idempotent
       # re-run after a successful publish); anything else inconsistent
       # fails before a release exists.
@@ -35,8 +35,14 @@ runs:
                   .flatMap((root) => readdirSync(root, { withFileTypes: true })
                      .filter((d) => d.isDirectory() && existsSync(`${root}/${d.name}/metadata.json`))
                      .map((d) => `${root}/${d.name}`))
-                  .find((d) => JSON.parse(readFileSync(`${d}/metadata.json`, "utf8")).name === name);
-               if (!dir) throw new Error(`tag ${name}@${version}: no module with metadata name ${name}`);
+                  .find((d) => {
+                     // A module is identified by its id; metadata without
+                     // one predates display names and its name is the id
+                     // (moduleIdOf in packages/kit/src/module-id.ts).
+                     const meta = JSON.parse(readFileSync(`${d}/metadata.json`, "utf8"));
+                     return ("id" in meta ? meta.id : meta.name) === name;
+                  });
+               if (!dir) throw new Error(`tag ${name}@${version}: no module with id ${name}`);
                const meta = JSON.parse(readFileSync(`${dir}/metadata.json`, "utf8"));
                if (meta.version !== version) {
                   throw new Error(`tag ${name}@${version}: ${dir}/metadata.json declares ${meta.version}`);

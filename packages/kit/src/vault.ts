@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { metadataSubset, type VaultMetadata } from "./vault-metadata.ts";
+import { moduleIdOf } from "./module-id.ts";
 
 const USAGE =
 	"spicetify-kit vault add <dist-dir> --artifact <url> [--zip <file>] [--vault <path>]\n  (default target: vault/<id>.json, the shape a store submission takes)";
@@ -43,9 +44,9 @@ export async function runVault(argv: string[], cwd = process.cwd()): Promise<voi
 
 	const distDir = path.resolve(cwd, distArg);
 	const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
-	const id: string = meta.name;
+	const id = moduleIdOf(meta) as string;
 	const version: string = meta.version;
-	if (!id || !version) throw new Error(`${distArg}/metadata.json must set name and version`);
+	if (!id || !version) throw new Error(`${distArg}/metadata.json must set an id (or name) and version`);
 
 	const zip = flag("zip");
 	const bytes = zip ? readFileSync(path.resolve(cwd, zip)) : await download(artifact);

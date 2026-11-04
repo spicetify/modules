@@ -17,6 +17,7 @@ import path from "node:path";
 
 import { flagValue } from "./args.ts";
 import { formatPushResult, push, record, resolvePort } from "./push.ts";
+import { moduleIdOf } from "./module-id.ts";
 
 const USAGE = "spicetify-kit install <zip|dist-dir> [--port 9229]\n  (requires `unzip` on PATH for a .zip)";
 
@@ -50,7 +51,8 @@ export async function runInstall(argv: string[], cwd = process.cwd()): Promise<v
 			throw new Error(`no metadata.json in ${target} (not a built/packed module)`);
 		}
 		const meta = JSON.parse(readFileSync(path.join(distDir, "metadata.json"), "utf8"));
-		const id: string = meta.name;
+		const id = moduleIdOf(meta);
+		if (!id) throw new Error(`${distDir}/metadata.json has no id or name to install the module as`);
 		const raw = await push(record(distDir, id), id, port);
 		const result = formatPushResult(raw);
 		console.log(`[install] ${id} ${result.message}`);

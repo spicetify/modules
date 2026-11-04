@@ -7,6 +7,7 @@ import * as ts from "typescript/unstable/ast";
 
 import { moduleFiles, workspaceModules } from "./module-files.ts";
 import { loadBoundaryPolicy } from "./stdlib-boundary.ts";
+import { moduleIdOf } from "../packages/kit/src/module-id.ts";
 
 export interface WorkspaceModule {
 	id: string;
@@ -50,8 +51,9 @@ const TEST = /(?:\.test\.[cm]?[jt]sx?$|(?:^|\/)test-setup\.[cm]?[jt]sx?$|\.d\.[c
 function readModule(directory: string): WorkspaceModule {
 	const file = path.join(directory, "metadata.json");
 	const meta: unknown = JSON.parse(readFileSync(file, "utf8"));
-	if (!meta || typeof meta !== "object" || !("name" in meta) || typeof meta.name !== "string") {
-		throw new Error(`${file}: metadata needs a module name`);
+	const id = moduleIdOf(meta);
+	if (!meta || typeof meta !== "object" || !id) {
+		throw new Error(`${file}: metadata needs a module id (or a name, before ids existed)`);
 	}
 	const ranges = new Map<string, string>();
 	if ("dependencies" in meta && meta.dependencies !== undefined) {
@@ -77,7 +79,7 @@ function readModule(directory: string): WorkspaceModule {
 		}
 	}
 	return {
-		id: meta.name,
+		id,
 		directory,
 		version: "version" in meta && typeof meta.version === "string" ? meta.version : "",
 		compat,
