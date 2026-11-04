@@ -479,10 +479,18 @@
 					"providers": [],
 					"checksum": "sha256:e05fda624b5b4c630db21b78c2b3bb930591722c54abb242b5f98865dc90c979",
 					"updatedAt": "2026-08-13"
+				},
+				"0.1.2": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/dreary@0.1.2/dreary@0.1.2.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:2edb50c5bd1fbfcf00aa227f4e48c6a36ba8979e65f5eaa58dfcb11610e37264",
+					"updatedAt": "2026-11-04"
 				}
 			},
 			"metadata": {
-				"name": "dreary",
+				"name": "Dreary",
 				"description": "Muted, moody palettes with six schemes",
 				"authors": [
 					{
