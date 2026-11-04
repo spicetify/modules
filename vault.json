@@ -3989,7 +3989,7 @@
 		},
 		"stdlib": {
 			"metadata": {
-				"name": "stdlib",
+				"name": "Standard Library",
 				"description": "The standard library",
 				"authors": [
 					{
@@ -4307,6 +4307,15 @@
 					"providers": [],
 					"checksum": "sha256:615fdb58ef79d81b9c2d26a1643bb0dbc74c02367624fcd74d40649c2a9e5c9f",
 					"updatedAt": "2026-10-01",
+					"hidden": true
+				},
+				"1.13.3": {
+					"artifacts": [
+						"https://github.com/spicetify/modules/releases/download/stdlib@1.13.3/stdlib@1.13.3.zip"
+					],
+					"providers": [],
+					"checksum": "sha256:34a93e006fcd0e65f2b6bba74b21c1d76aaa2ef0dcad64af89d512b3a9c31b2e",
+					"updatedAt": "2026-11-04",
 					"hidden": true
 				}
 			}
