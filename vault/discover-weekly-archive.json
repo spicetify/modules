@@ -14,7 +14,8 @@
 	"v": {
 		"0.1.0": {
 			"artifacts": [
-				"https://github.com/Heyian/discover-weekly-archive/releases/download/v0.1.0/discover-weekly-archive@0.1.0.zip"
+				"https://github.com/Heyian/discover-weekly-archive/releases/download/v0.1.0/discover-weekly-archive@0.1.0.zip",
+				"https://github.com/spicetify/modules/releases/download/mirror/discover-weekly-archive/discover-weekly-archive@0.1.0.zip"
 			],
 			"checksum": "sha256:647a969ab05e9fb75676f930ecd2215ddf40fd4119d7198dad0f560a9867eecb",
 			"updatedAt": "2026-11-04"

@@ -462,6 +462,30 @@
 				"license": "GPL-3.0-or-later"
 			}
 		},
+		"discover-weekly-archive": {
+			"metadata": {
+				"name": "discover-weekly-archive",
+				"description": "Copies each week's Discover Weekly into a \"Discover Weekly Archive\" playlist, skipping songs already there. Creates that playlist in your library if you don't have one. Runs while Spotify is open.",
+				"authors": [
+					{
+						"name": "Heyian"
+					}
+				],
+				"preview": "https://raw.githubusercontent.com/Heyian/discover-weekly-archive/main/docs/preview.png",
+				"repository": "https://github.com/Heyian/discover-weekly-archive",
+				"license": "MIT"
+			},
+			"v": {
+				"0.1.0": {
+					"artifacts": [
+						"https://github.com/Heyian/discover-weekly-archive/releases/download/v0.1.0/discover-weekly-archive@0.1.0.zip",
+						"https://github.com/spicetify/modules/releases/download/mirror/discover-weekly-archive/discover-weekly-archive@0.1.0.zip"
+					],
+					"checksum": "sha256:647a969ab05e9fb75676f930ecd2215ddf40fd4119d7198dad0f560a9867eecb",
+					"updatedAt": "2026-11-04"
+				}
+			}
+		},
 		"dreary": {
 			"v": {
 				"0.1.0": {
