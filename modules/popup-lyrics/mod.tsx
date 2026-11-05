@@ -108,8 +108,22 @@ export default async function (ctx: ModuleRuntimeContext) {
 	};
 	document.addEventListener("visibilitychange", onVisibility);
 
+	// The web-desktop API answers subtitle_format=mxm with LRC text, so requests go
+	// to the mac-ios API. These are the headers its app sends, as in lyrics-plus;
+	// Spicetify's CosmosAsync wrapper does not forward request headers yet.
+	const musixmatchHeaders = {
+		Host: "apic-appmobile.musixmatch.com",
+		authority: "apic-appmobile.musixmatch.com",
+		"X-Cookie": "x-mxm-token-guid=",
+		"x-mxm-app-version": "10.1.1",
+		"X-User-Agent": "Musixmatch/2025120901 CFNetwork/3860.300.31 Darwin/25.2.0",
+		"Accept-Language": "en-US,en;q=0.9",
+		Connection: "keep-alive",
+		Accept: "application/json",
+	};
+
 	// The bundled Musixmatch usertoken expires; when a request comes back 401 we
-	// mint a fresh web-desktop token once and retry, so lyrics keep working without
+	// mint a fresh mac-ios token once and retry, so lyrics keep working without
 	// the user opening settings to refresh it.
 	let pendingTokenRefresh: Promise<string | null> | null = null;
 	function refreshMusixmatchToken(): Promise<string | null> {
@@ -118,9 +132,9 @@ export default async function (ctx: ModuleRuntimeContext) {
 				try {
 					const response = parseMusixmatchResponse(
 						await CosmosAsync.get(
-							"https://apic-desktop.musixmatch.com/ws/1.1/token.get?app_id=web-desktop-app-v1.0",
+							"https://apic-appmobile.musixmatch.com/ws/1.1/token.get?app_id=mac-ios-v2.0",
 							undefined,
-							{ authority: "apic-desktop.musixmatch.com", cookie: "x-mxm-token-guid=" },
+							musixmatchHeaders,
 						),
 					);
 					const token = response.token;
@@ -150,7 +164,7 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 		async fetchMusixmatch(info: TrackInfo): Promise<LyricResult> {
 			const baseURL =
-				"https://apic-desktop.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_synched&subtitle_format=mxm&app_id=web-desktop-app-v1.0&";
+				"https://apic-appmobile.musixmatch.com/ws/1.1/macro.subtitles.get?format=json&namespace=lyrics_richsynched&subtitle_format=mxm&app_id=mac-ios-v2.0&";
 
 			const durr = info.duration / 1000;
 
@@ -164,10 +178,6 @@ export default async function (ctx: ModuleRuntimeContext) {
 				f_subtitle_length: Math.floor(durr),
 			};
 
-			const requestHeaders = {
-				authority: "apic-desktop.musixmatch.com",
-				cookie: "x-mxm-token-guid=",
-			};
 			const buildURL = (token: string) =>
 				baseURL +
 				Object.entries({ ...params, usertoken: token })
@@ -176,14 +186,18 @@ export default async function (ctx: ModuleRuntimeContext) {
 
 			try {
 				let response = parseMusixmatchResponse(
-					await CosmosAsync.get(buildURL(userConfigs.services.musixmatch.token), undefined, requestHeaders),
+					await CosmosAsync.get(
+						buildURL(userConfigs.services.musixmatch.token),
+						undefined,
+						musixmatchHeaders,
+					),
 				);
 
 				if (response.status === 401) {
 					const token = await refreshMusixmatchToken();
 					if (token)
 						response = parseMusixmatchResponse(
-							await CosmosAsync.get(buildURL(token), undefined, requestHeaders),
+							await CosmosAsync.get(buildURL(token), undefined, musixmatchHeaders),
 						);
 				}
 
