@@ -2,7 +2,7 @@
 	"name": "Starry Night",
 	"id": "starry-night",
 	"kind": "theme",
-	"version": "0.1.6",
+	"version": "0.2.0",
 	"authors": ["Brandon Chen", "Julissa Laignelet"],
 	"description": "Night sky backdrop with twinkling stars and shooting stars, in seven skies",
 	"entries": {

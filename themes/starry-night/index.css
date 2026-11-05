@@ -270,11 +270,30 @@
 	background-color: transparent;
 }
 
-.starrynight-star {
+/* Static stars and twinkling stars, drawn by mod.tsx. */
+.starrynight-static,
+.starrynight-twinkle {
 	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
 	z-index: -1;
-	border-radius: 50%;
-	background-color: var(--spice-star);
+}
+
+/* Carries the sky's star colors so a palette change fires a transition the
+   script can listen for. The duration is pinned so no global rule turns it
+   into a 0s transition, which fires no events. */
+.starrynight-sentinel {
+	position: absolute;
+	width: 0;
+	height: 0;
+	overflow: hidden;
+	color: var(--spice-star);
+	background-color: var(--spice-star-glow);
+	transition:
+		color 1ms,
+		background-color 1ms !important;
+	transition-duration: 1ms !important;
 }
 
 button[data-testid="cover-art-button"] {
@@ -284,110 +303,6 @@ button[data-testid="cover-art-button"] {
 	background-color: #00000000;
 	box-shadow: 0 0 0px var(--spice-rgb-shadow);
 	display: contents;
-}
-
-@keyframes twinkle1 {
-	0% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	20% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	40% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	60% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	80% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	100% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-}
-
-@keyframes twinkle2 {
-	0% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	20% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	40% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	60% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	80% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	100% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-}
-
-@keyframes twinkle3 {
-	0% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	20% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	40% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	60% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	80% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	100% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-}
-
-@keyframes twinkle4 {
-	0% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	20% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
-
-	40% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	60% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	80% {
-		box-shadow: 0px 0px 8px 2px var(--spice-star-glow);
-	}
-
-	100% {
-		box-shadow: 0px 0px -8px 2px var(--spice-star-glow);
-	}
 }
 
 @keyframes spin {
@@ -415,8 +330,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	height: 4px;
 	background: var(--spice-shooting-star);
 	border-radius: 50%;
-	animation: animate 3s linear;
-	left: initial;
+	top: 0;
+	left: 0;
 	z-index: -1;
 	box-shadow:
 		0 0 0 4px rgba(var(--spice-rgb-shooting-star-glow), 0.1),
@@ -432,20 +347,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 	width: 300px;
 	height: 1px;
 	background: linear-gradient(90deg, var(--spice-shooting-star), transparent);
-}
-
-@keyframes animate {
-	0% {
-		transform: rotate(315deg) translateX(0);
-		opacity: 1;
-	}
-
-	70% {
-		opacity: 1;
-	}
-
-	100% {
-		transform: rotate(315deg) translateX(-1500px);
-		opacity: 0;
-	}
 }
