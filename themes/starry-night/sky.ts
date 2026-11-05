@@ -11,12 +11,16 @@ import {
 	canvasScale,
 	dotAlpha,
 	FALLBACK_COLOR,
+	firstDelayMs,
+	flightKeyframes,
 	GLOW_BLUR,
 	GLOW_SPREAD,
 	generateField,
 	motionState,
 	placeStar,
+	planFlight,
 	type Rand,
+	SHOOTING_STAR_COUNT,
 	type Star,
 	TWINKLE_FPS,
 	twinkleGlow,
@@ -87,6 +91,108 @@ function drawDot(ctx: CanvasRenderingContext2D, p: Placed): void {
 	ctx.beginPath();
 	ctx.arc(p.cx, p.cy, p.diameter / 2, 0, Math.PI * 2);
 	ctx.fill();
+}
+
+/*
+Pure CSS Shooting Star Animation Effect Copyright (c) 2021 by Delroy Prithvi (https://codepen.io/delroyprithvi/pen/LYyJROR)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+interface ShootingStar {
+	el: HTMLElement;
+	flight: AnimationHandle | null;
+	firstDelay: number | null;
+	// Wants to fly as soon as motion is allowed again.
+	pending: boolean;
+}
+
+interface ShootingStars {
+	/** Apply the current visibility, reduced motion and viewport. */
+	update(): void;
+	dispose(): void;
+}
+
+// Four independent stars animated with the Web Animations API, which the
+// client's `animation-duration: … !important` rule cannot touch. Each
+// flight ends when its tail has cleared the viewport and the next one
+// starts straight from the finish handler.
+function createShootingStars(deps: SkyDeps, mode: () => { visible: boolean; reducedMotion: boolean }): ShootingStars {
+	let disposed = false;
+	const animating = () => motionState({ ...mode(), ...deps.viewport() }) === "animating";
+
+	const launch = (s: ShootingStar) => {
+		if (disposed) return;
+		if (!animating()) {
+			s.pending = true;
+			s.el.hidden = true;
+			return;
+		}
+		s.pending = false;
+		const { width, height } = deps.viewport();
+		const { launch: at, distance, durationMs } = planFlight(width, height, deps.rand);
+		s.el.style.left = `${at.x}px`;
+		s.el.style.top = `${at.y}px`;
+		s.el.hidden = false;
+		const flight = deps.animate(s.el, flightKeyframes(distance), { duration: durationMs, easing: "linear" });
+		s.flight = flight;
+		flight.onfinish = () => {
+			if (s.flight !== flight) return;
+			s.flight = null;
+			launch(s);
+		};
+	};
+
+	const stars: ShootingStar[] = [];
+	for (let i = 0; i < SHOOTING_STAR_COUNT; i++) {
+		const el = deps.container.ownerDocument.createElement("span");
+		el.className = "shootingstar";
+		el.hidden = true;
+		deps.container.append(el);
+		const s: ShootingStar = { el, flight: null, firstDelay: null, pending: false };
+		s.firstDelay = deps.setTimer(() => {
+			s.firstDelay = null;
+			launch(s);
+		}, firstDelayMs(deps.rand));
+		stars.push(s);
+	}
+
+	return {
+		update() {
+			if (disposed) return;
+			const { visible, reducedMotion } = mode();
+			for (const s of stars) {
+				if (reducedMotion) {
+					if (s.flight) {
+						s.flight.cancel();
+						s.flight = null;
+						s.pending = true;
+					}
+					s.el.hidden = true;
+				} else if (!visible) {
+					s.flight?.pause();
+				} else if (s.flight) {
+					s.flight.play();
+				} else if (s.pending) {
+					launch(s);
+				}
+			}
+		},
+		dispose() {
+			if (disposed) return;
+			disposed = true;
+			for (const s of stars) {
+				if (s.firstDelay !== null) deps.clearTimer(s.firstDelay);
+				s.flight?.cancel();
+				s.flight = null;
+				s.el.remove();
+			}
+		},
+	};
 }
 
 export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMotion: boolean }): Sky {
@@ -260,6 +366,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 		frame = null;
 	}
 
+	const shooting = createShootingStars(deps, () => ({ visible, reducedMotion }));
 	schedule();
 
 	return {
@@ -273,18 +380,21 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 				schedule();
 			}, RESIZE_SETTLE_MS);
 			schedule();
+			shooting.update();
 		},
 		setVisible(next) {
 			if (disposed) return;
 			visible = next;
 			if (visible) schedule();
 			else cancelFrame();
+			shooting.update();
 		},
 		setReducedMotion(reduce) {
 			if (disposed || reduce === reducedMotion) return;
 			reducedMotion = reduce;
 			twinkleFull = true;
 			schedule();
+			shooting.update();
 		},
 		colorsChanged() {
 			if (disposed) return;
@@ -297,6 +407,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 			cancelFrame();
 			if (settleTimer !== null) deps.clearTimer(settleTimer);
 			settleTimer = null;
+			shooting.dispose();
 			staticCanvas.remove();
 			twinkleCanvas.remove();
 			sentinel.remove();

@@ -640,3 +640,168 @@ describe("starry-night canvas sky", () => {
 		}
 	});
 });
+
+// ---- Shooting stars ----------------------------------------------------
+
+class FakeAnimation implements AnimationHandle {
+	onfinish: (() => void) | null = null;
+	state: "running" | "paused" | "cancelled" | "finished" = "running";
+	readonly el: HTMLElement;
+	readonly keyframes: Keyframe[];
+	readonly options: KeyframeAnimationOptions;
+	constructor(el: HTMLElement, keyframes: Keyframe[], options: KeyframeAnimationOptions) {
+		this.el = el;
+		this.keyframes = keyframes;
+		this.options = options;
+	}
+	play() {
+		this.state = "running";
+	}
+	pause() {
+		this.state = "paused";
+	}
+	cancel() {
+		this.state = "cancelled";
+	}
+	finish() {
+		this.state = "finished";
+		this.onfinish?.();
+	}
+}
+
+function setupShooting(opts: Parameters<typeof setupSky>[0] = {}) {
+	const flights: FakeAnimation[] = [];
+	const t = setupSky({
+		...opts,
+		animate: (el, keyframes, options) => {
+			const a = new FakeAnimation(el, keyframes, options);
+			flights.push(a);
+			return a;
+		},
+	});
+	const live = () => flights.filter((f) => f.state === "running" || f.state === "paused");
+	const stars = () => [...t.container.querySelectorAll<HTMLElement>("span.shootingstar")];
+	return { ...t, flights, live, stars };
+}
+
+// The distance a flight was given, read back from its last keyframe.
+const flownDistance = (f: FakeAnimation) =>
+	Number(/translateX\(-([\d.e+-]+)px\)/.exec(String(f.keyframes[2].transform))![1]);
+const launchOf = (f: FakeAnimation) => ({
+	x: Number.parseFloat(f.el.style.left),
+	y: Number.parseFloat(f.el.style.top),
+});
+
+describe("starry-night shooting stars on screen", () => {
+	it("flies four independent stars along exit-aware paths (AC8)", () => {
+		const t = setupShooting({ viewport: { width: 717, height: 1152, dpr: 1 } });
+		assert.equal(t.stars().length, 4);
+		t.timers.advance(6000);
+		assert.equal(t.flights.length, 4);
+		assert.equal(new Set(t.flights.map((f) => f.el)).size, 4);
+		for (const f of t.flights) {
+			assert.ok(f.el.classList.contains("shootingstar"));
+			const d = flownDistance(f);
+			assert.deepEqual(f.keyframes, flightKeyframes(d));
+			assert.ok(Math.abs(d - flightDistance(launchOf(f), 717, 1152)) < 1e-6);
+			const duration = Number(f.options.duration);
+			assert.ok(duration >= (d / 500) * 1000 - 1e-6 && duration <= (d / 250) * 1000 + 1e-6);
+			assert.equal(f.options.easing, "linear");
+			assert.match(f.el.style.left, /px$/);
+			assert.match(f.el.style.top, /px$/);
+		}
+	});
+
+	it("delays only the first flight and relaunches straight from finish (AC9)", () => {
+		const draws = [0.1, 0.5, 0.99, 0];
+		const rest = lcg(9);
+		const t = setupShooting({ rand: () => (draws.length ? draws.shift()! : rest()) });
+		assert.deepEqual(
+			t.timers.delays().sort((a, b) => a - b),
+			[0, 0, 3000, 6000],
+		);
+		t.timers.advance(6000);
+		const timersBefore = t.timers.pending;
+		t.flights[0].finish();
+		assert.equal(t.flights.length, 5);
+		assert.equal(t.flights[4].el, t.flights[0].el);
+		assert.equal(t.timers.pending, timersBefore);
+
+		t.sky.setVisible(false);
+		t.flights[1].finish();
+		assert.equal(t.flights.length, 5);
+		t.sky.setVisible(true);
+		t.sky.setReducedMotion(true);
+		const count = t.flights.length;
+		t.flights[2].onfinish?.();
+		assert.equal(t.flights.length, count);
+		t.sky.setReducedMotion(false);
+		const after = t.flights.length;
+		t.sky.dispose();
+		for (const f of t.flights) f.onfinish?.();
+		assert.equal(t.flights.length, after);
+	});
+
+	it("lets a flight finish across a resize and uses the new size next (AC10)", () => {
+		const t = setupShooting();
+		t.timers.advance(6000);
+		const first = t.flights[0];
+		t.vp.width = 1600;
+		t.vp.height = 900;
+		t.sky.resize();
+		assert.equal(first.state, "running");
+		first.finish();
+		const next = t.flights.at(-1)!;
+		assert.ok(Math.abs(flownDistance(next) - flightDistance(launchOf(next), 1600, 900)) < 1e-6);
+	});
+
+	it("pauses while hidden and launches a missed first flight on return (AC12)", () => {
+		const t = setupShooting();
+		t.timers.advance(6000);
+		t.sky.setVisible(false);
+		assert.ok(t.live().every((f) => f.state === "paused"));
+		t.sky.setVisible(true);
+		assert.ok(t.live().length === 4 && t.live().every((f) => f.state === "running"));
+
+		const h = setupShooting({ visible: false });
+		h.timers.advance(6000);
+		assert.equal(h.flights.length, 0);
+		h.sky.setVisible(true);
+		assert.equal(h.flights.length, 4);
+	});
+
+	it("hides shooting stars under reduced motion and relaunches without delay (AC13)", () => {
+		const t = setupShooting();
+		t.timers.advance(6000);
+		const flying = t.live();
+		t.sky.setReducedMotion(true);
+		assert.ok(flying.every((f) => f.state === "cancelled"));
+		assert.ok(t.stars().every((el) => el.hidden));
+		const timers = t.timers.pending;
+		t.sky.setReducedMotion(false);
+		assert.equal(t.live().length, 4);
+		assert.equal(t.timers.pending, timers);
+		assert.ok(t.stars().every((el) => !el.hidden));
+
+		const r = setupShooting({ reducedMotion: true });
+		r.timers.advance(6000);
+		assert.equal(r.flights.length, 0);
+	});
+
+	it("launches nothing at zero area and resumes when the area returns (AC22)", () => {
+		const t = setupShooting({ viewport: { width: 0, height: 800, dpr: 1 } });
+		t.timers.advance(6000);
+		assert.equal(t.flights.length, 0);
+		t.vp.width = 800;
+		t.sky.resize();
+		assert.equal(t.flights.length, 4);
+
+		t.vp.height = 0;
+		t.sky.resize();
+		t.flights[0].finish();
+		assert.equal(t.flights.length, 4);
+		t.vp.height = 600;
+		t.sky.resize();
+		assert.equal(t.flights.length, 5);
+	});
+});
