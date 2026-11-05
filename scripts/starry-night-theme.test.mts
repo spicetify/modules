@@ -17,6 +17,7 @@ import {
 	flightKeyframes,
 	generateField,
 	MAX_STARS,
+	motionState,
 	pickLaunch,
 	placeStar,
 	planFlight,
@@ -241,5 +242,30 @@ describe("starry-night shooting stars", () => {
 			{ opacity: 1, offset: 0.7 },
 			{ transform: "rotate(315deg) translateX(-1000px)", opacity: 0, offset: 1 },
 		]);
+	});
+});
+
+describe("starry-night motion state", () => {
+	it("suspends when hidden or empty, else goes static under reduced motion", () => {
+		const cases: [boolean, boolean, boolean, string][] = [
+			// visible, reducedMotion, zeroArea, expected
+			[true, false, false, "animating"],
+			[true, true, false, "static"],
+			[true, false, true, "suspended"],
+			[true, true, true, "suspended"],
+			[false, false, false, "suspended"],
+			[false, true, false, "suspended"],
+			[false, false, true, "suspended"],
+			[false, true, true, "suspended"],
+		];
+		for (const [visible, reducedMotion, zero, expected] of cases) {
+			const size = zero ? { width: 0, height: 600 } : { width: 800, height: 600 };
+			assert.equal(
+				motionState({ visible, reducedMotion, ...size }),
+				expected,
+				`${visible}/${reducedMotion}/${zero}`,
+			);
+		}
+		assert.equal(motionState({ visible: true, reducedMotion: false, width: 800, height: 0 }), "suspended");
 	});
 });

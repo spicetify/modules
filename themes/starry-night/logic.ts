@@ -161,3 +161,17 @@ export function flightKeyframes(distance: number): Keyframe[] {
 		{ transform: `rotate(315deg) translateX(-${distance}px)`, opacity: 0, offset: 1 },
 	];
 }
+
+export type MotionState = "animating" | "static" | "suspended";
+
+// The single switch for what runs. Hidden or empty suspends everything;
+// reduced motion wins over resuming.
+export function motionState(s: {
+	visible: boolean;
+	reducedMotion: boolean;
+	width: number;
+	height: number;
+}): MotionState {
+	if (!s.visible || !(s.width > 0) || !(s.height > 0)) return "suspended";
+	return s.reducedMotion ? "static" : "animating";
+}
