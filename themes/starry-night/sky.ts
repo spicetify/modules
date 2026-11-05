@@ -1,0 +1,305 @@
+/*
+ * Copyright (C) 2026 spicetify
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+// The sky renderer. Every browser API comes in through SkyDeps so the
+// whole controller runs under tests with fakes.
+
+import {
+	backingSize,
+	canvasScale,
+	dotAlpha,
+	FALLBACK_COLOR,
+	GLOW_BLUR,
+	GLOW_SPREAD,
+	generateField,
+	motionState,
+	placeStar,
+	type Rand,
+	type Star,
+	TWINKLE_FPS,
+	twinkleGlow,
+} from "./logic.ts";
+
+export interface SkyColors {
+	star: string;
+	glow: string;
+}
+export interface AnimationHandle {
+	play(): void;
+	pause(): void;
+	cancel(): void;
+	onfinish: (() => void) | null;
+}
+export interface Viewport {
+	width: number;
+	height: number;
+	dpr: number;
+}
+export interface SkyDeps {
+	/** `.starrynight-bg-container`, already in the DOM. */
+	container: HTMLElement;
+	rand: Rand;
+	viewport(): Viewport;
+	getContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D | null;
+	/** For the off-DOM glow sprites. */
+	createCanvas(): HTMLCanvasElement;
+	requestFrame(cb: (timeMs: number) => void): number;
+	cancelFrame(id: number): void;
+	setTimer(fn: () => void, ms: number): number;
+	clearTimer(id: number): void;
+	animate(el: HTMLElement, keyframes: Keyframe[], options: KeyframeAnimationOptions): AnimationHandle;
+	/** May return "" for a variable the palette does not define. */
+	readColors(sentinel: HTMLElement): SkyColors;
+}
+export interface Sky {
+	/** Viewport size or device pixel ratio changed. */
+	resize(): void;
+	setVisible(visible: boolean): void;
+	setReducedMotion(reduce: boolean): void;
+	/** The sentinel's color transition fired. */
+	colorsChanged(): void;
+	dispose(): void;
+}
+
+// After the last resize event, regenerate once more at the final size.
+export const RESIZE_SETTLE_MS = 150;
+const TWINKLE_INTERVAL = 1000 / TWINKLE_FPS;
+
+interface Placed {
+	star: Star;
+	cx: number;
+	cy: number;
+	diameter: number;
+}
+
+interface Sprite {
+	canvas: HTMLCanvasElement;
+	half: number;
+}
+
+function drawDot(ctx: CanvasRenderingContext2D, p: Placed): void {
+	if (p.diameter <= 2) {
+		ctx.fillRect(p.cx - p.diameter / 2, p.cy - p.diameter / 2, p.diameter, p.diameter);
+		return;
+	}
+	ctx.beginPath();
+	ctx.arc(p.cx, p.cy, p.diameter / 2, 0, Math.PI * 2);
+	ctx.fill();
+}
+
+export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMotion: boolean }): Sky {
+	const doc = deps.container.ownerDocument;
+	const staticCanvas = doc.createElement("canvas");
+	staticCanvas.className = "starrynight-static";
+	const twinkleCanvas = doc.createElement("canvas");
+	twinkleCanvas.className = "starrynight-twinkle";
+	const sentinel = doc.createElement("span");
+	sentinel.className = "starrynight-sentinel";
+	deps.container.append(staticCanvas, twinkleCanvas, sentinel);
+	const staticCtx = deps.getContext(staticCanvas);
+	const twinkleCtx = deps.getContext(twinkleCanvas);
+
+	let visible = initial.visible;
+	let reducedMotion = initial.reducedMotion;
+	let disposed = false;
+	let frame: number | null = null;
+	let settleTimer: number | null = null;
+
+	let colors = deps.readColors(sentinel);
+	let size: Viewport = { width: 0, height: 0, dpr: 1 };
+	let scale = 1;
+	let field: Placed[] = [];
+	let twinkling: Placed[] = [];
+	// Glow sprites by star size (1 or 2 CSS px).
+	let sprites: Record<number, Sprite | null> = {};
+	let nextTwinkle = 0;
+
+	// Work waiting for the next visible frame.
+	let needsLayout = true;
+	let needsColors = false;
+	let staticDirty = false;
+	let twinkleFull = false;
+
+	const starColor = () => colors.star || FALLBACK_COLOR;
+	const glowColor = () => colors.glow || FALLBACK_COLOR;
+
+	// One sprite per star size reproduces `box-shadow: 0 0 GLOW_BLUR
+	// GLOW_SPREAD` exactly: canvas shadowBlur uses the same blur model as
+	// CSS. The disc is drawn off the sprite and only its shadow lands on it.
+	function buildSprite(starSize: number): Sprite | null {
+		const half = Math.ceil((starSize / 2 + GLOW_SPREAD + GLOW_BLUR * 1.5) * scale);
+		const canvas = deps.createCanvas();
+		canvas.width = canvas.height = half * 2;
+		const ctx = deps.getContext(canvas);
+		if (!ctx) return null;
+		const offset = half * 4;
+		ctx.shadowColor = glowColor();
+		ctx.shadowBlur = GLOW_BLUR * scale;
+		ctx.shadowOffsetX = offset;
+		ctx.fillStyle = glowColor();
+		ctx.beginPath();
+		ctx.arc(half - offset, half, (starSize / 2 + GLOW_SPREAD) * scale, 0, Math.PI * 2);
+		ctx.fill();
+		return { canvas, half };
+	}
+
+	function layout(): void {
+		scale = canvasScale(size.dpr);
+		const backing = backingSize(size.width, size.height, scale);
+		for (const canvas of [staticCanvas, twinkleCanvas]) {
+			canvas.width = backing.width;
+			canvas.height = backing.height;
+		}
+		field = generateField(size.width, size.height, deps.rand).map((star) => ({
+			star,
+			...placeStar(star, size.width, size.height, scale),
+		}));
+		twinkling = field.filter((p) => p.star.twinkle);
+	}
+
+	function drawStatic(): void {
+		if (!staticCtx) return;
+		staticCtx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
+		staticCtx.fillStyle = starColor();
+		for (const p of field) {
+			if (p.star.twinkle) continue;
+			staticCtx.globalAlpha = p.star.opacity;
+			drawDot(staticCtx, p);
+		}
+		staticCtx.globalAlpha = 1;
+	}
+
+	// Reduced motion: twinkling stars sit still at base opacity, no glow.
+	function drawTwinkleStill(): void {
+		if (!twinkleCtx) return;
+		twinkleCtx.clearRect(0, 0, twinkleCanvas.width, twinkleCanvas.height);
+		twinkleCtx.fillStyle = starColor();
+		for (const p of twinkling) {
+			twinkleCtx.globalAlpha = p.star.opacity;
+			drawDot(twinkleCtx, p);
+		}
+		twinkleCtx.globalAlpha = 1;
+	}
+
+	function drawTwinkleBatch(timeMs: number, full: boolean): void {
+		if (!twinkleCtx) return;
+		if (full) {
+			twinkleCtx.clearRect(0, 0, twinkleCanvas.width, twinkleCanvas.height);
+		} else {
+			// Clear every glow first so a neighbor's clear never erases a
+			// glow drawn earlier in this batch.
+			for (const p of twinkling) {
+				const half = sprites[p.star.size]?.half ?? p.diameter;
+				twinkleCtx.clearRect(Math.round(p.cx - half), Math.round(p.cy - half), half * 2, half * 2);
+			}
+		}
+		twinkleCtx.fillStyle = starColor();
+		for (const p of twinkling) {
+			const glow = twinkleGlow(p.star.twinkle!, timeMs);
+			const sprite = sprites[p.star.size];
+			if (sprite && glow > 0) {
+				// The original star's opacity applied to its box-shadow too.
+				twinkleCtx.globalAlpha = p.star.opacity * glow;
+				twinkleCtx.drawImage(sprite.canvas, Math.round(p.cx - sprite.half), Math.round(p.cy - sprite.half));
+			}
+			twinkleCtx.globalAlpha = dotAlpha(p.star.opacity, glow);
+			drawDot(twinkleCtx, p);
+		}
+		twinkleCtx.globalAlpha = 1;
+	}
+
+	function onFrame(timeMs: number): void {
+		frame = null;
+		if (disposed || !visible) return;
+
+		let spritesDirty = false;
+		if (needsColors) {
+			needsColors = false;
+			colors = deps.readColors(sentinel);
+			spritesDirty = staticDirty = twinkleFull = true;
+		}
+		if (needsLayout) {
+			needsLayout = false;
+			size = deps.viewport();
+			layout();
+			spritesDirty = staticDirty = twinkleFull = true;
+		}
+		if (spritesDirty) sprites = { 1: buildSprite(1), 2: buildSprite(2) };
+		if (staticDirty) {
+			staticDirty = false;
+			drawStatic();
+		}
+
+		const state = motionState({ visible, reducedMotion, width: size.width, height: size.height });
+		if (state === "static") {
+			if (twinkleFull) drawTwinkleStill();
+			twinkleFull = false;
+		} else if (state === "animating") {
+			if (twinkleFull || timeMs >= nextTwinkle) {
+				// Fixed cadence from the last batch, so a forced redraw never
+				// adds an extra one and a long gap never causes a catch-up burst.
+				nextTwinkle = twinkleFull ? timeMs + TWINKLE_INTERVAL : nextTwinkle + TWINKLE_INTERVAL;
+				if (nextTwinkle <= timeMs) nextTwinkle = timeMs + TWINKLE_INTERVAL;
+				drawTwinkleBatch(timeMs, twinkleFull);
+				twinkleFull = false;
+			}
+			schedule();
+		}
+	}
+
+	function schedule(): void {
+		if (disposed || !visible || frame !== null) return;
+		frame = deps.requestFrame(onFrame);
+	}
+
+	function cancelFrame(): void {
+		if (frame === null) return;
+		deps.cancelFrame(frame);
+		frame = null;
+	}
+
+	schedule();
+
+	return {
+		resize() {
+			if (disposed) return;
+			needsLayout = true;
+			if (settleTimer !== null) deps.clearTimer(settleTimer);
+			settleTimer = deps.setTimer(() => {
+				settleTimer = null;
+				needsLayout = true;
+				schedule();
+			}, RESIZE_SETTLE_MS);
+			schedule();
+		},
+		setVisible(next) {
+			if (disposed) return;
+			visible = next;
+			if (visible) schedule();
+			else cancelFrame();
+		},
+		setReducedMotion(reduce) {
+			if (disposed || reduce === reducedMotion) return;
+			reducedMotion = reduce;
+			twinkleFull = true;
+			schedule();
+		},
+		colorsChanged() {
+			if (disposed) return;
+			needsColors = true;
+			schedule();
+		},
+		dispose() {
+			if (disposed) return;
+			disposed = true;
+			cancelFrame();
+			if (settleTimer !== null) deps.clearTimer(settleTimer);
+			settleTimer = null;
+			staticCanvas.remove();
+			twinkleCanvas.remove();
+			sentinel.remove();
+		},
+	};
+}

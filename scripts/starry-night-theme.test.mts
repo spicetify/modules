@@ -10,6 +10,7 @@ import { describe, it } from "node:test";
 
 import {
 	backingSize,
+	FALLBACK_COLOR,
 	canvasScale,
 	dotAlpha,
 	firstDelayMs,
@@ -25,9 +26,18 @@ import {
 	type Star,
 	starCount,
 	TWINKLE_DOT_MIN,
+	TWINKLE_FPS,
 	twinkleEnvelope,
 	twinkleGlow,
 } from "../themes/starry-night/logic.ts";
+import {
+	type AnimationHandle,
+	createSky,
+	RESIZE_SETTLE_MS,
+	type SkyColors,
+	type SkyDeps,
+	type Viewport,
+} from "../themes/starry-night/sky.ts";
 
 // Cycles a fixed list of draws.
 function seq(...values: number[]): Rand {
@@ -267,5 +277,366 @@ describe("starry-night motion state", () => {
 			);
 		}
 		assert.equal(motionState({ visible: true, reducedMotion: false, width: 800, height: 0 }), "suspended");
+	});
+});
+
+// ---- Fakes for the renderer -------------------------------------------
+
+class FakeFrames {
+	now = 0;
+	private nextId = 1;
+	private callbacks = new Map<number, (t: number) => void>();
+	request = (cb: (t: number) => void) => {
+		const id = this.nextId++;
+		this.callbacks.set(id, cb);
+		return id;
+	};
+	cancel = (id: number) => {
+		this.callbacks.delete(id);
+	};
+	get pending() {
+		return this.callbacks.size;
+	}
+	tick(dt = 1000 / 120) {
+		this.now += dt;
+		const due = [...this.callbacks.values()];
+		this.callbacks.clear();
+		for (const cb of due) cb(this.now);
+	}
+	ticks(n: number, dt = 1000 / 120) {
+		for (let i = 0; i < n; i++) this.tick(dt);
+	}
+}
+
+class FakeTimers {
+	now = 0;
+	private nextId = 1;
+	private timers = new Map<number, { fn: () => void; at: number }>();
+	set = (fn: () => void, ms: number) => {
+		const id = this.nextId++;
+		this.timers.set(id, { fn, at: this.now + ms });
+		return id;
+	};
+	clear = (id: number) => {
+		this.timers.delete(id);
+	};
+	get pending() {
+		return this.timers.size;
+	}
+	delays() {
+		return [...this.timers.values()].map((t) => t.at - this.now);
+	}
+	advance(ms: number) {
+		const end = this.now + ms;
+		for (;;) {
+			const next = [...this.timers.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+			if (!next || next[1].at > end) break;
+			this.timers.delete(next[0]);
+			this.now = next[1].at;
+			next[1].fn();
+		}
+		this.now = end;
+	}
+}
+
+interface Op {
+	op: string;
+	args: unknown[];
+	alpha: number;
+	fill: unknown;
+	t: number;
+}
+
+function fakeContext(canvas: HTMLCanvasElement, clock: { now: number }) {
+	const ops: Op[] = [];
+	const record =
+		(op: string) =>
+		(...args: unknown[]) => {
+			ops.push({ op, args, alpha: ctx.globalAlpha, fill: ctx.fillStyle, t: clock.now });
+		};
+	const ctx = {
+		canvas,
+		ops,
+		globalAlpha: 1,
+		fillStyle: "#000" as unknown,
+		clearRect: record("clearRect"),
+		fillRect: record("fillRect"),
+		beginPath: record("beginPath"),
+		arc: record("arc"),
+		fill: record("fill"),
+		drawImage: record("drawImage"),
+		setTransform: record("setTransform"),
+		createRadialGradient: (...args: unknown[]) => {
+			const stops: [number, string][] = [];
+			ops.push({ op: "createRadialGradient", args, alpha: ctx.globalAlpha, fill: stops, t: clock.now });
+			return { stops, addColorStop: (o: number, c: string) => stops.push([o, c]) };
+		},
+	};
+	return ctx;
+}
+type FakeCtx = ReturnType<typeof fakeContext>;
+
+function setupSky(opts: {
+	viewport?: Viewport;
+	visible?: boolean;
+	reducedMotion?: boolean;
+	colors?: SkyColors;
+	animate?: SkyDeps["animate"];
+	rand?: Rand;
+}) {
+	const frames = new FakeFrames();
+	const timers = new FakeTimers();
+	const vp: Viewport = opts.viewport ?? { width: 800, height: 600, dpr: 1 };
+	const colors: SkyColors = opts.colors ?? { star: "#aabbcc", glow: "#112233" };
+	const contexts = new Map<HTMLCanvasElement, FakeCtx>();
+	const sprites: HTMLCanvasElement[] = [];
+	let reads = 0;
+	const container = document.createElement("div");
+	container.className = "starrynight-bg-container";
+	document.body.appendChild(container);
+	const deps: SkyDeps = {
+		container,
+		rand: opts.rand ?? lcg(1),
+		viewport: () => ({ ...vp }),
+		getContext: (canvas) => {
+			let c = contexts.get(canvas);
+			if (!c) contexts.set(canvas, (c = fakeContext(canvas, frames)));
+			return c as unknown as CanvasRenderingContext2D;
+		},
+		createCanvas: () => {
+			const c = document.createElement("canvas");
+			sprites.push(c);
+			return c;
+		},
+		requestFrame: frames.request,
+		cancelFrame: frames.cancel,
+		setTimer: timers.set,
+		clearTimer: timers.clear,
+		animate:
+			opts.animate ?? (() => ({ play() {}, pause() {}, cancel() {}, onfinish: null }) satisfies AnimationHandle),
+		readColors: () => {
+			reads++;
+			return { ...colors };
+		},
+	};
+	const sky = createSky(deps, { visible: opts.visible ?? true, reducedMotion: opts.reducedMotion ?? false });
+	const canvas = (cls: string) => container.querySelector<HTMLCanvasElement>(`canvas.${cls}`)!;
+	const ctxOf = (cls: string) => deps.getContext(canvas(cls)) as unknown as FakeCtx;
+	const staticCtx = () => ctxOf("starrynight-static");
+	const twinkleCtx = () => ctxOf("starrynight-twinkle");
+	const dots = (c: FakeCtx) => c.ops.filter((o) => o.op === "fillRect" || o.op === "arc");
+	// A static pass starts with a whole-canvas clear.
+	const staticPasses = () => staticCtx().ops.filter((o) => o.op === "clearRect").length;
+	// Every twinkle batch redraws every twinkling dot; glows at zero are skipped.
+	const batchTimes = () => new Set(dots(twinkleCtx()).map((o) => o.t));
+	return {
+		sky,
+		deps,
+		frames,
+		timers,
+		vp,
+		colors,
+		sprites,
+		container,
+		reads: () => reads,
+		canvas,
+		staticCtx,
+		twinkleCtx,
+		dots,
+		staticPasses,
+		batchTimes,
+	};
+}
+
+describe("starry-night canvas sky", () => {
+	it("appends two canvases and a color sentinel", () => {
+		const t = setupSky({});
+		assert.ok(t.canvas("starrynight-static"));
+		assert.ok(t.canvas("starrynight-twinkle"));
+		assert.equal(t.container.querySelectorAll("span.starrynight-sentinel").length, 1);
+	});
+
+	it("draws the static layer once and caps twinkle batches (AC21)", () => {
+		const t = setupSky({ viewport: { width: 3840, height: 1200, dpr: 1 } });
+		t.frames.ticks(120);
+		assert.equal(t.staticPasses(), 1);
+		const batches = t.batchTimes();
+		assert.ok(batches.size <= TWINKLE_FPS, `batches ${batches.size}`);
+		assert.ok(batches.size >= TWINKLE_FPS - 4, `batches ${batches.size}`);
+		const first = Math.min(...batches);
+		const twinkling = t.dots(t.twinkleCtx()).filter((o) => o.t === first).length;
+		assert.ok(twinkling > 0);
+		assert.equal(t.dots(t.staticCtx()).length + twinkling, starCount(3840, 1200));
+	});
+
+	it("regenerates at most once per frame while resizing, then once when settled (AC10)", () => {
+		const t = setupSky({});
+		t.frames.tick();
+		assert.equal(t.staticPasses(), 1);
+		t.vp.width = 900;
+		t.vp.height = 700;
+		for (let i = 0; i < 10; i++) t.sky.resize();
+		t.frames.tick();
+		assert.equal(t.staticPasses(), 2);
+		assert.equal(t.canvas("starrynight-static").width, 900);
+		t.frames.ticks(5);
+		assert.equal(t.staticPasses(), 2);
+		t.timers.advance(RESIZE_SETTLE_MS);
+		t.frames.tick();
+		assert.equal(t.staticPasses(), 3);
+		t.frames.ticks(5);
+		assert.equal(t.staticPasses(), 3);
+	});
+
+	it("resizes backing stores and rebuilds the glow sprite on a DPR change (AC23)", () => {
+		const t = setupSky({});
+		t.frames.tick();
+		const spriteBefore = t.sprites.at(-1)!;
+		const widthBefore = spriteBefore.width;
+		t.vp.dpr = 1.5;
+		t.sky.resize();
+		t.frames.tick();
+		const expected = backingSize(800, 600, 1.5);
+		for (const cls of ["starrynight-static", "starrynight-twinkle"]) {
+			assert.equal(t.canvas(cls).width, expected.width);
+			assert.equal(t.canvas(cls).height, expected.height);
+		}
+		const spriteAfter = t.sprites.at(-1)!;
+		assert.ok(spriteAfter !== spriteBefore || spriteAfter.width !== widthBefore);
+		assert.ok(spriteAfter.width > widthBefore);
+	});
+
+	it("re-reads colors only on notification, coalesced, and waits while hidden (AC11)", () => {
+		const t = setupSky({});
+		assert.equal(t.reads(), 1);
+		t.frames.tick();
+		t.colors.star = "#ff0000";
+		t.sky.colorsChanged();
+		t.sky.colorsChanged();
+		t.sky.colorsChanged();
+		assert.equal(t.reads(), 1);
+		t.frames.tick();
+		assert.equal(t.reads(), 2);
+		assert.equal(t.staticPasses(), 2);
+		const now = t.frames.now;
+		const fills = t.staticCtx().ops.filter((o) => o.op === "fillRect" && o.t === now);
+		assert.ok(fills.length > 0 && fills.every((o) => o.fill === "#ff0000"));
+
+		t.sky.setVisible(false);
+		t.colors.star = "#00ff00";
+		t.sky.colorsChanged();
+		t.frames.ticks(3);
+		t.timers.advance(1000);
+		assert.equal(t.reads(), 2);
+		assert.equal(t.staticPasses(), 2);
+		t.sky.setVisible(true);
+		t.frames.tick();
+		assert.equal(t.reads(), 3);
+		assert.equal(t.staticPasses(), 3);
+	});
+
+	it("stops twinkling and stops re-arming frames while hidden (AC12)", () => {
+		const t = setupSky({});
+		t.frames.ticks(10);
+		t.sky.setVisible(false);
+		const before = t.twinkleCtx().ops.length;
+		t.frames.ticks(30);
+		assert.equal(t.twinkleCtx().ops.length, before);
+		assert.equal(t.frames.pending, 0);
+	});
+
+	it("draws twinkling stars once without glow under reduced motion (AC13)", () => {
+		const t = setupSky({});
+		t.frames.ticks(10);
+		t.sky.setReducedMotion(true);
+		const before = t.twinkleCtx().ops.length;
+		t.frames.ticks(5);
+		const after = t.twinkleCtx().ops.slice(before);
+		assert.ok(after.length > 0);
+		assert.equal(after.filter((o) => o.op === "drawImage").length, 0);
+		assert.ok(t.dots({ ops: after } as FakeCtx).length > 0);
+		assert.equal(t.frames.pending, 0);
+		t.sky.setVisible(false);
+		t.sky.setVisible(true);
+		t.frames.ticks(5);
+		assert.equal(
+			t
+				.twinkleCtx()
+				.ops.slice(before)
+				.filter((o) => o.op === "drawImage").length,
+			0,
+		);
+		assert.equal(t.frames.pending, 0);
+	});
+
+	it("starts static when created under reduced motion (AC13)", () => {
+		const t = setupSky({ reducedMotion: true });
+		t.frames.ticks(5);
+		assert.ok(t.dots(t.twinkleCtx()).length > 0);
+		assert.equal(t.twinkleCtx().ops.filter((o) => o.op === "drawImage").length, 0);
+		assert.equal(t.frames.pending, 0);
+	});
+
+	it("draws nothing for a zero-area viewport and recovers on resize (AC22)", () => {
+		const t = setupSky({ viewport: { width: 0, height: 800, dpr: 1 } });
+		t.frames.ticks(5);
+		assert.equal(t.dots(t.staticCtx()).length + t.dots(t.twinkleCtx()).length, 0);
+		t.vp.width = 800;
+		t.vp.height = 600;
+		t.sky.resize();
+		t.frames.tick();
+		const now = t.frames.now;
+		const twinkling = t.dots(t.twinkleCtx()).filter((o) => o.t === now).length;
+		assert.equal(t.dots(t.staticCtx()).length + twinkling, starCount(800, 600));
+	});
+
+	it("draws the field the first time a hidden start becomes visible (Review Focus 1)", () => {
+		const t = setupSky({ visible: false, viewport: { width: 717, height: 1152, dpr: 1 } });
+		t.frames.ticks(5);
+		t.timers.advance(1000);
+		assert.equal(t.staticCtx().ops.length + t.twinkleCtx().ops.length, 0);
+		assert.notEqual(t.canvas("starrynight-static").width, 717);
+		t.sky.setVisible(true);
+		t.frames.tick();
+		assert.equal(t.canvas("starrynight-static").width, 717);
+		assert.equal(t.canvas("starrynight-static").height, 1152);
+		assert.ok(t.dots(t.staticCtx()).length > 0);
+	});
+
+	it("falls back to white when the palette has no star colors (Review Focus 2)", () => {
+		const t = setupSky({ colors: { star: "", glow: "" } });
+		t.frames.tick();
+		const fills = t.dots(t.staticCtx()).map((o) => o.fill);
+		assert.ok(fills.length > 0 && fills.every((f) => f === FALLBACK_COLOR));
+		const sprite = t.deps.getContext(t.sprites.at(-1)!) as unknown as { shadowColor: string };
+		assert.equal(sprite.shadowColor, FALLBACK_COLOR);
+	});
+
+	it("recolors the static sky under reduced motion without starting animation (Review Focus 3)", () => {
+		const t = setupSky({ reducedMotion: true });
+		t.frames.tick();
+		t.colors.star = "#123456";
+		t.sky.colorsChanged();
+		t.frames.tick();
+		const now = t.frames.now;
+		const fills = t.dots(t.staticCtx()).filter((o) => o.t === now);
+		assert.ok(fills.length > 0 && fills.every((o) => o.fill === "#123456"));
+		assert.equal(t.frames.pending, 0);
+		assert.equal(t.twinkleCtx().ops.filter((o) => o.op === "drawImage").length, 0);
+	});
+
+	it("draws one batch after a long hidden gap, with alphas in range (Review Focus 4)", () => {
+		const t = setupSky({});
+		t.frames.ticks(10);
+		t.sky.setVisible(false);
+		t.sky.setVisible(true);
+		const before = t.batchTimes().size;
+		t.frames.tick(3_600_000);
+		assert.equal(t.batchTimes().size, before + 1);
+		t.frames.tick();
+		assert.equal(t.batchTimes().size, before + 1);
+		for (const c of [t.staticCtx(), t.twinkleCtx()]) {
+			for (const o of c.ops) assert.ok(o.alpha >= 0 && o.alpha <= 1, `alpha ${o.alpha}`);
+		}
 	});
 });
