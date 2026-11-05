@@ -233,6 +233,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 
 	// Work waiting for the next visible frame.
 	let needsLayout = true;
+	let laidOut = false;
 	let needsColors = false;
 	let staticDirty = false;
 	let twinkleFull = false;
@@ -335,8 +336,13 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 		}
 		if (needsLayout) {
 			needsLayout = false;
-			size = deps.viewport();
-			layout();
+			const next = deps.viewport();
+			// The settle pass after a resize usually finds the size it already
+			// laid out; redraw then, without reshuffling the stars a second time.
+			const same = laidOut && next.width === size.width && next.height === size.height && next.dpr === size.dpr;
+			size = next;
+			if (!same) layout();
+			laidOut = true;
 			spritesDirty = staticDirty = twinkleFull = true;
 		}
 		if (spritesDirty) sprites = { 1: buildSprite(1), 2: buildSprite(2) };

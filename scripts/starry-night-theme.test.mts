@@ -520,6 +520,24 @@ describe("starry-night canvas sky", () => {
 		assert.equal(t.staticPasses(), 3);
 	});
 
+	it("keeps the field when the settle pass finds the size unchanged", () => {
+		const t = setupSky({});
+		t.frames.tick();
+		t.vp.width = 900;
+		t.sky.resize();
+		t.frames.tick();
+		const rects = (time: number) =>
+			t
+				.staticCtx()
+				.ops.filter((o) => o.op === "fillRect" && o.t === time)
+				.map((o) => o.args.join(","));
+		const resized = rects(t.frames.now);
+		t.timers.advance(RESIZE_SETTLE_MS);
+		t.frames.tick();
+		assert.equal(t.staticPasses(), 3);
+		assert.deepEqual(rects(t.frames.now), resized);
+	});
+
 	it("resizes backing stores and rebuilds the glow sprite on a DPR change (AC23)", () => {
 		const t = setupSky({});
 		t.frames.tick();
