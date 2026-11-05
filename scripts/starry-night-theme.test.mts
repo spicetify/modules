@@ -11,12 +11,16 @@ import { describe, it } from "node:test";
 import {
 	backingSize,
 	canvasScale,
+	dotAlpha,
 	generateField,
 	MAX_STARS,
 	placeStar,
 	type Rand,
 	type Star,
 	starCount,
+	TWINKLE_DOT_MIN,
+	twinkleEnvelope,
+	twinkleGlow,
 } from "../themes/starry-night/logic.ts";
 
 // Cycles a fixed list of draws.
@@ -100,5 +104,64 @@ describe("starry-night star field", () => {
 		}
 		const tiny = placeStar({ x: 0.5, y: 0.5, size: 1, opacity: 1, twinkle: null }, 100, 100, 0.4);
 		assert.equal(tiny.diameter, 1);
+	});
+});
+
+describe("starry-night twinkle", () => {
+	it("holds full glow for the first fifth and none from 40% to 80%", () => {
+		for (const u of [0, 0.1, 0.199]) assert.equal(twinkleEnvelope(u), 1, `u ${u}`);
+		for (const u of [0.4, 0.6, 0.799]) assert.equal(twinkleEnvelope(u), 0, `u ${u}`);
+	});
+
+	it("fades out and back in monotonically", () => {
+		const samples = (from: number, to: number) =>
+			Array.from({ length: 21 }, (_, i) => twinkleEnvelope(from + ((to - from) * (i + 1)) / 22));
+		const out = samples(0.2, 0.4);
+		const back = samples(0.8, 1);
+		for (let i = 1; i < 21; i++) {
+			assert.ok(out[i] < out[i - 1], `fade out at ${i}`);
+			assert.ok(back[i] > back[i - 1], `fade in at ${i}`);
+		}
+	});
+
+	it("eases the fades instead of ramping linearly", () => {
+		assert.ok(Math.abs(twinkleEnvelope(0.25) - 0.75) > 0.05);
+	});
+
+	it("is continuous at the wraparound and reduces any input mod 1", () => {
+		assert.ok(Math.abs(twinkleEnvelope(0.99999) - twinkleEnvelope(0)) < 1e-3);
+		assert.equal(twinkleEnvelope(1.1), twinkleEnvelope(0.1));
+		assert.ok(Math.abs(twinkleEnvelope(-0.7) - twinkleEnvelope(0.3)) < 1e-9);
+	});
+
+	it("dims the dot to TWINKLE_DOT_MIN of its base opacity at zero glow", () => {
+		assert.equal(dotAlpha(0.8, 1), 0.8);
+		assert.ok(Math.abs(dotAlpha(0.8, 0) - 0.8 * TWINKLE_DOT_MIN) < 1e-9);
+	});
+
+	it("evaluates glow from the star's own period and phase at any time", () => {
+		const glow = twinkleGlow({ period: 5000, phase: 1000 }, 3_600_000);
+		assert.ok(glow >= 0 && glow <= 1);
+		assert.equal(glow, twinkleEnvelope(((3_600_000 + 1000) % 5000) / 5000));
+	});
+
+	it("takes separate draws for each twinkling star's period and phase", () => {
+		const counting = (value: number) => {
+			let draws = 0;
+			const rand: Rand = () => {
+				draws++;
+				return value;
+			};
+			return { rand, draws: () => draws };
+		};
+		// 80 × 50 px is exactly one star.
+		const plain = counting(0.9);
+		assert.equal(generateField(80, 50, plain.rand)[0].twinkle, null);
+		const twinkling = counting(0.1);
+		const [star] = generateField(80, 50, twinkling.rand);
+		assert.ok(star.twinkle);
+		assert.equal(twinkling.draws() - plain.draws(), 2);
+		assert.ok(star.twinkle.period >= 4000 && star.twinkle.period <= 6000);
+		assert.ok(star.twinkle.phase >= 0 && star.twinkle.phase < star.twinkle.period);
 	});
 });

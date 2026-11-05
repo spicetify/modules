@@ -75,6 +75,29 @@ export function backingSize(cssWidth: number, cssHeight: number, scale: number):
 	return { width: Math.round(cssWidth * scale), height: Math.round(cssHeight * scale) };
 }
 
+// Smoothstep: eased, monotonic on [0, 1].
+const ease = (t: number) => t * t * (3 - 2 * t);
+
+// Glow over one cycle, u reduced mod 1: full for 20%, eased fade out for
+// 20%, off for 40%, eased fade in for 20%. Matches the original keyframes.
+export function twinkleEnvelope(u: number): number {
+	const p = u - Math.floor(u);
+	if (p < 0.2) return 1;
+	if (p < 0.4) return 1 - ease((p - 0.2) / 0.2);
+	if (p < 0.8) return 0;
+	return ease((p - 0.8) / 0.2);
+}
+
+export function twinkleGlow(twinkle: Twinkle, timeMs: number): number {
+	return twinkleEnvelope(
+		((((timeMs + twinkle.phase) % twinkle.period) + twinkle.period) % twinkle.period) / twinkle.period,
+	);
+}
+
+export function dotAlpha(baseOpacity: number, glow: number): number {
+	return baseOpacity * (TWINKLE_DOT_MIN + (1 - TWINKLE_DOT_MIN) * glow);
+}
+
 // An odd diameter centers on a half pixel and an even one on a whole pixel,
 // so the dot covers whole backing pixels and stays crisp at fractional DPR.
 const snap = (value: number, diameter: number) => (diameter % 2 === 1 ? Math.floor(value) + 0.5 : Math.round(value));
