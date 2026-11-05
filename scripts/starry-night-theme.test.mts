@@ -12,9 +12,14 @@ import {
 	backingSize,
 	canvasScale,
 	dotAlpha,
+	firstDelayMs,
+	flightDistance,
+	flightKeyframes,
 	generateField,
 	MAX_STARS,
+	pickLaunch,
 	placeStar,
+	planFlight,
 	type Rand,
 	type Star,
 	starCount,
@@ -163,5 +168,78 @@ describe("starry-night twinkle", () => {
 		assert.equal(twinkling.draws() - plain.draws(), 2);
 		assert.ok(star.twinkle.period >= 4000 && star.twinkle.period <= 6000);
 		assert.ok(star.twinkle.phase >= 0 && star.twinkle.phase < star.twinkle.period);
+	});
+});
+
+describe("starry-night shooting stars", () => {
+	it("launches from above the top edge or past the right edge", () => {
+		// The top-edge offset draw is scaled to 0–90% of the width.
+		const top = pickLaunch(800, 600, seq(0.5, 0.5 / 0.9));
+		assert.ok(Math.abs(top.x - 400) < 1e-9);
+		assert.equal(top.y, -4);
+		assert.deepEqual(pickLaunch(800, 600, seq(0.75, 0.5)), { x: 804, y: 150 });
+	});
+
+	it("splits launches 75/25 within the original ranges", () => {
+		const rand = lcg(11);
+		let topCount = 0;
+		for (let i = 0; i < 1000; i++) {
+			const l = pickLaunch(800, 600, rand);
+			if (l.y === -4) {
+				topCount++;
+				assert.ok(l.x >= 80 && l.x <= 800, `top x ${l.x}`);
+			} else {
+				assert.equal(l.x, 804);
+				assert.ok(l.y >= 0 && l.y <= 300, `right y ${l.y}`);
+			}
+		}
+		assert.ok(Math.abs(topCount / 1000 - 0.75) <= 0.04, `top share ${topCount / 1000}`);
+	});
+
+	it("flies until the head leaves the viewport, plus the tail", () => {
+		const expected = Math.min(400 * Math.SQRT2, (1152 + 4) * Math.SQRT2) + 300;
+		assert.ok(Math.abs(flightDistance({ x: 400, y: -4 }, 717, 1152) - expected) < 1e-9);
+	});
+
+	it("puts the head on the left or bottom edge exactly when the tail starts clearing", () => {
+		const rand = lcg(5);
+		for (const [w, h] of [
+			[717, 1152],
+			[3840, 1200],
+			[800, 600],
+		]) {
+			for (let i = 0; i < 200; i++) {
+				const launch = pickLaunch(w, h, rand);
+				const d = flightDistance(launch, w, h) - 300;
+				const at = (k: number) => ({ x: launch.x - k / Math.SQRT2, y: launch.y + k / Math.SQRT2 });
+				const end = at(d);
+				assert.ok(Math.abs(end.x) < 1e-6 || Math.abs(end.y - h) < 1e-6, `end ${end.x},${end.y}`);
+				const before = at(d * 0.99);
+				assert.ok(before.x > 0 && before.y < h);
+			}
+		}
+	});
+
+	it("derives the duration from a speed in [250, 500] px/s", () => {
+		const slow = planFlight(800, 600, seq(0.1, 0.5, 0));
+		assert.equal(slow.durationMs, (slow.distance / 250) * 1000);
+		const fast = planFlight(800, 600, seq(0.1, 0.5, 1 - 1e-12));
+		assert.ok(Math.abs(fast.durationMs - (fast.distance / 500) * 1000) < 1e-6);
+		assert.equal(slow.distance, flightDistance(slow.launch, 800, 600));
+	});
+
+	it("delays only by whole seconds from 0 to 6", () => {
+		assert.equal(firstDelayMs(seq(0)), 0);
+		assert.equal(firstDelayMs(seq(0.999)), 6000);
+		const rand = lcg(3);
+		for (let i = 0; i < 100; i++) assert.equal(firstDelayMs(rand) % 1000, 0);
+	});
+
+	it("keeps the original rotation and opacity shape", () => {
+		assert.deepEqual(flightKeyframes(1000), [
+			{ transform: "rotate(315deg) translateX(0)", opacity: 1, offset: 0 },
+			{ opacity: 1, offset: 0.7 },
+			{ transform: "rotate(315deg) translateX(-1000px)", opacity: 0, offset: 1 },
+		]);
 	});
 });

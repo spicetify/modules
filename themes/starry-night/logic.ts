@@ -116,3 +116,48 @@ export function placeStar(
 		diameter,
 	};
 }
+
+/** Head position in CSS px, viewport coordinates. */
+export interface Launch {
+	x: number;
+	y: number;
+}
+export interface Flight {
+	launch: Launch;
+	distance: number;
+	durationMs: number;
+}
+
+// As in the original pen: 75% enter just above the top edge, offset 0–90%
+// of the width from the right; 25% enter just past the right edge in the
+// top half.
+export function pickLaunch(width: number, height: number, rand: Rand): Launch {
+	if (rand() < 0.75) return { x: width * (1 - rand() * 0.9), y: -4 };
+	return { x: width + 4, y: rand() * 0.5 * height };
+}
+
+// The head travels 45° down-left, so it leaves through the left edge after
+// x·√2 or through the bottom after (height − y)·√2. Adding the tail length
+// lets the streak clear the screen before the flight ends.
+export function flightDistance(launch: Launch, width: number, height: number): number {
+	return Math.min(launch.x * Math.SQRT2, (height - launch.y) * Math.SQRT2) + SHOOTING_TAIL;
+}
+
+export function planFlight(width: number, height: number, rand: Rand): Flight {
+	const launch = pickLaunch(width, height, rand);
+	const distance = flightDistance(launch, width, height);
+	const speed = SHOOTING_SPEED_MIN + rand() * (SHOOTING_SPEED_MAX - SHOOTING_SPEED_MIN);
+	return { launch, distance, durationMs: (distance / speed) * 1000 };
+}
+
+export function firstDelayMs(rand: Rand): number {
+	return Math.floor(rand() * 7) * 1000;
+}
+
+export function flightKeyframes(distance: number): Keyframe[] {
+	return [
+		{ transform: "rotate(315deg) translateX(0)", opacity: 1, offset: 0 },
+		{ opacity: 1, offset: 0.7 },
+		{ transform: `rotate(315deg) translateX(-${distance}px)`, opacity: 0, offset: 1 },
+	];
+}
