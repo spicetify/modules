@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/spicetify/modules/compare/kit@0.4.4...kit@0.5.0) (2026-11-05)
+
+
+### Features
+
+* **kit:** identify modules by id and let name be the display name ([1b7264a](https://github.com/spicetify/modules/commit/1b7264a86cac68fb698a09f465dcf4711dc95ddc))
+
 ## [0.4.4](https://github.com/spicetify/modules/compare/kit@0.4.3...kit@0.4.4) (2026-10-01)
 
 
