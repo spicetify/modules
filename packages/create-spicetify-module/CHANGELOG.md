@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.9](https://github.com/spicetify/modules/compare/create-spicetify-module@0.1.8...create-spicetify-module@0.1.9) (2026-11-05)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @spicetify/kit bumped from ^0.4.4 to ^0.5.0
+
 ## [0.1.8](https://github.com/spicetify/modules/compare/create-spicetify-module@0.1.7...create-spicetify-module@0.1.8) (2026-10-01)
 
 
