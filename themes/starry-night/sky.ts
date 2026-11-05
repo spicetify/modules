@@ -76,6 +76,9 @@ interface Placed {
 	cx: number;
 	cy: number;
 	diameter: number;
+	// Alpha factor so a filled square gives off the light of the round dot
+	// the original theme drew (a circle covers π/4 of its square).
+	light: number;
 }
 
 interface Sprite {
@@ -83,11 +86,13 @@ interface Sprite {
 	half: number;
 }
 
-function drawDot(ctx: CanvasRenderingContext2D, p: Placed): void {
+function drawDot(ctx: CanvasRenderingContext2D, p: Placed, alpha: number): void {
 	if (p.diameter <= 2) {
+		ctx.globalAlpha = alpha * p.light;
 		ctx.fillRect(p.cx - p.diameter / 2, p.cy - p.diameter / 2, p.diameter, p.diameter);
 		return;
 	}
+	ctx.globalAlpha = alpha;
 	ctx.beginPath();
 	ctx.arc(p.cx, p.cy, p.diameter / 2, 0, Math.PI * 2);
 	ctx.fill();
@@ -220,7 +225,11 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 	let twinkling: Placed[] = [];
 	// Glow sprites by star size (1 or 2 CSS px).
 	let sprites: Record<number, Sprite | null> = {};
-	let nextTwinkle = 0;
+	// Armed between twinkle batches. Batches are timer-driven so frames are
+	// requested only when one is due: every main frame also re-services the
+	// shooting stars' animations, which costs a style recalc.
+	let twinkleTimer: number | null = null;
+	let twinkleDue = false;
 
 	// Work waiting for the next visible frame.
 	let needsLayout = true;
@@ -258,10 +267,11 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 			canvas.width = backing.width;
 			canvas.height = backing.height;
 		}
-		field = generateField(size.width, size.height, deps.rand).map((star) => ({
-			star,
-			...placeStar(star, size.width, size.height, scale),
-		}));
+		field = generateField(size.width, size.height, deps.rand).map((star) => {
+			const placed = placeStar(star, size.width, size.height, scale);
+			const round = (Math.PI * (star.size * scale) ** 2) / 4;
+			return { star, ...placed, light: Math.min(1, round / placed.diameter ** 2) };
+		});
 		twinkling = field.filter((p) => p.star.twinkle);
 	}
 
@@ -271,8 +281,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 		staticCtx.fillStyle = starColor();
 		for (const p of field) {
 			if (p.star.twinkle) continue;
-			staticCtx.globalAlpha = p.star.opacity;
-			drawDot(staticCtx, p);
+			drawDot(staticCtx, p, p.star.opacity);
 		}
 		staticCtx.globalAlpha = 1;
 	}
@@ -283,8 +292,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 		twinkleCtx.clearRect(0, 0, twinkleCanvas.width, twinkleCanvas.height);
 		twinkleCtx.fillStyle = starColor();
 		for (const p of twinkling) {
-			twinkleCtx.globalAlpha = p.star.opacity;
-			drawDot(twinkleCtx, p);
+			drawDot(twinkleCtx, p, p.star.opacity);
 		}
 		twinkleCtx.globalAlpha = 1;
 	}
@@ -310,8 +318,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 				twinkleCtx.globalAlpha = p.star.opacity * glow;
 				twinkleCtx.drawImage(sprite.canvas, Math.round(p.cx - sprite.half), Math.round(p.cy - sprite.half));
 			}
-			twinkleCtx.globalAlpha = dotAlpha(p.star.opacity, glow);
-			drawDot(twinkleCtx, p);
+			drawDot(twinkleCtx, p, dotAlpha(p.star.opacity, glow));
 		}
 		twinkleCtx.globalAlpha = 1;
 	}
@@ -342,17 +349,31 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 		if (state === "static") {
 			if (twinkleFull) drawTwinkleStill();
 			twinkleFull = false;
+			stopTwinkle();
 		} else if (state === "animating") {
-			if (twinkleFull || timeMs >= nextTwinkle) {
-				// Fixed cadence from the last batch, so a forced redraw never
-				// adds an extra one and a long gap never causes a catch-up burst.
-				nextTwinkle = twinkleFull ? timeMs + TWINKLE_INTERVAL : nextTwinkle + TWINKLE_INTERVAL;
-				if (nextTwinkle <= timeMs) nextTwinkle = timeMs + TWINKLE_INTERVAL;
+			// A batch runs when the timer says so, when something forced a
+			// full redraw, or on resume (no timer armed). Each batch restarts
+			// the timer, so batches stay at least TWINKLE_INTERVAL apart and a
+			// long gap never causes a catch-up burst.
+			if (twinkleDue || twinkleFull || twinkleTimer === null) {
 				drawTwinkleBatch(timeMs, twinkleFull);
-				twinkleFull = false;
+				twinkleDue = twinkleFull = false;
+				stopTwinkle();
+				twinkleTimer = deps.setTimer(() => {
+					twinkleTimer = null;
+					twinkleDue = true;
+					schedule();
+				}, TWINKLE_INTERVAL);
 			}
-			schedule();
+		} else {
+			stopTwinkle();
 		}
+	}
+
+	function stopTwinkle(): void {
+		if (twinkleTimer === null) return;
+		deps.clearTimer(twinkleTimer);
+		twinkleTimer = null;
 	}
 
 	function schedule(): void {
@@ -386,7 +407,10 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 			if (disposed) return;
 			visible = next;
 			if (visible) schedule();
-			else cancelFrame();
+			else {
+				cancelFrame();
+				stopTwinkle();
+			}
 			shooting.update();
 		},
 		setReducedMotion(reduce) {
@@ -405,6 +429,7 @@ export function createSky(deps: SkyDeps, initial: { visible: boolean; reducedMot
 			if (disposed) return;
 			disposed = true;
 			cancelFrame();
+			stopTwinkle();
 			if (settleTimer !== null) deps.clearTimer(settleTimer);
 			settleTimer = null;
 			shooting.dispose();

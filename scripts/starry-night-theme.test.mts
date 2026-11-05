@@ -289,7 +289,9 @@ class FakeFrames {
 	now = 0;
 	private nextId = 1;
 	private callbacks = new Map<number, (t: number) => void>();
+	requests = 0;
 	request = (cb: (t: number) => void) => {
+		this.requests++;
 		const id = this.nextId++;
 		this.callbacks.set(id, cb);
 		return id;
@@ -432,9 +434,17 @@ function setupSky(opts: {
 	const staticPasses = () => staticCtx().ops.filter((o) => o.op === "clearRect").length;
 	// Every twinkle batch redraws every twinkling dot; glows at zero are skipped.
 	const batchTimes = () => new Set(dots(twinkleCtx()).map((o) => o.t));
+	// Advance timers and frames together, as a browser would.
+	const run = (n: number, dt = 1000 / 120) => {
+		for (let i = 0; i < n; i++) {
+			timers.advance(dt);
+			frames.tick(dt);
+		}
+	};
 	return {
 		sky,
 		deps,
+		run,
 		frames,
 		timers,
 		vp,
@@ -461,7 +471,7 @@ describe("starry-night canvas sky", () => {
 
 	it("draws the static layer once and caps twinkle batches (AC21)", () => {
 		const t = setupSky({ viewport: { width: 3840, height: 1200, dpr: 1 } });
-		t.frames.ticks(120);
+		t.run(120);
 		assert.equal(t.staticPasses(), 1);
 		const batches = t.batchTimes();
 		assert.ok(batches.size <= TWINKLE_FPS, `batches ${batches.size}`);
@@ -470,6 +480,25 @@ describe("starry-night canvas sky", () => {
 		const twinkling = t.dots(t.twinkleCtx()).filter((o) => o.t === first).length;
 		assert.ok(twinkling > 0);
 		assert.equal(t.dots(t.staticCtx()).length + twinkling, starCount(3840, 1200));
+	});
+
+	it("requests a frame only when a twinkle batch is due", () => {
+		const t = setupSky({ viewport: { width: 3840, height: 1200, dpr: 1 } });
+		t.run(120);
+		assert.ok(t.frames.requests <= TWINKLE_FPS + 1, `requests ${t.frames.requests}`);
+		assert.ok(t.batchTimes().size >= TWINKLE_FPS - 6, `batches ${t.batchTimes().size}`);
+	});
+
+	it("gives square dots the light of the original round 1–2 px stars", () => {
+		const t = setupSky({});
+		t.frames.tick();
+		const alphas = t
+			.staticCtx()
+			.ops.filter((o) => o.op === "fillRect")
+			.map((o) => o.alpha);
+		assert.ok(alphas.length > 0);
+		// Base opacity is in [0.5, 1); a round dot covers π/4 of its square.
+		for (const a of alphas) assert.ok(a >= (0.5 * Math.PI) / 4 - 1e-9 && a < Math.PI / 4, `alpha ${a}`);
 	});
 
 	it("regenerates at most once per frame while resizing, then once when settled (AC10)", () => {
@@ -540,20 +569,20 @@ describe("starry-night canvas sky", () => {
 
 	it("stops twinkling and stops re-arming frames while hidden (AC12)", () => {
 		const t = setupSky({});
-		t.frames.ticks(10);
+		t.run(10);
 		t.sky.setVisible(false);
 		const before = t.twinkleCtx().ops.length;
-		t.frames.ticks(30);
+		t.run(30);
 		assert.equal(t.twinkleCtx().ops.length, before);
 		assert.equal(t.frames.pending, 0);
 	});
 
 	it("draws twinkling stars once without glow under reduced motion (AC13)", () => {
 		const t = setupSky({});
-		t.frames.ticks(10);
+		t.run(10);
 		t.sky.setReducedMotion(true);
 		const before = t.twinkleCtx().ops.length;
-		t.frames.ticks(5);
+		t.run(30);
 		const after = t.twinkleCtx().ops.slice(before);
 		assert.ok(after.length > 0);
 		assert.equal(after.filter((o) => o.op === "drawImage").length, 0);
@@ -561,7 +590,7 @@ describe("starry-night canvas sky", () => {
 		assert.equal(t.frames.pending, 0);
 		t.sky.setVisible(false);
 		t.sky.setVisible(true);
-		t.frames.ticks(5);
+		t.run(30);
 		assert.equal(
 			t
 				.twinkleCtx()
@@ -630,7 +659,7 @@ describe("starry-night canvas sky", () => {
 
 	it("draws one batch after a long hidden gap, with alphas in range (Review Focus 4)", () => {
 		const t = setupSky({});
-		t.frames.ticks(10);
+		t.run(10);
 		t.sky.setVisible(false);
 		t.sky.setVisible(true);
 		const before = t.batchTimes().size;
