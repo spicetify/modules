@@ -8,6 +8,8 @@ import "../modules/stdlib/lib/test-setup.mts";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { Window } from "happy-dom";
+
 import {
 	backingSize,
 	FALLBACK_COLOR,
@@ -38,6 +40,7 @@ import {
 	type SkyDeps,
 	type Viewport,
 } from "../themes/starry-night/sky.ts";
+import { type MountEnv, mountSky } from "../themes/starry-night/mount.ts";
 
 // Cycles a fixed list of draws.
 function seq(...values: number[]): Rand {
@@ -803,5 +806,260 @@ describe("starry-night shooting stars on screen", () => {
 		t.vp.height = 600;
 		t.sky.resize();
 		assert.equal(t.flights.length, 5);
+	});
+});
+
+// ---- Mount and lifecycle ----------------------------------------------
+
+type Listener = [target: object, type: string, fn: unknown];
+
+class FakeMediaQueryList {
+	readonly media: string;
+	matches: boolean;
+	private readonly registry: Listener[];
+	constructor(media: string, matches: boolean, registry: Listener[]) {
+		this.media = media;
+		this.matches = matches;
+		this.registry = registry;
+	}
+	addEventListener(type: string, fn: unknown) {
+		this.registry.push([this, type, fn]);
+	}
+	removeEventListener(type: string, fn: unknown) {
+		const i = this.registry.findIndex(([t, ty, f]) => t === this && ty === type && f === fn);
+		if (i >= 0) this.registry.splice(i, 1);
+	}
+	fire(matches: boolean) {
+		this.matches = matches;
+		for (const [t, type, fn] of this.registry.slice()) {
+			if (t === this && type === "change") (fn as (e: { matches: boolean }) => void)({ matches });
+		}
+	}
+}
+
+function setupMount(opts: { container?: boolean; waitTries?: number } = {}) {
+	const win = new Window({ url: "https://xpui.app.spotify.com" });
+	const doc = win.document as unknown as Document;
+	const registry: Listener[] = [];
+	// Track every listener added to or removed from a happy-dom target.
+	let owner: object = doc;
+	while (!Object.hasOwn(owner, "addEventListener")) owner = Object.getPrototypeOf(owner);
+	const target = owner as EventTarget;
+	const origAdd = target.addEventListener;
+	const origRemove = target.removeEventListener;
+	target.addEventListener = function (this: object, type: string, fn: unknown, o?: unknown) {
+		registry.push([this, type, fn]);
+		return origAdd.call(this, type, fn as EventListener, o as AddEventListenerOptions);
+	};
+	target.removeEventListener = function (this: object, type: string, fn: unknown, o?: unknown) {
+		const i = registry.findIndex(([t, ty, f]) => t === this && ty === type && f === fn);
+		if (i >= 0) registry.splice(i, 1);
+		return origRemove.call(this, type, fn as EventListener, o as EventListenerOptions);
+	};
+	const restore = () => {
+		target.addEventListener = origAdd;
+		target.removeEventListener = origRemove;
+	};
+
+	if (opts.container !== false) {
+		const top = doc.createElement("div");
+		top.className = "Root__top-container";
+		doc.body.appendChild(top);
+	}
+	const frames = new FakeFrames();
+	const timers = new FakeTimers();
+	const queries: FakeMediaQueryList[] = [];
+	let colorReads = 0;
+	const fakeWindow = {
+		innerWidth: 800,
+		innerHeight: 600,
+		devicePixelRatio: 1,
+		addEventListener(type: string, fn: unknown) {
+			registry.push([fakeWindow, type, fn]);
+		},
+		removeEventListener(type: string, fn: unknown) {
+			const i = registry.findIndex(([t, ty, f]) => t === fakeWindow && ty === type && f === fn);
+			if (i >= 0) registry.splice(i, 1);
+		},
+		matchMedia(media: string) {
+			const q = new FakeMediaQueryList(media, false, registry);
+			queries.push(q);
+			return q as unknown as MediaQueryList;
+		},
+		getComputedStyle() {
+			colorReads++;
+			return {
+				color: "rgb(255, 255, 255)",
+				backgroundColor: "rgb(255, 255, 255)",
+				getPropertyValue: () => "#ffffff",
+			} as unknown as CSSStyleDeclaration;
+		},
+	};
+	const contexts = new Map<HTMLCanvasElement, FakeCtx>();
+	const flights: FakeAnimation[] = [];
+	const env: MountEnv = {
+		document: doc,
+		window: fakeWindow as unknown as MountEnv["window"],
+		rand: lcg(1),
+		getContext: (canvas) => {
+			let c = contexts.get(canvas);
+			if (!c) contexts.set(canvas, (c = fakeContext(canvas, frames)));
+			return c as unknown as CanvasRenderingContext2D;
+		},
+		createCanvas: () => doc.createElement("canvas") as HTMLCanvasElement,
+		requestFrame: frames.request,
+		cancelFrame: frames.cancel,
+		setTimer: timers.set,
+		clearTimer: timers.clear,
+		animate: (el, keyframes, options) => {
+			const a = new FakeAnimation(el, keyframes, options);
+			flights.push(a);
+			return a;
+		},
+		waitTries: opts.waitTries,
+	};
+	return {
+		win,
+		doc,
+		env,
+		frames,
+		timers,
+		queries,
+		registry,
+		flights,
+		restore,
+		colorReads: () => colorReads,
+		count: (selector: string) => doc.querySelectorAll(selector).length,
+	};
+}
+
+describe("starry-night mount", () => {
+	it("gives up within the bounded wait and creates nothing (AC24)", async () => {
+		const t = setupMount({ container: false, waitTries: 3 });
+		try {
+			const handle = mountSky(t.env);
+			t.timers.advance(250 * 3);
+			assert.equal(await handle.ready, false);
+			assert.equal(t.count(".starrynight-bg-container"), 0);
+			assert.equal(t.timers.pending, 0);
+		} finally {
+			t.restore();
+		}
+	});
+
+	it("settles and stays empty when disposed during the wait (AC24)", async () => {
+		const t = setupMount({ container: false });
+		try {
+			const handle = mountSky(t.env);
+			t.timers.advance(500);
+			handle.dispose();
+			assert.equal(await handle.ready, false);
+			const top = t.doc.createElement("div");
+			top.className = "Root__top-container";
+			t.doc.body.appendChild(top);
+			t.timers.advance(10_000);
+			t.frames.ticks(5);
+			assert.equal(t.count(".starrynight-bg-container"), 0);
+			assert.equal(t.timers.pending, 0);
+		} finally {
+			t.restore();
+		}
+	});
+
+	it("leaves nothing behind after dispose (AC14)", async () => {
+		const t = setupMount();
+		try {
+			const handle = mountSky(t.env);
+			assert.equal(await handle.ready, true);
+			t.frames.ticks(10);
+			t.timers.advance(6000);
+			assert.ok(t.registry.length > 0);
+			assert.equal(t.count(".shootingstar"), 4);
+			handle.dispose();
+			handle.dispose();
+			for (const sel of [".starrynight-bg-container", "canvas", ".starrynight-sentinel", ".shootingstar"]) {
+				assert.equal(t.count(sel), 0, sel);
+			}
+			assert.deepEqual(
+				t.registry.map(([, type]) => type),
+				[],
+			);
+			assert.equal(t.frames.pending, 0);
+			assert.equal(t.timers.pending, 0);
+			assert.ok(t.flights.every((f) => f.state !== "running" && f.state !== "paused"));
+		} finally {
+			t.restore();
+		}
+	});
+
+	it("ends with one backdrop after a fast disable and enable (Review Focus 5)", async () => {
+		const t = setupMount({ container: false });
+		try {
+			const a = mountSky(t.env);
+			a.dispose();
+			const b = mountSky(t.env);
+			const top = t.doc.createElement("div");
+			top.className = "Root__top-container";
+			t.doc.body.appendChild(top);
+			t.timers.advance(1000);
+			assert.equal(await a.ready, false);
+			assert.equal(await b.ready, true);
+			t.frames.ticks(3);
+			assert.equal(t.count(".starrynight-bg-container"), 1);
+			b.dispose();
+		} finally {
+			t.restore();
+		}
+	});
+
+	it("renders without per-star elements (AC5)", async () => {
+		const t = setupMount();
+		try {
+			const handle = mountSky(t.env);
+			await handle.ready;
+			t.frames.ticks(5);
+			assert.equal(t.count(".starrynight-star"), 0);
+			assert.equal(t.count("canvas"), 2);
+			handle.dispose();
+		} finally {
+			t.restore();
+		}
+	});
+
+	it("recolors when the sentinel's transition fires", async () => {
+		const t = setupMount();
+		try {
+			const handle = mountSky(t.env);
+			await handle.ready;
+			t.frames.tick();
+			const reads = t.colorReads();
+			const sentinel = t.doc.querySelector(".starrynight-sentinel")!;
+			sentinel.dispatchEvent(new t.win.Event("transitionend") as unknown as Event);
+			t.frames.tick();
+			assert.equal(t.colorReads(), reads + 1);
+			handle.dispose();
+		} finally {
+			t.restore();
+		}
+	});
+
+	it("follows reduced motion and DPR media queries", async () => {
+		const t = setupMount();
+		try {
+			const handle = mountSky(t.env);
+			await handle.ready;
+			t.timers.advance(6000);
+			const reduce = t.queries.find((q) => q.media.includes("prefers-reduced-motion"))!;
+			reduce.fire(true);
+			assert.equal(t.count(".shootingstar:not([hidden])"), 0);
+			const dpr = t.queries.find((q) => q.media.includes("resolution"))!;
+			const queriesBefore = t.queries.length;
+			dpr.fire(false);
+			assert.equal(t.queries.length, queriesBefore + 1);
+			handle.dispose();
+			assert.equal(t.registry.length, 0);
+		} finally {
+			t.restore();
+		}
 	});
 });
