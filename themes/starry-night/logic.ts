@@ -14,7 +14,7 @@ export const TWINKLE_PERIOD_MIN = 4000;
 export const TWINKLE_PERIOD_MAX = 6000;
 // Twinkle redraws per second, and how far a twinkling dot dims (as a share
 // of its base opacity) while its glow is off.
-export const TWINKLE_FPS = 24;
+export const TWINKLE_FPS = 20;
 export const TWINKLE_DOT_MIN = 0.7;
 export const MAX_CANVAS_DPR = 2;
 export const SHOOTING_STAR_COUNT = 4;
